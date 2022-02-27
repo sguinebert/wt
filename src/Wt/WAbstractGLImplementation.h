@@ -1,6 +1,6 @@
 // This may look like C code, but it's really -*- C++ -*-
 /*
- * Copyright (C) 2013 Emweb bv, Herent, Belgium.
+ * Copyright (C) 2013 Emweb bvba, Leuven, Belgium.
  *
  * See the LICENSE file for terms of use.
  */
@@ -228,7 +228,7 @@ public:
 			  WGLWidget::GLenum format) = 0;
 
   virtual void texImage2D(WGLWidget::GLenum target, int level,
-			  WGLWidget::GLenum internalformat,
+			  WGLWidget::GLenum internalformat, unsigned width, unsigned height, int border,
 			  WGLWidget::GLenum format, WGLWidget::GLenum type,
 			  WImage *image) = 0;
 
@@ -251,6 +251,39 @@ public:
 			  WGLWidget::GLenum internalformat,
 			  WGLWidget::GLenum format, WGLWidget::GLenum type,
 			  WGLWidget::Texture texture) = 0;
+
+  virtual void texImage3D(WGLWidget::GLenum target, int level,
+                          WGLWidget::GLenum internalformat,
+                          unsigned width, unsigned height, unsigned depth, int border,
+                          WGLWidget::GLenum format, WGLWidget::GLenum type) = 0;
+
+  virtual void texImage3D(WGLWidget::GLenum target, int level,
+                          WGLWidget::GLenum internalformat,
+                          unsigned width, unsigned height, unsigned depth, int border,
+                          WGLWidget::GLenum format, WGLWidget::GLenum type,
+                          std::string image) = 0;
+
+  virtual void texImage3D(WGLWidget::GLenum target, int level,
+                          WGLWidget::GLenum internalformat,
+                          WGLWidget::GLenum format, WGLWidget::GLenum type,
+                          WGLWidget::Texture texture) = 0;
+
+  virtual void texStorage3D(WGLWidget::GLenum target, int level, //target, levels, internalformat, width, height, depth
+                            WGLWidget::GLenum internalformat,
+                            unsigned width, unsigned height, unsigned depth) = 0;
+
+  virtual void texSubImage3D(WGLWidget::GLenum target, int level,
+                          int xoffset, int yoffset, int zoffset,
+                          unsigned width, unsigned height, unsigned depth,
+                          WGLWidget::GLenum format, WGLWidget::GLenum type,
+                          std::string image) = 0;
+
+  virtual void texSubImage3D(WGLWidget::GLenum target, int level,
+                             int xoffset, int yoffset, int zoffset,
+                             unsigned width, unsigned height, unsigned depth,
+                             WGLWidget::GLenum format, WGLWidget::GLenum type,
+                             WImage *image) = 0;
+
 
   virtual void texParameteri(WGLWidget::GLenum target, WGLWidget::GLenum pname,
 			     WGLWidget::GLenum param) = 0;
