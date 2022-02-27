@@ -9,28 +9,19 @@
 
 #include <string>
 #include <Wt/WException.h>
+#include "json.hpp"
+
 
 namespace Wt {
   namespace Json {
 
-class Object;
-class Value;
-class Array;
-
+  typedef std::error_code ParseError;
 /*! \brief A parse error.
  *
  * Exception thrown or returned by a JSON parsing function.
  *
  * \ingroup json
  */
-class WT_API ParseError : public WException
-{
-public:
-  ParseError();
-  ParseError(const std::string& message);
-
-  void setError(const std::string& message);
-};
 
 /*! \brief Parse function
  *
@@ -45,9 +36,11 @@ public:
  *
  * \ingroup json
  */
-WT_API extern void parse(const std::string& input, Value& result, bool validateUTF8 = true);
+  WT_API extern Value parse(const std::string& input, bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
 
-/*! \brief Parse function
+  //WT_API extern Value parse(const std::string& input);
+
+  /*! \brief Parse function
  *
  * This function parses the input string (which represents a UTF-8
  * JSON-encoded data structure) into the \p result value. On success,
@@ -61,10 +54,13 @@ WT_API extern void parse(const std::string& input, Value& result, bool validateU
  *
  * \ingroup json
  */
-WT_API extern bool parse(const std::string& input, Value& result,
-                         ParseError& error, bool validateUTF8 = true);
 
-/*! \brief Parse function
+  WT_API extern Value parse(const std::string& input,
+                            ParseError& error, bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
+
+  //WT_API extern Value parse(const std::string& input, Value& result, ParseError& error);
+
+  /*! \brief Parse function
  *
  * This function parses the input string (which represents a UTF-8
  * JSON-encoded data structure) into the \p result object.
@@ -77,10 +73,12 @@ WT_API extern bool parse(const std::string& input, Value& result,
  *
  * \ingroup json
  */
-WT_API extern void parse(const std::string& input, Object& result,
-                         bool validateUTF8 = true);
+  WT_API extern void parse(const std::string& input, Object& result,
+                           bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
 
-/*! \brief Parse function
+  //WT_API extern void parse(const std::string& input, Object& result);
+
+  /*! \brief Parse function
  *
  * This function parses the input string (which represents a UTF-8
  * JSON-encoded data structure) into the \p result value. On success,
@@ -94,10 +92,11 @@ WT_API extern void parse(const std::string& input, Object& result,
  *
  * \ingroup json
  */
-WT_API extern bool parse(const std::string& input, Object& result,
-                         ParseError& error, bool validateUTF8 = true);
 
-/*! \brief Parse function
+  WT_API extern bool parse(const std::string& input, Object& result,
+                           ParseError& error, bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
+
+  /*! \brief Parse function
  *
  * This function parses the input string (which represents a UTF-8
  * JSON-encoded data structure) into the \p result object.
@@ -110,10 +109,13 @@ WT_API extern bool parse(const std::string& input, Object& result,
  *
  * \ingroup json
  */
-WT_API extern void parse(const std::string& input, Array& result,
-                         bool validateUTF8 = true);
 
-/*! \brief Parse function
+  //WT_API extern void parse(const std::string& input, Array& result);
+
+  WT_API extern void parse(const std::string& input, Array& result,
+                           bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
+
+  /*! \brief Parse function
  *
  * This function parses the input string (which represents a UTF-8
  * JSON-encoded data structure) into the \p result value. On success,
@@ -127,8 +129,9 @@ WT_API extern void parse(const std::string& input, Array& result,
  *
  * \ingroup json
  */
-WT_API extern bool parse(const std::string& input, Array& result,
-                         ParseError& error, bool validateUTF8 = true);
+
+  WT_API extern bool parse(const std::string& input, Array& result,
+                           ParseError& error, bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
 
 #ifdef WT_TARGET_JAVA
     class Parser {
