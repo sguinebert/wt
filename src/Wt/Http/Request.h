@@ -8,6 +8,7 @@
 #define HTTP_REQUEST_H_
 
 #include <map>
+#include <unordered_map>
 #include <memory>
 #include <string>
 #include <istream>
@@ -104,7 +105,7 @@ typedef std::string ParameterValues[];
  *
  * This is the type used aggregate plain parameter values in a request.
  */
-typedef std::map<std::string, ParameterValues> ParameterMap;
+typedef std::unordered_map<std::string, ParameterValues> ParameterMap;
 
 extern const std::string *get(const ParameterMap& map,
 			      const std::string& name);
@@ -113,7 +114,7 @@ extern const std::string *get(const ParameterMap& map,
  *
  * This is the type used aggregate file parameter values in a request.
  */
-typedef std::multimap<std::string, UploadedFile> UploadedFileMap;
+typedef std::unordered_multimap<std::string, UploadedFile> UploadedFileMap;
 
 class ResponseContinuation;
 
@@ -192,7 +193,7 @@ public:
    *
    * \sa cookies()
    */
-  typedef std::map<std::string, std::string> CookieMap;
+  typedef std::unordered_map<std::string, std::string> CookieMap;
 
   /*! \brief Returns the query parameters.
    *
@@ -277,10 +278,6 @@ public:
    */
   std::string path() const;
 
-#ifdef WT_TARGET_JAVA
-  std::string requestURI() const;
-#endif // WT_TARGET_JAVA
-
   /*! \brief Returns the request path info.
    *
    * Returns additional path information internal to the path().
@@ -340,14 +337,6 @@ public:
    * the remote socket IP address is used. 
    */
   std::string clientAddress() const;
-
-  /*! \brief Returns the host name used in the request.
-   *
-   * This returns the value of the Host header, or if behind a
-   * trusted reverse proxy, the value of the X-Forwarded-Host header
-   * if it is present.
-   */
-  std::string hostName() const;
 
   /*! \brief Returns the cookies.
    *
@@ -460,14 +449,14 @@ public:
 				  ParameterMap& parameters);
 
   static void parseCookies(const std::string& cookie,
-			   std::map<std::string, std::string>& result);
+			   std::unordered_map<std::string, std::string>& result);
 
 private:
   const WebRequest *request_;
   const ParameterMap& parameters_;
   const UploadedFileMap& files_;
   ResponseContinuation *continuation_;
-  std::map<std::string, std::string> cookies_;
+  std::unordered_map<std::string, std::string> cookies_;
   mutable std::unique_ptr<WSslInfo> sslInfo_;
 
   Request(const WebRequest& request, ResponseContinuation *continuation);
