@@ -13,8 +13,8 @@
 #include "Wt/WDate.h"
 #include "Wt/WTime.h"
 
-#include "Wt/cpp20/date.hpp"
-#include "Wt/cpp20/tz.hpp"
+#include "Wt/Date/date.h"
+#include "Wt/Date/tz.h"
 
 #ifndef WT_WIN32
 #include <ctime>
@@ -28,10 +28,10 @@
 namespace Wt {
 
   namespace {
-    cpp20::date::local_time<std::chrono::system_clock::time_point::duration>
+    date::local_time<std::chrono::system_clock::time_point::duration>
     asLocalTime(const std::chrono::system_clock::time_point &dt)
     {
-      return cpp20::date::local_time<std::chrono::system_clock::time_point::duration>(dt.time_since_epoch());
+      return date::local_time<std::chrono::system_clock::time_point::duration>(dt.time_since_epoch());
     }
   }
 
@@ -54,18 +54,24 @@ public:
   }
 
   template<class Duration>
-  cpp20::date::local_time<typename std::common_type<Duration, std::chrono::minutes>::type>
-  to_local(cpp20::date::sys_time<Duration> tp) const
+  date::local_time<typename std::common_type<Duration, std::chrono::minutes>::type>
+  to_local(date::sys_time<Duration> tp) const
   {
-    using LT = cpp20::date::local_time<typename std::common_type<Duration, std::chrono::minutes>::type>;
+    using namespace date;
+    using namespace std;
+    using namespace std::chrono;
+    using LT = local_time<typename common_type<Duration, minutes>::type>;
     return LT{(tp + offset_).time_since_epoch()};
   }
 
   template<class Duration>
-  cpp20::date::sys_time<typename std::common_type<Duration, std::chrono::minutes>::type>
-  to_sys(cpp20::date::local_time<Duration> tp) const
+  date::sys_time<typename std::common_type<Duration, std::chrono::minutes>::type>
+  to_sys(date::local_time<Duration> tp) const
   {
-    using ST = cpp20::date::sys_time<typename std::common_type<Duration, std::chrono::minutes>::type>;
+    using namespace date;
+    using namespace std;
+    using namespace std::chrono;
+    using ST = sys_time<typename common_type<Duration, minutes>::type>;
     return ST{(tp - offset_).time_since_epoch()};
   }
 
@@ -81,16 +87,13 @@ public:
 };
 
 WLocalDateTime::WLocalDateTime(const std::chrono::system_clock::time_point& dt,
-			       const cpp20::date::time_zone *zone, const WT_USTRING& format)
+			       const date::time_zone *zone, const WT_USTRING& format)
   : datetime_(dt),
     format_(format),
     zone_(zone),
     valid_(false),
     null_(false)
 {
-  if (!zone_)
-    LOG_WARN("Invalid local date time: <no zone>");
-  else
     valid_ = WDateTime(dt).isValid();
 }
 
@@ -171,7 +174,7 @@ void WLocalDateTime::setDateTime(const WDate& date, const WTime& time)
       LOG_WARN("Invalid local date time ("
                << date.toString() << " "
                << time.toString() << ") in zone "
-               << (zone_ ? std::string(zone_->name()) : (customZone_ ? customZone_->name() : "<no zone>")));
+               << (zone_ ? zone_->name() : (customZone_ ? customZone_->name() : "<no zone>")));
       setInvalid();
     }
 
@@ -193,15 +196,15 @@ void WLocalDateTime::setDateTime(const WDate& date, const WTime& time,
     try {
       if (zone_) {
         if (dst)
-          datetime_ = zone_->to_sys(asLocalTime(WDateTime(date, time).toTimePoint()), cpp20::date::choose::latest);
+          datetime_ = zone_->to_sys(asLocalTime(WDateTime(date, time).toTimePoint()), date::choose::latest);
         else
-          datetime_ = zone_->to_sys(asLocalTime(WDateTime(date, time).toTimePoint()), cpp20::date::choose::earliest);
+          datetime_ = zone_->to_sys(asLocalTime(WDateTime(date, time).toTimePoint()), date::choose::earliest);
         if (isNull()) {
           LOG_WARN("Invalid local date time ("
                    << date.toString() << " "
                    << time.toString() << " "
                    << "dst=" << dst << ") in zone "
-                   << std::string(zone_->name()));
+                   << zone_->name());
           setInvalid();
         }
       } else if (customZone_) {
@@ -241,9 +244,9 @@ void WLocalDateTime::setDate(const WDate& date)
 WDate WLocalDateTime::date() const
 {
   if (isValid()){
-    auto d = zone_ ? cpp20::date::floor<cpp20::date::days>(zone_->to_local(datetime_)) :
-                     cpp20::date::floor<cpp20::date::days>(customZone_->to_local(datetime_));
-    auto ymd = cpp20::date::year_month_day(d);
+    auto d = zone_ ? date::floor<date::days>(zone_->to_local(datetime_)) :
+                     date::floor<date::days>(customZone_->to_local(datetime_));
+    auto ymd = date::year_month_day(d);
     return WDate(int(ymd.year()), unsigned(ymd.month()), unsigned(ymd.day()));
   }
   return WDate();
@@ -259,12 +262,8 @@ WTime WLocalDateTime::time() const
 {
   if (isValid()){
     auto dt = zone_ ? zone_->to_local(datetime_) : customZone_->to_local(datetime_);
-    auto dp = cpp20::date::local_days(cpp20::date::floor<cpp20::date::days>(dt.time_since_epoch()));
-#ifdef WT_DATE_TZ_USE_DATE
-    auto time = ::date::make_time(dt - dp);
-#else
-    auto time = std::chrono::hh_mm_ss(dt - dp);
-#endif
+    date::local_days dp = date::floor<date::days>(dt);
+    auto time = date::make_time(dt - dp);
     std::chrono::duration<int, std::milli> ms = std::chrono::duration_cast<std::chrono::milliseconds>(time.subseconds());
     return WTime(time.hours().count(), time.minutes().count(), time.seconds().count(), ms.count());
   }
@@ -290,14 +289,12 @@ int WLocalDateTime::timeZoneOffset() const
   if (zone_) {
     auto info = zone_->get_info(datetime_);
     return info.offset.count() / 60;
-  } else if (customZone_) {
-    return customZone_->offset().count();
   } else {
-    throw WException("WLocalDateTime: timezone is null");
+    return customZone_->offset().count();
   }
 }
 
-const cpp20::date::time_zone* WLocalDateTime::timeZone() const
+const date::time_zone* WLocalDateTime::timeZone() const
 {
   return zone_;
 }

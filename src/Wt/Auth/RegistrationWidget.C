@@ -10,12 +10,6 @@
 #include "Wt/Auth/OAuthWidget.h"
 #include "Wt/Auth/RegistrationWidget.h"
 
-#ifdef WT_HAS_SAML
-#include "Wt/Auth/Saml/Process.h"
-#include "Wt/Auth/Saml/Service.h"
-#include "Wt/Auth/Saml/Widget.h"
-#endif // WT_HAS_SAML
-
 #include "Wt/WAnchor.h"
 #include "Wt/WApplication.h"
 #include "Wt/WContainerWidget.h"
@@ -47,9 +41,6 @@ RegistrationWidget::RegistrationWidget(AuthWidget *authWidget)
   WApplication *app = WApplication::instance();
   app->theme()->apply(this, this, AuthWidgets);
 }
-
-RegistrationWidget::~RegistrationWidget()
-{ }
 
 void RegistrationWidget::setModel(std::unique_ptr<RegistrationModel> model)
 {
@@ -153,13 +144,6 @@ void RegistrationWidget::update()
 	  = icons->addWidget(std::make_unique<OAuthWidget>(*service));
 	w->authenticated().connect(this, &RegistrationWidget::oAuthDone);
       }
-
-#ifdef WT_HAS_SAML
-      for (const Saml::Service *saml : model_->saml()) {
-        Saml::Widget *w = icons->addNew<Saml::Widget>(*saml);
-        w->authenticated().connect(this, &RegistrationWidget::samlDone);
-      }
-#endif // WT_HAS_SAML
     }
   } else {
     setCondition("if:oauth", false);
@@ -197,25 +181,6 @@ void RegistrationWidget::oAuthDone(OAuthProcess *oauth,
     LOG_SECURE(oauth->service().name() << ": error: " << oauth->error());
   }
 }
-
-#ifdef WT_HAS_SAML
-void RegistrationWidget::samlDone(Saml::Process *saml,
-                                  const Identity &identity)
-{
-  if (identity.isValid()) {
-    LOG_SECURE(saml->service().name() << ": identified: as "
-	       << identity.id() << ", " << identity.name() << ", "
-	       << identity.email());
-
-    if (!model_->registerIdentified(identity))
-      update();
-  } else {
-    if (authWidget_)
-      authWidget_->displayError(saml->error());
-    LOG_SECURE(saml->service().name() << ": error: " << saml->error());
-  }
-}
-#endif // WT_HAS_SAML
 
 void RegistrationWidget::checkLoginName()
 {
@@ -298,15 +263,9 @@ void RegistrationWidget::confirmIsYou()
       confirmPasswordLogin_
 	->changed().connect(this, &RegistrationWidget::confirmedIsYou);
 
-      isYouDialog_ = authWidget_->createPasswordPromptDialog(*confirmPasswordLogin_);
-      isYouDialog_->finished().connect
-        ([this] {
-#ifdef WT_TARGET_JAVA
-           delete isYouDialog_.release();
-#endif
-           isYouDialog_.reset();
-         });
-      isYouDialog_->show();
+      WDialog *dialog =
+	authWidget_->createPasswordPromptDialog(*confirmPasswordLogin_);
+      dialog->show();
     }
 
     break;

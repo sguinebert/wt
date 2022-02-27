@@ -11,8 +11,7 @@
 #include "Wt/WSslInfo.h"
 #include "Wt/Http/Request.h"
 #include "Wt/Json/Parser.h"
-#include "Wt/Json/Object.h"
-#include "Wt/Json/Array.h"
+#include "Wt/Json/json.hpp"
 #include "Wt/WString.h"
 
 #include "WebController.h"
@@ -86,11 +85,23 @@ const std::string& WEnvironment::deploymentPath() const
 void WEnvironment::updateHostName(const WebRequest& request)
 {
   Configuration& conf = session_->controller()->configuration();
-  std::string newHost = request.hostName(conf);
+  std::string oldHost = host_;
+  host_ = str(request.headerValue("Host"));
 
-  if (!newHost.empty()) {
-    host_ = newHost;
+  if (conf.behindReverseProxy() ||
+      conf.isTrustedProxy(request.remoteAddr())) {
+	std::string forwardedHost = str(request.headerValue("X-Forwarded-Host"));
+
+	if (!forwardedHost.empty()) {
+	  std::string::size_type i = forwardedHost.rfind(',');
+	  if (i == std::string::npos)
+		host_ = forwardedHost;
+	  else
+		host_ = forwardedHost.substr(i+1);
+	}
+
   }
+  if(host_.size() == 0) host_ = oldHost;
 }
 
 void WEnvironment::updateUrlScheme(const WebRequest& request) 
@@ -460,7 +471,7 @@ bool WEnvironment::isTest() const
 }
 
 void WEnvironment::parseCookies(const std::string& cookie,
-				std::map<std::string, std::string>& result)
+				std::unordered_map<std::string, std::string>& result)
 {
   // Cookie parsing strategy:
   // - First, split the string on cookie separators (-> name-value pair).

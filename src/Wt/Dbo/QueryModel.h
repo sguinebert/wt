@@ -330,8 +330,6 @@ public:
   virtual bool removeRows(int row, int count,
 			  const WModelIndex& parent = WModelIndex()) override;
 
-  using WAbstractTableModel::setHeaderData;
-
   /*! \brief Sets header data for a column.
    *
    * The model will return this data in headerData(). Only column headers

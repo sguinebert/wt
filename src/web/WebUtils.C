@@ -13,20 +13,21 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/version.hpp>
+#include <boost/convert.hpp>
+#include <boost/convert/strtol.hpp>
 
-#include <cctype>
-#include <cfloat>
-#include <cstdio>
+#include <ctype.h>
+#include <stdio.h>
 #include <fstream>
 #include <iomanip>
+#include <cfloat>
+#include "fast_float.h"
 
 #ifdef WT_WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include <windows.h>
 #define snprintf _snprintf
 #else
-#include <cstdlib>
+#include <stdlib.h>
 #endif // WIN32
 
 #if !defined(WT_NO_SPIRIT) && BOOST_VERSION >= 104700
@@ -174,23 +175,6 @@ char *itoa(int value, char *result, int base) {
   return result;
 }
 
-char *utoa(unsigned int value, char* result, int base) {
-  char* out = result;
-  unsigned int quotient = value;
-
-  do {
-    *out =
-      "0123456789abcdefghijklmnopqrstuvwxyz"[quotient % base];
-    ++out;
-    quotient /= base;
-  } while (quotient);
-
-  std::reverse(result, out);
-  *out = 0;
-
-  return result;
-}
-
 char *lltoa(long long value, char *result, int base) {
   char* out = result;
   long long quotient = value;
@@ -230,7 +214,8 @@ char *pad_itoa(int value, int length, char *result) {
 }
 
 #ifdef SPIRIT_FLOAT_FORMAT
-namespace {
+namespace
+{
   using namespace boost::spirit;
   using namespace boost::spirit::karma;
 
@@ -240,34 +225,33 @@ namespace {
   {
     // not 'nan', but 'NaN'
     template <typename CharEncoding, typename Tag, typename OutputIterator>
-    static bool nan (OutputIterator& sink, T n, bool force_sign)
+    static bool nan(OutputIterator &sink, T n, bool force_sign)
     {
       return string_inserter<CharEncoding, Tag>::call(sink, "NaN");
     }
 
     // not 'inf', but 'Infinity'
     template <typename CharEncoding, typename Tag, typename OutputIterator>
-    static bool inf (OutputIterator& sink, T n, bool force_sign)
+    static bool inf(OutputIterator &sink, T n, bool force_sign)
     {
-      return sign_inserter::call(sink, false, (n<0), force_sign) &&
-        string_inserter<CharEncoding, Tag>::call(sink, "Infinity");
+      return sign_inserter::call(sink, false, (n < 0), force_sign) &&
+             string_inserter<CharEncoding, Tag>::call(sink, "Infinity");
     }
 
-    static int floatfield(T t) {
-      return (t != 0.0) && ((t < 0.001) || (t > 1E8)) ?
-	karma::real_policies<T>::fmtflags::scientific :
-	karma::real_policies<T>::fmtflags::fixed;
+    static int floatfield(T t)
+    {
+      return (t != 0.0) && ((t < 0.001) || 
+             (t > 1E8)) ? karma::real_policies<T>::fmtflags::scientific : karma::real_policies<T>::fmtflags::fixed;
     }
 
     // 7 significant numbers; about float precision
     static unsigned precision(T) { return Precision; }
-
   };
 
-  typedef real_generator<double, JavaScriptPolicy<double, 7> >
-    KarmaJavaScriptReal;
-  typedef real_generator<double, JavaScriptPolicy<double, 15> >
-    KarmaJavaScriptDouble;
+  typedef real_generator<double, JavaScriptPolicy<double, 7>>
+      KarmaJavaScriptReal;
+  typedef real_generator<double, JavaScriptPolicy<double, 15>>
+      KarmaJavaScriptDouble;
 
 }
 
@@ -317,10 +301,9 @@ static inline char *generic_double_to_str(double d, char *buf)
 
 char *round_css_str(double d, int digits, char *buf)
 {
-  static const int exp[] = { 1, 10, 100, 1000, 10000, 100000, 1000000 };
+  static const int exp[] = {1, 10, 100, 1000, 10000, 100000, 1000000};
 
-  long long i
-    = static_cast<long long>(d * exp[digits] + (d > 0 ? 0.49 : -0.49));
+  long long i = static_cast<long long>(d * exp[digits] + (d > 0 ? 0.49 : -0.49));
 
   lltoa(i, buf);
   char *num = buf;
@@ -329,24 +312,26 @@ char *round_css_str(double d, int digits, char *buf)
     ++num;
   int len = std::strlen(num);
 
-  if (len <= digits) {
+  if (len <= digits)
+  {
     int shift = digits + 1 - len;
-    for (int i = digits + 1; i >= 0; --i) {
+    for (int i = digits + 1; i >= 0; --i)
+    {
       if (i >= shift)
-	num[i] = num[i - shift];
+        num[i] = num[i - shift];
       else
-	num[i] = '0';
+        num[i] = '0';
     }
     len = digits + 1;
   }
-  
+
   int dotPos = (std::max)(len - digits, 0);
 
   for (int i = digits + 1; i >= 0; --i)
     num[dotPos + i + 1] = num[dotPos + i];
 
   num[dotPos] = '.';
-  
+
   return buf;
 }
 
@@ -363,8 +348,8 @@ std::string urlEncode(const std::string& url, const std::string& allowed)
   return DomElement::urlEncodeS(url, allowed);
 }
 
-std::string dataUrlDecode(const std::string& url,
-			  std::vector<unsigned char> &data)
+std::string dataUrlDecode(const std::string &url,
+                          std::vector<unsigned char> &data)
 {
   return std::string();
 }
@@ -374,24 +359,32 @@ void inplaceUrlDecode(std::string &text)
   // Note: there is a Java-too duplicate of this function in Wt/Utils.C
   std::size_t j = 0;
 
-  for (std::size_t i = 0; i < text.length(); ++i) {
+  for (std::size_t i = 0; i < text.length(); ++i)
+  {
     char c = text[i];
 
-    if (c == '+') {
+    if (c == '+')
+    {
       text[j++] = ' ';
-    } else if (c == '%' && i + 2 < text.length()) {
+    }
+    else if (c == '%' && i + 2 < text.length())
+    {
       std::string h = text.substr(i + 1, 2);
       char *e = 0;
       int hval = std::strtol(h.c_str(), &e, 16);
 
-      if (*e == 0) {
-	text[j++] = (char)hval;
-	i += 2;
-      } else {
-	// not a proper %XX with XX hexadecimal format
-	text[j++] = c;
+      if (*e == 0)
+      {
+        text[j++] = (char)hval;
+        i += 2;
       }
-    } else
+      else
+      {
+        // not a proper %XX with XX hexadecimal format
+        text[j++] = c;
+      }
+    }
+    else
       text[j++] = c;
   }
 
@@ -457,37 +450,123 @@ ResultType convert(const char *fname, const SpiritType &t, const std::string& v)
 
 long stol(const std::string& v)
 {
-  return convert<long>("stol", boost::spirit::long_, v);
+  long cv;
+  auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+  if(answer.ec != std::errc()) { throw std::invalid_argument("stol() of " + v + " failed"); }
+  return cv;
+  //return convert<long>("stol", boost::spirit::long_, v);
 }
 
 unsigned long stoul(const std::string& v)
 {
-  return convert<unsigned long>("stoul", boost::spirit::ulong_, v);
+  unsigned long cv;
+  auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+  if(answer.ec != std::errc()) { throw std::invalid_argument("stoul() of " + v + " failed"); }
+  return cv;
+  //return convert<unsigned long>("stoul", boost::spirit::ulong_, v);
 }
 
 long long stoll(const std::string& v)
 {
-  return convert<long long>("stoll", boost::spirit::long_long, v);
+  long long cv;
+  auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+  if(answer.ec != std::errc()) { throw std::invalid_argument("stoll() of " + v + " failed"); }
+  return cv;
+  //return convert<long long>("stoll", boost::spirit::long_long, v);
 }
 
 unsigned long long stoull(const std::string& v)
 {
-  return convert<unsigned long long>("stoull", boost::spirit::ulong_long, v);
+  unsigned long long cv;
+  auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+  if(answer.ec != std::errc()) { throw std::invalid_argument("stoull() of " + v + " failed"); }
+  return cv;
+  //return convert<unsigned long long>("stoull", boost::spirit::ulong_long, v);
 }
 
 int stoi(const std::string& v)
 {
-  return convert<int>("stoi", boost::spirit::int_, v);
+  int cv;
+  auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+  if(answer.ec != std::errc()) { throw std::invalid_argument("stoi() of " + v + " failed"); }
+  return cv;
+  //return convert<int>("stoi", boost::spirit::int_, v);
 }
 
 double stod(const std::string& v)
 {
-  return convert<double>("stod", boost::spirit::double_, v);
+  double cv;
+  auto answer = fast_float::from_chars(v.data(), v.data()+v.size(), cv);
+  if(answer.ec != std::errc()) { throw std::invalid_argument("stod() of " + v + " failed"); }
+  return cv;
+  //return convert<double>("stod", boost::spirit::double_, v);
 }
 
 float stof(const std::string& v)
 {
-  return convert<float>("stof", boost::spirit::float_, v);
+  float cv;
+  auto answer = fast_float::from_chars(v.data(), v.data()+v.size(), cv);
+  if(answer.ec != std::errc()) { throw std::invalid_argument("stof() of " + v + " failed"); }
+  return cv;
+  //return convert<float>("stof", boost::spirit::float_, v);
+}
+
+long stol(const std::string_view v)
+{
+    long cv;
+    auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+    if(answer.ec != std::errc()) { throw std::invalid_argument("stol() of " + std::string(v) + " failed"); }
+    return cv;
+}
+
+unsigned long stoul(const std::string_view v)
+{
+    unsigned long cv;
+    auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+    if(answer.ec != std::errc()) { throw std::invalid_argument("stoul() of " + std::string(v) + " failed"); }
+    return cv;
+}
+
+long long stoll(const std::string_view v)
+{
+    long long cv;
+    auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+    if(answer.ec != std::errc()) { throw std::invalid_argument("stoll() of " + std::string(v) + " failed"); }
+    return cv;
+}
+
+unsigned long long stoull(const std::string_view v)
+{
+    unsigned long long cv(0);
+    auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+    if(answer.ec != std::errc()) { throw std::invalid_argument("stoull() of " + std::string(v) + " failed"); }
+    return cv;
+}
+
+int stoi(const std::string_view v)
+{
+    int cv;
+    auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+    if(answer.ec != std::errc()) { throw std::invalid_argument("stoi() of " + std::string(v) + " failed"); }
+    return cv;
+}
+
+double stod(const std::string_view v)
+{
+    //gcc 9-10 unreliable compliance to c++ 17 iso
+    double cv;
+    auto answer = fast_float::from_chars(v.data(), v.data() + v.size(), cv);
+    if(answer.ec != std::errc()) { throw std::invalid_argument("stod() of " + std::string(v) + " failed"); }
+    return cv;
+}
+
+float stof(const std::string_view v)
+{
+    //gcc 9-10 unreliable compliance to c++ 17 iso
+    float cv;
+    auto answer = fast_float::from_chars(v.data(), v.data() + v.size(), cv);
+    if(answer.ec != std::errc()) { throw std::invalid_argument("stof() of " + std::string(v) + " failed"); }
+    return cv;
 }
 
 

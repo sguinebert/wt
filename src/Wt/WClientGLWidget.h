@@ -1,6 +1,6 @@
 // This may look like C code, but it's really -*- C++ -*-
 /*
- * Copyright (C) 2013 Emweb bv, Herent, Belgium.
+ * Copyright (C) 2013 Emweb bvba, Leuven, Belgium.
  *
  * See the LICENSE file for terms of use.
  */
@@ -253,6 +253,7 @@ public:
     override;
   virtual void texImage2D(WGLWidget::GLenum target, int level,
 			  WGLWidget::GLenum internalformat,
+                          unsigned width, unsigned height, int border,
 			  WGLWidget::GLenum format, WGLWidget::GLenum type,
 			  WImage *image)
     override;
@@ -275,6 +276,36 @@ public:
 			  WGLWidget::GLenum internalformat,
 			  WGLWidget::GLenum format, WGLWidget::GLenum type,
 			  WGLWidget::Texture texture)
+    override;
+  virtual void texImage3D(WGLWidget::GLenum target, int level,
+                          WGLWidget::GLenum internalformat,
+                          unsigned width, unsigned height, unsigned depth, int border,
+                          WGLWidget::GLenum format, WGLWidget::GLenum type)
+    override;
+  virtual void texImage3D(WGLWidget::GLenum target, int level,
+                          WGLWidget::GLenum internalformat,
+                          unsigned width, unsigned height, unsigned depth, int border,
+                          WGLWidget::GLenum format, WGLWidget::GLenum type,
+                          std::string image)
+    override;
+  virtual void texImage3D(WGLWidget::GLenum target, int level,
+                          WGLWidget::GLenum internalformat,
+                          WGLWidget::GLenum format, WGLWidget::GLenum type,
+                          WGLWidget::Texture texture)
+    override;
+  virtual void texStorage3D(WGLWidget::GLenum target, int level, //target, levels, internalformat, width, height, depth
+                            WGLWidget::GLenum internalformat,
+                            unsigned width, unsigned height, unsigned depth)
+    override;
+  virtual void texSubImage3D(WGLWidget::GLenum target, int level, //WGLWidget::GLenum internalformat,
+                             int xoffset, int yoffset, int zoffset,
+                             unsigned width, unsigned height, unsigned depth,
+                             WGLWidget::GLenum format, WGLWidget::GLenum type, std::string image)
+    override;
+  virtual void texSubImage3D(WGLWidget::GLenum target, int level, 
+                             int xoffset, int yoffset, int zoffset,
+                             unsigned width, unsigned height, unsigned depth, WGLWidget::GLenum format, WGLWidget::GLenum type,
+                             WImage *image)
     override;
   virtual void texParameteri(WGLWidget::GLenum target, WGLWidget::GLenum pname,
 			     WGLWidget::GLenum param)
@@ -426,6 +457,7 @@ private:
   unsigned canvas_;
 
   WGLWidget::Buffer currentlyBoundBuffer_;
+  WGLWidget::Buffer currentlyBoundTextureArray_;
   WGLWidget::Texture currentlyBoundTexture_;
   std::vector<std::unique_ptr<WResource> > binaryResources_;
   struct PreloadImage {
@@ -438,13 +470,14 @@ private:
   };
   std::vector<PreloadImage> preloadImages_;
 
-  struct PreloadArrayBuffer {
+  struct PreloadArrayBuffer { //hyper important !!
     PreloadArrayBuffer(const std::string& ref, const std::string& u) :
       jsRef(ref), url(u) {}
     std::string jsRef;
     std::string url;
   };
   std::vector<PreloadArrayBuffer> preloadArrayBuffers_;
+  std::vector<PreloadArrayBuffer> preloadTextureArrayBuffers_;
 
   static const char *makeFloat(double d, char *buf);
   static const char *makeInt(int i, char *buf);

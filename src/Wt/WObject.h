@@ -12,10 +12,6 @@
 #include <Wt/Core/observable.hpp>
 #include <Wt/Http/Request.h>
 
-#ifdef WT_THREADED
-#include <atomic>
-#endif // WT_THREADED
-
 #include <cassert>
 #include <map>
 #include <vector>
@@ -170,13 +166,8 @@ public:
    * in the DOM, and does not need to be unique. It will usually
    * reflect the widget type or role.
    *
-   * If a WWidget has an object name, the object name is reflected
-   * in the `data-object-name` attribute. You can use this to find
-   * widgets in JavaScript (e.g. for automated testing) using:
-   *
-   * ```
-   * document.querySelector('*[data-object-name="yourObjectNameHere"]')
-   * ```
+   * The object name is present in the DOM in the 'data-object-name'
+   * attribute.
    *
    * The default object name is empty (no object name).
    */
@@ -342,14 +333,10 @@ private:
   std::vector<std::unique_ptr<WStatelessSlot> > statelessSlots_;
   std::vector<std::unique_ptr<WObject> > children_;
 
-  const unsigned id_;
+  unsigned id_;
   std::string name_;
 
-#ifdef WT_THREADED
-  static std::atomic<unsigned> nextObjId_;
-#else
   static unsigned nextObjId_;
-#endif // WT_THREADED
 
   friend class EventSignalBase;
   friend class WApplication;

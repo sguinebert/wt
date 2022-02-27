@@ -19,24 +19,18 @@ namespace Wt {
 class WT_API Time
 {
 public:
-  Time() noexcept; // now
-#ifdef WT_TARGET_JAVA
+  Time(); // now
   Time(const Time &other);
-#endif // WT_TARGET_JAVA
 
   Time operator+ (int msec) const;
   Time& operator+= (int msec);
-
-#ifdef WT_TARGET_JAVA
   Time& operator= (const Time &other);
-#endif
 
   int operator- (const Time& other) const; // milliseconds
 
 private:
   std::chrono::steady_clock::time_point tp_;
 };
-
 
 }
 

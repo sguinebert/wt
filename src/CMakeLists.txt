@@ -1,5 +1,18 @@
 SUBDIRS(web Wt)
 
+#experimental
+#set(CMAKE_CXX_COMPILER "/usr/local/bin/g++")
+#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-generate")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines") FMT_HEADER_ONLY
+#
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mssse3")
+
+add_definitions(-DFMT_HEADER_ONLY)
+
 INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_SOURCE_DIR}/web
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -59,6 +72,8 @@ FILE_TO_STRING(xml/auth_css_theme.xml
 SET(libsources
 Wt/FlexLayoutImpl.h Wt/FlexLayoutImpl.C
 Wt/FlexItemImpl.h Wt/FlexItemImpl.C
+Wt/fmt/args.h Wt/fmt/chrono.h Wt/fmt/color.h Wt/fmt/compile.h Wt/fmt/core.h Wt/fmt/format-inl.h Wt/fmt/format.h Wt/fmt/locale.h Wt/fmt/os.h Wt/fmt/ostream.h Wt/fmt/printf.h Wt/fmt/ranges.h Wt/fmt/xchar.h Wt/fmt/format.cc Wt/fmt/os.cc
+Wt/fmtlog.h Wt/fmtlog-inl.h Wt/fmtlog.cc
 Wt/PopupWindow.h Wt/PopupWindow.C
 Wt/Resizable.h Wt/Resizable.C
 Wt/ResizeSensor.h Wt/ResizeSensor.C
@@ -322,14 +337,35 @@ Wt/Chart/WSelection.h Wt/Chart/WSelection.C
 Wt/Core/observable.hpp Wt/Core/observable.cpp
 Wt/Core/observing_ptr.hpp Wt/Core/observing_ptr.cpp
 Wt/cpp17/any.hpp Wt/cpp17/any/any.hpp
-Wt/cpp20/date.hpp Wt/cpp20/tz.hpp
-Wt/Form/WAbstractFormDelegate.h Wt/Form/WAbstractFormDelegate.C
-Wt/Form/WFormDelegate.h Wt/Form/WFormDelegate.C
-Wt/Json/Array.h Wt/Json/Array.C
-Wt/Json/Object.h Wt/Json/Object.C
+Wt/Date/date.h Wt/Date/include/date/date.h
+Wt/Date/tz.h Wt/Date/include/date/tz.h Wt/Date/src/tz.cpp
+Wt/Json/json.hpp
+Wt/Json/json/value.hpp Wt/Json/json/impl/value.ipp
+Wt/Json/json/array.hpp Wt/Json/json/impl/array.ipp
+Wt/Json/json/error.hpp Wt/Json/json/impl/error.ipp
+Wt/Json/json/kind.hpp Wt/Json/json/impl/kind.ipp
+Wt/Json/json/monotonic_resource.hpp Wt/Json/json/impl/monotonic_resource.ipp
+Wt/Json/json/null_resource.hpp Wt/Json/json/impl/null_resource.ipp
+Wt/Json/json/object.hpp Wt/Json/json/impl/object.ipp
+Wt/Json/json/parse.hpp Wt/Json/json/impl/parse.ipp
+Wt/Json/json/parser.hpp Wt/Json/json/impl/parser.ipp
+Wt/Json/json/serialize.hpp Wt/Json/json/impl/serialize.ipp
+Wt/Json/json/serializer.hpp Wt/Json/json/impl/serializer.ipp
+Wt/Json/json/static_resource.hpp Wt/Json/json/impl/static_resource.ipp
+Wt/Json/json/stream_parser.hpp Wt/Json/json/impl/stream_parser.ipp
+Wt/Json/json/string.hpp Wt/Json/json/impl/string.ipp
+Wt/Json/json/value_stack.hpp Wt/Json/json/impl/value_stack.ipp
+Wt/Json/json/value_ref.hpp Wt/Json/json/impl/value_ref.ipp
+Wt/Json/json/detail/shared_resource.hpp Wt/Json/json/detail/impl/shared_resource.ipp
+Wt/Json/json/detail/default_resource.hpp Wt/Json/json/detail/impl/default_resource.ipp
+Wt/Json/json/detail/except.hpp Wt/Json/json/detail/impl/except.ipp
+Wt/Json/json/detail/format.hpp Wt/Json/json/detail/impl/format.ipp
+Wt/Json/json/detail/handler.hpp Wt/Json/json/detail/impl/handler.ipp
+Wt/Json/json/detail/stack.hpp Wt/Json/json/detail/impl/stack.ipp
+Wt/Json/json/detail/string_impl.hpp Wt/Json/json/detail/impl/string_impl.ipp
+Wt/Json/json/detail/ryu/detail/d2s.hpp Wt/Json/json/detail/ryu/impl/d2s.ipp
 Wt/Json/Parser.h Wt/Json/Parser.C
-Wt/Json/Serializer.h Wt/Json/Serializer.C
-Wt/Json/Value.h Wt/Json/Value.C
+Wt/Json/simdjson.h Wt/Json/simdjson.cpp
 Wt/Http/HttpUtils.h Wt/Http/HttpUtils.C
 Wt/Http/Client.h Wt/Http/Client.C
 Wt/Http/Message.h Wt/Http/Message.C
@@ -356,7 +392,9 @@ Wt/Render/LayoutBox.h Wt/Render/LayoutBox.C
 Wt/Render/RenderUtils.h Wt/Render/RenderUtils.C
 Wt/Render/Specificity.h Wt/Render/Specificity.C
 Wt/Render/WTextRenderer.h Wt/Render/WTextRenderer.C
-Wt/Signals/signals.hpp Wt/Signals/signals.cpp
+Wt/Signals/signals.hpp Wt/Signals/signals.cpp 
+Wt/turbo-base64/turbob64.h Wt/turbo-base64/turbob64c.c Wt/turbo-base64/turbob64d.c Wt/turbo-base64/turbob64sse.c Wt/turbo-base64/turbob64avx2.c 
+web/fasthex/hex.h web/fasthex/hex.cc
 web/md5.h web/md5.c
 web/sha1.h web/sha1.c
 web/CgiParser.h web/CgiParser.C
@@ -400,46 +438,23 @@ AuthCssTheme_xml.C
 JQuery_js.C
 )
 
-IF (WT_CPP20_DATE_TZ_IMPLEMENTATION STREQUAL "date")
-  list(APPEND libsources
-    Wt/Date/date.h Wt/Date/include/date/date.h
-    Wt/Date/tz.h Wt/Date/include/date/tz.h Wt/Date/src/tz.cpp)
+set(_TZ_BUILD_DEFS "")
 
-  set(_TZ_BUILD_DEFS "")
+IF (WIN32)
+  set(_TZ_BUILD_DEFS USE_OS_TZDB=0 HAS_REMOTE_API=0)
+ELSE (WIN32)
+  set(_TZ_BUILD_DEFS USE_OS_TZDB=1)
+ENDIF (WIN32)
 
-  IF (WIN32)
-    set(_TZ_BUILD_DEFS USE_OS_TZDB=0 HAS_REMOTE_API=0)
-  ELSE (WIN32)
-    set(_TZ_BUILD_DEFS USE_OS_TZDB=1)
-  ENDIF (WIN32)
+IF (SHARED_LIBS)
+  list(APPEND _TZ_BUILD_DEFS DATE_BUILD_DLL)
+ELSE (SHARED_LIBS)
+  list(APPEND _TZ_BUILD_DEFS DATE_BUILD_LIB)
+ENDIF (SHARED_LIBS)
 
-  IF (SHARED_LIBS)
-    list(APPEND _TZ_BUILD_DEFS DATE_BUILD_DLL)
-  ELSE (SHARED_LIBS)
-    list(APPEND _TZ_BUILD_DEFS DATE_BUILD_LIB)
-  ENDIF (SHARED_LIBS)
+set_source_files_properties(Wt/Date/src/tz.cpp PROPERTIES COMPILE_DEFINITIONS "${_TZ_BUILD_DEFS}")
 
-  set_source_files_properties(Wt/Date/src/tz.cpp PROPERTIES COMPILE_DEFINITIONS "${_TZ_BUILD_DEFS}")
-
-  unset(_TZ_BUILD_DEFS)
-ENDIF ()
-
-IF(WT_HAS_SAML)
-  set(samlsources
-    Wt/Auth/Saml/Assertion.h Wt/Auth/Saml/Assertion.C
-    Wt/Auth/Saml/Process.h Wt/Auth/Saml/Process.C
-    Wt/Auth/Saml/ProcessImpl.h Wt/Auth/Saml/ProcessImpl.C
-    Wt/Auth/Saml/Service.h Wt/Auth/Saml/Service.C
-    Wt/Auth/Saml/ServiceImpl.h Wt/Auth/Saml/ServiceImpl.C
-    Wt/Auth/Saml/Widget.h Wt/Auth/Saml/Widget.C
-  )
-  set_source_files_properties(
-    ${samlsources} PROPERTIES
-    COMPILE_DEFINITIONS
-      XSEC_HAVE_OPENSSL=1
-  )
-  list(APPEND libsources ${samlsources})
-ENDIF(WT_HAS_SAML)
+unset(_TZ_BUILD_DEFS)
 
 ADD_DEFINITIONS(-DWT_BUILDING)
 
@@ -542,14 +557,9 @@ TARGET_LINK_LIBRARIES(wt
   PUBLIC
     ${WT_SOCKET_LIBRARY}
   PRIVATE
-    ${WT_SAML_LIBS}
     ${WT_MATH_LIBRARY}
     ${RT_LIBRARY}
     )
-
-IF(WT_HAS_SAML)
-  TARGET_LINK_LIBRARIES(wt PRIVATE Shibboleth::OpenSAML)
-ENDIF()
 
 IF(ENABLE_LIBWTTEST)
   ADD_LIBRARY(wttest
@@ -705,6 +715,39 @@ PROPERTIES
   VERSION ${VERSION_SERIES}.${VERSION_MAJOR}.${VERSION_MINOR}
   DEBUG_POSTFIX ${DEBUG_LIB_POSTFIX}
 )
+
+#add_library(wt STATIC Wt/turbo-base64/turbob64.h Wt/turbo-base64/turbob64_.h Wt/turbo-base64/turbob64c.c Wt/turbo-base64/turbob64d.c Wt/turbo-base64/turbob64sse.c Wt/turbo-base64/turbob64avx2.c)
+#TARGET_LINK_LIBRARIES(wt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Json/simdjson.cpp.o)
+# SET(SIMDJSONOBJ
+#     ${CMAKE_CURRENT_SOURCE_DIR}/Json/simdjson.cpp.o
+# )
+# set(SINGLEHEADER_FILES
+#   ${CMAKE_CURRENT_BINARY_DIR}/Json/simdjson.cpp
+#   ${CMAKE_CURRENT_BINARY_DIR}/Json/simdjson.h
+# )
+# set_source_files_properties(${SINGLEHEADER_FILES} PROPERTIES EXTERNAL_OBJECT true GENERATED TRUE)
+
+#
+# Include this if you intend to #include "simdjson.cpp" in your own .cpp files.
+#
+# add_library(simdjson-singleheader-include-source INTERFACE)
+# target_include_directories(simdjson-singleheader-include-source INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+# add_dependencies(simdjson-singleheader-include-source singleheader-files)
+
+#
+# Include this to get "simdjson.cpp" included in your project as one of the sources.
+#
+# add_library(simdjson-singleheader-source INTERFACE)
+# target_sources(simdjson-singleheader-source INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/simdjson.cpp>)
+# target_link_libraries(simdjson-singleheader-source INTERFACE simdjson-singleheader-include-source)
+
+#TARGET_LINK_LIBRARIES(wt INTERFACE ${SINGLEHEADER_FILES})
+# SET_SOURCE_FILES_PROPERTIES(
+#   ${SIMDJSONOBJ}
+#   PROPERTIES
+#   EXTERNAL_OBJECT true
+#   GENERATED true
+# )
 
 IF(MSVC)
   SET_TARGET_PROPERTIES(wt PROPERTIES COMPILE_FLAGS "${BUILD_PARALLEL} /wd4251 /wd4275 /wd4355 /wd4800 /wd4996 /wd4101 /wd4267")

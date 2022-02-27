@@ -319,7 +319,6 @@ WImage *WItemDelegate::iconWidget(WidgetRef& w,
 
   std::unique_ptr<WWidget> newImage(new WImage());
   image = static_cast<WImage*>(newImage.get());
-  image->mouseWentDown().preventDefaultAction(true);
   image->setObjectName("i");
   image->setStyleClass("icon");
   wc->insertWidget(wc->count() - 1, std::move(newImage));

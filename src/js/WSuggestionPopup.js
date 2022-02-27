@@ -9,7 +9,7 @@
 WT_DECLARE_WT_MEMBER
 (1, JavaScriptConstructor, "WSuggestionPopup",
  function(APP, el, replacerJS, matcherJS, filterMinLength, filterMore,
-	  defaultValue, isDropDownIconUnfiltered, autoSelectEnabled) {
+	  defaultValue, isDropDownIconUnfiltered) {
    $('.Wt-domRoot').add(el);
 
    el.wtObj = this;
@@ -48,6 +48,8 @@ WT_DECLARE_WT_MEMBER
    function positionPopup(edit) {
      el.style.display='block';
      WT.positionAtWidget(el.id, edit.id, WT.Vertical);
+     el.style.top=edit.getBoundingClientRect().bottom + 'px';
+     el.style.bottom='auto';
    }
 
    function contentClicked(event) {
@@ -134,18 +136,6 @@ WT_DECLARE_WT_MEMBER
      }
    };
 
-   function first(down) {
-     var sels = el.childNodes;
-     for (n = down ? sels[0] : sels[sels.length-1];
-	  n;
-	  n = down ? n.nextSibling : n.previousSibling) {
-       if (WT.hasTag(n, 'LI') && n.style.display != 'none')
-	 return n;
-     }
-     
-     return null;
-   }
-
    function next(n, down) {
      for (n = down ? n.nextSibling : n.previousSibling;
 	  n;
@@ -171,25 +161,43 @@ WT_DECLARE_WT_MEMBER
 	 editId = edit.id;
 	 droppedDown = true;
        } else {
-	 editId = null;
+	 editId = null; 
 	 return true;
        }
      }
 
-     if (visible()) {
-       var sel = selId ? WT.getElement(selId) : null;
+     var sel = selId ? WT.getElement(selId) : null;
+     if (visible() && !sel) {
+       var sels = el.childNodes;
+       if (event.keyCode == key_down || event.keyCode == key_pdown) {
+         sel = sels[0];
+         if (sel.style.display == 'none')
+           sel = next(sel, 1);
+       }
+       if (event.keyCode == key_up || event.keyCode == key_pup) {
+         sel = sels[F.length - 1];
+         if (sel.style.display == 'none')
+           sel = next(sel, 0);
+         WT.cancelEvent(event, WT.CancelDefaultAction);
+       }
+       if (event.keyCode == key_enter) {
+         hidePopup();
+         const ke = new KeyboardEvent('keydown', { bubbles: false, cancelable: true, keyCode: 13 }); 
+         event.getElement(editId).dispatchEvent(ke); 
+         event.cancelEvent(ke);
+       }
+       selId = sel.id;
        
+       return false;
+     }
+     if (visible() && sel) {
        if ((event.keyCode == key_enter) || (event.keyCode == key_tab)) {
 	 /*
 	  * Select currently selectd
 	  */
-	 if (sel) {
-           suggestionClicked(sel);
-           WT.cancelEvent(event);
-	   setTimeout(function() { edit.focus(); }, 0);
-	 } else {
-	   hidePopup();
-	 }
+         suggestionClicked(sel);
+         WT.cancelEvent(event);
+	 setTimeout(function() { edit.focus(); }, 0);
 	 return false;
        } else if (   event.keyCode == key_down
 		  || event.keyCode == key_up
@@ -211,32 +219,24 @@ WT_DECLARE_WT_MEMBER
 	 /*
 	  * Find next selected node
 	  */
-	 var n = sel,
-	     down = event.keyCode == key_down || event.keyCode == key_pdown;
-	 if (!n) {
-	   n = first(down);
-	   scrollToSelected(n);
-	 } else {
-           var count = (event.keyCode == key_pdown || event.keyCode == key_pup ?
-			el.clientHeight / sel.offsetHeight : 1),
-	       i;
+         var n = sel,
+	     down = event.keyCode == key_down || event.keyCode == key_pdown,
+	     count = (event.keyCode == key_pdown || event.keyCode == key_pup ?
+		      el.clientHeight / sel.offsetHeight : 1),
+	     i;
 
-	   for (i = 0; n && i < count; ++i) {
-	     var l = next(n, down);
-	     if (!l && autoSelectEnabled)
-	       break;
-	     n = l;
-	   }
+	 for (i = 0; n && i < count; ++i) {
+	   var l = next(n, down);
+           if (!l) {
+             l.className = "";
+             selId = l = null;
+             break;
+           }
+	   n = l;
 	 }
 
-	 /*
-	  * Update selection
-	  */
-	 if (sel) {
+         if (n && WT.hasTag(n, 'LI')) {
            sel.className = '';
-	   selId = null;
-	 }
-	 if (n && WT.hasTag(n, 'LI')) {
            n.className = 'active';
            selId = n.id;
          }
@@ -275,7 +275,7 @@ WT_DECLARE_WT_MEMBER
      var sel = selId ? WT.getElement(selId) : null,
          edit = WT.getElement(editId),
          matcher = matcherJS(edit),
-         sels = el.childNodes,
+         sels = el.childNodes, //F=g.childNodes
          text = (isDropDownIconUnfiltered && value != null)  ? value : matcher(null);
 
      lastFilterValue = isDropDownIconUnfiltered ? value : edit.value;
@@ -342,16 +342,14 @@ WT_DECLARE_WT_MEMBER
 	 sel = null;
        }
 
-       if ((autoSelectEnabled || toselect) && (!sel || (sel.style.display == 'none'))) {
+       if (!sel || (sel.style.display == 'none')) {
 	 sel = toselect || first ;
 	 sel.parentNode.scrollTop = 0;
          selId = sel.id;
        }
 
-       if (sel) {
-	 sel.className = 'active';
-	 scrollToSelected(sel);
-       }
+       sel.className = 'active';
+       scrollToSelected(sel);
      }
    };
 

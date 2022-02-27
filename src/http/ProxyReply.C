@@ -11,9 +11,9 @@
 #include "Server.h"
 #include "StockReply.h"
 #include "Wt/Json/Serializer.h"
-#include "Wt/Json/Value.h"
-#include "Wt/Json/Array.h"
-#include "Wt/Json/Object.h"
+#include "Wt/Json/json.hpp"
+//#include "Wt/Json/Array.h"
+//#include "Wt/Json/Object.h"
 #include "Wt/WSslCertificate.h"
 #include "Wt/WSslInfo.h"
 #include "SslUtils.h"
@@ -183,7 +183,8 @@ bool ProxyReply::consumeData(const char *begin,
       if (sessionManager_.tryToIncrementSessionCount()) {
 	fwCertificates_ = true;
 	// Launch new child process
-        sessionProcess_ = sessionManager_.createSessionProcess();
+	sessionProcess_.reset(
+	    new SessionProcess(connection()->server()->service()));
 
 	sessionProcess_->asyncExec(
 	    configuration(),
@@ -192,6 +193,7 @@ bool ProxyReply::consumeData(const char *begin,
 	     (&ProxyReply::connectToChild,
 	      std::static_pointer_cast<ProxyReply>(shared_from_this()),
 	      std::placeholders::_1)));
+	sessionManager_.addPendingSessionProcess(sessionProcess_);
       } else {
 	LOG_ERROR("maximum amount of sessions reached!");
 	error(service_unavailable);
@@ -341,23 +343,23 @@ void ProxyReply::appendSSLInfo(const Wt::WSslInfo* sslInfo, std::ostream& os) {
 #ifdef WT_WITH_SSL
   os << SSL_CLIENT_CERTIFICATES_HEADER ": ";
 
-  Wt::Json::Value val(Wt::Json::Type::Object);
-  Wt::Json::Object &obj = val;
+  //Wt::Json::Value val(Wt::Json::Type::Object);
+  Wt::Json::Object obj;
 
   Wt::WSslCertificate clientCert = sslInfo->clientCertificate();
   std::string pem = clientCert.toPem();
 
-  obj["client-certificate"] = Wt::WString(pem); 
+  obj["client-certificate"] = pem; 
 
-  Wt::Json::Value arrVal(Wt::Json::Type::Array);
-  Wt::Json::Array &sslCertsArr = arrVal;
+  Wt::Json::Array arrVal;
+  //Wt::Json::Array &sslCertsArr = arrVal;
   for(unsigned int i = 0; i< sslInfo->clientPemCertificateChain().size(); ++i) {
-	sslCertsArr.push_back(Wt::WString(sslInfo->clientPemCertificateChain()[i].toPem()));
+	arrVal.push_back(sslInfo->clientPemCertificateChain()[i].toPem().c_str());
   }
 
   obj["client-pem-certification-chain"] = arrVal;
   obj["client-verification-result-state"] = (int)sslInfo->clientVerificationResult().state();
-  obj["client-verification-result-message"] = sslInfo->clientVerificationResult().message();
+  obj["client-verification-result-message"] = sslInfo->clientVerificationResult().message().toUTF8();
 
   os << Wt::Utils::base64Encode(Wt::Json::serialize(obj), false);
   os << "\r\n";
@@ -454,6 +456,8 @@ void ProxyReply::handleHeadersRead(const Wt::AsioWrapper::error_code &ec)
 	if (boost::icontains(value, "Upgrade")) {
 	  webSocketConnection = true;
 	}
+      } else if (boost::iequals(name, "X-Wt-Session")) {
+	sessionManager_.addSessionProcess(value, sessionProcess_);
       } else if (boost::iequals(name, "Upgrade")) {
 	// Remove hop-by-hop header
 	if (boost::icontains(value, "websocket")) {

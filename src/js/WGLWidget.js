@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Emweb bv, Herent, Belgium.
+ * Copyright (C) 2010 Emweb bvba, Kessel-Lo, Belgium.
  *
  * See the LICENSE file for terms of use.
  */
@@ -17,6 +17,7 @@ WT_DECLARE_WT_MEMBER
    var vec3 = WT.glMatrix.vec3;
    var mat3 = WT.glMatrix.mat3;
    var mat4 = WT.glMatrix.mat4;
+   //var matnew = glMatrix.mat4;
 
    this.ctx = null;
 
@@ -33,12 +34,18 @@ WT_DECLARE_WT_MEMBER
 
    this.discoverContext = function(noGLHandler, antialiasingEnabled) {
      if (canvas.getContext) {
-       try {
-         this.ctx = canvas.getContext('webgl', {antialias: antialiasingEnabled});
+	try {
+          this.ctx = canvas.getContext('webgl2', { powerPreference: "high-performance" });
+          //extension pour GL_CLAMP_BORDER
+          var ext = (
+            this.ctx.getExtension('GL_NV_texture_border_clamp') ||
+            this.ctx.getExtension('GL_EXT_texture_border_clamp') ||
+            this.ctx.getExtension('GL_OES_texture_border_clamp')
+          );
        } catch (e) {}
        if (this.ctx === null) {
          try {
-           this.ctx = canvas.getContext('experimental-webgl', {antialias: antialiasingEnabled});
+           this.ctx = canvas.getContext('webgl', {antialias: antialiasingEnabled});
          } catch (e) {}
        }
        if (this.ctx === null) {
@@ -66,7 +73,7 @@ WT_DECLARE_WT_MEMBER
 
    var mouseHandler = null;
 
-   this.setMouseHandler = function(newMouseHandler) {
+   this.setMouseHandler = function (newMouseHandler) {
      mouseHandler = newMouseHandler;
      if (mouseHandler.setTarget) {
        mouseHandler.setTarget(this);

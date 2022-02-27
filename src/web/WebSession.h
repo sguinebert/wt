@@ -34,10 +34,6 @@
 #include "Wt/WEnvironment.h"
 #include "Wt/WLogger.h"
 
-#ifdef WT_THREADED
-#include <atomic>
-#endif // WT_THREADED
-
 namespace Wt {
 
 class WebController;
@@ -63,7 +59,6 @@ public:
     JustCreated,
     ExpectLoad,
     Loaded,
-    Suspended,
     Dead
   };
 
@@ -123,11 +118,10 @@ public:
   WObject *emitStackTop();
 
 #ifndef WT_TARGET_JAVA
-  Time expireTime() const { return expire_; }
+  const Time& expireTime() const { return expire_; }
 #endif // WT_TARGET_JAVA
 
   bool dead() { return state_ == State::Dead; }
-  bool suspended() { return state_ == State::Suspended; }
   State state() const { return state_; }
   void kill();
 
@@ -191,9 +185,11 @@ public:
     };
 
     Handler();
-    Handler(const std::shared_ptr<WebSession>& session,
-	    WebRequest& request, WebResponse& response);
-    Handler(const std::shared_ptr<WebSession>& session, LockOption lockOption);
+    Handler(const std::shared_ptr<WebSession> &session,
+            WebRequest &request, 
+            WebResponse &response);
+    Handler(const std::shared_ptr<WebSession> &session, 
+            LockOption lockOption);
     Handler(WebSession *session);
     ~Handler();
 
@@ -279,17 +275,15 @@ private:
 #ifndef WT_TARGET_JAVA
   void handleWebSocketRequest(Handler& handler);
   static void handleWebSocketMessage(std::weak_ptr<WebSession> session,
-				     WebReadEvent event);
+                                     WebReadEvent event);
   static void webSocketConnect(std::weak_ptr<WebSession> session,
-			       WebWriteEvent event);
+                               WebWriteEvent event);
   static void webSocketReady(std::weak_ptr<WebSession> session,
-			     WebWriteEvent event);
+                             WebWriteEvent event);
 #endif
 
   void checkTimers();
   void hibernate();
-
-  bool resourceRequest(const WebRequest& request) const;
 
 #ifdef WT_BOOST_THREADS
   std::mutex mutex_;
@@ -323,11 +317,7 @@ private:
   int deferCount_;
 
 #ifndef WT_TARGET_JAVA
-#ifdef WT_THREADED
-  std::atomic<Time> expire_;
-#else
   Time             expire_;
-#endif
 #endif
 
 #ifdef WT_BOOST_THREADS

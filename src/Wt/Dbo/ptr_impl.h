@@ -1,3 +1,4 @@
+#include "ptr.h"
 // This may look like C code, but it's really -*- C++ -*-
 /*
  * Copyright (C) 2008 Emweb bv, Herent, Belgium.
@@ -118,7 +119,9 @@ void MetaDbo<C>::bindModifyId(SqlStatement *statement, int& column)
   Impl::MappingInfo *mapping = session()->template getMapping<C>();
 
   SaveBaseAction action(*this, *mapping, statement, column);
-
+  
+  action.setIdOnly();
+  
   field(action, id_,
 	mapping->naturalIdFieldName, mapping->naturalIdFieldSize);
 

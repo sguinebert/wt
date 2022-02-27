@@ -14,8 +14,7 @@
 #include "Wt/WString.h"
 #include "Wt/WTransform.h"
 
-#include "Wt/Json/Array.h"
-#include "Wt/Json/Value.h"
+#include "Wt/Json/json.hpp"
 
 #include "WebUtils.h"
 
@@ -563,20 +562,16 @@ std::string WTransform::jsValue() const
 void WTransform::assignFromJSON(const Json::Value &value)
 {
   try {
-#ifndef WT_TARGET_JAVA
-    const Json::Array &ar = value;
-#else
-    const Json::Array &ar = static_cast<Json::Array&>(value);
-#endif
+    const Json::Array &ar = value.get_array();
     if (ar.size() == 6 &&
-	!ar[0].toNumber().isNull() &&
-	!ar[1].toNumber().isNull() &&
-	!ar[2].toNumber().isNull() &&
-	!ar[3].toNumber().isNull() &&
-	!ar[4].toNumber().isNull() &&
-	!ar[5].toNumber().isNull()) {
+	!ar[0].is_null() &&
+	!ar[1].is_null() &&
+	!ar[2].is_null() &&
+	!ar[3].is_null() &&
+	!ar[4].is_null() &&
+	!ar[5].is_null()) {
       for (std::size_t i = 0; i < 6; ++i) {
-	m_[i] = ar[i].toNumber().orIfNull(m_[i]);
+	m_[i] = ar[i].get_double(0);
       }
     } else {
       LOG_ERROR("Couldn't convert JSON to WTransform");

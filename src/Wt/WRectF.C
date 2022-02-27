@@ -13,8 +13,7 @@
 #include "Wt/WPointF.h"
 #include "Wt/WStringStream.h"
 
-#include "Wt/Json/Array.h"
-#include "Wt/Json/Value.h"
+#include "Wt/Json/json.hpp"
 
 #include "web/WebUtils.h"
 
@@ -230,20 +229,18 @@ std::string WRectF::jsValue() const
 void WRectF::assignFromJSON(const Json::Value &value)
 {
   try {
-#ifndef WT_TARGET_JAVA
-    const Json::Array &ar = value;
-#else
-    const Json::Array &ar = static_cast<Json::Array&>(value);
-#endif
+
+    const Json::Array &ar = value.get_array();
+
     if (ar.size() == 4 &&
-	!ar[0].toNumber().isNull() &&
-	!ar[1].toNumber().isNull() &&
-	!ar[2].toNumber().isNull() &&
-	!ar[3].toNumber().isNull()) {
-      x_ = ar[0].toNumber().orIfNull(x_);
-      y_ = ar[1].toNumber().orIfNull(y_);
-      width_ = ar[2].toNumber().orIfNull(width_);
-      height_ = ar[3].toNumber().orIfNull(height_);
+	!ar[0].is_null() &&
+	!ar[1].is_null() &&
+	!ar[2].is_null() &&
+	!ar[3].is_null()) {
+      x_ = ar[0].get_double(x_);
+      y_ = ar[1].get_double(y_);
+      width_ = ar[2].get_double(width_);
+      height_ = ar[3].get_double(height_);
     } else {
       LOG_ERROR("Couldn't convert JSON to WRectF");
     }

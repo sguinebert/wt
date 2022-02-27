@@ -23,7 +23,10 @@
 #include "Buffer.h"
 #include "Reply.h"
 
-#ifdef WTHTTP_WITH_ZLIB
+
+#if defined(WTHTTP_WITH_LDEFLATE)
+#include <libdeflate.h>
+#elif defined(WTHTTP_WITH_ZLIB)
 #include <zlib.h>
 #endif
 
@@ -66,7 +69,7 @@ public:
   bool initialState() const;
   
 
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
   bool frameCompressed_;
 #endif
 
@@ -99,10 +102,15 @@ private:
   std::string doWebSocketHandshake13(const Request& req);
   bool parseCrazyWebSocketKey(const buffer_string& key, ::uint32_t& number);
 
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_LDEFLATE) || defined(WTHTTP_WITH_ZLIB)
   bool doWebSocketPerMessageDeflateNegotiation(const Request& req, std::string& compressHeader);
-  bool inflate(unsigned char* in, size_t size, unsigned char out[], bool& hasMore);
   bool initInflate();
+#endif
+#ifdef WTHTTP_WITH_LDEFLATE
+std::string inflate(const char *data, const size_t ndata);
+#endif
+#ifdef WTHTTP_WITH_ZLIB
+  bool inflate(unsigned char* in, size_t size, unsigned char out[], bool& hasMore);
 #endif
 
   /// The current state of the request parser.
@@ -145,7 +153,10 @@ private:
     ws13_payload
   } wsState_;
 
-
+#if defined(WTHTTP_WITH_LDEFLATE)
+  libdeflate_decompressor *decompressor_;
+  bool inflateInitialized_;
+#endif
 #ifdef WTHTTP_WITH_ZLIB
   z_stream zInState_;
   bool inflateInitialized_;

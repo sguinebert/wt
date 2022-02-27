@@ -64,9 +64,11 @@ WtReply::~WtReply()
   if (!requestFileName_.empty())
     unlink(requestFileName_.c_str());
 
-#ifdef WTHTTP_WITH_ZLIB
+#ifdef WTHTTP_WITH_LDEFLATE
+  libdeflate_free_compressor(compressor_);
+#elif defined(WTHTTP_WITH_ZLIB)
   if(deflateInitialized_)
-	deflateEnd(&zOutState_);
+	  deflateEnd(&zOutState_);
 #endif
 }
 
@@ -119,7 +121,7 @@ void WtReply::reset(const Wt::EntryPoint *ep)
   }
 #ifdef WTHTTP_WITH_ZLIB
   if(deflateInitialized_)
-	deflateReset(&zOutState_);
+	  deflateReset(&zOutState_);
 #endif
 }
 
@@ -559,11 +561,34 @@ void WtReply::formatResponse(std::vector<asio::const_buffer>& result)
     case 13:
       {
 	std::size_t payloadLength;
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
 	if(!request_.pmdState_.enabled ) {
 #endif
 	  result.push_back(asio::buffer(&misc_strings::char0x81, 1)); // RSV1 = 0
 	  payloadLength = size;
+#ifdef WTHTTP_WITH_LDEFLATE
+	} else  {
+	  result.push_back(asio::buffer(&misc_strings::char0xC1, 1)); // RSV1 = 1
+	  const unsigned char* data = asio::buffer_cast<const unsigned char*>(out_buf_.data());
+	  int size = asio::buffer_size(out_buf_.data());
+    auto bound = libdeflate_zlib_compress_bound(compressor_, size);
+    unsigned char buffer[bound];
+    auto ressize = libdeflate_zlib_compress(compressor, data, (uInt)size, buffer, (uInt)bound);
+    
+    buffers.push_back(boost::asio::buffer((char*)buffer, ressize));
+
+    // if (request_.pmdState_.server_max_window_bits < 0) // context_takeover
+		//   deflateReset(&zOutState_);
+    //TODO need to free out_buf
+    
+
+	  if(ressize == 0) {
+		  LOG_ERROR("ws: deflate failed");
+		  sending_ = 0;
+      return;
+    }
+  }
+#endif
 #ifdef WTHTTP_WITH_ZLIB
 	} else  {
 	  result.push_back(asio::buffer(&misc_strings::char0xC1, 1)); // RSV1 = 1
@@ -572,28 +597,28 @@ void WtReply::formatResponse(std::vector<asio::const_buffer>& result)
 	  bool hasMore = false;
 	  payloadLength = 0;
 	  do {
-		unsigned char buffer[16 * 1024];
-		int bs = deflate(data, size, buffer, hasMore);
+      unsigned char buffer[16 * 1024];
+      int bs = deflate(data, size, buffer, hasMore);
 
-		if (!hasMore) {
-		  // strip trailing for 0x0 0x0 0xff 0xff bytes
-		  bs = bs - 4;
-		}
-		
-		buffers.push_back(buf(std::string((char*)buffer, bs)));
-		payloadLength+=bs;
+      if (!hasMore) {
+        // strip trailing for 0x0 0x0 0xff 0xff bytes
+        bs = bs - 4;
+      }
+      
+      buffers.push_back(buf(std::string((char*)buffer, bs)));
+      payloadLength+=bs;
 	  } while (hasMore);
 
 	  assert(zOutState_.avail_in == 0);
 
 	  //TODO need to free out_buf
 	  if (request_.pmdState_.server_max_window_bits < 0) // context_takeover
-		deflateReset(&zOutState_);
+		  deflateReset(&zOutState_);
 
 	  if(payloadLength <= 0) {
-		LOG_ERROR("ws: deflate failed");
-		sending_ = 0;
-		return;
+		  LOG_ERROR("ws: deflate failed");
+		  sending_ = 0;
+		  return;
 	  }
 	}
 #endif
@@ -622,11 +647,11 @@ void WtReply::formatResponse(std::vector<asio::const_buffer>& result)
 	  result.push_back(asio::buffer(gatherBuf_, 9));
 	}
 
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
 	// Compress frame if compression is enabled
 	if(request_.pmdState_.enabled) 
 	  for(unsigned i = 0; i < buffers.size() ; ++i) 
-		result.push_back(buffers[i]);
+		  result.push_back(buffers[i]);
 	else 
 #endif
 	  result.push_back(out_buf_.data());
@@ -672,7 +697,38 @@ bool WtReply::nextContentBuffers(std::vector<asio::const_buffer>& result)
   return httpRequest_ ? httpRequest_->done() : true;
 }
 
+#ifdef WTHTTP_WITH_LDEFLATE
 
+bool WtReply::initDeflate() 
+{
+  compressor_ = libdeflate_alloc_compressor(7);
+  if(!compressor_) return false;
+  deflateInitialized_ = true;
+  return true;
+}
+
+int WtReply::deflate(const unsigned char* in, size_t size, unsigned char out[], bool& hasMore)
+{
+  //size_t output = 0;
+  const int bufferSize = 16 * 1024;
+
+  LOG_DEBUG("wthttp: wt: deflate frame");
+
+  if(!deflateInitialized_) {
+	if(!initDeflate())
+	  return -1;
+  }
+
+  auto output = libdeflate_zlib_compress(compressor_, in, (uInt)size, out, (uInt)bufferSize);
+  
+  assert(output != 0);
+
+  hasMore = false;
+
+  return output; 
+}
+
+#endif
 #ifdef WTHTTP_WITH_ZLIB
 
 bool WtReply::initDeflate() 

@@ -74,6 +74,8 @@ private:
   const char *cstr(const buffer_string& bs) const;
 
   static const std::string empty_;
+
+  //bool resonseflushed_ = false;
 };
 
 }

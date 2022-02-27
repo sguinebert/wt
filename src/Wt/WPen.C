@@ -9,9 +9,7 @@
 #include "Wt/WLogger.h"
 #include "Wt/WStringStream.h"
 
-#include "Wt/Json/Array.h"
-#include "Wt/Json/Object.h"
-#include "Wt/Json/Value.h"
+#include "Wt/Json/json.hpp"
 
 namespace Wt {
 
@@ -144,24 +142,17 @@ bool WPen::operator!=(const WPen& other) const
 void WPen::assignFromJSON(const Json::Value &value)
 {
   try {
-#ifndef WT_TARGET_JAVA
-    const Json::Object &o = value;
-    const Json::Value &color = o.get("color");
-    const Json::Array &col = color;
-#else
-    const Json::Object &o = static_cast<const Json::Object &>(value);
-    const Json::Value &color = o.get("color");
-    const Json::Array &col = static_cast<const Json::Array &>(color);
-#endif
+    const Json::Object &o = value.get_object();
+    const Json::Array &col = o.at("color").get_array();
     if (col.size() == 4 &&
-	!col[0].toNumber().isNull() &&
-	!col[1].toNumber().isNull() &&
-	!col[2].toNumber().isNull() &&
-	!col[3].toNumber().isNull()) {
-      color_ = WColor(col[0].toNumber().orIfNull(0),
-		      col[1].toNumber().orIfNull(0),
-		      col[2].toNumber().orIfNull(0),
-		      col[3].toNumber().orIfNull(255));
+	!col[0].is_null() &&
+	!col[1].is_null() &&
+	!col[2].is_null() &&
+	!col[3].is_null()) {
+      color_ = WColor(col[0].get_int64(0),
+		      col[1].get_int64(0),
+		      col[2].get_int64(0),
+		      col[3].get_int64(255));
     } else {
       LOG_ERROR("Couldn't convert JSON to WPen");
     }

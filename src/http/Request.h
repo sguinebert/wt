@@ -85,8 +85,8 @@ public:
     buffer_string name;
     buffer_string value;
   };
-  
-#ifdef WTHTTP_WITH_ZLIB
+
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
   struct PerMessageDeflateState {
 	bool enabled;
 	int client_max_window_bits; // -1 means no context takeover
@@ -115,7 +115,7 @@ public:
   HeaderList headers;
   ::int64_t contentLength;
   int webSocketVersion;
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
   mutable PerMessageDeflateState pmdState_;
 #endif
 

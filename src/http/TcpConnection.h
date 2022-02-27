@@ -53,6 +53,9 @@ protected:
 
   /// Socket for the connection.
   asio::ip::tcp::socket socket_;
+
+  // The memory to use for handler-based custom memory allocation.
+  //handler_memory handler_memory_;
 };
 
 typedef std::shared_ptr<TcpConnection> TcpConnectionPtr;

@@ -6,8 +6,10 @@
 
 #include <cstring>
 #include <stdio.h>
+#include <charconv>
 
 #include "Wt/WStringStream.h"
+#include "fmt/format.h"
 
 #ifndef WT_DBO_STRINGSTREAM
 #include <Wt/AsioWrapper/asio.hpp>
@@ -126,18 +128,40 @@ WStringStream& WStringStream::operator<< (const std::string& s)
 
   return *this;
 }
-
+//benchmark from https://github.com/fmtlib/fmt#speed-tests
 WStringStream& WStringStream::operator<< (int v)
 {
-  char buf[20];
-  Utils::itoa(v, buf);
+  // char buf[20];
+  // auto [ptr, ec] = std::to_chars(buf, buf + 20, v); //high performance (20% slower than best fmt) & portable
+  // if(ptr - buf < 20)
+  //   *ptr++=0;
+
+  fmt::format_int conv(v); //best performance
+  auto buf = conv.c_str();
+
+  // char buf[20];
+  // fmt::format_to(buf, "{}", v); //close to best performance
+
+  // char buf[20];
+  // Utils::itoa(v, buf);
   return *this << buf;
 }
 
 WStringStream& WStringStream::operator<< (unsigned int v)
 {
-  char buf[20];
-  Utils::lltoa(v, buf);
+  // char buf[20];
+  // auto [ptr, ec] = std::to_chars(buf, buf + 20, v); //high performance & portable
+  // if(ptr - buf < 20)
+  //   *ptr++=0;
+
+  fmt::format_int conv(v); //best performance
+  auto buf = conv.c_str();
+
+  // char buf[20];
+  // fmt::format_to(buf, "{}", v);
+
+  // char buf[20];
+  // Utils::lltoa(v, buf);
   return *this << buf;
 }
 
@@ -151,32 +175,60 @@ WStringStream& WStringStream::operator<< (bool v)
 
 WStringStream& WStringStream::operator<< (long long v)
 {
-  char buf[40];
-  Utils::lltoa(v, buf);
+  // char buf[40];
+  // auto [ptr, ec] = std::to_chars(buf, buf + 40, v); //high performance & portable
+  // if(ptr - buf < 40)
+  //   *ptr++=0;
+
+  fmt::format_int conv(v); //best performance
+  auto buf = conv.c_str();
+
+  // char buf[40];
+  // fmt::format_to(buf, "{}", v);
+
+  // char buf[40];
+  // Utils::lltoa(v, buf);
   return *this << buf;
 }
 
 WStringStream& WStringStream::operator<< (double d)
 {
-  char buf[50];
-  snprintf(buf, 50, "%g", d);
-  return *this << buf;
+  // char buf[50];
+  // std::to_chars(buf, buf + 50, d);
+
+  // char buf[50];
+  // fmt::format_to(buf, "{}", d);
+
+  auto buf = std::vector<char>();
+  fmt::format_to(std::back_inserter(buf), "{}", d);
+  //buf.push_back(0);
+  append(buf.data(), buf.size());
+  return *this;
+
+  //fmt::print(buf, 50, "%g", d);
+  //snprintf(buf, 50, "%g", d);
+  //return *this << buf.data();
 }
 
 void WStringStream::append(const char *s, int length)
 {
-  if (buf_i_ + length > buf_len()) {
+  if (buf_i_ + length > buf_len())
+  {
     pushBuf();
 
-    if (length > buf_len()) {
-      if (sink_) {
-	sink_->write(s, length);
-	return;
-      } else {
-	char *buf = new char[length];
-	std::memcpy(buf, s, length);
-	bufs_.push_back(std::make_pair(buf, length));
-	return;
+    if (length > buf_len())
+    {
+      if (sink_)
+      {
+        sink_->write(s, length);
+        return;
+      }
+      else
+      {
+        char *buf = new char[length];
+        std::memcpy(buf, s, length);
+        bufs_.push_back(std::make_pair(buf, length));
+        return;
       }
     }
   }

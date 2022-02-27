@@ -17,10 +17,10 @@
 #include "Wt/WPen.h"
 #include "Wt/WStringStream.h"
 
-#include "Wt/Json/Array.h"
+//#include "Wt/Json/Array.h"
+//#include "Wt/Json/Serializer.h"
 #include "Wt/Json/Parser.h"
-#include "Wt/Json/Serializer.h"
-#include "Wt/Json/Value.h"
+#include "Wt/Json/json.hpp"
 
 #include "web/DomElement.h"
 #include "web/EscapeOStream.h"
@@ -629,12 +629,12 @@ void WLeafletMap::addPathOptions(Json::Object &options,
 {
   using namespace Wt;
   if (stroke.style() != PenStyle::None) {
-    options["stroke"] = Json::Value(true);
-    options["color"] = Json::Value(WT_USTRING::fromUTF8(stroke.color().cssText(false)));
-    options["opacity"] = Json::Value(stroke.color().alpha() / 255.0);
+    options["stroke"] = true;
+    options["color"] = stroke.color().cssText(false);
+    options["opacity"] = stroke.color().alpha() / 255.0;
     double weight = stroke.width().toPixels();
     weight = weight == 0 ? 1.0 : weight;
-    options["weight"] = Json::Value(weight);
+    options["weight"] = weight;
 
     std::string capStyle;
     switch (stroke.capStyle()) {
@@ -648,7 +648,7 @@ void WLeafletMap::addPathOptions(Json::Object &options,
       capStyle = "round";
     }
 
-    options["lineCap"] = Json::Value(WT_USTRING::fromUTF8(capStyle));
+    options["lineCap"] = capStyle;
 
     std::string joinStyle;
     switch (stroke.joinStyle()) {
@@ -662,19 +662,19 @@ void WLeafletMap::addPathOptions(Json::Object &options,
       joinStyle = "round";
     }
 
-    options["lineJoin"] = Json::Value(WT_USTRING::fromUTF8(joinStyle));
+    options["lineJoin"] = joinStyle;
 
     // TODO(Roel): dashArray?
   } else {
-    options["stroke"] = Json::Value(false);
+    options["stroke"] = false;
   }
 
   if (fill.style() != BrushStyle::None) {
-    options["fill"] = Json::Value(true);
-    options["fillColor"] = Json::Value(WT_USTRING::fromUTF8(fill.color().cssText(false)));
-    options["fillOpacity"] = Json::Value(fill.color().alpha() / 255.0);
+    options["fill"] = true;
+    options["fillColor"] = fill.color().cssText(false);
+    options["fillOpacity"] = fill.color().alpha() / 255.0;
   } else {
-    options["fill"] = Json::Value(false);
+    options["fill"] = false;
   }
 }
 

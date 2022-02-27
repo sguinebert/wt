@@ -16,9 +16,14 @@
 #include "../web/Configuration.h"
 #include "../web/WebRequest.h"
 
-#ifdef WTHTTP_WITH_ZLIB
+
+#ifdef WTHTTP_WITH_LDEFLATE
+#include <libdeflate.h>
+#elif defined(WTHTTP_WITH_ZLIB)
 #include <zlib.h>
 #endif
+
+#include <libdeflate.h>
 
 namespace http {
 namespace server {
@@ -83,7 +88,7 @@ protected:
   HTTPRequest *httpRequest_;
 
   char gatherBuf_[16];
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
   std::vector<asio::const_buffer> compressedBuffers_;
   bool deflateInitialized_;
 #endif
@@ -101,11 +106,15 @@ private:
 			  const char *end,
 			  Request::State state);
   void formatResponse(std::vector<asio::const_buffer>& result);
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
   int deflate(const unsigned char* in, size_t in_size, unsigned char out[], bool& hasMore);
   bool initDeflate();
-
+#endif
+#ifdef WTHTTP_WITH_ZLIB
   z_stream zOutState_;
+#endif
+#ifdef WTHTTP_WITH_LDEFLATE
+  libdeflate_compressor *compressor_;
 #endif
 };
 

@@ -10,6 +10,7 @@
 #include <Wt/WGlobal.h>
 #include <string>
 #include <vector>
+#include <string_view>
 
 /*! \file Utils
  */
@@ -68,7 +69,7 @@ WT_API extern std::vector<unsigned char> sha1(const std::string& data);
  *
  * \sa base64Decode()
  */
-WT_API extern std::string base64Encode(const std::string& data, 
+WT_API extern std::string base64Encode(std::string_view data, 
 				       bool crlf = true);
 
 /*! \brief Performs Base64-decoding of data.
@@ -79,7 +80,7 @@ WT_API extern std::string base64Encode(const std::string& data,
  * \sa base64Encode()
  */
 #ifndef WT_TARGET_JAVA
-WT_API extern std::string base64Decode(const std::string& data);
+WT_API extern std::string base64Decode(std::string_view data);
 #else
 WT_API extern std::vector<unsigned char> base64Decode(const std::string& data);
 WT_API extern std::string base64DecodeS(const std::string& data);

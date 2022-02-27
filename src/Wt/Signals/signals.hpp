@@ -113,9 +113,10 @@ private:
     {
       ref_count -= 1;
       if (!ref_count)
-	delete this;
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+        delete this;
       else
-	assert (ref_count > 0);
+        assert(ref_count > 0);
     }
 
     void unlink()

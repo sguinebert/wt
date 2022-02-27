@@ -7,10 +7,6 @@
 #ifndef DOMELEMENT_H_
 #define DOMELEMENT_H_
 
-#if defined(WT_THREADED) || defined(WT_TARGET_JAVA)
-#include <atomic>
-#endif
-
 #include <map>
 #include <vector>
 #include <string>
@@ -594,11 +590,7 @@ private:
   TimeoutList timeouts_;
   std::string elementTagName_;
 
-#if defined(WT_THREADED) || defined(WT_TARGET_JAVA)
-  static std::atomic<unsigned> nextId_;
-#else
-  static unsigned nextId_;
-#endif
+  static int nextId_;
 
   friend class WCssDecorationStyle;
 };

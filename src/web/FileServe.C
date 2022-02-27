@@ -43,16 +43,6 @@ void FileServe::setVar(const std::string& name, int value)
   setVar(name, std::to_string(value));
 }
 
-void FileServe::setVar(const std::string& name, long value)
-{
-  setVar(name, std::to_string(value));
-}
-
-void FileServe::setVar(const std::string& name, long long value)
-{
-  setVar(name, std::to_string(value));
-}
-
 void FileServe::setVar(const std::string& name, unsigned value)
 {
   setVar(name, std::to_string(value));

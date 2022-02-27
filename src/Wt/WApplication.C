@@ -171,7 +171,6 @@ WApplication::WApplication(const WEnvironment& env
   domRoot_.reset(new WContainerWidget());
   domRoot_->setGlobalUnfocused(true);
   domRoot_->setStyleClass("Wt-domRoot");
-  domRoot_->load();
 
   if (session_->type() == EntryPointType::Application)
     domRoot_->resize(WLength::Auto, WLength(100, LengthUnit::Percentage));
@@ -186,7 +185,6 @@ WApplication::WApplication(const WEnvironment& env
     widgetRoot_->resize(WLength::Auto, WLength(100, LengthUnit::Percentage));
   } else {
     domRoot2_.reset(new WContainerWidget());
-    domRoot2_->load();
   }
 
   // a define so that it shouts at us !
@@ -522,7 +520,6 @@ void WApplication::bindWidget(std::unique_ptr<WWidget> widget,
 		     "in WidgetSet mode.");
 
   widget->setId(domId);
-  widget->setJavaScriptMember("wtReparentBarrier", "true");
   domRoot2_->addWidget(std::move(widget));
 }
 
@@ -552,7 +549,6 @@ void WApplication::removeGlobalWidget(WWidget *w)
   // to be null. In that case, we don't need to remove this
   // widget from the domRoot.
   if (domRoot_) {
-    w->setGlobalWidget(false);
     auto removed = domRoot_->removeWidget(w);
     // domRoot_ should never own the global widget
 #ifndef WT_TARGET_JAVA
@@ -784,9 +780,6 @@ WWidget *WApplication::findWidget(const std::string& name)
 
 void WApplication::doUnload()
 {
-  if (session_->suspended())
-    return;
-
   const Configuration& conf = environment().server()->configuration();
 
   if (conf.reloadIsNewSession())
@@ -798,11 +791,6 @@ void WApplication::doUnload()
 void WApplication::unload()
 {
   quit();
-}
-
-
-void WApplication::suspend(std::chrono::seconds duration) {
-  session_->setState(WebSession::State::Suspended, static_cast<int>(duration.count()));
 }
 
 void WApplication::doIdleTimeout()
@@ -872,16 +860,17 @@ std::string WApplication::resourceMapKey(WResource *resource)
 std::string WApplication::addExposedResource(WResource *resource)
 {
   exposedResources_[resourceMapKey(resource)] = resource;
-  resource->incrementVersion();
 
   std::string fn = resource->suggestedFileName().toUTF8();
   if (!fn.empty() && fn[0] != '/')
     fn = '/' + fn;
 
+  static unsigned long seq = 0;
+
   if (resource->internalPath().empty())
     return session_->mostRelativeUrl(fn)
       + "&request=resource&resource=" + Utils::urlEncode(resource->id())
-      + "&ver=" + std::to_string(resource->version());
+      + "&rand=" + std::to_string(seq++);
   else {
     fn = resource->internalPath() + fn;
     if (!session_->applicationName().empty() && fn[0] != '/')
@@ -920,23 +909,6 @@ WResource *WApplication::decodeExposedResource(const std::string& resourceKey)
     else
       return nullptr;
   }
-}
-
-WResource *WApplication::decodeExposedResource(const std::string& resourceKey,
-                                               unsigned long ver) const
-{
-  ResourceMap::const_iterator i = exposedResources_.find(resourceKey);
-
-  WResource *resource = nullptr;
-  if (i != exposedResources_.end())
-    resource = i->second;
-
-  if (resource
-      && resource->invalidAfterChanged()
-      && (resource->version() != ver))
-    resource = nullptr;
-
-  return resource;
 }
 
 std::string WApplication::encodeObject(WObject *object)
@@ -1425,6 +1397,9 @@ void WApplication::enableUpdates(bool enabled)
 
 void WApplication::triggerUpdate()
 {
+  if (WebSession::Handler::instance()->request())
+    return;
+
   if (!serverPush_)
     LOG_WARN("WApplication::triggerUpdate(): updates not enabled?");
 
@@ -1706,10 +1681,10 @@ void WApplication::streamJavaScriptPreamble(WStringStream& out, bool all)
     if (preamble.type == JavaScriptFunction) {
       out << scope << '.' << (char *)preamble.name
 	  << " = function() { return ("
-	  << (char *)preamble.src << ").apply(" << scope << ", arguments) };\n";
+	  << (char *)preamble.src << ").apply(" << scope << ", arguments) };";
     } else {
       out << scope << '.' << (char *)preamble.name
-	  << " = " << (char *)preamble.src << ";\n";
+	  << " = " << (char *)preamble.src << '\n';
     }
   }
 

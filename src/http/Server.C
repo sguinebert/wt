@@ -300,10 +300,11 @@ void Server::start()
 
   if (config_.parentPort() != -1) {
     // This is a child process, connect to parent to
-    // announce the listening port.,
-    parentSocket_ = std::make_unique<asio::ip::tcp::socket>(wt_.ioService());
+    // announce the listening port.
+    std::shared_ptr<asio::ip::tcp::socket> parentSocketPtr
+      (new asio::ip::tcp::socket(wt_.ioService()));
     wt_.ioService().post
-      (std::bind(&Server::startConnect, this));
+      (std::bind(&Server::startConnect, this, parentSocketPtr));
   }
 }
 
@@ -524,28 +525,27 @@ void Server::startAccept()
 #endif // HTTP_WITH_SSL
 }
 
-void Server::startConnect()
+void Server::startConnect(const std::shared_ptr<asio::ip::tcp::socket>& socket)
 {
-  parentSocket_->async_connect
+  socket->async_connect
     (asio::ip::tcp::endpoint(asio::ip::address_v4::loopback(),
 			     config_.parentPort()),
-     std::bind(&Server::handleConnected, this,
+     std::bind(&Server::handleConnected, this, socket,
 	       std::placeholders::_1));
 }
 
 void Server
-::handleConnected(const Wt::AsioWrapper::error_code& err)
+::handleConnected(const std::shared_ptr<asio::ip::tcp::socket>& socket,
+                  const Wt::AsioWrapper::error_code& err)
 {
   if (!err) {
     // tcp_listeners_.front() should be fine here:
     // it should be the only acceptor when this is a session process
-    auto port = tcp_listeners_.front().acceptor.local_endpoint().port();
-    Wt::WStringStream ss;
-    ss << "port:" << port << "\n";
-    auto buf = std::make_shared<std::string>(ss.str());
-    parentSocket_->async_send(asio::buffer(*buf),
-                              std::bind(&Server::handleMessageSent, this,
-                                        buf, std::placeholders::_1));
+    std::shared_ptr<std::string> buf(new std::string(
+      boost::lexical_cast<std::string>(tcp_listeners_.front().acceptor.local_endpoint().port())));
+    socket->async_send(asio::buffer(*buf),
+		       std::bind(&Server::handlePortSent, this, 
+				 socket, err, buf));
   } else {
     LOG_ERROR_S(&wt_, "child process couldn't connect to parent to "
 		"send listening port: " << err.message());
@@ -553,22 +553,19 @@ void Server
 }
 
 void Server
-::handleMessageSent(const std::shared_ptr<std::string>& buf,
-                    const Wt::AsioWrapper::error_code& err)
+::handlePortSent(const std::shared_ptr<asio::ip::tcp::socket>& socket,
+                 const Wt::AsioWrapper::error_code& err,
+		 const std::shared_ptr<std::string>& /*buf*/)
 {
   if (err) {
-    LOG_ERROR_S(&wt_, "child process couldn't send message to parent: "
+    LOG_ERROR_S(&wt_, "child process couldn't send listening port: " 
 		<< err.message());
-    closeParentConnection();
   }
-}
 
-void Server::closeParentConnection()
-{
-  if (parentSocket_->is_open()) {
-    Wt::AsioWrapper::error_code ignored_ec;
-    parentSocket_->shutdown(asio::ip::tcp::socket::shutdown_both, ignored_ec);
-    parentSocket_->close();
+  Wt::AsioWrapper::error_code ignored_ec;
+  if (socket.get()) {
+    socket->shutdown(asio::ip::tcp::socket::shutdown_both, ignored_ec);
+    socket->close();
   }
 }
 
@@ -651,9 +648,6 @@ void Server::handleSslAccept(SslListener *listener, const Wt::AsioWrapper::error
 
 void Server::handleStop()
 {
-  if (parentSocket_)
-    closeParentConnection();
-
   if (sessionManager_)
     sessionManager_->stop();
 
@@ -694,20 +688,6 @@ void Server::expireSessions(Wt::AsioWrapper::error_code ec)
   } else if (ec != asio::error::operation_aborted) {
     LOG_ERROR_S(&wt_, "session expiration timer got an error: " << ec.message());
   }
-}
-
-void Server::updateProcessSessionId(const std::string& sessionId)
-{
-  if (!parentSocket_->is_open()) {
-    LOG_ERROR_S(&wt_, "cannot update process session-id, no active socket");
-    return;
-  }
-
-  std::string msg("session-id:" + sessionId + "\n");
-  auto buf = std::make_shared<std::string>(msg);
-  parentSocket_->async_send(asio::buffer(*buf),
-                            std::bind(&Server::handleMessageSent, this,
-                                      buf, std::placeholders::_1));
 }
 
 } // namespace server

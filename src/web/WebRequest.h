@@ -200,8 +200,6 @@ public:
 
   std::string clientAddress(const Configuration & conf) const;
 
-  std::string hostName(const Configuration & conf) const;
-
 protected:
   const EntryPoint *entryPoint_;
 

@@ -11,7 +11,7 @@
 #include <Wt/Auth/IssuedToken.h>
 #include <Wt/Auth/OAuthClient.h>
 #include <Wt/Auth/WAuthGlobal.h>
-#include <Wt/Json/Value.h>
+#include <Wt/Json/json.hpp>
 
 #include <set>
 

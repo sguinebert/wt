@@ -127,7 +127,7 @@ private:
   bool updateLayout_;
 
   std::vector<int> wsRequestsToHandle_;
-  bool cookieUpdateNeeded_;
+  bool multiSessionCookieUpdateNeeded_;
 
   void setHeaders(WebResponse& request, const std::string mimeType);
   void setCaching(WebResponse& response, bool allowCache);
@@ -182,7 +182,7 @@ private:
   void renderWsRequestsDone(WStringStream &out);
 
   void updateMultiSessionCookie(const WebRequest &request);
-  void renderCookieUpdate(WStringStream &out);
+  void renderMultiSessionCookieUpdate(WStringStream &out);
 
 public:
   virtual std::string learn(WStatelessSlot* slot) final override;

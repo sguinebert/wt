@@ -187,10 +187,13 @@ Reply::Reply(Request& request, const Configuration& config)
 Reply::~Reply()
 { 
   LOG_DEBUG("~Reply");
-#ifdef WTHTTP_WITH_ZLIB
+
+#if defined(WTHTTP_WITH_LDEFLATE)
+  libdeflate_free_compressor(compressor_);
+#elif defined(WTHTTP_WITH_ZLIB)
   if (gzipBusy_)
     deflateEnd(&gzipStrm_);
-#endif // WTHTTP_WITH_ZLIB
+#endif
 }
 
 void Reply::writeDone(bool success)
@@ -400,7 +403,7 @@ bool Reply::nextBuffers(std::vector<asio::const_buffer>& result)
       }
 
       if (status_ != not_modified) {
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
 	/*
 	 * Content-Encoding: gzip ?
 	 */
@@ -554,8 +557,12 @@ std::string Reply::httpDate(time_t t)
   httpDateBuf(t, s);
   return s.str();
 }
-
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_LDEFLATE)
+void Reply::initGzip()
+{
+  compressor_ = libdeflate_alloc_compressor(7);
+}
+#elif defined(WTHTTP_WITH_ZLIB)
 void Reply::initGzip()
 {
   gzipStrm_.zalloc = Z_NULL;
@@ -579,7 +586,56 @@ bool Reply::encodeNextContentBuffer(
 
   originalSize = 0;
 
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_LDEFLATE)
+  if (gzipEncoding_) {
+    encodedSize = 0;
+
+    if (lastData && buffers.empty())
+      buffers.push_back(asio::buffer((void *)(&encodedSize), 0));
+
+    for (unsigned i = 0; i < buffers.size(); ++i) {
+      const asio::const_buffer& b = buffers[i];
+      int bs = buffer_size(b); // std::size_t ?
+      originalSize += bs;
+
+      auto data = const_cast<unsigned char*>(asio::buffer_cast<const unsigned char*>(b));
+      auto bound = libdeflate_zlib_compress_bound(compressor_, bs);
+      unsigned char buffer[bound];
+      auto resize = libdeflate_zlib_compress(compressor, data, (uInt)bs, buffer, (uInt)bound);
+      //result.push_back(buf(std::string((char *)out, have)));
+      result.push_back(boost::asio::buffer((char*)buffer, resize));
+
+      // gzipStrm_.avail_in = bs;
+      // gzipStrm_.next_in = const_cast<unsigned char*>(
+      //       asio::buffer_cast<const unsigned char*>(b));
+
+      // unsigned char out[16*1024];
+      // do {
+      //   gzipStrm_.next_out = out;
+      //   gzipStrm_.avail_out = sizeof(out);
+
+      //   int r = 0;
+      //   r = deflate(&gzipStrm_,
+      //         lastData && (i == buffers.size() - 1) ? 
+      //         Z_FINISH : Z_NO_FLUSH);
+
+      //   assert(r != Z_STREAM_ERROR);
+
+      //   unsigned have = sizeof(out) - gzipStrm_.avail_out;
+
+      //   if (have) {
+      //     encodedSize += have;
+      //     result.push_back(buf(std::string((char *)out, have)));
+      //   }
+      // } while (gzipStrm_.avail_out == 0);
+    }
+
+    // if (lastData) {
+    //   deflateEnd(&gzipStrm_);
+    //   gzipBusy_ = false;
+    // }
+  } else {
+#elif defined(WTHTTP_WITH_ZLIB)
   if (gzipEncoding_) {
     encodedSize = 0;
 
@@ -632,7 +688,7 @@ bool Reply::encodeNextContentBuffer(
     }
 
     encodedSize = originalSize;
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
     return lastData;
   }
 #endif

@@ -190,13 +190,6 @@ EscapeOStream& EscapeOStream::operator<< (int i)
   return *this;
 }
 
-EscapeOStream& EscapeOStream::operator<< (unsigned int i)
-{
-  stream_ << i;
-
-  return *this;
-}
-
 EscapeOStream& EscapeOStream::operator<< (long long i)
 {
   stream_ << i;
@@ -204,29 +197,39 @@ EscapeOStream& EscapeOStream::operator<< (long long i)
   return *this;
 }
 
-void EscapeOStream::put(const char *s, const EscapeOStream& rules)
+void EscapeOStream::put(const char *s, const EscapeOStream &rules)
 {
-  for (;s;) {
+
+  // std::cout << "string " << s << std::endl; 
+  // std::cout << "rules : " << rules.c_special_ << std::endl;
+  // std::cout << "stream_ : " << stream_.str() << std::endl;
+  for (; s;)
+  {
     const char *f = std::strpbrk(s, rules.c_special_);
-    if (f != 0) {
+    if (f != 0)
+    {
       stream_.append(s, static_cast<int>(f - s));
-      
+
       unsigned i = 0;
       for (; i < rules.mixed_.size(); ++i)
-	if (rules.mixed_[i].c == *f) {
-	  stream_ << rules.mixed_[i].s;
-	  break;
-	}
+        if (rules.mixed_[i].c == *f)
+        {
+          stream_ << rules.mixed_[i].s;
+          break;
+        }
 
       if (i == rules.mixed_.size())
-	stream_ << *f;
+        stream_ << *f;
 
       s = f + 1;
-    } else {
+    }
+    else
+    {
       stream_ << const_cast<char *>(s);
       s = 0;
     }
   }
+  //std::cout << "stream_ modified : " << stream_.str() << std::endl;
 }
 
 EscapeOStream& EscapeOStream::operator<< (bool b)

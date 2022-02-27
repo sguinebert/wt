@@ -25,7 +25,9 @@
 
 #include <Wt/AsioWrapper/asio.hpp>
 
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_LDEFLATE)
+#include <libdeflate.h>
+#elif defined(WTHTTP_WITH_ZLIB)
 #include <zlib.h>
 #endif
 
@@ -186,7 +188,11 @@ private:
 
   bool encodeNextContentBuffer(std::vector<asio::const_buffer>& result,
 			       int& originalSize, int& encodedSize);
-#ifdef WTHTTP_WITH_ZLIB
+
+#ifdef WTHTTP_WITH_LDEFLATE
+  libdeflate_compressor *compressor_;
+  void initGzip();
+#elif defined(WTHTTP_WITH_ZLIB)
   void initGzip();
   bool gzipBusy_;
   z_stream gzipStrm_;

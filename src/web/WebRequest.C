@@ -75,7 +75,6 @@ struct WebRequest::AsyncEmulation {
 WebRequest::WebRequest()
   : entryPoint_(0),
     async_(0),
-    responseType_(ResponseType::Page),
     webSocketRequest_(false)
 {
 #ifndef BENCH
@@ -420,27 +419,6 @@ std::string WebRequest::clientAddress(const Configuration &conf) const
     }
     return remoteAddr;
   }
-}
-
-std::string WebRequest::hostName(const Configuration &conf) const
-{
-  std::string host = str(headerValue("Host"));
-
-  if (conf.behindReverseProxy() ||
-      conf.isTrustedProxy(remoteAddr())) {
-    std::string forwardedHost = str(headerValue("X-Forwarded-Host"));
-
-    if (!forwardedHost.empty()) {
-      std::string::size_type i = forwardedHost.rfind(',');
-      if (i == std::string::npos) {
-        host = forwardedHost;
-      } else {
-        host = forwardedHost.substr(i + 1);
-      }
-    }
-  }
-
-  return host;
 }
 
 }

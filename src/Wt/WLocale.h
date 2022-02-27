@@ -10,27 +10,9 @@
 #include <Wt/WGlobal.h>
 #include <Wt/WString.h>
 
-#ifdef WT_DATE_TZ_USE_DATE
 namespace date {
   class time_zone;
 }
-
-namespace Wt {
-namespace cpp20 {
-
-namespace date = ::date;
-
-}
-}
-#else
-#include <chrono>
-
-namespace Wt::cpp20 {
-
-namespace date = std::chrono;
-
-}
-#endif
 
 namespace Wt {
 
@@ -134,13 +116,13 @@ public:
    * \sa WEnvironment::timeZoneName()
    * \sa WEnvironment::timeZoneOffset()
    */
-  void setTimeZone(const cpp20::date::time_zone *zone);
+  void setTimeZone(const date::time_zone *zone);
 
   /*! \brief Returns the user's time zone.
    *
    * \sa setTimeZone()
    */
-  const cpp20::date::time_zone *timeZone() const { return timeZone_; }
+  const date::time_zone *timeZone() const { return timeZone_; }
 
   /*! \brief Sets the date format.
    *
@@ -194,6 +176,13 @@ public:
    * constructor.
    */
   std::string name() const { return name_; }
+
+  /*! \brief Returns the locale stl version.
+   *
+   * This is the stl version of the locale that was set through the
+   * constructor.
+   */
+  std::locale stdlocale() { return std::locale(name_ + ".UTF8"); }
 
   /*! \brief Returns the current (user) locale.
    *
@@ -263,7 +252,7 @@ private:
   WT_UCHAR decimalPoint_, groupSeparator_;
   WT_USTRING dateFormat_, timeFormat_, dateTimeFormat_;
 
-  const cpp20::date::time_zone *timeZone_;
+  const date::time_zone *timeZone_;
 
   bool isDefaultNumberLocale() const;
 

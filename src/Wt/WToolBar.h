@@ -67,10 +67,7 @@ public:
    */
   void addSeparator();
 
-  /*! \brief Returns the number of widgets.
-   *
-   * The counted widgets are either a WPushButton or WSplitButton added by
-   * addButton() or a widget added by addWidget().
+  /*! \brief Returns the number of buttons.
    *
    * \sa widget()
    */
@@ -101,8 +98,6 @@ private:
   bool compact_;
   WContainerWidget *impl_;
   WContainerWidget *lastGroup_;
-
-  std::vector<WWidget *> widgets_;
 
   WContainerWidget *lastGroup();
 };

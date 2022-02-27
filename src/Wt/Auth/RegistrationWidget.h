@@ -9,10 +9,8 @@
 
 #include <Wt/WTemplateFormView.h>
 #include <Wt/Auth/RegistrationModel.h>
-
+class RegistrationView;
 namespace Wt {
-class WDialog;
-
   namespace Auth {
 
 class AuthWidget;
@@ -34,14 +32,13 @@ class OAuthProcess;
  */
 class WT_API RegistrationWidget : public WTemplateFormView
 {
+	friend RegistrationView;
 public:
   /*! \brief Constructor
    *
    * Creates a new authentication.
    */
   RegistrationWidget(AuthWidget *authWidget = nullptr);
-
-  ~RegistrationWidget();
 
   /*! \brief Sets the registration model.
    */
@@ -111,17 +108,12 @@ private:
   bool created_;
   std::unique_ptr<Login> confirmPasswordLogin_;
 
-  std::unique_ptr<WDialog> isYouDialog_;
-
   void checkLoginName();
   void checkPassword();
   void checkPassword2();
   void confirmIsYou();
   void confirmedIsYou();
   void oAuthDone(OAuthProcess *oauth, const Identity& identity);
-#ifdef WT_HAS_SAML
-  void samlDone(Saml::Process *saml, const Identity &Identity);
-#endif // WT_HAS_SAML
 };
 
   }

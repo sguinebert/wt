@@ -47,7 +47,7 @@ static const int MAX_FIELD_VALUE_SIZE = 80*1024;
 static const int MAX_FIELD_NAME_SIZE = 256;
 static const int MAX_METHOD_SIZE = 16;
 
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
 static const int SERVER_DEFAULT_WINDOW_BITS = 15;
 static const int CLIENT_MAX_WINDOW_BITS = 15;
 static const int SERVER_MAX_WINDOW_BITS = 15;
@@ -61,7 +61,7 @@ namespace http {
 namespace server {
 
 RequestParser::RequestParser(Server *server) :
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
   inflateInitialized_(false),
 #endif
   server_(server)
@@ -71,9 +71,11 @@ RequestParser::RequestParser(Server *server) :
 
 RequestParser::~RequestParser() 
 {
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_LDEFLATE)
+  libdeflate_free_decompressor(decompressor_);
+#elif defined(WTHTTP_WITH_ZLIB)
   if(inflateInitialized_)
-	inflateEnd(&zInState_);
+	  inflateEnd(&zInState_);
 #endif
 }
 
@@ -90,14 +92,21 @@ void RequestParser::reset()
   haveHeader_ = false;
 #ifdef WTHTTP_WITH_ZLIB
   if(inflateInitialized_) 
-	inflateEnd(&zInState_);	
+	  inflateEnd(&zInState_);	
 
   inflateInitialized_ = false;
   frameCompressed_ = false;
 #endif
 }
 
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_LDEFLATE)
+bool RequestParser::initInflate() {
+  if(decompressor_ == nullptr)
+    decompressor_ = libdeflate_alloc_decompressor();
+  inflateInitialized_ = true;
+  return true;
+}
+#elif defined(WTHTTP_WITH_ZLIB)
 bool RequestParser::initInflate() {
   zInState_.zalloc = Z_NULL;
   zInState_.zfree = Z_NULL;
@@ -306,7 +315,7 @@ std::string RequestParser::doWebSocketHandshake13(const Request& req)
     return std::string();
 }
 
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
 bool RequestParser::doWebSocketPerMessageDeflateNegotiation(const Request& req, std::string& response) 
 {
   req.pmdState_.enabled = false;
@@ -461,7 +470,8 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 	  reply->addHeader("Connection", "Upgrade");
 	  reply->addHeader("Upgrade", "WebSocket");
 	  reply->addHeader("Sec-WebSocket-Accept", accept);
-#ifdef WTHTTP_WITH_ZLIB
+
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
 	  std::string compressHeader;
 	  if(!doWebSocketPerMessageDeflateNegotiation(req, compressHeader)) {
 	    LOG_ERROR("ws: error during per_message_deflate negotiation");
@@ -605,7 +615,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 
 	LOG_DEBUG("ws: new frame, opcode byte=" << (int)frameType);
 
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
 	/* RSV1-3 must be 0 */
 	if (frameType & 0x70 && (!req.pmdState_.enabled && frameType & 0x30)) 
 	  return Request::Error;
@@ -628,7 +638,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 	case 0x9: // Ping
 	case 0xA: // Pong
 	  wsFrameType_ = frameType;
-#ifdef WTHTTP_WITH_ZLIB
+#if defined(WTHTTP_WITH_ZLIB) || defined(WTHTTP_WITH_LDEFLATE)
 	  frameCompressed_ = frameType & 0x40;
 #endif // WTHTTP_WITH_ZLIB
 
@@ -758,7 +768,44 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
   if (dataBegin < dataEnd || state == Request::Complete) {
 	char* beg = &*dataBegin;
 	char* end = &*dataEnd;
+
 #ifdef WTHTTP_WITH_ZLIB
+  #ifdef WTHTTP_WITH_LDEFLATE //try a fast path 
+    if (frameCompressed_) {
+      Reply::ws_opcode opcode = (Reply::ws_opcode)(wsFrameType_ & 0x0F);
+      if (wsState_ < ws13_frame_start) {
+      if (wsFrameType_ == 0x00)
+        opcode = Reply::text_frame;
+      }
+      unsigned char appendBlock[] = { 0x00, 0x00, 0xff, 0xff };
+
+
+      auto uncompressed = inflate(reinterpret_cast<char*>(&*beg), (end - beg));
+      // bool hasMore = false;
+      // char buffer[16 * 1024];
+
+      // read_ = 0;
+      // auto result = libdeflate_zlib_decompress(decompressor, reinterpret_cast<unsigned char*>(&*beg), (uInt)(end - beg), buffer, (uInt)jsonraw.size(), 16 * 1024);
+      // bool ret1 = result == LIBDEFLATE_SUCCESS;
+      // inflate(reinterpret_cast<unsigned char*>(&*beg), 
+      // 	end - beg, reinterpret_cast<unsigned char*>(buffer), hasMore);
+
+      //if (ret1) {
+        bool ret2 = reply->consumeWebSocketMessage(opcode, &buffer[0], &buffer[read_], hasMore ? Request::Partial : state);
+
+        if (!ret2)
+          return Request::Error;
+
+
+        if (state == Request::Complete) 
+          if(!inflate(appendBlock, 4, reinterpret_cast<unsigned char*>(buffer), hasMore))
+            return Request::Error;
+
+        return state;
+
+      //}
+    }
+  #endif
 	if (frameCompressed_) {
 	  Reply::ws_opcode opcode = (Reply::ws_opcode)(wsFrameType_ & 0x0F);
 	  if (wsState_ < ws13_frame_start) {
@@ -808,7 +855,45 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 
   return state;
 }
+#ifdef WTHTTP_WITH_LDEFLATE
+std::string RequestParser::inflate(const char *data, const size_t ndata)
+{
+    if (ndata == 0)
+        return std::string(data, ndata);
 
+    size_t availableIn = ndata;
+    auto nextIn = (const uint8_t *)(data);
+    auto decompressed = std::string(availableIn * 3, 0);
+    size_t availableOut = decompressed.size();
+    auto nextOut = (uint8_t *)(decompressed.data());
+    size_t totalOut{0};
+    bool done = false;
+
+    while (!done)
+    {
+        auto result = libdeflate_zlib_decompress(
+            decompressor_, nextIn, availableIn, nextOut, availableOut, &totalOut);
+        if (result == LIBDEFLATE_SUCCESS)
+        {
+            decompressed.resize(totalOut);
+            done = true;
+        }
+        else if (result == LIBDEFLATE_INSUFFICIENT_SPACE)
+        {
+            assert(totalOut == decompressed.size());
+            decompressed.resize(totalOut * 2);
+            nextOut = (uint8_t *)(decompressed.data() + totalOut);
+            availableOut = totalOut;
+        }
+        else
+        {
+            decompressed.resize(0);
+            done = true;
+        }
+    }
+    return decompressed;
+}
+#endif
 #ifdef WTHTTP_WITH_ZLIB
 
 bool RequestParser::inflate(unsigned char* in, size_t size, unsigned char out[], bool& hasMore)

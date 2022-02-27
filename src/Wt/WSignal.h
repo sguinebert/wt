@@ -14,10 +14,6 @@
 #include <Wt/Signals/signals.hpp>
 #endif // WT_TARGET_JAVA
 
-#ifdef WT_THREADED
-#include <atomic>
-#endif // WT_THREADED
-
 #include <functional>
 
 namespace Wt {
@@ -485,15 +481,11 @@ protected:
   static const int BIT_PREVENT_PROPAGATION = 5;
   static const int BIT_SIGNAL_SERVER_ANYWAY = 6;
 
-#ifdef WT_THREADED
-  static std::atomic<unsigned> nextId_;
-#else
-  static unsigned nextId_;
-#endif // WT_THREADED
+  static int nextId_;
 
   const char *name_;
   WObject *owner_;
-  const unsigned id_;
+  const int id_;
   std::vector<StatelessConnection> connections_;
   std::bitset<7> flags_;
 

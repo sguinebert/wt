@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Emweb bv, Herent, Belgium.
+ * Copyright (C) 2013 Emweb bvba, Leuven, Belgium.
  *
  * See the LICENSE file for terms of use.
  */
@@ -352,6 +352,33 @@ const char *WClientGLWidget::toString(WGLWidget::GLenum e)
     case WGLWidget::CONTEXT_LOST_WEBGL: return "ctx.CONTEXT_LOST_WEBGL";
     case WGLWidget::UNPACK_COLORSPACE_CONVERSION_WEBGL: return "ctx.UNPACK_COLORSPACE_CONVERSION_WEBGL";
     case WGLWidget::BROWSER_DEFAULT_WEBGL: return "ctx.BROWSER_DEFAULT_WEBGL";
+  //webgl2 :
+    case WGLWidget::TEXTURE_3D: return "ctx.TEXTURE_3D";
+    case WGLWidget::TEXTURE_2D_ARRAY: return "ctx.TEXTURE_2D_ARRAY";
+    case WGLWidget::R16F: return "ctx.R16F";
+    case WGLWidget::R32F: return "ctx.R32F";
+    case WGLWidget::R16UI: return "ctx.R16UI";
+    case WGLWidget::TEXTURE_BINDING_2D_ARRAY: return "ctx.TEXTURE_BINDING_2D_ARRAY";
+    case WGLWidget::TEXTURE_WRAP_R: return "ctx.TEXTURE_WRAP_R";
+    case WGLWidget::CLAMP_TO_BORDER: return "ctx.CLAMP_TO_BORDER";
+    case WGLWidget::MAX_3D_TEXTURE_SIZE: return "ctx.MAX_3D_TEXTURE_SIZE";
+    case WGLWidget::RED: return "ctx.RED";
+    case WGLWidget::RGB8: return "ctx.RGB8";
+    case WGLWidget::RGBA8: return "ctx.RGBA8";
+    case WGLWidget::RGB10_A2: return "ctx.RGB10_A2";
+    case WGLWidget::SRGB: return "ctx.SRGB";
+    case WGLWidget::SRGB8: return "ctx.SRGB8";
+    case WGLWidget::RGBA16F: return "ctx.RGBA16F";
+    case WGLWidget::RGBA32F: return "ctx.RGBA32F";
+    case WGLWidget::RGBA16UI: return "ctx.RGBA16UI";
+    case WGLWidget::RGBA_INTEGER: return "ctx.RGBA_INTEGER";
+    case WGLWidget::DEPTH: return "ctx.DEPTH";
+    case WGLWidget::STENCIL: return "ctx.STENCIL";
+    case WGLWidget::STREAM_READ: return "ctx.STREAM_READ";
+    case WGLWidget::STREAM_COPY: return "ctx.STREAM_COPY";
+    case WGLWidget::STATIC_READ: return "ctx.STATIC_READ";
+    case WGLWidget::STATIC_COPY: return "ctx.STATIC_COPY";
+
   }
   return "BAD_GL_ENUM";
 }
@@ -409,9 +436,15 @@ void WClientGLWidget::bindRenderbuffer(WGLWidget::GLenum target,
 void WClientGLWidget::bindTexture(WGLWidget::GLenum target,
 				  WGLWidget::Texture texture)
 {
-  js_ << "ctx.bindTexture(" << toString(target) << "," 
+  //if (target == WGLWidget::TEXTURE_3D)
+  //{
+  //  js_ << "alert('Use BindBuffer instead for 3DTexture ! (temporary)');";
+  //}
+  //else {
+    js_ << "ctx.bindTexture(" << toString(target) << ","
       << texture.jsRef() << ");";
-  currentlyBoundTexture_ = texture;
+    currentlyBoundTexture_ = texture;
+  //}
   GLDEBUG;
 }
 
@@ -1093,13 +1126,43 @@ void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
 
 void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
 				 WGLWidget::GLenum internalformat,
+                                 unsigned width, unsigned height, int border,
 				 WGLWidget::GLenum format,
 				 WGLWidget::GLenum type,
 				 WImage *image)
 {
-  js_ << "ctx.texImage2D(" << toString(target) << "," << level << ","
+  js_ << "const img = new Image();"
+    //<< "img.addEventListener('load', render);"
+    << "img.crossOrigin = 'http://localhost';"
+    << "img.src =  '" + image->imageLink().url() + "';";//'https://upload.wikimedia.org/wikipedia/commons/0/0b/RGBA_comp.png';";
+ 
+  image->imageLoaded().connect([=] {
+    js_ << "img.addEventListener('load', () => {ctx.texImage2D(" << toString(target) << "," << level << ","
       << toString(internalformat) << "," << toString(format) << "," << toString(type)
-      << "," << image->jsRef() << ");";
+      << ",img" << ");});";
+  
+  });
+  image->load();
+      //js_ << "ctx.texImage2D(" << toString(target) << "," << level << ","
+      //<< toString(internalformat) << "," << width << ","<< height << "," << border << "," << toString(format) << "," << toString(type)
+      //<< "," << image->jsRef() << ");"; //" << "," << image->jsRef() <<
+  
+  //js_ << "ctx.texImage2D(" << toString(target) << "," << level << ","
+  //  << toString(internalformat) << "," << toString(format) << "," << toString(type)
+  //  << ",img" << ");";
+  //image->imageLoaded().connect([=] {
+  //  js_ << "ctx.texImage2D(" << toString(target) << "," << level << ","
+  //    << toString(internalformat) << "," << width << ","<< height << "," << border << "," << toString(format) << "," << toString(type)
+  //    << "," << image->jsRef() << ");"; //" << "," << image->jsRef() <<
+  //
+  //});
+  js_ << "img.addEventListener('load', () => {ctx.texImage2D(" << toString(target) << "," << level << ","
+    << toString(internalformat) << "," << toString(format) << "," << toString(type)
+    << ",img" << ");});";
+
+  //js_ << "img.addEventListener('load', () => {alert('test');ctx.texImage2D(" << toString(target) << "," << level << ","
+  //    << toString(internalformat) << "," << width << ","<< height << "," << border << "," << toString(format) << "," << toString(type)
+  //    << "," << image->jsRef() << ");});"; //" << "," << image->jsRef() <<
   GLDEBUG;
 }
 
@@ -1117,6 +1180,40 @@ void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
   GLDEBUG;
 }
 
+
+void WClientGLWidget::texImage3D(WGLWidget::GLenum target, int level,
+                                  WGLWidget::GLenum internalformat,
+                                  unsigned width, unsigned height, unsigned depth, int border,
+                                  WGLWidget::GLenum format, WGLWidget::GLenum type)
+{
+  js_ << "ctx.texImage3D(" << toString(target) << "," << level << ","
+    << toString(internalformat) << "," << width << "," << height << "," << depth << ","
+    << border << "," << toString(format) << "," << toString(type)
+    << ",null);";
+  GLDEBUG;
+}
+
+void WClientGLWidget::texImage3D(WGLWidget::GLenum target, int level,
+                                  WGLWidget::GLenum internalformat,
+                                  unsigned width, unsigned height, unsigned depth, int border,
+                                  WGLWidget::GLenum format, WGLWidget::GLenum type,
+                                  std::string image) //const FloatBuffer &buffer //std::string image
+{
+  auto File = std::make_unique<Wt::WFileResource>("application/octet", image);
+  //auto anchor = std::make_unique<int>(File.get(), "application/octet");
+  //auto ptrdata = File.get();
+  preloadArrayBuffers_.push_back(PreloadArrayBuffer(currentlyBoundBuffer_.jsRef(), File->url()));
+  binaryResources_.push_back(std::move(File));
+
+
+  js_ << "ctx.texImage3D(" << toString(target) << "," << level << "," //var uin8 = new Uint8Array(256*256*109); for (let pas = 0; pas <256*256*109; pas++) {uin8[pas] = 200;}; 
+    << toString(internalformat) << "," << width << "," << height << "," << depth << ","
+    << border << "," << toString(format)
+    << "," << toString(type) << "," << "new Uint8Array(" << currentlyBoundBuffer_.jsRef() << ".data));"; //currentlyBoundTexture_.jsRef() << ".image" << imgNb
+      
+
+    GLDEBUG;
+}
 // // >>> Issues with CORS
 // void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
 // 				 WGLWidget::GLenum internalformat,
@@ -1134,6 +1231,64 @@ void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
 //       << "," << currentlyBoundTexture_.jsRef() << ".image" << imgNb  << ");";
 //   GLDEBUG;
 // }
+
+
+  void WClientGLWidget::texImage3D(WGLWidget::GLenum target, int level,
+                                    WGLWidget::GLenum internalformat,
+                                    WGLWidget::GLenum format,
+                                    WGLWidget::GLenum type,
+                                    WGLWidget::Texture texture)
+  {
+    js_ << "ctx.texImage3D(" << toString(target) << "," << level << ","
+      << toString(internalformat) << "," << toString(format)
+      << "," << toString(type)
+      << "," << texture.jsRef() << ".image0);";
+    GLDEBUG;
+  }
+
+  void WClientGLWidget::texStorage3D(WGLWidget::GLenum target, int level, //target, levels, internalformat, width, height, depth
+                                     WGLWidget::GLenum internalformat,
+                                     unsigned width, unsigned height, unsigned depth)
+  {
+    js_ << "ctx.texStorage3D(" << toString(target) << "," << level << "," << toString(internalformat) << ","
+       << width << "," << height << "," << depth << ");";
+  }
+
+  void WClientGLWidget::texSubImage3D(WGLWidget::GLenum target, int level, 
+                                      int xoffset, int yoffset, int zoffset,
+                                      unsigned width, unsigned height, unsigned depth,
+                                      WGLWidget::GLenum format, WGLWidget::GLenum type, std::string image)
+  {
+    unsigned imgNb = images_++;
+    // note: does not necessarily have to be a png (also tested jpg)
+    std::unique_ptr<WFileResource> imgFile(new WFileResource("image/png", image));
+    preloadImages_.push_back(PreloadImage(currentlyBoundTexture_.jsRef(),
+      imgFile->url(), imgNb));
+#ifndef WT_TARGET_JAVA
+    addChild(std::move(imgFile));
+#endif // WT_TARGET_JAVA
+    js_ << currentlyBoundTexture_.jsRef() << ".image" << imgNb << ".src = '" + image + "';";
+    js_ << "ctx.texSubImage3D(" << toString(target) << "," << level << ","
+      << xoffset << "," << yoffset << "," << zoffset << "," << width << "," << height << "," << depth << "," << toString(format) << "," << toString(type)
+      << "," << currentlyBoundTexture_.jsRef() << ".image" << imgNb << ");";
+    GLDEBUG;
+  }
+
+  void WClientGLWidget::texSubImage3D(WGLWidget::GLenum target, int level, 
+                                      int xoffset, int yoffset, int zoffset,
+                                      unsigned width, unsigned height, unsigned depth, WGLWidget::GLenum format, WGLWidget::GLenum type,
+                                      WImage *image)
+  {
+    js_ << "{const img = new Image();"
+      //<< "img.addEventListener('load', render);"
+      << "img.crossOrigin = 'Anonymous';"
+      << "img.src = '" + image->imageLink().url() + "';";//'https://upload.wikimedia.org/wikipedia/commons/0/0b/RGBA_comp.png';";
+
+    js_ <<  "img.addEventListener('load', () => {ctx.texSubImage3D(" << toString(target) << "," << level << ","
+      << xoffset << "," << yoffset << "," << zoffset << "," << width << "," << height << "," << depth << "," << toString(format) << "," << toString(type)
+      << ", img"  << ");});}"; //",img);"; << image->jsRef()
+    GLDEBUG;
+  }
 
 void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
 				 WGLWidget::GLenum internalformat,
@@ -1646,6 +1801,7 @@ void WClientGLWidget::setClientSideLookAtHandler(const WGLWidget::JavaScriptMatr
 						 double uX, double uY, double uZ,
 						 double pitchRate, double yawRate)
 {
+
   js_ << "obj.setMouseHandler(new obj.LookAtMouseHandler("
      << m.jsRef()
      << ",[" << centerX << "," << centerY << "," << centerZ << "],"

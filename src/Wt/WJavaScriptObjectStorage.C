@@ -12,9 +12,9 @@
 #include "Wt/WStringStream.h"
 #include "Wt/WWidget.h"
 
-#include "Wt/Json/Object.h"
+//#include "Wt/Json/Object.h"
 #include "Wt/Json/Parser.h"
-#include "Wt/Json/Value.h"
+#include "Wt/Json/json.hpp"
 
 #include "web/WebUtils.h"
 
@@ -62,23 +62,21 @@ std::size_t WJavaScriptObjectStorage::size() const
 void WJavaScriptObjectStorage::assignFromJSON(const std::string &json)
 {
   try {
-    Json::Value result;
-    Json::parse(json, result);
-    Json::Object &o = result;
+    Json::Object o;
+    Json::parse(json, o);
 
     if (jsValues_.size() < o.size())
       throw WException("JSON array length is larger than number of jsValues");
 
-    for (Json::Object::iterator i = o.begin();
-         i != o.end(); ++i) {
-      std::size_t idx = Utils::stoull(i->first);
-      if (idx >= jsValues_.size())
-        throw WException("JSON value index is outside of bounds");
-      if (!dirty_[idx])
-        jsValues_[idx]->assignFromJSON(i->second);
+    for (auto &[key, value] : o) {
+        std::size_t idx = Utils::stoull(key);
+        if (idx >= jsValues_.size())
+            throw WException("JSON value index is outside of bounds");
+        if (!dirty_[idx])
+            jsValues_[idx]->assignFromJSON(value);
     }
   } catch (const Json::ParseError &e) {
-    LOG_ERROR("Failed to parse JSON: " + std::string(e.what()));
+    LOG_ERROR("Failed to parse JSON: " + std::string(e.message()));
   } catch (const WException &e) {
     LOG_ERROR("Failed to assign value from JSON: " + std::string(e.what()));
   } catch (const std::invalid_argument &e) {

@@ -270,8 +270,6 @@ protected:
   virtual int boxBorder(Orientation orientation) const override;
   virtual void render(WFlags<RenderFlag> flags) override;
 
-  virtual std::string renderRemoveJs(bool recursive) override;
-
 private:
   std::unique_ptr<WWidget> impl_;
 };

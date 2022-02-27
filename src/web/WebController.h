@@ -60,14 +60,16 @@ typedef std::function<void ()>  Function;
  * An event to be delivered to a session which is not caused by a web
  * request (or, probably not one for that session).
  */
-struct ApplicationEvent {
-  ApplicationEvent(const std::string& aSessionId,
-		   const Function& aFunction,
-                   const Function& aFallbackFunction = Function())
-    : sessionId(aSessionId),
-      function(aFunction),
-      fallbackFunction(aFallbackFunction)
-  { }
+struct ApplicationEvent
+{
+  ApplicationEvent(const std::string &aSessionId,
+                   const Function &aFunction,
+                   const Function &aFallbackFunction = Function())
+      : sessionId(aSessionId),
+        function(aFunction),
+        fallbackFunction(aFallbackFunction)
+  {
+  }
 
   std::string sessionId;
   Function function;
@@ -128,7 +130,7 @@ public:
   bool handleApplicationEvent(const std::shared_ptr<ApplicationEvent>& event);
 #endif // WT_CNOR
 
-  std::vector<std::string> sessions(bool onlyRendered = false);
+  std::vector<std::string> sessions();
   bool expireSessions();
   void start();
   void shutdown();
@@ -172,7 +174,7 @@ private:
 #ifdef WT_THREADED
   // mutex to protect access to the sessions map and plain/ajax session
   // counts
-  mutable std::recursive_mutex mutex_;
+  std::recursive_mutex mutex_;
 
   SocketNotifier socketNotifier_;
   // mutex to protect access to notifier maps. This cannot be protected
@@ -187,15 +189,8 @@ private:
   void socketNotify(int descriptor, WSocketNotifier::Type type);
 #endif
 
-  struct UpdateResourceProgressParams {
-      std::string requestParam;
-      std::string resourceParam;
-      ::int64_t postDataExceeded;
-      std::string pathInfo;
-      std::uintmax_t current;
-      std::uintmax_t total;
-  };
-  void updateResourceProgress(const UpdateResourceProgressParams &params);
+  void updateResourceProgress(WebRequest *request,
+			      std::uintmax_t current, std::uintmax_t total);
 
   EntryPointMatch getEntryPoint(WebRequest *request);
 

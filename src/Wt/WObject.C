@@ -15,11 +15,7 @@
 
 namespace Wt {
 
-#ifdef WT_THREADED
-  std::atomic<unsigned> WObject::nextObjId_(0);
-#else
-  unsigned WObject::nextObjId_ = 0;
-#endif // WT_THREADED
+unsigned WObject::nextObjId_ = 0;
 
 void WObject::seedId(unsigned id)
 {
@@ -57,7 +53,7 @@ const std::string WObject::uniqueId() const
 {
   char buf[20];
   buf[0] = 'o';
-  Utils::utoa(id_, buf + 1, 36);
+  Utils::itoa(id_, buf + 1, 36);
   return std::string(buf);
 }
 

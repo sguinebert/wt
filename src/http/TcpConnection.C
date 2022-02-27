@@ -68,18 +68,15 @@ void TcpConnection::startAsyncReadRequest(Buffer& buffer, int timeout)
 
   setReadTimeout(timeout);
 
-  std::shared_ptr<TcpConnection> sft 
-    = std::static_pointer_cast<TcpConnection>(shared_from_this());
+  std::shared_ptr<TcpConnection> sft = std::static_pointer_cast<TcpConnection>(shared_from_this());
   socket_.async_read_some(asio::buffer(buffer),
-			  strand_.wrap
-			  (std::bind(&TcpConnection::handleReadRequest,
-				     sft,
-				     std::placeholders::_1,
-				     std::placeholders::_2)));
+                          strand_.wrap(std::bind(&TcpConnection::handleReadRequest,
+                                                 sft,
+                                                 std::placeholders::_1,
+                                                 std::placeholders::_2)));
 }
 
-void TcpConnection::startAsyncReadBody(ReplyPtr reply,
-				       Buffer& buffer, int timeout)
+void TcpConnection::startAsyncReadBody(ReplyPtr reply, Buffer& buffer, int timeout)
 {
   LOG_DEBUG(native() << ": startAsyncReadBody");
 
@@ -93,15 +90,13 @@ void TcpConnection::startAsyncReadBody(ReplyPtr reply,
 
   setReadTimeout(timeout);
 
-  std::shared_ptr<TcpConnection> sft 
-    = std::static_pointer_cast<TcpConnection>(shared_from_this());
+  std::shared_ptr<TcpConnection> sft = std::static_pointer_cast<TcpConnection>(shared_from_this());
   socket_.async_read_some(asio::buffer(buffer),
-			  strand_.wrap
-			  (std::bind(&TcpConnection::handleReadBody0,
-				     sft,
-				     reply,
-				     std::placeholders::_1,
-				     std::placeholders::_2)));
+                          strand_.wrap(std::bind(&TcpConnection::handleReadBody0,
+                                                 sft,
+                                                 reply,
+                                                 std::placeholders::_1,
+                                                 std::placeholders::_2)));
 }
 
 void TcpConnection::startAsyncWriteResponse
@@ -121,15 +116,13 @@ void TcpConnection::startAsyncWriteResponse
 
   setWriteTimeout(timeout);
 
-  std::shared_ptr<TcpConnection> sft 
-    = std::static_pointer_cast<TcpConnection>(shared_from_this());
+  std::shared_ptr<TcpConnection> sft = std::static_pointer_cast<TcpConnection>(shared_from_this());
   asio::async_write(socket_, buffers,
-		    strand_.wrap
-		    (std::bind(&TcpConnection::handleWriteResponse0,
-			       sft,
-			       reply,
-			       std::placeholders::_1,
-			       std::placeholders::_2)));
+                    strand_.wrap(std::bind(&TcpConnection::handleWriteResponse0,
+                                           sft,
+                                           reply,
+                                           std::placeholders::_1,
+                                           std::placeholders::_2)));
 }
 
 } // namespace server

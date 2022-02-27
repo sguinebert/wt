@@ -137,24 +137,6 @@ WStandardItem::WStandardItem(int rows, int columns)
 WStandardItem::~WStandardItem()
 { }
 
-WStandardItem::WStandardItem(const WStandardItem &other)
-#ifndef WT_TARGET_JAVA
-  : data_(other.data_),
-    flags_(other.flags_)
-#else
-  : data_(DataMap(other.data_)),
-    flags_(WFlags<ItemFlag>(other.flags_))
-#endif
-{}
-
-WStandardItem& WStandardItem::operator=(const WStandardItem &other)
-{
-  data_ = other.data_;
-  flags_ = other.flags_;
-
-  return *this;
-}
-
 void WStandardItem::setData(const cpp17::any& d, ItemDataRole role)
 {
   if (role == ItemDataRole::Edit)
@@ -764,7 +746,12 @@ WModelIndex WStandardItem::index() const
 
 std::unique_ptr<WStandardItem> WStandardItem::clone() const
 {
-  return std::unique_ptr<WStandardItem>(new WStandardItem(*this));
+  std::unique_ptr<WStandardItem> result(new WStandardItem());
+
+  result->data_ = DataMap(data_);
+  result->flags_ = flags_;
+
+  return result;
 }
 
 void WStandardItem::sortChildren(int column, SortOrder order)

@@ -7,7 +7,7 @@
 #include "Wt/Auth/OAuthService.h"
 
 #include "Wt/Json/Parser.h"
-#include "Wt/Json/Object.h"
+#include "Wt/Json/json.hpp"
 
 #include "Wt/Http/Client.h"
 #include "Wt/Http/Request.h"
@@ -38,8 +38,6 @@
 #include <boost/algorithm/string.hpp>
 
 #define ERROR_MSG(e) WString::tr("Wt.Auth.OAuthService." e)
-
-#define REDIRECT_TIMEOUT_DEFAULT 600;
 
 namespace Wt {
 
@@ -127,39 +125,25 @@ public:
 
     WApplication *app = WApplication::instance();
     if (app->environment().ajax()) {
-      if (!process_->service_.popupEnabled()) {
+      std::string appJs = app->javaScriptClass();
+      o <<
+        "<!DOCTYPE html>"
+        "<html lang=\"en\" dir=\"ltr\">\n"
+        "<head><title></title>\n"
+        "<script type=\"text/javascript\">\n"
+        "function load() { "
+        """if (window.opener." << appJs << ") {"
+        ""  "var " << appJs << "= window.opener." << appJs << ";"
 #ifndef WT_TARGET_JAVA
-        WApplication::UpdateLock lock(app);
-#endif
-        process_->onOAuthDone();
-        
-        o <<
-          "<!DOCTYPE html>"
-          "<html lang=\"en\" dir=\"ltr\">\n"
-          "<head><meta http-equiv=\"refresh\" content=\"0; url="
-          << app->makeAbsoluteUrl(app->url(process_->startInternalPath_)) << "\" /></head>\n"
-          "<body></body></html>";
-      } else {
-        std::string appJs = app->javaScriptClass();
-        o <<
-          "<!DOCTYPE html>"
-          "<html lang=\"en\" dir=\"ltr\">\n"
-          "<head><title></title>\n"
-          "<script type=\"text/javascript\">\n"
-          "function load() { "
-          """if (window.opener." << appJs << ") {"
-          ""  "var " << appJs << "= window.opener." << appJs << ";"
-#ifndef WT_TARGET_JAVA
-          <<  process_->redirected_.createCall({}) << ";"
+        <<  process_->redirected_.createCall({}) << ";"
 #else // WT_TARGET_JAVA
-          <<  process_->redirected_.createCall() << ";"
+        <<  process_->redirected_.createCall() << ";"
 #endif // WT_TARGET_JAVA
-          ""  "window.close();"
-          "}\n"
-          "}\n"
-          "</script></head>"
-          "<body onload=\"load();\"></body></html>";
-      }
+        ""  "window.close();"
+        "}\n"
+        "}\n"
+        "</script></head>"
+        "<body onload=\"load();\"></body></html>";
     } else {
       // FIXME: it would be way cleaner if we can send a 302 response, but at
       //        the moment there's no way to stall sending of status code and headers
@@ -220,16 +204,14 @@ OAuthProcess::OAuthProcess(const OAuthService& service,
   redirected_.connect(this, &OAuthProcess::onOAuthDone);
 
 #ifndef WT_TARGET_JAVA
-  if (service_.popupEnabled()) {
-    WStringStream js;
-    js << WT_CLASS ".PopupWindow(" WT_CLASS
-       << "," << WWebWidget::jsStringLiteral(authorizeUrl())
-       << ", " << service_.popupWidth()
-       << ", " << service_.popupHeight() << ");";
+  WStringStream js;
+  js << WT_CLASS ".PopupWindow(" WT_CLASS
+     << "," << WWebWidget::jsStringLiteral(authorizeUrl()) 
+     << ", " << service.popupWidth()
+     << ", " << service.popupHeight() << ");"; 
 
-    implementJavaScript(&OAuthProcess::startAuthorize, js.str());
-    implementJavaScript(&OAuthProcess::startAuthenticate, js.str());
-  }
+  implementJavaScript(&OAuthProcess::startAuthorize, js.str());
+  implementJavaScript(&OAuthProcess::startAuthenticate, js.str());
 #endif
 
 #ifndef WT_TARGET_JAVA
@@ -263,28 +245,12 @@ std::string OAuthProcess::authorizeUrl() const
 void OAuthProcess::startAuthorize()
 {
   WApplication *app = WApplication::instance();
-  if (app->environment().javaScript() && service_.popupEnabled())
-    return;
-
-  if (app->environment().javaScript()) {
+  if (!app->environment().javaScript()) {
+    startInternalPath_ = app->internalPath();
+    app->redirect(authorizeUrl());
+  } else {
     redirectEndpoint_->url(); // Make sure it is exposed
-
-    int timeout = REDIRECT_TIMEOUT_DEFAULT;
-
-    std::string value;
-    if (app->readConfigurationProperty("oauth2-redirect-timeout", value)) {
-      try {
-        timeout = Wt::Utils::stoi(value);
-      } catch (std::exception& e) {
-        LOG_ERROR(ERROR_MSG("could not convert 'oauth2-redirect-timeout' to int: ") << value);
-      }
-    }
-
-    app->suspend(std::chrono::seconds(timeout));
   }
-  
-  startInternalPath_ = app->internalPath();
-  app->redirect(authorizeUrl());
 }
 
 void OAuthProcess::startAuthenticate()
@@ -296,8 +262,7 @@ void OAuthProcess::startAuthenticate()
 #ifdef WT_TARGET_JAVA
 void OAuthProcess::connectStartAuthenticate(EventSignalBase &s)
 {
-  if (WApplication::instance()->environment().javaScript() &&
-      service_.popupEnabled()) {
+  if (WApplication::instance()->environment().javaScript()) {
     WStringStream js;
     js << "function(object, event) {"
        << WT_CLASS ".PopupWindow(" WT_CLASS
@@ -522,19 +487,19 @@ OAuthAccessToken OAuthProcess::parseJsonToken(const Http::Message& response)
 #endif
 
   if (!ok) {
-    LOG_ERROR("parseJsonToken(): " << pe.what());
+    LOG_ERROR("parseJsonToken(): " << pe.message());
     throw TokenError(ERROR_MSG("badjson"));
   } else {
     if (response.status() == 200) {
       try {
-	std::string accessToken = root.get("access_token");
-	int secs = root.get("expires_in").orIfNull(-1);
+	std::string accessToken = root["access_token"].get_string("");
+	int secs = root["access_token"].get_int64(-1);// root.get("expires_in").orIfNull(-1);
 	WDateTime expires;
 	if (secs > 0)
 	  expires = WDateTime::currentDateTime().addSecs(secs);
 
-        std::string refreshToken = root.get("refresh_token").orIfNull("");
-        std::string idToken = root.get("id_token").orIfNull("");
+        std::string refreshToken = root["refresh_token"].get_string("");// root.get("refresh_token").orIfNull("");
+        std::string idToken = root["id_token"].get_string("");
 
 	return OAuthAccessToken(accessToken, expires, refreshToken, idToken);
       } catch (std::exception& e) {
@@ -543,7 +508,7 @@ OAuthAccessToken OAuthProcess::parseJsonToken(const Http::Message& response)
       }
     } else {
       throw TokenError
-	(ERROR_MSG(+ (root.get("error").orIfNull("missing error"))));
+	(ERROR_MSG(+ (root["error"].get_string("missing error") )));
     }
   }
 }
@@ -554,7 +519,7 @@ struct OAuthService::Impl
     : redirectResource_(nullptr)
   {
     try {
-      secret_ = OAuthService::configurationProperty("oauth2-secret");
+      secret_ = configurationProperty("oauth2-secret");
     } catch (std::exception& e) {    
       secret_ = WRandom::generateId(32);
     }
@@ -622,22 +587,11 @@ struct OAuthService::Impl
 
 OAuthService::OAuthService(const AuthService& auth)
   : baseAuth_(auth),
-    impl_(std::make_unique<Impl>()),
-    usePopup_(true)
+    impl_(std::make_unique<Impl>())
 { }
 
 OAuthService::~OAuthService()
 { }
-
-void OAuthService::setPopupEnabled(bool enable)
-{
-  usePopup_ = enable;
-}
-
-bool OAuthService::popupEnabled() const
-{
-  return usePopup_;
-}
 
 std::string OAuthService::redirectInternalPath() const
 {
@@ -654,12 +608,43 @@ std::string OAuthService::generateRedirectEndpoint() const
 
 std::string OAuthService::encodeState(const std::string& url) const
 {
-  return Utils::encodeState(impl_->secret_, url);
+  std::string hash(Wt::Utils::base64Encode(Wt::Utils::hmac_sha1(url, impl_->secret_)));
+
+  std::string b = Wt::Utils::base64Encode(hash + "|" + url, false);
+
+  /* Variant of base64 encoding which is resistant to broken OAuth2 peers
+   * that do not properly re-encode the state */
+  b = Wt::Utils::replace(b, "+", "-");
+  b = Wt::Utils::replace(b, "/", "_");  
+  b = Wt::Utils::replace(b, "=", ".");
+
+  return b;
 }
 
 std::string OAuthService::decodeState(const std::string& state) const
 {
-  return Utils::decodeState(impl_->secret_, state);
+  std::string s = state;
+  s = Wt::Utils::replace(s, "-", "+");
+  s = Wt::Utils::replace(s, "_", "/");
+  s = Wt::Utils::replace(s, ".", "=");
+
+#ifndef WT_TARGET_JAVA
+  s = Wt::Utils::base64Decode(s);
+#else
+  s = Wt::Utils::base64DecodeS(s);
+#endif
+
+  std::size_t i = s.find('|');
+  if (i != std::string::npos) {
+    std::string url = s.substr(i + 1);
+
+    std::string check = encodeState(url);
+    if (check == state)
+      return url;
+    else
+      return std::string();
+  } else
+    return std::string();
 }
 
 std::string OAuthService::redirectEndpointPath() const
@@ -726,7 +711,30 @@ std::string OAuthService::userInfoEndpoint() const
 
 std::string OAuthService::configurationProperty(const std::string& property)
 {
-  return Utils::configurationProperty("OAuth", property);
+  WServer *instance = WServer::instance(); // Xx hmmmm...
+
+  if (instance) {
+    std::string result;
+
+      bool error;
+#ifndef WT_TARGET_JAVA
+      error = !instance->readConfigurationProperty(property, result);
+#else
+      std::string* v = instance->readConfigurationProperty(property, result);
+      if (v != &result) {
+        error = false;
+        result = *v;
+      } else {
+        error = true;
+      }
+#endif
+
+    if (error)
+      throw WException("OAuth: no '" + property + "' property configured");
+
+    return result;
+  } else
+    throw WException("OAuth: could not find a WServer instance");
 }
 
 Http::Method OAuthService::tokenRequestMethod() const

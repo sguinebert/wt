@@ -15,6 +15,11 @@
 #include "Wt/WWebWidget.h"
 #include "Wt/WCombinedLocalizedStrings.h"
 
+// #include <charconv>
+// #include <string_view>
+// #include "fmt/format.h"
+// #include "fmt/core.h"
+
 #include "WebUtils.h"
 
 #ifndef WT_CNOR
@@ -243,7 +248,7 @@ WString& WString::operator+= (const char *rhs)
 
 bool WString::empty() const
 {
-  if (!impl_)
+  if (literal())
     return utf8_.empty();
   else
     return toUTF8().empty();
@@ -282,22 +287,26 @@ WString WString::fromUTF8(const char *value, bool checkValid)
   return result;
 }
 
-void WString::checkUTF8Encoding(std::string& value)
+void WString::checkUTF8Encoding(std::string &value)
 {
   unsigned pos = 0;
-  for (; pos < value.length();) {
+  for (; pos < value.length();)
+  {
     unsigned at = pos;
     const char *c_start = value.c_str() + pos;
     const char *c = c_start;
-    try {
+    try
+    {
       char *dest = nullptr;
       Wt::rapidxml::xml_document<>::copy_check_utf8(c, dest);
       pos += c - c_start;
-    } catch (Wt::rapidxml::parse_error& e) {
+    }
+    catch (Wt::rapidxml::parse_error &e)
+    {
       pos += c - c_start;
       for (unsigned i = at; i < pos && i < value.length();
-        ++i)
-	value[i] = '?';
+           ++i)
+        value[i] = '?';
     }
   }
 }
@@ -342,7 +351,34 @@ std::string WString::resolveKey(TextFormat format) const
     return Wt::WWebWidget::unescapeText(result.value);
   }
 }
+// std::string format_vector(std::string_view format,
+//                           std::vector<std::string> const& args)
+// {
+//     using ctx = fmt::format_context;
+//     std::vector<fmt::basic_format_arg<ctx>> fmt_args;
+//     for (auto const& a : args) {
+//         fmt_args.push_back(fmt::internal::make_arg<ctx>(a));
+//     }
 
+//     return fmt::vformat(format, fmt::basic_format_args<ctx>(fmt_args.data(), fmt_args.size()));
+// }
+// void format_vector(fmt::memory_buffer& out,
+//                    std::string_view format,
+//                    std::vector<std::string> const& args)
+// {
+//     using ctx = fmt::format_context;
+//     std::vector<fmt::basic_format_arg<ctx>> fmt_args;
+//     for (auto const& a : args) {
+//         fmt_args.push_back(fmt::internal::make_arg<ctx>(a));
+//     }
+
+//     fmt::vformat_to(out, format, fmt::basic_format_args<ctx>(fmt_args.data(), fmt_args.size()));
+// }
+// std::string format_vector(std::string_view format,
+//                           std::vector<fmt::basic_format_arg<ctx>> const& fmt_args)
+// {
+//     return ::fmt::vformat(format, fmt::basic_format_args<ctx>(fmt_args.data(), fmt_args.size()));
+// }
 std::string WString::toUTF8() const
 {
   if (impl_) {
@@ -717,82 +753,82 @@ WString operator+ (const char *lhs, const WString& rhs)
 
 bool operator== (const char *lhs, const WString& rhs)
 {
-  return WString(lhs) == rhs;
+  return rhs == lhs;
 }
 
 bool operator== (const std::string& lhs, const WString& rhs)
 {
-  return WString(lhs) == rhs;
+  return rhs == lhs;
 }
 
 bool operator== (const std::wstring& lhs, const WString& rhs)
 {
-  return WString(lhs) == rhs;
+  return rhs == lhs;
 }
 
 bool operator== (const std::u16string& lhs, const WString& rhs)
 {
-  return WString(lhs) == rhs;
+  return rhs == lhs;
 }
 
 bool operator== (const std::u32string& lhs, const WString& rhs)
 {
-  return WString(lhs) == rhs;
+  return rhs == lhs;
 }
 
 bool operator== (const wchar_t *lhs, const WString& rhs)
 {
-  return WString(lhs) == rhs;
+  return rhs == lhs;
 }
 
 bool operator== (const char16_t *lhs, const WString& rhs)
 {
-  return WString(lhs) == rhs;
+  return rhs == lhs;
 }
 
 bool operator== (const char32_t *lhs, const WString& rhs)
 {
-  return WString(lhs) == rhs;
+  return rhs == lhs;
 }
 
 bool operator!= (const char *lhs, const WString& rhs)
 {
-  return WString(lhs) != rhs;
+  return !(rhs == lhs);
 }
 
 bool operator!= (const std::string& lhs, const WString& rhs)
 {
-  return WString(lhs) != rhs;
+  return !(rhs == lhs);
 }
 
 bool operator!= (const std::wstring& lhs, const WString& rhs)
 {
-  return WString(lhs) != rhs;
+  return !(rhs == lhs);
 }
 
 bool operator!= (const std::u16string& lhs, const WString& rhs)
 {
-  return WString(lhs) != rhs;
+  return !(rhs == lhs);
 }
 
 bool operator!= (const std::u32string& lhs, const WString& rhs)
 {
-  return WString(lhs) != rhs;
+  return !(rhs == lhs);
 }
 
 bool operator!= (const wchar_t *lhs, const WString& rhs)
 {
-  return WString(lhs) != rhs;
+  return !(rhs == lhs);
 }
 
 bool operator!= (const char16_t *lhs, const WString& rhs)
 {
-  return WString(lhs) != rhs;
+  return !(rhs == lhs);
 }
 
 bool operator!= (const char32_t *lhs, const WString& rhs)
 {
-  return WString(lhs) != rhs;
+  return !(rhs == lhs);
 }
 
 void WString::makeLiteral()

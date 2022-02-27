@@ -15,12 +15,6 @@
 
 #include "Wt/Auth/OAuthService.h"
 
-#ifdef WT_HAS_SAML
-#include "Wt/Auth/Saml/Process.h"
-#include "Wt/Auth/Saml/Service.h"
-#include "Wt/Auth/Saml/Widget.h"
-#endif // WT_HAS_SAML
-
 #include "Wt/WApplication.h"
 #include "Wt/WAnchor.h"
 #include "Wt/WCheckBox.h"
@@ -161,17 +155,10 @@ WDialog *AuthWidget::showDialog(const WString& title,
 
 void AuthWidget::closeDialog()
 {
-  if (dialog_) {
-#ifdef WT_TARGET_JAVA
-    delete dialog_.release();
-#endif
+  if (dialog_)
     dialog_.reset();
-  } else {
-#ifdef WT_TARGET_JAVA
-    delete messageBox_.release();
-#endif
+  else
     messageBox_.reset();
-  }
   
   /* Reset internal path */
   if (!basePath_.empty()) {
@@ -195,9 +182,6 @@ std::unique_ptr<RegistrationModel> AuthWidget::createRegistrationModel()
     result->addPasswordAuth(model_->passwordAuth());
 
   result->addOAuth(model_->oAuth());
-#ifdef WT_HAS_SAML
-  result->addSaml(model_->saml());
-#endif // WT_HAS_SAML
   return result;
 }
 
@@ -248,9 +232,9 @@ std::unique_ptr<WWidget> AuthWidget
       promptPassword ? model_ : std::shared_ptr<AuthModel>()));
 }
 
-std::unique_ptr<WDialog> AuthWidget::createPasswordPromptDialog(Login& login)
+WDialog *AuthWidget::createPasswordPromptDialog(Login& login)
 {
-  return std::make_unique<PasswordPromptDialog>(login, model_);
+  return new PasswordPromptDialog(login, model_);
 }
 
 void AuthWidget::logout()
@@ -329,9 +313,6 @@ void AuthWidget::createLoginView()
 
   createPasswordLoginView();
   createOAuthLoginView();
-#ifdef WT_HAS_SAML
-  createSamlLoginView();
-#endif // WT_HAS_SAML_
 }
 
 void AuthWidget::createPasswordLoginView()
@@ -431,26 +412,6 @@ void AuthWidget::createOAuthLoginView()
   }
 }
 
-#ifdef WT_HAS_SAML
-void AuthWidget::createSamlLoginView()
-{
-  if (!model_->saml().empty()) {
-    setCondition("if:oauth", true);
-
-    WContainerWidget *icons = resolve<WContainerWidget *>("icons");
-    if (!icons) {
-      icons = bindWidget("icons", std::make_unique<WContainerWidget>());
-      icons->setInline(isInline());
-    }
-
-    for (const Saml::Service *saml : model()->saml()) {
-      Saml::Widget *w = icons->addNew<Saml::Widget>(*saml);
-      w->authenticated().connect(this, &AuthWidget::samlDone);
-    }
-  }
-}
-#endif // WT_HAS_SAML
-
 void AuthWidget::oAuthDone(OAuthProcess *oauth, const Identity& identity)
 {
   /*
@@ -478,32 +439,6 @@ void AuthWidget::oAuthDone(OAuthProcess *oauth, const Identity& identity)
     displayError(oauth->error());
   }
 }
-
-#ifdef WT_HAS_SAML
-void AuthWidget::samlDone(Saml::Process *process, const Identity &identity)
-{
-  if (identity.isValid()) {
-    LOG_SECURE(process->service().name() << ": identified: as "
-                                       << identity.id() << ", "
-                                       << identity.name() << ", " << identity.email());
-
-    std::unique_ptr<AbstractUserDatabase::Transaction>
-      t(model_->users().startTransaction());
-
-    User user = model_->baseAuth()->identifyUser(identity, model_->users());
-    if (user.isValid())
-      model_->loginUser(login_, user);
-    else
-      registerNewUser(identity);
-
-    if (t.get())
-      t->commit();
-  } else {
-    LOG_SECURE(process->service().name() << ": error: " << process->error());
-    displayError(process->error());
-  }
-}
-#endif // WT_HAS_SAML
 
 void AuthWidget::attemptPasswordLogin()
 {
