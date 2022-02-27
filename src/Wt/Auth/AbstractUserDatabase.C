@@ -279,7 +279,7 @@ OAuthClient AbstractUserDatabase::idpTokenOAuthClient(const IssuedToken &token) 
 Json::Value AbstractUserDatabase::idpJsonClaim(const User& user, const std::string& claim) const
 {
   LOG_ERROR(Require("idpClaim()", IDP_SUPPORT).what());
-  return Wt::Json::Value::Null; // full namespace for cnor
+  return Wt::Json::Value(); // full namespace for cnor
 }
 
 OAuthClient AbstractUserDatabase::idpClientFindWithId(const std::string &clientId) const

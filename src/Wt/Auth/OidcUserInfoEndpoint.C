@@ -17,9 +17,9 @@
 #include "Wt/Auth/IssuedToken.h"
 #include "Wt/Http/Request.h"
 #include "Wt/Http/Response.h"
-#include "Wt/Json/Value.h"
-#include "Wt/Json/Object.h"
-#include "Wt/Json/Serializer.h"
+#include "Wt/Json/json.hpp"
+//#include "Wt/Json/Object.h"
+//#include "Wt/Json/Serializer.h"
 #include "Wt/WLogger.h"
 
 namespace {
@@ -102,7 +102,7 @@ Json::Object OidcUserInfoEndpoint::generateUserInfo(const User& user, const std:
   }
   for (std::set<std::string>::iterator claim = claims.begin(); claim != claims.end(); ++claim) {
     Json::Value claimValue = db_->idpJsonClaim(user, *claim);
-    if (!claimValue.isNull())
+    if (!claimValue.is_null())
       root[*claim] = claimValue;
   }
   return root;

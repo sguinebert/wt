@@ -317,6 +317,21 @@ void RegistrationModel::validatePasswordsMatchJS(WLineEdit *password,
      ""  "}"
      """}"
      "}");
+  password2->changed().connect("function(o) {"
+                               """var i=" + info2->jsRef() + ",o1=" + password->jsRef() + ";"
+                                                                               """if (!$(o1).hasClass('Wt-invalid')) {"
+                                                                               ""  "if (o.value == o1.value) {"
+                                                                               ""     "$(o).removeClass('Wt-invalid');"
+                                                                               ""      WT_CLASS ".setHtml(i," + WString::tr("Wt.Auth.valid")
+                                     .jsStringLiteral() + ");"
+                                 ""  "} else {"
+                                 ""     "$(o).removeClass('Wt-valid');"
+                                 ""      WT_CLASS ".setHtml(i,"
+                                 ""        + WString::tr("Wt.Auth.passwords-dont-match").jsStringLiteral()
+                               +                         ");"
+                                 ""  "}"
+                                 """}"
+                                 "}");
 }
 
 User RegistrationModel::doRegister()

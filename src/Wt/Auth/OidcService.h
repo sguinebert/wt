@@ -9,6 +9,7 @@
 
 #include <Wt/Auth/OAuthService.h>
 #include <Wt/Http/Client.h>
+#include <Wt/Json/json.hpp>
 
 namespace Wt {
   namespace Auth {

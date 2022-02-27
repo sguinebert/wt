@@ -2,7 +2,7 @@
 
 #include "Wt/WApplication.h"
 #include "Wt/WLogger.h"
-#include "Wt/Json/Object.h"
+#include "Wt/Json/json.hpp"
 #include "Wt/Json/Parser.h"
 #include "Wt/Http/Client.h"
 
@@ -48,11 +48,7 @@ public:
 		     + token.value());
 
 #ifndef WT_TARGET_JAVA
-    // Gives warning when not using popup since it's not called from the event
-    // loop. However, the application is currently suspended and will entirely
-    // rerender, so this will also work.
-    WApplication::UpdateLock lock(WApplication::instance());
-    WApplication::instance()->enableUpdates(true);
+    WApplication::instance()->deferRendering();
 #endif
   }
 
@@ -62,7 +58,7 @@ private:
   void handleMe(AsioWrapper::error_code err, const Http::Message& response)
   {
 #ifndef WT_TARGET_JAVA
-    WApplication::UpdateLock lock(WApplication::instance());
+    WApplication::instance()->resumeRendering();
 #endif
 
     if (!err && response.status() == 200) {
@@ -84,10 +80,10 @@ private:
 	setError(ERROR_MSG("badjson"));
 	authenticated().emit(Identity::Invalid);
       } else {
-	std::string id = me.get("id");
-	WT_USTRING userName = me.get("name");
-	std::string email = me.get("email").orIfNull("");
-        bool emailVerified = !me.get("email").isNull();
+	std::string id = me["id"].get_string("");
+	WT_USTRING userName = me["name"].get_string("");
+	std::string email = me["email"].get_string("");
+        bool emailVerified = !me["email"].is_null();
 
 	authenticated().emit(Identity(service().name(), id, userName,
 				      email, emailVerified));
@@ -103,9 +99,6 @@ private:
 
       authenticated().emit(Identity::Invalid);
     }
-
-    WApplication::instance()->triggerUpdate();
-    WApplication::instance()->enableUpdates(false);
   }
 };
 
