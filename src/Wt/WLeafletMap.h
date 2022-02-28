@@ -12,7 +12,7 @@
 #include <Wt/WJavaScript.h>
 #include <Wt/WPen.h>
 
-#include <Wt/Json/Object.h>
+#include <Wt/Json/json.hpp>
 
 namespace Wt {
 

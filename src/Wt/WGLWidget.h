@@ -1,6 +1,6 @@
 // This may look like C code, but it's really -*- C++ -*-
 /*
- * Copyright (C) 2010 Emweb bv, Herent, Belgium.
+ * Copyright (C) 2010 Emweb bvba, Leuven, Belgium.
  *
  * See the LICENSE file for terms of use.
  */
@@ -337,6 +337,36 @@ public:
         return "null";
       }
       return std::string("ctx.WtTexture") + std::to_string(getId());
+    }
+
+    void setUrl(std::string url) {
+      url_ = url;
+    }
+
+    const std::string& url() const {
+      return url_;
+    }
+
+  private:
+    std::string url_;
+  };
+
+  //! Reference to a Uint8 js class
+  class WT_API Uint8Array : public GlObject {
+  public:
+    Uint8Array()
+      : url_("")
+    {}
+    explicit Uint8Array(int i) :
+      GlObject(i) {}
+
+    virtual std::string jsRef() const override
+    {
+      if (isNull()) {
+        // throw WException("Texture: is null");
+        return "null";
+      }
+      return std::string("ctx.WtUint8Array") + std::to_string(getId());
     }
 
     void setUrl(std::string url) {
@@ -818,7 +848,7 @@ public:
     SAMPLE_COVERAGE                = 0x80A0,
 
     /* ErrorCode */
-    NO_ERROR                       = 0x0,
+   // NO_ERROR                       = 0x0,
     INVALID_ENUM                   = 0x0500,
     INVALID_VALUE                  = 0x0501,
     INVALID_OPERATION              = 0x0502,
@@ -985,6 +1015,8 @@ public:
 
     /* TextureTarget */
     TEXTURE_2D                     = 0x0DE1,
+    //TEXTURE_2D_ARRAY               = 0x8C1A,//ajouté
+    //TEXTURE_3D                     = 0x806F,//ajouté
     TEXTURE                        = 0x1702,
 
     TEXTURE_CUBE_MAP               = 0x8513,
@@ -1034,7 +1066,8 @@ public:
 
     /* TextureWrapMode */
     REPEAT                         = 0x2901,
-    CLAMP_TO_EDGE                  = 0x812F,
+    CLAMP_TO_EDGE                  = 0x812F, //0x812F
+    CLAMP_TO_BORDER                = 0x812D, //0x812D = extension de webgl2 (opengl ES 3.2.1)
     MIRRORED_REPEAT                = 0x8370,
 
     /* Uniform Types */
@@ -1128,6 +1161,272 @@ public:
     CONTEXT_LOST_WEBGL             = 0x9242,
     UNPACK_COLORSPACE_CONVERSION_WEBGL = 0x9243,
     BROWSER_DEFAULT_WEBGL          = 0x9244,
+
+     //en rapport avec webgl2
+     READ_BUFFER = 0x0C02,
+     UNPACK_ROW_LENGTH = 0x0CF2,
+     UNPACK_SKIP_ROWS = 0x0CF3,
+     UNPACK_SKIP_PIXELS = 0x0CF4,
+     PACK_ROW_LENGTH = 0x0D02,
+     PACK_SKIP_ROWS = 0x0D03,
+     PACK_SKIP_PIXELS = 0x0D04,
+     COLOR = 0x1800,
+     DEPTH = 0x1801,
+     STENCIL = 0x1802,
+     RED = 0x1903,
+     RGB8 = 0x8051,
+     RGBA8 = 0x8058,
+     RGB10_A2 = 0x8059,
+     TEXTURE_BINDING_3D = 0x806A,
+     UNPACK_SKIP_IMAGES = 0x806D,
+     UNPACK_IMAGE_HEIGHT = 0x806E,
+     TEXTURE_3D = 0x806F,
+     TEXTURE_WRAP_R = 0x8072,
+     MAX_3D_TEXTURE_SIZE = 0x8073,
+     UNSIGNED_INT_2_10_10_10_REV = 0x8368,
+     MAX_ELEMENTS_VERTICES = 0x80E8,
+     MAX_ELEMENTS_INDICES = 0x80E9,
+     TEXTURE_MIN_LOD = 0x813A,
+     TEXTURE_MAX_LOD = 0x813B,
+     TEXTURE_BASE_LEVEL = 0x813C,
+     TEXTURE_MAX_LEVEL = 0x813D,
+     MIN = 0x8007,
+     MAX = 0x8008,
+     DEPTH_COMPONENT24 = 0x81A6,
+     MAX_TEXTURE_LOD_BIAS = 0x84FD,
+     TEXTURE_COMPARE_MODE = 0x884C,
+     TEXTURE_COMPARE_FUNC = 0x884D,
+     CURRENT_QUERY = 0x8865,
+     QUERY_RESULT = 0x8866,
+     QUERY_RESULT_AVAILABLE = 0x8867,
+     STREAM_READ = 0x88E1,
+     STREAM_COPY = 0x88E2,
+     STATIC_READ = 0x88E5,
+     STATIC_COPY = 0x88E6,
+     DYNAMIC_READ = 0x88E9,
+     DYNAMIC_COPY = 0x88EA,
+     MAX_DRAW_BUFFERS = 0x8824,
+     DRAW_BUFFER0 = 0x8825,
+     DRAW_BUFFER1 = 0x8826,
+     DRAW_BUFFER2 = 0x8827,
+     DRAW_BUFFER3 = 0x8828,
+     DRAW_BUFFER4 = 0x8829,
+     DRAW_BUFFER5 = 0x882A,
+     DRAW_BUFFER6 = 0x882B,
+     DRAW_BUFFER7 = 0x882C,
+     DRAW_BUFFER8 = 0x882D,
+     DRAW_BUFFER9 = 0x882E,
+     DRAW_BUFFER10 = 0x882F,
+     DRAW_BUFFER11 = 0x8830,
+     DRAW_BUFFER12 = 0x8831,
+     DRAW_BUFFER13 = 0x8832,
+     DRAW_BUFFER14 = 0x8833,
+     DRAW_BUFFER15 = 0x8834,
+     MAX_FRAGMENT_UNIFORM_COMPONENTS = 0x8B49,
+     MAX_VERTEX_UNIFORM_COMPONENTS = 0x8B4A,
+     SAMPLER_3D = 0x8B5F,
+     SAMPLER_2D_SHADOW = 0x8B62,
+     FRAGMENT_SHADER_DERIVATIVE_HINT = 0x8B8B,
+     PIXEL_PACK_BUFFER = 0x88EB,
+     PIXEL_UNPACK_BUFFER = 0x88EC,
+     PIXEL_PACK_BUFFER_BINDING = 0x88ED,
+     PIXEL_UNPACK_BUFFER_BINDING = 0x88EF,
+     FLOAT_MAT2x3 = 0x8B65,
+     FLOAT_MAT2x4 = 0x8B66,
+     FLOAT_MAT3x2 = 0x8B67,
+     FLOAT_MAT3x4 = 0x8B68,
+     FLOAT_MAT4x2 = 0x8B69,
+     FLOAT_MAT4x3 = 0x8B6A,
+     SRGB = 0x8C40,
+     SRGB8 = 0x8C41,
+     SRGB8_ALPHA8 = 0x8C43,
+     COMPARE_REF_TO_TEXTURE = 0x884E,
+     RGBA32F = 0x8814,
+     RGB32F = 0x8815,
+     RGBA16F = 0x881A,
+     RGB16F = 0x881B,
+     VERTEX_ATTRIB_ARRAY_INTEGER = 0x88FD,
+     MAX_ARRAY_TEXTURE_LAYERS = 0x88FF,
+     MIN_PROGRAM_TEXEL_OFFSET = 0x8904,
+     MAX_PROGRAM_TEXEL_OFFSET = 0x8905,
+     MAX_VARYING_COMPONENTS = 0x8B4B,
+     TEXTURE_2D_ARRAY = 0x8C1A,
+     TEXTURE_BINDING_2D_ARRAY = 0x8C1D,
+     R11F_G11F_B10F = 0x8C3A,
+     UNSIGNED_INT_10F_11F_11F_REV = 0x8C3B,
+     RGB9_E5 = 0x8C3D,
+     UNSIGNED_INT_5_9_9_9_REV = 0x8C3E,
+     TRANSFORM_FEEDBACK_BUFFER_MODE = 0x8C7F,
+     MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS = 0x8C80,
+     TRANSFORM_FEEDBACK_VARYINGS = 0x8C83,
+     TRANSFORM_FEEDBACK_BUFFER_START = 0x8C84,
+     TRANSFORM_FEEDBACK_BUFFER_SIZE = 0x8C85,
+     TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN = 0x8C88,
+     RASTERIZER_DISCARD = 0x8C89,
+     MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS = 0x8C8A,
+     MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS = 0x8C8B,
+     INTERLEAVED_ATTRIBS = 0x8C8C,
+     SEPARATE_ATTRIBS = 0x8C8D,
+     TRANSFORM_FEEDBACK_BUFFER = 0x8C8E,
+     TRANSFORM_FEEDBACK_BUFFER_BINDING = 0x8C8F,
+     RGBA32UI = 0x8D70,
+     RGB32UI = 0x8D71,
+     RGBA16UI = 0x8D76,
+     RGB16UI = 0x8D77,
+     RGBA8UI = 0x8D7C,
+     RGB8UI = 0x8D7D,
+     RGBA32I = 0x8D82,
+     RGB32I = 0x8D83,
+     RGBA16I = 0x8D88,
+     RGB16I = 0x8D89,
+     RGBA8I = 0x8D8E,
+     RGB8I = 0x8D8F,
+     RED_INTEGER = 0x8D94,
+     RGB_INTEGER = 0x8D98,
+     RGBA_INTEGER = 0x8D99,
+     SAMPLER_2D_ARRAY = 0x8DC1,
+     SAMPLER_2D_ARRAY_SHADOW = 0x8DC4,
+     SAMPLER_CUBE_SHADOW = 0x8DC5,
+     UNSIGNED_INT_VEC2 = 0x8DC6,
+     UNSIGNED_INT_VEC3 = 0x8DC7,
+     UNSIGNED_INT_VEC4 = 0x8DC8,
+     INT_SAMPLER_2D = 0x8DCA,
+     INT_SAMPLER_3D = 0x8DCB,
+     INT_SAMPLER_CUBE = 0x8DCC,
+     INT_SAMPLER_2D_ARRAY = 0x8DCF,
+     UNSIGNED_INT_SAMPLER_2D = 0x8DD2,
+     UNSIGNED_INT_SAMPLER_3D = 0x8DD3,
+     UNSIGNED_INT_SAMPLER_CUBE = 0x8DD4,
+     UNSIGNED_INT_SAMPLER_2D_ARRAY = 0x8DD7,
+     DEPTH_COMPONENT32F = 0x8CAC,
+     DEPTH32F_STENCIL8 = 0x8CAD,
+     FLOAT_32_UNSIGNED_INT_24_8_REV = 0x8DAD,
+     FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING = 0x8210,
+     FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE = 0x8211,
+     FRAMEBUFFER_ATTACHMENT_RED_SIZE = 0x8212,
+     FRAMEBUFFER_ATTACHMENT_GREEN_SIZE = 0x8213,
+     FRAMEBUFFER_ATTACHMENT_BLUE_SIZE = 0x8214,
+     FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE = 0x8215,
+     FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE = 0x8216,
+     FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE = 0x8217,
+     FRAMEBUFFER_DEFAULT = 0x8218,
+     UNSIGNED_INT_24_8 = 0x84FA,
+     DEPTH24_STENCIL8 = 0x88F0,
+     UNSIGNED_NORMALIZED = 0x8C17,
+     DRAW_FRAMEBUFFER_BINDING = 0x8CA6, /* Same as FRAMEBUFFER_BINDING */
+     READ_FRAMEBUFFER = 0x8CA8,
+     DRAW_FRAMEBUFFER = 0x8CA9,
+     READ_FRAMEBUFFER_BINDING = 0x8CAA,
+     RENDERBUFFER_SAMPLES = 0x8CAB,
+     FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER = 0x8CD4,
+     MAX_COLOR_ATTACHMENTS = 0x8CDF,
+     COLOR_ATTACHMENT1 = 0x8CE1,
+     COLOR_ATTACHMENT2 = 0x8CE2,
+     COLOR_ATTACHMENT3 = 0x8CE3,
+     COLOR_ATTACHMENT4 = 0x8CE4,
+     COLOR_ATTACHMENT5 = 0x8CE5,
+     COLOR_ATTACHMENT6 = 0x8CE6,
+     COLOR_ATTACHMENT7 = 0x8CE7,
+     COLOR_ATTACHMENT8 = 0x8CE8,
+     COLOR_ATTACHMENT9 = 0x8CE9,
+     COLOR_ATTACHMENT10 = 0x8CEA,
+     COLOR_ATTACHMENT11 = 0x8CEB,
+     COLOR_ATTACHMENT12 = 0x8CEC,
+     COLOR_ATTACHMENT13 = 0x8CED,
+     COLOR_ATTACHMENT14 = 0x8CEE,
+     COLOR_ATTACHMENT15 = 0x8CEF,
+     FRAMEBUFFER_INCOMPLETE_MULTISAMPLE = 0x8D56,
+     MAX_SAMPLES = 0x8D57,
+     HALF_FLOAT = 0x140B,
+     RG = 0x8227,
+     RG_INTEGER = 0x8228,
+     R8 = 0x8229,
+     RG8 = 0x822B,
+     R16F = 0x822D,
+     R32F = 0x822E,
+     RG16F = 0x822F,
+     RG32F = 0x8230,
+     R8I = 0x8231,
+     R8UI = 0x8232,
+     R16I = 0x8233,
+     R16UI = 0x8234,
+     R32I = 0x8235,
+     R32UI = 0x8236,
+     RG8I = 0x8237,
+     RG8UI = 0x8238,
+     RG16I = 0x8239,
+     RG16UI = 0x823A,
+     RG32I = 0x823B,
+     RG32UI = 0x823C,
+     VERTEX_ARRAY_BINDING = 0x85B5,
+     R8_SNORM = 0x8F94,
+     RG8_SNORM = 0x8F95,
+     RGB8_SNORM = 0x8F96,
+     RGBA8_SNORM = 0x8F97,
+     SIGNED_NORMALIZED = 0x8F9C,
+     COPY_READ_BUFFER = 0x8F36,
+     COPY_WRITE_BUFFER = 0x8F37,
+     COPY_READ_BUFFER_BINDING = 0x8F36, /* Same as COPY_READ_BUFFER */
+     COPY_WRITE_BUFFER_BINDING = 0x8F37, /* Same as COPY_WRITE_BUFFER */
+     UNIFORM_BUFFER = 0x8A11,
+     UNIFORM_BUFFER_BINDING = 0x8A28,
+     UNIFORM_BUFFER_START = 0x8A29,
+     UNIFORM_BUFFER_SIZE = 0x8A2A,
+     MAX_VERTEX_UNIFORM_BLOCKS = 0x8A2B,
+     MAX_FRAGMENT_UNIFORM_BLOCKS = 0x8A2D,
+     MAX_COMBINED_UNIFORM_BLOCKS = 0x8A2E,
+     MAX_UNIFORM_BUFFER_BINDINGS = 0x8A2F,
+     MAX_UNIFORM_BLOCK_SIZE = 0x8A30,
+     MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS = 0x8A31,
+     MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS = 0x8A33,
+     UNIFORM_BUFFER_OFFSET_ALIGNMENT = 0x8A34,
+     ACTIVE_UNIFORM_BLOCKS = 0x8A36,
+     UNIFORM_TYPE = 0x8A37,
+     UNIFORM_SIZE = 0x8A38,
+     UNIFORM_BLOCK_INDEX = 0x8A3A,
+     UNIFORM_OFFSET = 0x8A3B,
+     UNIFORM_ARRAY_STRIDE = 0x8A3C,
+     UNIFORM_MATRIX_STRIDE = 0x8A3D,
+     UNIFORM_IS_ROW_MAJOR = 0x8A3E,
+     UNIFORM_BLOCK_BINDING = 0x8A3F,
+     UNIFORM_BLOCK_DATA_SIZE = 0x8A40,
+     UNIFORM_BLOCK_ACTIVE_UNIFORMS = 0x8A42,
+     UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES = 0x8A43,
+     UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER = 0x8A44,
+     UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER = 0x8A46,
+     INVALID_INDEX = 0xFFFFFFFF,
+     MAX_VERTEX_OUTPUT_COMPONENTS = 0x9122,
+     MAX_FRAGMENT_INPUT_COMPONENTS = 0x9125,
+     MAX_SERVER_WAIT_TIMEOUT = 0x9111,
+     OBJECT_TYPE = 0x9112,
+     SYNC_CONDITION = 0x9113,
+     SYNC_STATUS = 0x9114,
+     SYNC_FLAGS = 0x9115,
+     SYNC_FENCE = 0x9116,
+     SYNC_GPU_COMMANDS_COMPLETE = 0x9117,
+     UNSIGNALED = 0x9118,
+     SIGNALED = 0x9119,
+     ALREADY_SIGNALED = 0x911A,
+     TIMEOUT_EXPIRED = 0x911B,
+     CONDITION_SATISFIED = 0x911C,
+   //  WAIT_FAILED = 0x911D,
+     SYNC_FLUSH_COMMANDS_BIT = 0x00000001,
+     VERTEX_ATTRIB_ARRAY_DIVISOR = 0x88FE,
+     ANY_SAMPLES_PASSED = 0x8C2F,
+     ANY_SAMPLES_PASSED_CONSERVATIVE = 0x8D6A,
+     SAMPLER_BINDING = 0x8919,
+     RGB10_A2UI = 0x906F,
+     INT_2_10_10_10_REV = 0x8D9F,
+     TRANSFORM_FEEDBACK = 0x8E22,
+     TRANSFORM_FEEDBACK_PAUSED = 0x8E23,
+     TRANSFORM_FEEDBACK_ACTIVE = 0x8E24,
+     TRANSFORM_FEEDBACK_BINDING = 0x8E25,
+     TEXTURE_IMMUTABLE_FORMAT = 0x912F,
+     MAX_ELEMENT_INDEX = 0x8D6B,
+     TEXTURE_IMMUTABLE_LEVELS = 0x82DF,
+    /* WebGL-specific enums */
+     MAX_CLIENT_WAIT_TIMEOUT_WEBGL = 0x9247
+
   };
 
   void debugger();
@@ -1948,7 +2247,7 @@ public:
    * <a href="http://www.khronos.org/opengles/sdk/2.0/docs/man/xhtml/glTexImage2D.xml">
    * glTexImage2D() OpenGL ES manpage</a>
    */
-  void texImage2D(GLenum target, int level, GLenum internalformat,
+  void texImage2D(GLenum target, int level, GLenum internalformat, unsigned width, unsigned height, int border,
                   GLenum format, GLenum type, WImage *image);
 
   //void texImage2D(TextureTargetEnum target, int level, PixelFormatEnum internalformat,
@@ -1999,6 +2298,101 @@ public:
   void texImage2D(GLenum target, int level, GLenum internalformat,
                   GLenum format, GLenum type, Texture texture);
 
+
+  //void texImage3D(TextureTargetEnum target, int level, PixelFormatEnum internalformat, 
+  //                GLsizei width, GLsizei height, GLint border, PixelFormatEnum format, 
+  //                GLenum type, ArrayBufferView pixels);
+  /*! \brief GL function to reserve space for a 2D texture, without specifying its
+   *         contents.
+   *
+   * This corresponds to calling the WebGL function
+   * void texImage3D(GLenum target, GLint level, GLenum internalformat, GLsizei width,
+   * GLsizei height, GLint border, GLenum format, GLenum type, ArrayBufferView pixels)
+   * with null as last parameters. The value of 'type' is then of no importance and is
+   * therefore omitted from this function.
+   *
+   * <a href="http://www.khronos.org/opengles/sdk/2.0/docs/man/xhtml/glTexImage2D.xml">
+   * glTexImage3D() OpenGL ES manpage</a>
+   */
+  void texImage3D(GLenum target, int level, GLenum internalformat,
+    unsigned width, unsigned height, unsigned depth, int border, GLenum format, WGLWidget::GLenum type);
+
+  //void texImage3D(TextureTargetEnum target, int level, PixelFormatEnum internalformat,
+  //                PixelFormatEnum format, GLenum type, ImageData pixels);
+
+  /*! \brief GL function to load a 3D texture from a WImage
+   *
+   * Note: WImage must be loaded before this function is executed.
+   *
+   * <a href="http://www.khronos.org/opengles/sdk/2.0/docs/man/xhtml/glTexImage2D.xml">
+   * glTexImage3D() OpenGL ES manpage</a>
+   */
+  //void texImage3D(GLenum target, int level, GLenum internalformat,
+    //GLenum format, GLenum type, WImage *image);
+
+  //void texImage2D(TextureTargetEnum target, int level, PixelFormatEnum internalformat,
+  //                PixelFormatEnum format, GLenum type, HTMLCanvasElement canvas);
+
+  /*! \brief GL function to load a 3D texture from a WVideo
+   *
+   * Note: the video must be loaded prior to calling this function. The
+   * current frame is used as texture image.
+   *
+   * <a href="http://www.khronos.org/opengles/sdk/2.0/docs/man/xhtml/glTexImage2D.xml">
+   * glTexImage3D() OpenGL ES manpage</a>
+   */
+  //void texImage3D(GLenum target, int level, GLenum internalformat,
+    //GLenum format, GLenum type, WVideo *video);
+
+  /*! \brief GL function to load a 2D texture from a file
+   *
+   * <a href="http://www.khronos.org/opengles/sdk/2.0/docs/man/xhtml/glTexImage2D.xml">
+   * glTexImage2D() OpenGL ES manpage</a>
+   */
+  void texImage3D(GLenum target, int level, GLenum internalformat, unsigned width, unsigned height, unsigned depth, int border, 
+                   GLenum format, GLenum type, std::string image);
+
+  /*! \brief GL function to load a 3D texture from a WPaintDevice
+   *
+   * <a href="http://www.khronos.org/opengles/sdk/2.0/docs/man/xhtml/glTexImage2D.xml">
+   * glTexImage3D() OpenGL ES manpage</a>
+   *
+   * \sa createPaintDevice()
+   */
+  //void texImage3D(GLenum target, int level, GLenum internalformat,
+  //  GLenum format, GLenum type,
+  //  WPaintDevice *paintdevice);
+
+  /*! \brief GL function to load a 3D texture loaded with createTextureAndLoad()
+   *
+   * This function must only be used for textures created with
+   * createTextureAndLoad()
+   *
+   * Note: the WGLWidget implementation will delay rendering until
+   * all textures created with createTextureAndLoad() are loaded in the
+   * browser.
+   *
+   * <a href="http://www.khronos.org/opengles/sdk/2.0/docs/man/xhtml/glTexImage2D.xml">
+   * glTexImage3D() OpenGL ES manpage</a>
+   */
+  void texImage3D(GLenum target, int level, GLenum internalformat,
+                  GLenum format, GLenum type, Texture texture);
+
+  void texStorage3D(WGLWidget::GLenum target, int level, //target, levels, internalformat, width, height, depth
+                    WGLWidget::GLenum internalformat,
+                    unsigned width, unsigned height, unsigned depth);
+
+
+  void texSubImage3D(GLenum target, int level, 
+                    int xoffset, int yoffset, int zoffset,
+                    unsigned width, unsigned height, unsigned depth,
+                    GLenum format, GLenum type, std::string image);
+
+  void texSubImage3D(WGLWidget::GLenum target, int level,
+                     int xoffset, int yoffset, int zoffset,
+                     unsigned width, unsigned height, unsigned depth, WGLWidget::GLenum format, WGLWidget::GLenum type,
+                     WImage *image);
+
   //void texParameterf(TextureTargetEnum target,
   //                   TextureParameterNameEnum pname, double param);
 
@@ -2020,6 +2414,17 @@ public:
   //                   GLenum format, GLenum type, HTMLCanvasElement canvas);
   //void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
   //                   GLenum format, GLenum type, HTMLVideoElement video);
+
+  //void texSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset,
+  //  GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type,
+  //  GLintptr pboOffset);
+  //void texSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset,
+  //  GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type,
+  //  TexImageSource source); // May throw DOMException
+  //void texSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset,
+  //  GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type,
+  //  [AllowShared] ArrayBufferView ? srcData, optional GLuint srcOffset = 0);
+
 
 
   /*! \brief GL function to set the value of a uniform variable of the current
@@ -2651,7 +3056,8 @@ void uniform2iv(const UniformLocation &location,
    */
   void viewport(int x, int y, unsigned width, unsigned height);
 
-  //!@}
+  /*! @}
+   */
 
   /*! @name Client-side vectors and matrices
    *
@@ -2770,7 +3176,8 @@ void uniform2iv(const UniformLocation &location,
   void setJavaScriptVector(JavaScriptVector &jsv,
                            const std::vector<float> &v);
 
-  //!@}
+  /*! @}
+   */
 
   /*! \brief Set a custom mouse handler based on the given JavaScript code.
    *

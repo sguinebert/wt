@@ -211,6 +211,9 @@ public:
   void setConfigurationSetting(const std::string& name,
                                const cpp17::any& value);
 
+  void setEventSetting(const std::string& name,
+                               const cpp17::any& value);
+
   /*! \brief Returns a TinyMCE configuration setting's value.
    *
    * An empty Any is returned when no value could be found for the
@@ -251,16 +254,30 @@ protected:
 private:
   JSignal<> onChange_;
   JSignal<> onRender_;
+  JSignal<WMouseEvent> onClick_;
+  JSignal<WMouseEvent> onDoubleClick_;
+  JSignal<WMouseEvent> onMouseWentDown_;
+  JSignal<WMouseEvent> onMouseWentUp_;
+  JSignal<> onFocusIn_;
+  JSignal<> onFocusOut_;
   int version_;
   bool contentChanged_;
   std::map<std::string, cpp17::any> configurationSettings_;
+  std::map<std::string, cpp17::any> eventSettings_;
 
   std::string plugins() const;
 
   void init();
   void propagateOnChange();
+  void propagateOnClick(WMouseEvent evt);
+  void propagateOnDoubleClick(WMouseEvent evt); 
+  void propagateOnMouseWentDown(WMouseEvent evt); 
+  void propagateOnMouseWentUp(WMouseEvent evt); 
+  void propagateOnFocusIn();
+  void propagateOnFocusOut();
   static void initTinyMCE();
   static int getTinyMCEVersion();
+  bool serialize(std::stringstream &ss, std::map<std::string, cpp17::any>& map);
 };
 
 }

@@ -1,6 +1,6 @@
 // This may look like C code, but it's really -*- C++ -*-
 /*
- * Copyright (C) 2010 Emweb bv, Herent, Belgium.
+ * Copyright (C) 2010 Emweb bvba, Leuven, Belgium.
  *
  * See the LICENSE file for terms of use.
  */
@@ -31,8 +31,7 @@
 #include "DomElement.h"
 #include "WebUtils.h"
 
-#include "Wt/Json/Array.h"
-#include "Wt/Json/Object.h"
+#include "Wt/Json/json.hpp"
 #include "Wt/Json/Parser.h"
 
 #ifndef WT_DEBUG_JS
@@ -138,7 +137,7 @@ std::string WGLWidget::renderRemoveJs(bool recursive)
 {
   if (webGlNotAvailable_) {
     // The canvas was already deleted client-side
-    return alternative_->renderRemoveJs(recursive);
+    return alternative_->webWidget()->renderRemoveJs(recursive);
   } else {
     // Nothing special, behave as usual
     return WInteractWidget::renderRemoveJs(recursive);
@@ -760,10 +759,11 @@ void WGLWidget::texImage2D(GLenum target, int level, GLenum internalformat,
 
 void WGLWidget::texImage2D(GLenum target, int level,
                            GLenum internalformat,
+                           unsigned width, unsigned height, int border,
                            GLenum format, GLenum type,
                            WImage *image)
 {
-  pImpl_->texImage2D(target, level, internalformat, format, type, image);
+  pImpl_->texImage2D(target, level, internalformat, width, height, border, format, type, image);
 }
 
 void WGLWidget::texImage2D(GLenum target, int level,
@@ -786,6 +786,38 @@ void WGLWidget::texImage2D(GLenum target, int level, GLenum internalformat,
 {
   pImpl_->texImage2D(target, level, internalformat, format, type,
                      paintdevice);
+}
+void WGLWidget::texImage3D(GLenum target, int level, GLenum internalformat,
+                           unsigned width, unsigned height, unsigned depth, int border, GLenum format, WGLWidget::GLenum type)
+{
+  pImpl_->texImage3D(target, level, internalformat, width, height, depth, border, format, type);
+}
+
+void WGLWidget::texImage3D(GLenum target, int level, 
+                            GLenum internalformat, unsigned width, unsigned height, unsigned depth, int border,
+                            GLenum format, GLenum type, std::string image)
+{
+  pImpl_->texImage3D(target, level, internalformat, width, height, depth, border, format, type, image);
+}
+void WGLWidget::texStorage3D(WGLWidget::GLenum target, int level, //target, levels, internalformat, width, height, depth
+                  WGLWidget::GLenum internalformat,
+                  unsigned width, unsigned height, unsigned depth)
+{
+  pImpl_->texStorage3D(target, level, internalformat, width, height, depth);
+}
+void WGLWidget::texSubImage3D(GLenum target, int level, 
+                              int xoffset, int yoffset, int zoffset,
+                              unsigned width, unsigned height, unsigned depth,
+                              GLenum format, GLenum type, std::string image)
+{
+  pImpl_->texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, image);
+}
+void WGLWidget::texSubImage3D(WGLWidget::GLenum target, int level, 
+                              int xoffset, int yoffset, int zoffset,
+                              unsigned width, unsigned height, unsigned depth, WGLWidget::GLenum format, WGLWidget::GLenum type,
+                              WImage *image)
+{
+  pImpl_->texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, image);
 }
 
 // Deprecated!
