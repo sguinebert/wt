@@ -262,18 +262,10 @@ void WTemplate::iterateChildren(const HandleWidgetMethod& method) const
   }
 }
 
-#ifndef WT_TARGET_JAVA
-void
-#else // WT_TARGET_JAVA
-WWidget*
-#endif // WT_TARGET_JAVA
-WTemplate::bindWidget(const std::string& varName,
-                      std::unique_ptr<WWidget> widget)
+void WTemplate::bindWidget(const std::string& varName,
+			   std::unique_ptr<WWidget> widget)
 {
   bool setNull = !widget;
-#ifdef WT_TARGET_JAVA
-  WWidget *widgetPtrCopy = widget.get();
-#endif // WT_TARGET_JAVA
 
   if (!setNull) {
     strings_.erase(varName);
@@ -289,13 +281,8 @@ WTemplate::bindWidget(const std::string& varName,
     }
   } else {
     StringMap::const_iterator j = strings_.find(varName);
-    if (j != strings_.end() && j->second.empty()) {
-#ifndef WT_TARGET_JAVA
+    if (j != strings_.end() && j->second.empty())
       return;
-#else // WT_TARGET_JAVA
-      return widgetPtrCopy;
-#endif // WT_TARGET_JAVA
-    }
     strings_[varName] = WString();
   }
 
@@ -304,10 +291,6 @@ WTemplate::bindWidget(const std::string& varName,
 
   changed_ = true;
   repaint(RepaintFlag::SizeAffected);  
-
-#ifdef WT_TARGET_JAVA
-  return widgetPtrCopy;
-#endif // WT_TARGET_JAVA
 }
 
 std::unique_ptr<WWidget> WTemplate::removeWidget(const std::string& varName)
@@ -554,7 +537,7 @@ void WTemplate::updateDom(DomElement& element, bool all)
 
 void WTemplate::unrenderWidget(WWidget *w, DomElement &el)
 {
-  std::string removeJs = w->renderRemoveJs(false);
+  std::string removeJs = w->webWidget()->renderRemoveJs(false);
   if (removeJs[0] == '_')
     el.callJavaScript(WT_CLASS ".remove('" + removeJs.substr(1) + "');", true);
   else

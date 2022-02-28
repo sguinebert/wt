@@ -10,6 +10,7 @@
 #include <chrono>
 #include <string>
 #include <map>
+#include <unordered_map>
 #include <vector>
 
 #include <Wt/WDllDefs.h>
@@ -134,7 +135,7 @@ public:
    *
    * \sa cookies()
    */
-  typedef std::map<std::string, std::string> CookieMap;
+  typedef std::unordered_map<std::string, std::string> CookieMap;
 
 #ifdef WT_TARGET_JAVA
   /*! \brief %Wt's JavaScript scope.
@@ -728,7 +729,7 @@ private:
 
   bool agentSupportsAjax() const;
   static void parseCookies(const std::string& cookie,
-			   std::map<std::string, std::string>& result);
+			   std::unordered_map<std::string, std::string>& result);
 
   friend class WebController;
   friend class WebRenderer;

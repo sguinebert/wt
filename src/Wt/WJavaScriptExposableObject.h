@@ -11,15 +11,17 @@
 
 #include <string>
 #include <vector>
+#include <Wt/Json/json.hpp>
 
 namespace Wt {
 
 class WJavaScriptObjectStorage;
 class WPaintedWidget;
 
-namespace Json {
-  class Value;
-}
+//namespace Json {
+//  class Value;
+//}
+
 
 /*! \class WJavaScriptExposableObject Wt/WJavaScriptExposableObject.h
  *  \brief A JavaScript exposable object
@@ -91,6 +93,7 @@ protected:
   void checkModifiable();
 
   virtual void assignFromJSON(const Json::Value &value) = 0;
+  //virtual void assignFromJSON(const boost::json::value &value) = 0;
 
 private:
   template<typename T> friend class WJavaScriptHandle;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Emweb bv, Herent, Belgium.
+ * Copyright (C) 2008 Emweb bvba, Kessel-Lo, Belgium.
  *
  * See the LICENSE file for terms of use.
  */
@@ -24,6 +24,12 @@ typedef std::map<std::string, cpp17::any> SettingsMapType;
 WTextEdit::WTextEdit()
   : onChange_(this, "change"),
     onRender_(this, "render"),
+    onClick_(this, "click"),
+    onDoubleClick_(this, "dblclick"),
+    onMouseWentDown_(this, "mousedown"),
+    onMouseWentUp_(this, "mouseup"),
+    onFocusIn_(this, "focusin"),
+    onFocusOut_(this, "focusout"),
     contentChanged_(false)
 {
   init();
@@ -33,6 +39,12 @@ WTextEdit::WTextEdit(const WT_USTRING& text)
   : WTextArea(text),
     onChange_(this, "change"),
     onRender_(this, "render"),
+    onClick_(this, "click"),
+    onDoubleClick_(this, "doubleClick"),
+    onMouseWentDown_(this, "mouseWentDown"),
+    onMouseWentUp_(this, "mouseWentUp"),
+    onFocusIn_(this, "focusIn"),
+    onFocusOut_(this, "focusOut"),
     contentChanged_(false)
 {
   init();
@@ -67,7 +79,7 @@ void WTextEdit::init()
       ",justifyleft,justifycenter,justifyright,justifyfull,|,anchor,|"
       ",numlist,bullist";
   else
-    toolbar = "undo redo | styleselect | bold italic | link";
+    toolbar = "undo redo | fontsizeselect | bold italic underline| alignleft aligncenter alignright alignjustify | outdent indent | forecolor backcolor | numlist bullist | link image";
 
   setToolBar(0, toolbar);
   for (int i = 1; i <= 3; i++)
@@ -79,7 +91,8 @@ void WTextEdit::init()
   if (version_ < 4) {
     //this setting is no longer mentioned in the tinymce documenation though...
     setConfigurationSetting("button_tile_map", true);
-    setConfigurationSetting("theme", std::string("advanced"));
+    //setConfigurationSetting("theme", std::string("advanced"));
+    //setConfigurationSetting("theme.min", std::string("themes"));
     setConfigurationSetting("theme_advanced_toolbar_location", 
 			    std::string("top"));
     setConfigurationSetting("theme_advanced_toolbar_align",
@@ -87,6 +100,12 @@ void WTextEdit::init()
   }
 
   onChange_.connect(this, &WTextEdit::propagateOnChange);
+  onClick_.connect(this, &WTextEdit::propagateOnClick);
+  onDoubleClick_.connect(this, &WTextEdit::propagateOnDoubleClick);
+  onMouseWentDown_.connect(this, &WTextEdit::propagateOnMouseWentDown);
+  onMouseWentUp_.connect(this, &WTextEdit::propagateOnMouseWentUp);
+  onFocusIn_.connect(this, &WTextEdit::propagateOnFocusIn);
+  onFocusOut_.connect(this, &WTextEdit::propagateOnFocusOut);
 }
 
 WTextEdit::~WTextEdit()
@@ -97,6 +116,35 @@ void WTextEdit::propagateOnChange()
   changed().emit();
 }
 
+void WTextEdit::propagateOnClick(WMouseEvent evt)
+{
+  clicked().emit(evt);
+}
+
+void WTextEdit::propagateOnDoubleClick(WMouseEvent evt)
+{
+  doubleClicked().emit(evt);
+}
+
+void WTextEdit::propagateOnMouseWentDown(WMouseEvent evt)
+{
+  mouseWentDown().emit(evt);
+}
+
+void WTextEdit::propagateOnMouseWentUp(WMouseEvent evt)
+{
+   mouseWentUp().emit(evt);
+}
+
+void WTextEdit::propagateOnFocusIn()
+{
+  focussed().emit();
+}
+
+void WTextEdit::propagateOnFocusOut()
+{
+   blurred().emit();
+}
 void WTextEdit::setStyleSheet(const std::string& uri)
 {
   setConfigurationSetting("content_css", uri);
@@ -153,10 +201,11 @@ std::string WTextEdit::renderRemoveJs(bool recursive)
 
 int WTextEdit::getTinyMCEVersion()
 {
-  std::string version = "3";
+  std::string version = "5";
   WApplication::readConfigurationProperty("tinyMCEVersion", version);
   return Utils::stoi(version);
 }
+
 
 void WTextEdit::initTinyMCE()
 {
@@ -173,18 +222,8 @@ void WTextEdit::initTinyMCE()
     if (tinyMCEURL.empty()) {
       int version = getTinyMCEVersion();
 
-      std::string folder;
-      std::string jsFile;
-      if (version < 3) {
-	folder = "tinymce/";
-	jsFile = "tinymce.js";
-      } else if (version == 3) {
-	folder = "tiny_mce/";
-	jsFile = "tiny_mce.js";
-      } else {
-	folder = "tinymce/";
-	jsFile = "tinymce.min.js";
-      }
+      std::string folder = "tinymce/";
+      std::string jsFile = "tinymce.min.js";
 
       std::string tinyMCEBaseURL = WApplication::relativeResourcesUrl() + folder;
       WApplication::readConfigurationProperty("tinyMCEBaseURL", tinyMCEBaseURL);
@@ -249,6 +288,27 @@ std::string WTextEdit::plugins() const
   return plugins;
 }
 
+bool WTextEdit::serialize(std::stringstream& ss, std::map<std::string, cpp17::any>& map)
+{
+  ss << "{";
+
+  bool first = true;
+
+  for (SettingsMapType::const_iterator it = map.begin();
+    it != map.end(); ++it) {
+    if (it->first == "plugins")
+      continue;
+
+    if (!first)
+      ss << ',';
+
+    first = false;
+
+    ss << it->first << ": "
+      << Impl::asJSLiteral(it->second, TextFormat::UnsafeXHTML);
+  }
+  return first;
+}
 void WTextEdit::updateDom(DomElement& element, bool all)
 {
   WTextArea::updateDom(element, all);
@@ -259,23 +319,8 @@ void WTextEdit::updateDom(DomElement& element, bool all)
   // we are creating the actual element
   if (all && element.type() == DomElementType::TEXTAREA) {
     std::stringstream config;
-    config << "{";
 
-    bool first = true;
-
-    for (SettingsMapType::const_iterator it = configurationSettings_.begin();
-	 it != configurationSettings_.end(); ++it) {
-      if (it->first == "plugins")
-	continue;
-
-      if (!first)
-	config << ',';
-
-      first = false;
-
-      config << it->first << ": "
-	     << Impl::asJSLiteral(it->second, TextFormat::UnsafeXHTML);
-    }
+    bool first = serialize(config, configurationSettings_);
 
     if (!first)
       config << ',';
@@ -286,6 +331,11 @@ void WTextEdit::updateDom(DomElement& element, bool all)
       ",init_instance_callback: obj.init"
       "}";
 
+    std::stringstream events;
+    serialize(events, eventSettings_);
+    events << "}";
+
+
     DomElement dummy(DomElement::Mode::Update, DomElementType::TABLE);
     updateDom(dummy, true);
 
@@ -294,6 +344,7 @@ void WTextEdit::updateDom(DomElement& element, bool all)
 			   """obj.render(" + config.str() + ","
 			   + jsStringLiteral(dummy.cssStyle()) + ","
 			   + (changed().isConnected() ? "true" : "false")
+                          // + events.str()
 			   + ");"
 			   "})();");
 
@@ -359,6 +410,14 @@ void WTextEdit::setConfigurationSetting(const std::string& name,
     configurationSettings_[name] = value;
   else
     configurationSettings_.erase(name);
+}
+
+void WTextEdit::setEventSetting(const std::string& name, const cpp17::any& value)
+{
+  if (cpp17::any_has_value(value))
+    eventSettings_[name] = value;
+  else
+    eventSettings_.erase(name);
 }
 
 cpp17::any WTextEdit::configurationSetting(const std::string& name) const

@@ -1,9 +1,9 @@
 #include "Wt/WFileDropWidget.h"
 
 #include "Wt/Http/Response.h"
-#include "Wt/Json/Array.h"
+#include "Wt/Json/json.hpp"
 #include "Wt/Json/Parser.h"
-#include "Wt/Json/Object.h"
+//#include "Wt/Json/Object.h"
 #include "Wt/WApplication.h"
 #include "Wt/WEnvironment.h"
 #include "Wt/WMemoryResource.h"
@@ -249,40 +249,39 @@ void WFileDropWidget::setup()
 void WFileDropWidget::handleDrop(const std::string& newDrops)
 {
 #ifndef WT_TARGET_JAVA
-  Json::Value dropdata;
+  Json::Array dropdata;
 #else
-  Json::Value& dropdata;
+  Json::Array& dropdata;
 #endif
   Json::parse(newDrops, dropdata);
 
   std::vector<File*> drops;
   
-  Json::Array dropped = (Json::Array)dropdata;
-  for (std::size_t i = 0; i < dropped.size(); ++i) {
-    Json::Object upload = (Json::Object)dropped[i];
+  //Json::Array dropped = (Json::Array)dropdata;
+  for (std::size_t i = 0; i < dropdata.size(); ++i) {
+    Json::Object& upload = dropdata[i].as_object();
     int id = -1;
     ::uint64_t size = 0;
     std::string name, type;
-    for (Json::Object::iterator it = upload.begin(); it != upload.end();
-	 it++) {
+    for (auto &[key, value] : upload) {
 #ifndef WT_TARGET_JAVA
-      if (it->first == "id")
-	id = it->second;
-      else if (it->first == "filename")
-	name = (std::string)it->second;
-      else if (it->first == "type")
-	type = (std::string)it->second;
-      else if (it->first == "size")
-	size = (long long)it->second;
+      if (key == "id")
+	id = value.get_int64(-1);
+      else if (key == "filename")
+	name = value.get_string("");
+      else if (key == "type")
+	type = value.get_string("");
+      else if (key == "size")
+	size = value.get_int64(0);
 #else
-      if (it->first == "id")
-	id = it->second.getAsInt();
-      else if (it->first == "filename")
-	name = it->second.getAsString();
-      else if (it->first == "type")
-	type = it->second.getAsString();
-      else if (it->first == "size")
-	size = it->second.getAsLong();
+      if (key == "id")
+	id = value.get_int64(-1);
+      else if (key == "filename")
+	name = (std::string)value.get_string("");
+      else if (key == "type")
+	type = (std::string)value.get_string("");
+      else if (key == "size")
+	size = value.get_int64(0);
 #endif
       else
 	throw std::exception();

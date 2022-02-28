@@ -9,8 +9,8 @@
 #include "Wt/WLogger.h"
 #include "Wt/WStringStream.h"
 
-#include "Wt/Json/Array.h"
-#include "Wt/Json/Value.h"
+//#include "Wt/Json/Array.h"
+#include "Wt/Json/json.hpp"
 
 #include "web/WebUtils.h"
 
@@ -116,16 +116,14 @@ WPointF WPointF::inverseSwapHV(double width) const
 void WPointF::assignFromJSON(const Json::Value &value)
 {
   try {
-#ifndef WT_TARGET_JAVA
-    const Json::Array &ar = value;
-#else
-    const Json::Array &ar = static_cast<Json::Array&>(value);
-#endif
+
+    const Json::Array &ar = value.as_array();
+
     if (ar.size() == 2 &&
-	!ar[0].toNumber().isNull() &&
-	!ar[1].toNumber().isNull()) {
-      x_ = ar[0].toNumber().orIfNull(x_);
-      y_ = ar[1].toNumber().orIfNull(y_);
+	!ar[0].is_null()&&
+	!ar[1].is_null()) {
+      x_ = ar[0].get_double(x_);
+      y_ = ar[1].get_double(y_);
     } else {
       LOG_ERROR("Couldn't convert JSON to WPointF");
     }
