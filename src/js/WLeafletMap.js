@@ -20,7 +20,7 @@ WT_DECLARE_WT_MEMBER
     var WT = APP.WT;
 
     this.map = null;
-    var markers = {};
+    this.markers = {};
 
     var lastZoom = zoom;
     var lastLatLng = [lat, lng];
@@ -52,19 +52,19 @@ WT_DECLARE_WT_MEMBER
 
     this.addMarker = function(marker_id, marker) {
       marker.addTo(self.map);
-      markers[marker_id] = marker;
+      this.markers[marker_id] = marker;
     };
 
     this.removeMarker = function(marker_id) {
-      var marker = markers[marker_id];
+      var marker = this.markers[marker_id];
       if (marker) {
         self.map.removeLayer(marker);
-        delete markers[marker_id];
+        delete this.markers[marker_id];
       }
     };
 
     this.moveMarker = function(marker_id, position) {
-      var marker = markers[marker_id];
+      var marker = this.markers[marker_id];
       if (marker) {
         marker.setLatLng(position);
       }

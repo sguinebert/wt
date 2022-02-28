@@ -13,6 +13,7 @@ WT_DECLARE_WT_MEMBER
 
    var lastW, lastH;
    var badHeightCount = 0;
+   var tevts;
 
    var self = this,
        WT = APP.WT,
@@ -23,7 +24,8 @@ WT_DECLARE_WT_MEMBER
 
    tinyMCE.init({ mode:"none" });
 
-   this.render = function(config, aCss, connectOnChange) {
+   this.render = function(config, aCss, connectOnChange, evts) {
+     tevts = evts;
      css = aCss;
      el.ed = new tinymce.Editor(el.id, config, tinymce.EditorManager);
      el.ed.render();
@@ -41,11 +43,30 @@ WT_DECLARE_WT_MEMBER
      setTimeout(function() {APP.emit(el, 'render');}, 0);
    };
 
-   this.init = function() {
+   this.init = function(editor) {
      var iframe = WT.getElement(el.id + '_ifr');
 
      var topLevel, other;
-
+     
+     editor.on('click', function (e) {
+       APP.emit(el, 'click');
+     });
+     editor.on('dblclick', function (e) {
+       APP.emit(el, 'dblclick');
+     });
+     editor.on('mousedown', function (e) {
+       APP.emit(el, 'mousedown');
+     });
+     editor.on('mouseup', function (e) {
+       APP.emit(el, 'mouseup');
+     });
+     editor.on('focusin', function (e) {
+       APP.emit(el, 'focusin');
+     });
+     editor.on('focusout', function (e) {
+       APP.emit(el, 'focusout');
+     });
+    
      if (tinymce.EditorManager.majorVersion < 4) {
        var row = iframe.parentNode.parentNode,
          tbl = row.parentNode.parentNode;
