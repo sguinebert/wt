@@ -9,6 +9,8 @@
   "eslint.nodePath": "src/js/node_modules",
   "files.associations": {
     "WTextEdit.C": "cpp",
-    "WTransform.C": "cpp"
+    "WTransform.C": "cpp",
+    "CgiParser.C": "cpp",
+    "WebUtils.C": "cpp"
   }
 }
