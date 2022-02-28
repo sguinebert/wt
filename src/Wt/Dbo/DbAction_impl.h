@@ -10,6 +10,7 @@
 #include <Wt/Dbo/Exception.h>
 #include <iostream>
 #include <type_traits>
+#include "DbAction.h"
 
 namespace Wt {
   namespace Dbo {
@@ -41,7 +42,7 @@ void InitSchema::visit(C& obj)
 }
 
 template<typename V>
-void InitSchema::actId(V& value, const std::string& name, int size)
+void InitSchema::actId(V& value, const std::string& name, int size, int flags)
 {
   mapping_.naturalIdFieldName = name;
   mapping_.naturalIdFieldSize = size;
@@ -51,9 +52,12 @@ void InitSchema::actId(V& value, const std::string& name, int size)
 		    "with surrogate key: "
 		    "Wt::Dbo::dbo_traits<C>::surrogateIdField() != 0");
 
+  if(flags & FieldRef<V>::NoMutation)
+  	nomutation_ = true;
   idField_ = true;
   field(*this, value, name, size);
   idField_ = false;
+  nomutation_ = false;
 }
 
 template<class C>
@@ -76,7 +80,18 @@ void InitSchema::actId(ptr<C>& value, const std::string& name, int size,
 template<typename V>
 void InitSchema::act(const FieldRef<V>& field)
 {
-  int flags = FieldFlags::Mutable | FieldFlags::NeedsQuotes;
+  int flags = FieldFlags::NeedsQuotes;
+
+  if(!(field.flags() & FieldRef<V>::NoMutation) && !(fkFlags_ & PtrRef<V>::NoMutation) && !nomutation_)
+    flags |= FieldFlags::Mutable; 
+
+  if(((field.flags() & FieldRef<V>::Default) || (fkFlags_ & PtrRef<V>::Default)) ) //&& !(fkFlags_ & PtrRef<V>::ShardId)
+    flags |= FieldFlags::Default;
+
+  //if ((field.flags() & FieldRef<V>::ShardId) && (fkFlags_ & PtrRef<V>::ShardId)) {
+  //  flags |= FieldFlags::Default;
+  //  flags |= FieldFlags::ShardId;
+  //}
 
   if (idField_)
     flags |= FieldFlags::NaturalId; // Natural id
@@ -86,14 +101,12 @@ void InitSchema::act(const FieldRef<V>& field)
   
   if (!foreignKeyName_.empty())
     // Foreign key
-    mapping_.fields.push_back
-      (FieldInfo(field.name(), &typeid(V), field.sqlType(session_),
-		 foreignKeyTable_, foreignKeyName_,
-		 flags | FieldFlags::ForeignKey, fkConstraints_));
+    mapping_.fields.push_back(FieldInfo(field.name(), &typeid(V), field.sqlType(session_),
+		              foreignKeyTable_, foreignKeyName_,
+		              flags | FieldFlags::ForeignKey, fkConstraints_));
   else
     // Normal field
-    mapping_.fields.push_back
-      (FieldInfo(field.name(), &typeid(V), field.sqlType(session_), flags));
+    mapping_.fields.push_back(FieldInfo(field.name(), &typeid(V), field.sqlType(session_), flags));
 }
 
 template<class C>
@@ -161,7 +174,7 @@ void DropSchema::visit(C& obj)
 }
 
 template<typename V>
-void DropSchema::actId(V& /* value */, const std::string& /* name */, int /* size */)
+void DropSchema::actId(V& /* value */, const std::string& /* name */, int /* size */, int /*flags */)
 { }
 
 template<class C>
@@ -258,6 +271,56 @@ void DboAction::actCollection(const CollectionRef<C>& field)
     setStatementIdx_ += 3;
 }
 
+/*
+ * updateDbAction
+ */
+template <class C>
+UpdateBaseAction<C>::UpdateBaseAction(MetaDbo<C>& dbo, Session::Mapping<C>& mapping)
+  : DboAction(dbo, mapping)
+{ }
+
+template<class C>
+template<typename V>
+void UpdateBaseAction<C>::act(const FieldRef<V>& field)
+{
+}
+
+template<class C>
+template<class D>
+void UpdateBaseAction<C>::actPtr(const PtrRef<D>& field)
+{
+  field.visit(*this, session());
+}
+
+template<class C>
+template<class D>
+void UpdateBaseAction<C>::actWeakPtr(const WeakPtrRef<D>& field)
+{
+  //field.visit(*this, session());
+  DboAction::actWeakPtr(field);
+}
+template<class C>
+template<class D>
+void UpdateBaseAction<C>::actCollection(const CollectionRef<D>& field)
+{
+  //field.visit(*this, session());
+  DboAction::actCollection(field);
+}
+template<class C>
+template<typename V> 
+void UpdateBaseAction<C>::actId(V& value, const std::string& name, int size, int flags)
+{
+}
+template<class C>
+template<class D> 
+void UpdateBaseAction<C>::actId(ptr<D>& value, const std::string& name, int size, int fkConstraints)
+{
+}
+template<class C>
+void UpdateBaseAction<C>::visit(C& obj)
+{
+  persist<C>::apply(obj, *this);
+}
     /*
      * LoadDbAction
      */
@@ -316,10 +379,12 @@ void LoadDbAction<C>::visit(C& obj)
     use(0);
 }
 
+
 template<class C>
 template<typename V>
-void LoadDbAction<C>::actId(V& value, const std::string& name, int size)
+void LoadDbAction<C>::actId(V& value, const std::string& name, int size, int flags)
 {
+
   field(*this, value, name, size);
 
   dbo_.setId(value);
@@ -349,7 +414,7 @@ void SaveBaseAction::visitAuxIds(C& obj)
 }
 
 template<typename V>
-void SaveBaseAction::actId(V& value, const std::string& name, int size)
+void SaveBaseAction::actId(V& value, const std::string& name, int size, int flags)
 {
   /* Only used from within visitAuxIds() */
 }
@@ -374,7 +439,9 @@ void SaveBaseAction::actPtr(const PtrRef<C>& field)
 
     break;
   case Self:
-    if (auxIdOnly_ && !(field.flags() & PtrRef<C>::AuxId))
+    if ((auxIdOnly_ && !(field.flags() & PtrRef<C>::AuxId))
+    	  || (isInsert_ && (field.flags() & PtrRef<C>::Default)) 
+    	  || (!isInsert_ && (field.flags() & PtrRef<C>::NoMutation)))
       return;
 
     {
@@ -539,6 +606,7 @@ void SaveDbAction<C>::visit(C& obj)
     persist<C>::apply(obj, *this);
 
     if (!isInsert_) {
+
       MetaDboBase *dbo = dynamic_cast<MetaDboBase *>(&dbo_);
       dbo->bindModifyId(statement_, column_);
 
@@ -548,7 +616,7 @@ void SaveDbAction<C>::visit(C& obj)
 			 + (dbo_.savedInTransaction() ? 1 : 0));
       }
     }
-
+    
     exec();
 
     if (!isInsert_) {
@@ -558,6 +626,11 @@ void SaveDbAction<C>::visit(C& obj)
                                    dbo_.session()->template tableName<C>(),
                                    dbo_.version());
       }
+    }
+    else if(!mapping().surrogateIdFieldName && updateids()) {
+      
+      persist<C>::apply(obj, *this);
+      //setIdOnly(false);
     }
   }
 
@@ -575,9 +648,20 @@ void SaveDbAction<C>::visit(C& obj)
 
 template<class C>
 template<typename V>
-void SaveDbAction<C>::actId(V& value, const std::string& name, int size)
+void SaveDbAction<C>::actId(V& value, const std::string& name, int size, int flags)
 {
+  if(updateids()){
+  	field(*this, value, name, size);
+  	dbo_.setId(value);
+  	return;
+  }
+
+
+  setNomutation((flags & FieldRef<V>::NoMutation) && !isInsert_);
+  	
   field(*this, value, name, size);
+  
+  setNomutation(false);
 
   /* Later, we may also want to support id changes ? */
   if (pass_ == Self && isInsert_)
@@ -608,7 +692,7 @@ void TransactionDoneAction::visit(C& obj)
 }
 
 template<typename V>
-void TransactionDoneAction::actId(V& value, const std::string& name, int size)
+void TransactionDoneAction::actId(V& value, const std::string& name, int size, int flags)
 { 
   field(*this, value, name, size);
 }
@@ -669,7 +753,7 @@ void SessionAddAction::visit(C& obj)
 }
 
 template<typename V>
-void SessionAddAction::actId(V& value, const std::string& name, int size)
+void SessionAddAction::actId(V& value, const std::string& name, int size, int flags)
 { 
   field(*this, value, name, size);
 }
@@ -714,7 +798,7 @@ void SetReciproceAction::visit(C& obj)
 }
 
 template<typename V>
-void SetReciproceAction::actId(V& value, const std::string& name, int size)
+void SetReciproceAction::actId(V& value, const std::string& name, int size, int flags)
 { 
   field(*this, value, name, size);
 }
@@ -795,7 +879,7 @@ cpp17::any convertToAny(const V& v) {
 }
 
 template<typename V>
-void ToAnysAction::actId(V& value, const std::string& name, int size)
+void ToAnysAction::actId(V& value, const std::string& name, int size, int flags)
 { 
   field(*this, value, name, size);
 }
@@ -872,12 +956,12 @@ template <typename Enum>
 struct FromAny<Enum, typename std::enable_if<std::is_enum<Enum>::value>::type>
 {
   static Enum convert(const cpp17::any& v) {
-    return static_cast<Enum>(cpp17::any_cast<int>(v));
+    return cpp17::any_cast<Enum>(v);
   }
 };
 
 template<typename V>
-void FromAnyAction::actId(V& value, const std::string& name, int size)
+void FromAnyAction::actId(V& value, const std::string& name, int size, int flags)
 {
   field(*this, value, name, size);
 }

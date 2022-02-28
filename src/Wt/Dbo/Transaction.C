@@ -22,7 +22,7 @@ LOGGER("Dbo.Transaction");
 Transaction::Transaction(Session& session)
   : committed_(false),
     session_(session)
-{ 
+{
   if (!session_.transaction_)
     session_.transaction_ = new Impl(session_);
 
@@ -40,37 +40,32 @@ Transaction::~Transaction() noexcept(false)
   // Either this Transaction shell was not committed (first condition)
   // or the commit failed (we are still active and need to rollback)
   if (!committed_ || impl_->needsRollback_) {
-#if defined(__cpp_lib_uncaught_exceptions) && __cpp_lib_uncaught_exceptions >= 201411L
-    const bool uncaughtException = std::uncaught_exceptions() != 0;
-#else
-    const bool uncaughtException = std::uncaught_exception();
-#endif
     // A commit attempt failed (and thus we need to rollback) or we
     // are unwinding a stack while an exception is thrown
-    if (impl_->needsRollback_ || uncaughtException) {
-      bool canThrow = !uncaughtException;
+    if (impl_->needsRollback_ || std::uncaught_exceptions()) {
+      bool canThrow = std::uncaught_exceptions() == 0;
       try {
-	rollback();
+    rollback();
       } catch (...) {
-	release();
-	if (canThrow)
-	  throw;
+    release();
+    if (canThrow)
+      throw;
       }
     } else {
       try {
-	commit();
+    commit();
       } catch (...) {
-	try {
-	  if (impl_->transactionCount_ == 1)
-	    rollback();
+    try {
+      if (impl_->transactionCount_ == 1)
+        rollback();
         } catch (std::exception &e) {
           LOG_ERROR("Unexpected exception during Transaction::rollback(): " << e.what());
-	} catch (...) {
-	  LOG_ERROR("Unexpected exception during Transaction::rollback()");
-	}
+    } catch (...) {
+      LOG_ERROR("Unexpected exception during Transaction::rollback()");
+    }
 
-	release();
-	throw;
+    release();
+    throw;
       }
     }
   }
@@ -83,7 +78,7 @@ void Transaction::release()
   --impl_->transactionCount_;
 
   if (impl_->transactionCount_ == 0)
-    delete impl_;  
+    delete impl_;
 }
 
 bool Transaction::isActive() const

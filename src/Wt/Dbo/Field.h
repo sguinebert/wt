@@ -23,6 +23,9 @@ const int FKOnUpdateRestrict = 0x08;
 const int FKOnDeleteCascade  = 0x10;
 const int FKOnDeleteSetNull  = 0x20;
 const int FKOnDeleteRestrict = 0x40;
+const int FKOnShardId        = 0x80;
+const int FKOnDefault        = 0x100;
+const int FKOnNoMutation        = 0x200;
     }
 
 /*! \brief Type that indicates one or more foreign key constraints.
@@ -171,6 +174,51 @@ const ForeignKeyConstraint OnDeleteRestrict;
 const ForeignKeyConstraint OnDeleteRestrict(Impl::FKOnDeleteRestrict);
 #endif
 
+/*! \brief A constraint based on the column responsible for tables distribution on nodes (citus).
+ *
+ * It is not allowed to update that key 
+ * and this key has to be part of WHERE condition for performance 
+ *
+ * \note This constraint affects the database schema creation.
+ *
+ * \ingroup dbo
+ */
+#ifdef DOXYGEN_ONLY
+const ForeignKeyConstraint OnShardId;
+#else
+const ForeignKeyConstraint OnShardId(Impl::FKOnShardId);
+#endif
+
+/*! \brief A constraint based on the column responsible for tables distribution on nodes (citus).
+ *
+ * It is not allowed to update that key 
+ * and this key has to be part of WHERE condition for performance 
+ *
+ * \note This constraint affects the database schema creation.
+ *
+ * \ingroup dbo
+ */
+#ifdef DOXYGEN_ONLY
+const ForeignKeyConstraint OnDefault;
+#else
+const ForeignKeyConstraint OnDefault(Impl::FKOnDefault);
+#endif
+
+/*! \brief A constraint based on the column responsible for tables distribution on nodes (citus).
+ *
+ * It is not allowed to update that key 
+ * and this key has to be part of WHERE condition for performance 
+ *
+ * \note This constraint affects the database schema creation.
+ *
+ * \ingroup dbo
+ */
+#ifdef DOXYGEN_ONLY
+const ForeignKeyConstraint OnNoMutation;
+#else
+const ForeignKeyConstraint OnNoMutation(Impl::FKOnNoMutation);
+#endif
+
 class Session;
 class SqlStatement;
 
@@ -179,7 +227,10 @@ class FieldRef
 {
 public:
   enum Flag {
-    AuxId = 0x1
+    AuxId = 0x1,
+    ShardId = 0x2, 
+    NoMutation = 0x4, 
+    Default = 0x8
   };
 
   FieldRef(V& value, const std::string& name, int size, int flags = 0);
@@ -240,7 +291,10 @@ class PtrRef
 {
 public:
   enum Flag {
-    AuxId = 0x1
+    AuxId = 0x1,
+    ShardId = 0x2,
+    Default = 0x4,
+    NoMutation = 0x8
   };
 
   PtrRef(ptr<C>& value, const std::string& name, int fkConstraints, int flags = 0);
@@ -302,6 +356,7 @@ private:
  */
 template <class Action, typename V>
 void id(Action& action, V& value, const std::string& name = "id",
+	bool mutation = true,
 	int size = -1);
 
 /*! \brief Maps a natural primary key (id) field that is a foreign key.
@@ -325,7 +380,7 @@ template <class Action, class C>
 void auxId(Action& action, ptr<C>& value, const std::string& name,
 	   ForeignKeyConstraint constraint = ForeignKeyConstraint(0), int size = -1);
 
-  
+
 /*! \brief Maps a database object field.
  *
  * This function binds the field \p value to the database field \p name.
@@ -365,8 +420,12 @@ void auxId(Action& action, ptr<C>& value, const std::string& name,
  *
  * \ingroup dbo
  */
-template <class Action, typename V>
-void field(Action& action, V& value, const std::string& name, int size = -1);
+
+template <class A, typename V>
+void field(A& action, V& value, const std::string& name, int size = -1, int flags = 0);
+
+template <class A, typename V>
+void field(A& action, V& value, const std::string& name, bool shardid,  bool mutate, bool uuid, int size = -1);
 
 /*
  * This is synonym for belongsTo(), and used by id(). We should overload

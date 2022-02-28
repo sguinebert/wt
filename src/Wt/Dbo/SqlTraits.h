@@ -178,7 +178,9 @@ enum FieldFlags {
   FirstDboField = 0x40,
   LiteralJoinId = 0x80,
   AuxId = 0x100,
-  AliasedName = 0x200 // there is an AS in the field, so the name is aliased
+  AliasedName = 0x200, // there is an AS in the field, so the name is aliased
+  ShardId = 0x400,
+  Default = 0x800
 };
 
 /*! \class FieldInfo Wt/Dbo/SqlTraits.h Wt/Dbo/SqlTraits.h
@@ -244,6 +246,10 @@ public:
    */
   bool isMutable() const { return (flags_ & Mutable) != 0; }
 
+  /*! \brief Returns whether the field is set to default.
+  */
+  bool isDefault() const { return (flags_ & Default) != 0; }
+
   /*! \brief Returns whether the field name needs to be quoted.
    */
   bool needsQuotes() const { return (flags_ & NeedsQuotes) != 0; }
@@ -255,6 +261,7 @@ public:
   bool isFirstDboField() const { return (flags_ & FirstDboField) != 0; }
   bool literalJoinId() const { return (flags_ & LiteralJoinId) != 0; }
   bool isAuxIdField() const { return (flags_ & AuxId) != 0; }
+  bool isShardIdField() const { return (flags_ & ShardId) != 0; }
   bool isAliasedName() const { return (flags_ & AliasedName) != 0; }
   std::string foreignKeyName() const { return foreignKeyName_; }
   std::string foreignKeyTable() const { return foreignKeyTable_; }
