@@ -95,6 +95,12 @@ PtrRef<C>::PtrRef(ptr<C>& value, const std::string& name,
     fkConstraints_(fkConstraints),
     flags_(flags)
 {
+  if (fkConstraints & Impl::FKOnShardId)
+    flags_ |= ShardId;
+  if (fkConstraints & Impl::FKOnDefault)
+    flags_ |= Default;
+  if (fkConstraints & Impl::FKOnNoMutation)
+    flags_ |= NoMutation;
   if (!name.empty() && name[0] == '>') {
     name_ = std::string(name.c_str() + 1, name.size() - 1);
     literalForeignKey_ = true;
@@ -172,9 +178,12 @@ const std::type_info *PtrRef<C>::type() const
 }
 
 template <class A, typename V>
-void id(A& action, V& value, const std::string& name, int size)
+void id(A& action, V& value, const std::string& name, bool mutation, int size)
 {
-  action.actId(value, name, size);
+  if(mutation) 
+    action.actId(value, name, size);
+  else
+    action.actId(value, name, size, FieldRef<V>::NoMutation);
 }
 
 template <class A, class C>
@@ -199,9 +208,22 @@ void auxId(Action& action, ptr<C>& value, const std::string& name,
 }
 
 template <class A, typename V>
-void field(A& action, V& value, const std::string& name, int size)
+void field(A& action, V& value, const std::string& name, int size, int flags)
 {
-  action.act(FieldRef<V>(value, name, size));
+  action.act(FieldRef<V>(value, name, size, flags));
+}
+
+template<class A, typename V>
+void field(A& action, V& value, const std::string& name, bool shardid, bool mutate, bool def, int size)
+{
+	int flags = 0;
+	if (shardid)
+		flags |= FieldRef<V>::ShardId;
+	if (!mutate)
+		flags |= FieldRef<V>::NoMutation;
+	if (def)
+		flags |= FieldRef<V>::Default;
+	action.act(FieldRef<V>(value, name, size, flags));
 }
 
 template <class A, class C>

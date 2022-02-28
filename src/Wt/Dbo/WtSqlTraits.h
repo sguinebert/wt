@@ -17,8 +17,7 @@
 #include <Wt/WString.h>
 #include <Wt/cpp17/any.hpp>
 
-#include <Wt/Json/Object.h>
-#include <Wt/Json/Array.h>
+#include <Wt/Json/json.hpp>
 #include <Wt/Json/Parser.h>
 #include <Wt/Json/Serializer.h>
 
@@ -248,7 +247,7 @@ inline std::string sql_value_traits<Json::Object, void>::type(
 inline void sql_value_traits<Json::Object, void>
 ::bind(const Json::Object& v, SqlStatement *statement, int column, int size)
 {
-  statement->bind(column, Json::serialize(v,false));
+  statement->bind(column, Json::serialize(v));
 }
 
 inline bool sql_value_traits<Json::Object, void>
@@ -261,7 +260,6 @@ inline bool sql_value_traits<Json::Object, void>
       return true;
     }
   }
-  v = Json::Object::Empty;
   return false;
 }
 
@@ -279,7 +277,7 @@ inline std::string sql_value_traits<Json::Array, void>::type(
 inline void sql_value_traits<Json::Array, void>
 ::bind(const Json::Array& v, SqlStatement *statement, int column, int size)
 {
-  statement->bind(column, Json::serialize(v,false));
+  statement->bind(column, Json::serialize(v));
 }
 
 inline bool sql_value_traits<Json::Array, void>
@@ -292,7 +290,7 @@ inline bool sql_value_traits<Json::Array, void>
       return true;
     }
   }
-  v = Json::Array::Empty;
+  //v = Json::Array::Empty;
   return false;
 }
 

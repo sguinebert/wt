@@ -18,6 +18,8 @@
 #include <Wt/Dbo/Field.h>
 #include <Wt/Dbo/SqlStatement.h>
 #include <Wt/Dbo/Session.h>
+#include "Wt/WString.h"
+#include "Wt/WAny.h"
 
 namespace Wt {
   namespace Dbo {
@@ -41,7 +43,7 @@ public:
   template<class C> void visit(C& obj);
 
   void actMapping(Impl::MappingInfo *mapping);
-  template<typename V> void actId(V& value, const std::string& name, int size);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class C> void actId(ptr<C>& value, const std::string& name, int size,
                                int fkConstraints);
   template<typename V> void act(const FieldRef<V>& field);
@@ -52,6 +54,8 @@ public:
   bool getsValue() const;
   bool setsValue() const;
   bool isSchema() const;
+  virtual bool updateids() const { return false; }
+  virtual std::vector<cpp17::any> insertedNaturalids() const { return std::vector<cpp17::any>(); }
 
   Session *session() { return &session_; }
 
@@ -60,6 +64,7 @@ private:
   Impl::MappingInfo& mapping_;
 
   bool idField_;
+  bool nomutation_;
   std::string foreignKeyTable_, foreignKeyName_;
   int fkConstraints_, fkFlags_;
 };
@@ -74,7 +79,7 @@ public:
   template<class C> void visit(C& obj);
 
   void actMapping(Impl::MappingInfo *mapping);
-  template<typename V> void actId(V& value, const std::string& name, int size);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class C> void actId(ptr<C>& value, const std::string& name, int size,
                                int fkConstraints);
   template<typename V> void act(const FieldRef<V>& field);
@@ -85,6 +90,8 @@ public:
   bool getsValue() const;
   bool setsValue() const;
   bool isSchema() const;
+  virtual bool updateids() const { return false; }
+  virtual std::vector<cpp17::any> insertedNaturalids() const { return std::vector<cpp17::any>(); }
 
   Session *session() { return &session_; }
 
@@ -109,6 +116,8 @@ public:
   bool getsValue() const;
   bool setsValue() const;
   bool isSchema() const;
+  virtual bool updateids() const { return false; }
+  virtual std::vector<cpp17::any> insertedNaturalids() const { return std::vector<cpp17::any>(); }
 
   Session *session() { return dbo_ ? dbo_->session() : session_; }
 
@@ -124,6 +133,25 @@ private:
 
   int setStatementIdx_, setIdx_;
 };
+
+template <class C>
+class UpdateBaseAction : public DboAction
+{
+public:
+  UpdateBaseAction(MetaDbo<C>& dbo, Session::Mapping<C>& mapping);
+
+  template<typename V> void act(const FieldRef<V>& field);
+  template<class D> void actPtr(const PtrRef<D>& field);
+  template<class D> void actWeakPtr(const WeakPtrRef<D>& field);
+  template<class D> void actCollection(const CollectionRef<D>& field);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
+  template<class D> void actId(ptr<D>& value, const std::string& name, int size, int fkConstraints);
+
+  void visit(C& obj);
+};
+
+template <class C>
+struct action_sets_value<UpdateBaseAction<C>> : std::true_type { };
 
 class WTDBO_API LoadBaseAction : public DboAction
 {
@@ -155,7 +183,7 @@ public:
 
   void visit(C& obj);
 
-  template<typename V> void actId(V& value, const std::string& name, int size);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class D> void actId(ptr<D>& value, const std::string& name, int size,
                                int fkConstraints);
 
@@ -182,7 +210,7 @@ public:
   template<class C> void actPtr(const PtrRef<C>& field);
   template<class C> void actWeakPtr(const WeakPtrRef<C>& field);
   template<class C> void actCollection(const CollectionRef<C>& field);
-  template<typename V> void actId(V& value, const std::string& name, int size);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class D> void actId(ptr<D>& value, const std::string& name, int size,
                                int fkConstraints);
 
@@ -192,12 +220,22 @@ public:
 
   int column() const { return column_; }
 
+  void setNomutation(bool nomutation) { nomutation_ = nomutation;}
+  void setIdOnly(bool idonly = true) { IdOnly_ = idonly;}
+  virtual bool updateids() const override { return updateIds_; }
+  virtual std::vector<cpp17::any> insertedNaturalids() const { return listids_; }
+
 protected:
   SqlStatement *statement_;
   bool isInsert_;
   int column_;
+  int naturalid_ = 0;
   bool bindNull_;
   bool auxIdOnly_;
+  bool IdOnly_;
+  bool updateIds_;
+  bool nomutation_ = false;
+  std::vector<cpp17::any> listids_;
 
   enum { Dependencies, Self, Sets } pass_;
   bool needSetsPass_;
@@ -217,7 +255,7 @@ public:
 
   void visit(C& obj);
 
-  template<typename V> void actId(V& value, const std::string& name, int size);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class D> void actId(ptr<D>& value, const std::string& name, int size,
                                int fkConstraints);
 
@@ -233,7 +271,7 @@ public:
 
   template<class C> void visit(C& obj);
 
-  template<typename V> void actId(V& value, const std::string& name, int size);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class C> void actId(ptr<C>& value, const std::string& name, int size,
                                int fkConstraints);
   template<typename V> void act(const FieldRef<V>& field);
@@ -257,7 +295,7 @@ public:
 
   template<class C> void visit(C& obj);
 
-  template<typename V> void actId(V& value, const std::string& name, int size);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class C> void actId(ptr<C>& value, const std::string& name, int size,
                                int fkConstraints);
   template<typename V> void act(const FieldRef<V>& field);
@@ -279,7 +317,7 @@ public:
   template<class C> void visit(C& obj);
 
   void actMapping(Impl::MappingInfo *mapping);
-  template<typename V> void actId(V& value, const std::string& name, int size);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class C> void actId(ptr<C>& value, const std::string& name, int size,
                                int fkConstraints);
   template<typename V> void act(const FieldRef<V>& field);
@@ -310,7 +348,7 @@ public:
   template<class C> void visit(const ptr<C>& obj);
 
   void actMapping(Impl::MappingInfo *mapping);
-  template<typename V> void actId(V& value, const std::string& name, int size);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class C> void actId(ptr<C>& value, const std::string& name, int size,
                                int fkConstraints);
   template<typename V> void act(const FieldRef<V>& field);
@@ -321,6 +359,9 @@ public:
   bool getsValue() const;
   bool setsValue() const;
   bool isSchema() const;
+  
+    virtual bool updateids() const { return false; }
+  virtual std::vector<cpp17::any> insertedNaturalids() const { return std::vector<cpp17::any>(); }
 
   Session *session() { return session_; }
 
@@ -338,7 +379,7 @@ public:
   template<class C> void visit(const ptr<C>& obj);
 
   void actMapping(Impl::MappingInfo *mapping);
-  template<typename V> void actId(V& value, const std::string& name, int size);
+  template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class C> void actId(ptr<C>& value, const std::string& name, int size,
                                int fkConstraints);
   template<typename V> void act(const FieldRef<V>& field);
@@ -349,6 +390,9 @@ public:
   bool getsValue() const;
   bool setsValue() const;
   bool isSchema() const;
+  
+    virtual bool updateids() const { return false; }
+  virtual std::vector<cpp17::any> insertedNaturalids() const { return std::vector<cpp17::any>(); }
 
   Session *session() { return session_; }
 
@@ -361,11 +405,68 @@ private:
 template <>
 struct action_sets_value<FromAnyAction> : std::true_type { };
 
+template<typename T>
+struct Converter
+{
+	static cpp17::any get(const char* cstr)
+	{
+	  return cpp17::any();
+	}
+};
+
+template<>
+struct Converter<std::string>
+{
+	static cpp17::any get(const char* cstr)
+	{
+    	  cpp17::any val = std::string(cstr);
+    	  return val;
+	}
+};
+
+
+template<>
+struct Converter<int>
+{
+	static cpp17::any get(const char* cstr)
+	{
+    	  cpp17::any val = std::stoi(cstr);
+    	  return val;
+	}
+};
+template<>
+struct Converter<long long>
+{
+	static cpp17::any get(const char* cstr)
+	{
+    	  cpp17::any val = std::stoll(cstr);
+    	  return val;
+	}
+};
+
 template<typename V>
 void SaveBaseAction::act(const FieldRef<V>& field)
 {
-  if (auxIdOnly_ && !(field.flags() & FieldRef<V>::AuxId))
+  if(updateIds_){
+    if((field.flags() & FieldRef<V>::Default) && naturalid_ < listids_.size()){
+
+        //cpp17::any an = convertAnyToAny(listids_[naturalid_], *field.type());
+    	auto cstr = cpp17::any_cast<char*>(listids_[naturalid_]);
+	auto an = Converter<V>::get(cstr);
+    	auto val = cpp17::any_cast<V>(an);
+    	field.setValue(val);
+
+    	naturalid_++;
+    }
+  return;
+  }
+
+  if ((auxIdOnly_ && !(field.flags() & FieldRef<V>::AuxId)) 
+       || (nomutation_ && !IdOnly_)
+       || (!isInsert_ && !IdOnly_ && (field.flags() & FieldRef<V>::NoMutation)) 
+       || (isInsert_ && (field.flags() & FieldRef<V>::Default)) )
     return;
+
 
   if (pass_ == Self) {
     if (bindNull_)

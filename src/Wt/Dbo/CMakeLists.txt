@@ -17,7 +17,7 @@ IF(ENABLE_LIBWTDBO)
     FixedSqlConnectionPool.h FixedSqlConnectionPool.C
     Json.h Json.C
     Query.h Query_impl.h Query.C
-    QueryColumn.h
+    QueryColumn.h QueryColumn.C
     SqlQueryParse.C
     Session.h Session_impl.h Session.C
     SqlConnection.h SqlConnection.C

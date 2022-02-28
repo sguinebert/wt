@@ -12,6 +12,7 @@
 #include <chrono>
 
 #include <Wt/Dbo/SqlConnection.h>
+#include <Wt/cpp17/any.hpp>
 
 namespace Wt {
   namespace Dbo {
@@ -106,6 +107,9 @@ public:
   /*! \brief Returns the id if the statement was an SQL <tt>insert</tt>.
    */
   virtual long long insertedId() = 0;
+
+
+  virtual std::vector<Wt::cpp17::any> insertedNaturalIds() { return std::vector<Wt::cpp17::any>(); };
 
   /*! \brief Returns the affected number of rows.
    *
