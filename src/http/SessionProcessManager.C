@@ -169,7 +169,7 @@ void SessionProcessManager::processDeadChildren(Wt::AsioWrapper::error_code ec)
 #else
     if (ec != std::errc::operation_canceled) {
 #endif
-      LOG_ERROR("Error processing dead children: " << ec.message());
+      LOG_ERROR("Error processing dead children: {}", ec.message());
     }
     return;
   }

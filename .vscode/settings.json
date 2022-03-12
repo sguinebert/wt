@@ -12,6 +12,8 @@
     "WTransform.C": "cpp",
     "CgiParser.C": "cpp",
     "WebUtils.C": "cpp",
-    "OAuthService.C": "cpp"
+    "OAuthService.C": "cpp",
+    "OidcService.C": "cpp",
+    "WTreeView.C": "cpp"
   }
 }

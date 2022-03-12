@@ -1305,7 +1305,7 @@ void Configuration::rereadConfiguration()
     readConfiguration(true);
     LOG_INFO("New configuration read.");
   } catch (WException& e) {
-    LOG_ERROR("Error reading configuration: " << e.what());
+    LOG_ERROR("Error reading configuration: {}", e.what());
   }
 }
 

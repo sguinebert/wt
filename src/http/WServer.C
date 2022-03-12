@@ -364,14 +364,14 @@ int WRun(const std::string &applicationPath,
 
       return 0;
     } catch (std::exception& e) {
-      LOG_INFO_S(&server, "fatal: " << e.what());
+      LOG_INFO_S(&server, "fatal: {}", e.what());
       return 1;
     }
   } catch (Wt::WServer::Exception& e) {
-    LOG_ERROR("fatal: " << e.what());
+    LOG_ERROR("fatal: {}", e.what());
     return 1;
   } catch (std::exception& e) {
-    LOG_ERROR("fatal exception: " << e.what());
+    LOG_ERROR("fatal exception: {}", e.what());
     return 1;
   }
 }

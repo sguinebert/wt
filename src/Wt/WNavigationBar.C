@@ -216,8 +216,7 @@ void WNavigationBar::align(WWidget *widget, AlignmentFlag alignment)
     app->theme()->apply(this, widget, NavbarAlignRight);
     break;
   default:
-    LOG_ERROR("addWidget(...): unsupported alignment "
-              << static_cast<unsigned int>(alignment));
+    LOG_ERROR("addWidget(...): unsupported alignment {}", static_cast<unsigned int>(alignment));
   }
 }
 

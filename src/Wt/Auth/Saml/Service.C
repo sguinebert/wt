@@ -331,7 +331,7 @@ std::string Service::acsPath() const
 {
   Http::Client::URL url;
   if (!Http::Client::parseUrl(acsUrl_, url)) {
-    LOG_ERROR("Could not parse Assertion Consumer Service URL: " << acsUrl_);
+    LOG_ERROR("Could not parse Assertion Consumer Service URL: {}", acsUrl_);
     return "";
   }
   return url.path;
