@@ -73,7 +73,9 @@ namespace Wt
   WResource::WResource()
       : trackUploadProgress_(false),
         takesUpdateLock_(false),
+        invalidAfterChanged_(false),
         dispositionType_(ContentDisposition::None),
+        version_(0),
         app_(nullptr)
   {
 #ifdef WT_THREADED
@@ -303,6 +305,11 @@ namespace Wt
     dataChanged_.emit();
   }
 
+  void WResource::setInvalidAfterChanged(bool enabled)
+  {
+    invalidAfterChanged_ = enabled;
+  }
+
   const std::string &WResource::url() const
   {
     if (currentUrl_.empty())
@@ -358,4 +365,13 @@ namespace Wt
     takesUpdateLock_ = enabled;
   }
 
+  unsigned long WResource::version() const
+  {
+    return version_;
+  }
+
+  void WResource::incrementVersion()
+  {
+    version_++;
+  }
 }

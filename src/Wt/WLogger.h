@@ -503,7 +503,7 @@ namespace Wt
       WT_LOG("info") << WT_LOGGER << ": " << m; \
   } while (0)
 #define LOG_WARN_S(s, m) (s)->log("warning") << WT_LOGGER << ": " << m
-#define LOG_WARN(m)                                \
+#define LOG_WARN(m, ...)                                \
   do                                               \
   {                                                \
     if (WT_LOGGING("warning", WT_LOGGER))          \
@@ -517,7 +517,7 @@ namespace Wt
       WT_LOG("secure") << WT_LOGGER << ": " << m; \
   } while (0)
 #define LOG_ERROR_S(s, m) (s)->log("error") << WT_LOGGER << ": " << m
-#define LOG_ERROR(m)                             \
+#define LOG_ERROR(m, ...)                             \
   do                                             \
   {                                              \
     if (WT_LOGGING("error", WT_LOGGER))          \
@@ -542,11 +542,11 @@ public:
 #define LOG_INFO_S(s, m) logger.info(std::stringstream() << m)
 #define LOG_INFO(m) logger.info(std::stringstream() << m)
 #define LOG_WARN_S(s, m) logger.warn(std::stringstream() << m)
-#define LOG_WARN(m) logger.warn(std::stringstream() << m)
+#define LOG_WARN(m, ...) logger.warn(std::stringstream() << m)
 #define LOG_SECURE_S(s, m) logger.warn(std::stringstream() << "secure:" << m)
 #define LOG_SECURE(m) logger.warn(std::stringstream() << "secure:" << m)
 #define LOG_ERROR_S(s, m) logger.error(std::stringstream() << m)
-#define LOG_ERROR(m) logger.error(std::stringstream() << m)
+#define LOG_ERROR(m, ...) logger.error(std::stringstream() << m)
 
 #endif // WT_TARGET_JAVA
 

@@ -514,19 +514,19 @@ OAuthAccessToken OAuthProcess::parseJsonToken(const Http::Message& response)
 #endif
 
   if (!ok) {
-    LOG_ERROR("parseJsonToken(): " << pe.what());
+    LOG_ERROR("parseJsonToken(): " << pe.message());
     throw TokenError(ERROR_MSG("badjson"));
   } else {
     if (response.status() == 200) {
       try {
-	std::string accessToken = root.get("access_token");
-	int secs = root.get("expires_in").orIfNull(-1);
+	std::string accessToken = root.at("access_token").get_string("");
+	int secs = root.get("expires_in")->get_int64(-1);
 	WDateTime expires;
 	if (secs > 0)
 	  expires = WDateTime::currentDateTime().addSecs(secs);
 
-        std::string refreshToken = root.get("refresh_token").orIfNull("");
-        std::string idToken = root.get("id_token").orIfNull("");
+        std::string refreshToken = root.get("refresh_token")->get_string("");
+        std::string idToken = root.get("id_token")->get_string("");
 
 	return OAuthAccessToken(accessToken, expires, refreshToken, idToken);
       } catch (std::exception& e) {
@@ -535,7 +535,7 @@ OAuthAccessToken OAuthProcess::parseJsonToken(const Http::Message& response)
       }
     } else {
       throw TokenError
-	(ERROR_MSG(+ (root.get("error").orIfNull("missing error"))));
+	(ERROR_MSG(+ (root.get("error")->get_string("missing error"))));
     }
   }
 }

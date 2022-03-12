@@ -81,6 +81,7 @@ namespace Wt {
     extern std::string addWord(const std::string &s, const std::string &w);
 
     // Fast integer to string in given buffer
+    char *utoa(unsigned int value, char* result, int base = 10);
     extern char *itoa(int value, char *result, int base = 10);
     extern char *lltoa(long long value, char *result, int base = 10);
 
