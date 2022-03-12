@@ -11,6 +11,7 @@
     "WTextEdit.C": "cpp",
     "WTransform.C": "cpp",
     "CgiParser.C": "cpp",
-    "WebUtils.C": "cpp"
+    "WebUtils.C": "cpp",
+    "OAuthService.C": "cpp"
   }
 }

@@ -13,8 +13,7 @@
 #include "Wt/WLogger.h"
 #include "Wt/WSslInfo.h"
 #include "Wt/Http/Message.h"
-#include "Wt/Json/Array.h"
-#include "Wt/Json/Object.h"
+#include "Wt/Json/json.hpp"
 #include "Wt/Json/Parser.h"
 
 #include "web/SslUtils.h"
@@ -291,7 +290,7 @@ std::unique_ptr<Wt::WSslInfo> HTTPRequest::sslInfoFromJson() const
     return nullptr;
   }
 
-  std::string clientCertificatePem = obj["client-certificate"];
+  std::string clientCertificatePem = obj["client-certificate"].get_string("");
 
   X509 *cert = Wt::Ssl::readFromPem(clientCertificatePem);
 
@@ -299,16 +298,16 @@ std::unique_ptr<Wt::WSslInfo> HTTPRequest::sslInfoFromJson() const
     Wt::WSslCertificate clientCert = Wt::Ssl::x509ToWSslCertificate(cert);
     X509_free(cert);
 
-    const Wt::Json::Array &arr = obj["client-pem-certification-chain"];
+    const Wt::Json::Array &arr = obj["client-pem-certification-chain"].as_array();
 
     std::vector<Wt::WSslCertificate> clientCertChain;
 
     for (const auto &cert : arr) {
-      clientCertChain.push_back(Wt::Ssl::x509ToWSslCertificate(Wt::Ssl::readFromPem(cert)));
+      clientCertChain.push_back(Wt::Ssl::x509ToWSslCertificate(Wt::Ssl::readFromPem(cert.get_string(""))));
     }
 
-    Wt::ValidationState state = static_cast<Wt::ValidationState>(static_cast<int>(obj["client-verification-result-state"]));
-    Wt::WString message = obj["client-verification-result-message"];
+    Wt::ValidationState state = static_cast<Wt::ValidationState>(static_cast<int>(obj["client-verification-result-state"].get_int64(0)));
+    Wt::WString message = obj["client-verification-result-message"].get_string("");
 
     return std::make_unique<Wt::WSslInfo>(clientCert,
                                                 clientCertChain,

@@ -151,7 +151,22 @@ std::string addWord(const std::string& s, const std::string& w)
   else
     return s + ' ' + w;
 }
+char *utoa(unsigned int value, char* result, int base) {
+  char* out = result;
+  unsigned int quotient = value;
 
+  do {
+    *out =
+      "0123456789abcdefghijklmnopqrstuvwxyz"[quotient % base];
+    ++out;
+    quotient /= base;
+  } while (quotient);
+
+  std::reverse(result, out);
+  *out = 0;
+
+  return result;
+}
 char *itoa(int value, char *result, int base) {
   char* out = result;
   int quotient = value;

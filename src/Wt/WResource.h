@@ -242,6 +242,18 @@ public:
    */
   void setChanged();
 
+  /*! \brief Return "page not found" for prior resource URLs after change
+   *
+   * This option invalidates earlier versions of the resource url prior to
+   * the last call of setChanged() or generateUrl(). The default value is false.
+   *
+   * This does not work when the resource is deployed at an internal path using
+   * setInternalPath().
+   *
+   * \sa setChanged(), generateUrl()
+   */
+  void setInvalidAfterChanged(bool enabled);
+
   /*! \brief Sets an internal path for this resource.
    *
    * Using this method you can deploy the resource at a fixed path. Unless
@@ -418,6 +430,12 @@ public:
    */
   bool takesUpdateLock() const { return takesUpdateLock_; }
 
+  unsigned long version() const;
+
+  void incrementVersion();
+
+  bool invalidAfterChanged() { return invalidAfterChanged_; }
+
 protected:
   /*! \brief Prepares the resource for deletion.
    *
@@ -451,6 +469,7 @@ private:
 
   bool trackUploadProgress_;
   bool takesUpdateLock_;
+  bool invalidAfterChanged_;
 
   std::vector<Http::ResponseContinuationPtr> continuations_;
 
@@ -465,6 +484,7 @@ private:
   ContentDisposition dispositionType_;
   std::string currentUrl_;
   std::string internalPath_;
+  unsigned long version_;
 
   WApplication *app_; // associated app (for non-static resources)
 
