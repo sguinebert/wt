@@ -581,7 +581,7 @@ void WFileUpload::setFormData(const FormData& formData)
 {
   setFiles(formData.files);
 
-  LOG_DEBUG("setFormData() : " << formData.files.size() << " file(s)");
+  LOG_DEBUG("setFormData() : {} file(s)", formData.files.size());
 
   if (!formData.files.empty())
     uploaded().emit();

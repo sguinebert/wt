@@ -131,8 +131,9 @@ void WServer::setConfiguration(const std::string& file)
 void WServer::setConfiguration(const std::string& file,
                                const std::string& application)
 {
-  if (configuration_)
+  if (configuration_){
     LOG_ERROR("setConfigurationFile(): too late, already configured");
+  }
 
   configurationFile_ = file;
   application_ = application;
@@ -183,7 +184,7 @@ void WServer::initLogger(const std::string& logFile,
     logger_.setFile(logFile);
 
   if (!description_.empty())
-    LOG_INFO("initializing " << description_);
+    LOG_INFO("initializing {}", description_);
 }
 
 Configuration& WServer::configuration()

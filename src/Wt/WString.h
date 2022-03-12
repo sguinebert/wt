@@ -15,6 +15,12 @@
 #include <iosfwd>
 #include <locale>
 
+#include <string_view>
+#include "fmt/format.h"
+#include "fmt/compile.h"
+#include <chrono>
+
+
 namespace Wt {
 
 /*! \class WString Wt/WString.h Wt/WString.h
@@ -377,6 +383,10 @@ public:
    */
   std::string toUTF8() const;
 
+  std::string_view view() { if(formatedUtf8_.empty()) toUTF8(); return std::string_view(formatedUtf8_); }
+
+  std::string_view xhtmlView() { if(formatedUtf8_.empty()) toXhtmlUTF8(); return std::string_view(formatedUtf8_); }
+
   /*! \brief Returns the value as a UTF-8 encoded XHTML string.
    *
    * For a localized string, returns the current localized value. If
@@ -520,6 +530,21 @@ public:
    */
   const std::string key() const;
 
+  WString& arg(const Wt::WDate& value);
+
+  WString& arg(const Wt::WDateTime& value);
+
+  WString& arg(const std::time_t& value);
+
+  WString& arg(const std::chrono::system_clock::time_point& value);
+
+  void clear() {
+    fmt_args_.clear();
+    formatedUtf8_.clear();
+    arguments_.clear();
+    //xmlformatedUtf8_.clear();
+  }
+
   /*! \brief Substitutes the next positional argument with a string value.
    *
    * In the string, the \p n-th argument is referred to as using
@@ -606,6 +631,9 @@ public:
    */
   WString& arg(const std::string& value,
                CharEncoding encoding = CharEncoding::Default);
+
+  WString& arg(const std::string&& value,
+	       CharEncoding encoding = CharEncoding::Default);
 
   /*! \brief Substitutes the next positional argument with a string value.
    *
@@ -741,6 +769,12 @@ private:
   WString(const char *key, bool, ::uint64_t n = -1);
 
   std::string utf8_;
+  mutable std::string formatedUtf8_;
+  std::vector<std::string> arguments_;
+  std::vector<std::tm> tmarguments_;
+
+  using ctx = fmt::format_context;
+  std::vector<fmt::basic_format_arg<ctx>> fmt_args_;
 
   std::string resolveKey(TextFormat format) const;
 
@@ -998,5 +1032,13 @@ WString WString::tr(const char *key) { }
 #endif
 
 }
+
+template <> struct fmt::formatter<Wt::WString>: formatter<std::string> {
+  // parse is inherited from formatter<string_view>.
+  template <typename FormatContext>
+  auto format(Wt::WString wstring, FormatContext& ctx) {
+    return formatter<std::string>::format(wstring.toUTF8(), ctx);
+  }
+};
 
 #endif // WSTRING_H_

@@ -97,7 +97,7 @@ void WebRequest::log()
     double microseconds
       = std::chrono::duration_cast<std::chrono::microseconds>(end - start_)
       .count();
-    LOG_INFO("took " << (microseconds / 1000) << " ms");
+    LOG_INFO("took {} ms", (microseconds / 1000));
 
     start_ = std::chrono::high_resolution_clock::time_point();
   }
