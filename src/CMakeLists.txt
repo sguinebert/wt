@@ -331,11 +331,10 @@ Wt/cpp17/any.hpp Wt/cpp17/any/any.hpp
 Wt/cpp20/date.hpp Wt/cpp20/tz.hpp
 Wt/Form/WAbstractFormDelegate.h Wt/Form/WAbstractFormDelegate.C
 Wt/Form/WFormDelegate.h Wt/Form/WFormDelegate.C
-Wt/Json/Array.h Wt/Json/Array.C
-Wt/Json/Object.h Wt/Json/Object.C
+Wt/Json/json.hpp 
+Wt/Json/simdjson.h Wt/Json/simdjson.cpp
 Wt/Json/Parser.h Wt/Json/Parser.C
 Wt/Json/Serializer.h Wt/Json/Serializer.C
-Wt/Json/Value.h Wt/Json/Value.C
 Wt/Http/HttpUtils.h Wt/Http/HttpUtils.C
 Wt/Http/Client.h Wt/Http/Client.C
 Wt/Http/Message.h Wt/Http/Message.C
