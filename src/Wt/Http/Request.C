@@ -164,23 +164,18 @@ namespace Wt
       return request_ ? request_->scriptName() : std::string();
     }
 
-std::string Request::urlScheme() const
-{
-  if (!request_)
-    return std::string();
+    std::string Request::urlScheme() const
+    {
+      if (!request_)
+        return std::string();
 
-  WServer *server = WServer::instance();
-  return request_->urlScheme(server->configuration());
-}
+      WServer *server = WServer::instance();
+      return request_->urlScheme(server->configuration());
+    }
 
     std::string Request::queryString() const
     {
       return request_ ? request_->queryString() : std::string();
-    }
-
-    std::string Request::urlScheme() const
-    {
-      return request_ ? request_->urlScheme() : std::string();
     }
 
     std::string Request::headerValue(const std::string &field) const
