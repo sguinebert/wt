@@ -126,7 +126,7 @@ WebRenderer::WebRenderer(WebSession& session)
 void WebRenderer::setRendered(bool how)
 {
   if (rendered_ != how) {
-    LOG_DEBUG("setRendered: " << how);
+    LOG_DEBUG("setRendered: {}", how);
     rendered_ = how;
   }
 }
@@ -138,7 +138,7 @@ void WebRenderer::setTwoPhaseThreshold(int bytes)
 
 void WebRenderer::needUpdate(WWidget *w, bool laterOnly)
 {
-  LOG_DEBUG("needUpdate: " << w->id() << " (" << DESCRIBE(w) << ")");
+  LOG_DEBUG("needUpdate: {} ({})", w->id(), DESCRIBE(w));
 
   updateMap_.insert(w);
 
@@ -148,7 +148,7 @@ void WebRenderer::needUpdate(WWidget *w, bool laterOnly)
 
 void WebRenderer::doneUpdate(WWidget *w)
 {
-  LOG_DEBUG("doneUpdate: " << w->id() << " (" << DESCRIBE(w) << ")");
+  LOG_DEBUG("doneUpdate: {} ({})", w->id(), DESCRIBE(w));
 
   updateMap_.erase(w);
 }
@@ -221,7 +221,7 @@ WebRenderer::AckState WebRenderer::ackUpdate(unsigned int updateId)
    * If web socket request -> we assume last AJAX request got
    * delivered ?
    */
-  LOG_DEBUG("ackUpdate: expecting " << expectedAckId_ << ", received " << updateId);
+  LOG_DEBUG("ackUpdate: expecting {}, received {}", expectedAckId_, updateId);
   if (updateId == expectedAckId_) {
     LOG_DEBUG("jsSynced(false) after ackUpdate okay");
     setJSSynced(false);
@@ -622,7 +622,7 @@ void WebRenderer::serveJavaScriptUpdate(WebResponse& response)
     addResponseAckPuzzle(out);
     renderSetServerPush(out);
 
-    LOG_DEBUG("js: " << collectedJS1_.str() << collectedJS2_.str());
+    LOG_DEBUG("js: {}{}", collectedJS1_.str(), collectedJS2_.str());
 
     out << collectedJS1_.str() << collectedJS2_.str();
 
@@ -746,7 +746,7 @@ void WebRenderer::addResponseAckPuzzle(WStringStream& out)
    */
 
   ++expectedAckId_;
-  LOG_DEBUG("addResponseAckPuzzle: incremented expectedAckId to " << expectedAckId_);
+  LOG_DEBUG("addResponseAckPuzzle: incremented expectedAckId to {}", expectedAckId_);
 
   out << session_.app()->javaScriptClass()
       << "._p_.response(" << expectedAckId_;
@@ -795,8 +795,7 @@ bool WebRenderer::checkResponsePuzzle(const WebRequest& request)
       fail = true;
    
     if (fail) {
-      LOG_SECURE("Ajax puzzle fail: '" << ackPuzzle << "' vs '"
-		 << solution_ << '\'');
+      LOG_SECURE("Ajax puzzle fail: '{}' vs '{}'", ackPuzzle, solution_);
 
       solution_.clear();
 
@@ -822,7 +821,7 @@ void WebRenderer::collectJavaScript()
    * This is also used to render JavaScript that was rendered in asHtml()
    * in a hybrid page.
    */
-  LOG_DEBUG("Rendering invisible: " << invisibleJS_.str());
+  LOG_DEBUG("Rendering invisible: {}", invisibleJS_.str());
   
   collectedJS1_ << invisibleJS_.str();
   invisibleJS_.clear();
@@ -1125,7 +1124,7 @@ void WebRenderer::serveMainscript(WebResponse& response)
     collectJavaScript();
     updateLoadIndicator(collectedJS1_, app, true);
 
-    LOG_DEBUG("js: " << collectedJS1_.str() << collectedJS2_.str());
+    LOG_DEBUG("js: {}{}", collectedJS1_.str(), collectedJS2_.str());
 
     out << collectedJS1_.str();
 
@@ -1253,7 +1252,7 @@ void WebRenderer::serveMainAjax(WStringStream& out)
     app->domRoot2_->rootAsJavaScript(app, s, true);
 
 #ifdef WT_DEBUG_ENABLED
-  LOG_DEBUG("js: " << s.str());
+  LOG_DEBUG("js: {}", s.str());
   out << s.str();
 #endif // WT_DEBUG_ENABLED
 
@@ -1267,7 +1266,7 @@ void WebRenderer::serveMainAjax(WStringStream& out)
 
   preLearnStateless(app, collectedJS1_);
 
-  LOG_DEBUG("js: " << collectedJS1_.str());
+  LOG_DEBUG("js: {}", collectedJS1_.str());
 
   out << collectedJS1_.str();
   collectedJS1_.clear();
@@ -1311,7 +1310,7 @@ bool WebRenderer::jsSynced() const
 
 void WebRenderer::setJSSynced(bool invisibleToo)
 {
-  LOG_DEBUG("setJSSynced: " << invisibleToo);
+  LOG_DEBUG("setJSSynced: {}", invisibleToo);
 
   collectedJS1_.clear();
   collectedJS2_.clear();
@@ -1619,8 +1618,7 @@ void WebRenderer::collectChanges(std::vector<DomElement *>& changes)
 	w = w->parent();
 
       if (w != app->domRoot_.get() && w != app->domRoot2_.get()) {
-	LOG_DEBUG("ignoring: " << ww->id() << " (" << DESCRIBE(ww) << ") " <<
-		  w->id() << " (" << DESCRIBE(w) << ")");
+	LOG_DEBUG("ignoring: {} ({}) {} ({})", ww->id(), DESCRIBE(ww), w->id(), DESCRIBE(w));
 
 	// not in displayed widgets: will be removed from the update list
 	depth = 0;
@@ -1645,7 +1643,7 @@ void WebRenderer::collectChanges(std::vector<DomElement *>& changes)
 	  continue;
 	}
 
-	LOG_DEBUG("updating: " << w->id() << " (" << DESCRIBE(w) << ")");
+	LOG_DEBUG("updating: {} ({})", w->id(), DESCRIBE(w));
 
 	if (!learning_ && visibleOnly_) {
 	  if (w->isRendered()) {
@@ -1659,7 +1657,7 @@ void WebRenderer::collectChanges(std::vector<DomElement *>& changes)
 	    } else
 	      w->getSDomChanges(changes, app); */
 	  } else {
-	    LOG_DEBUG("Ignoring: " << w->id());
+	    LOG_DEBUG("Ignoring: {}", w->id());
 	  }
 	} else {
 	  w->getSDomChanges(changes, app);
@@ -1902,7 +1900,7 @@ std::string WebRenderer::learn(WStatelessSlot* slot)
 
   std::string result = js.str();
 
-  LOG_DEBUG("learned: " << result);
+  LOG_DEBUG("learned: {}", result);
 
   if (slot->type() == WStatelessSlot::SlotType::PreLearnStateless) {
     slot->undoTrigger();

@@ -817,7 +817,7 @@ void WApplication::doIdleTimeout()
 void WApplication::idleTimeout()
 {
   const Configuration& conf = environment().server()->configuration();
-  LOG_INFO("User idle for " << conf.idleTimeout() << " seconds, quitting due to idle timeout");
+  LOG_INFO("User idle for {} seconds, quitting due to idle timout", conf.idleTimeout());
   quit();
 }
 
@@ -1330,9 +1330,7 @@ std::string WApplication::internalSubPath(const std::string& path) const
   std::string current = Utils::append(newInternalPath_, '/');
 
   if (!pathMatches(current, path)) {
-    LOG_WARN("internalPath(): path '"
-	     << path << "' not within current path '" << internalPath()
-	     << "'");
+    LOG_WARN("internalPath(): path '{}' not within current path '{}'", path, internalPath());
     return std::string();
   }
 

@@ -784,20 +784,20 @@ EntryPointMatch Configuration::matchEntryPoint(const std::string &scriptName,
                                                  bool matchAfterSlash) const
 {
   if (!scriptName.empty()) {
-    LOG_DEBUG("matchEntryPoint: matching entry point, scriptName: '" << scriptName << "', path: '" << path << '\'');
+    LOG_DEBUG("matchEntryPoint: matching entry point, scriptName: '{}', path: '{}'", scriptName, path);
     EntryPointMatch m = matchEntryPoint(EMPTY_STR, scriptName + path, matchAfterSlash);
     if (m.entryPoint)
       return m;
     else
       return matchEntryPoint(EMPTY_STR, path, matchAfterSlash);
   }
-  LOG_DEBUG("matchEntryPoint: matching entry point, path: '" << path << '\'');
+  LOG_DEBUG("matchEntryPoint: matching entry point, path: '{}'", path);
 
   READ_LOCK;
   // Only one default entry point.
   if (entryPoints_.size() == 1
       && entryPoints_[0].path().empty()) {
-    LOG_DEBUG("matchEntryPoint: only one entry point: matching path '" << path << "' with default entry point");
+    LOG_DEBUG("matchEntryPoint: only one entry point: matching path '{}' with default entry point", path);
     return EntryPointMatch(&entryPoints_[0], 0);
   }
 
@@ -888,13 +888,13 @@ EntryPointMatch Configuration::matchEntryPoint(const std::string &scriptName,
     else
       result.extra = std::distance(path.begin(), it1->begin()) - 1; // there's more
 
-    LOG_DEBUG("matchEntryPoint: path '" << path << "' matches dynamic entry point: '" << match->path() << '\'');
+    LOG_DEBUG("matchEntryPoint: path '{}' matched dynamic entry point: '{}'", path, match->path());
     return result;
   } else if (match) {
-    LOG_DEBUG("matchEntryPoint: path '" << path << "' matches entry point: '" << match->path() << '\'');
+    LOG_DEBUG("matchEntryPoint: path '{}' matched entry point: '{}'", path, match->path());
     return EntryPointMatch(match, path.empty() ? 0 : match->path().size()); // simple match
   } else {
-    LOG_DEBUG("matchEntryPoint: no entry point match found for path: '" << path << '\'');
+    LOG_DEBUG("matchEntryPoint: no entry point match found for path: '{}'", path);
     return EntryPointMatch(); // no match
   }
 }
@@ -1235,10 +1235,9 @@ void Configuration::readApplicationSettings(xml_node<> *app)
       if (name == "approot")
 	name = "appRoot";
 
-      if (name == "appRoot" && !appRoot_.empty())
-	LOG_WARN("ignoring configuration property 'appRoot' ("
-		 << value
-		 << ") because was already set to " << appRoot_);
+      if (name == "appRoot" && !appRoot_.empty()){
+	      LOG_WARN("ignoring configuration property 'appRoot' ({}) because was already set to {}", value, appRoot_);
+      }
       else
         properties_[name] = value;
     }
@@ -1377,8 +1376,7 @@ void Configuration::readConfiguration(bool silent)
       server_->initLogger(logFile, logConfig);
 
     if (!silent)
-      LOG_INFO("reading Wt config file: " << configurationFile_
-	       << " (location = '" << applicationPath_ << "')");
+      LOG_INFO("reading Wt config file: {} (location = '{}'", configurationFile_, applicationPath_);
 
     /*
      * Now read application settings.

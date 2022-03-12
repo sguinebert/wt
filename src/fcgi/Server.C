@@ -141,7 +141,7 @@ void Server::execChild(bool debug, const std::string& extraArg)
   for (unsigned i = 0; ; ++i) {
     if (argv[i] == 0)
       break;
-    LOG_DEBUG("argv[" << i << "]: " << argv[i]);
+    LOG_DEBUG("argv[{}]: {}", i, argv[i]);
   }
 
 #ifdef WT_THREADED
@@ -221,7 +221,7 @@ void handleServerSigHup(int)
 
 void Server::handleSignal(const char *signal)
 {
-  LOG_INFO_S(&wt_, "shutdown (caught " << signal << ")");
+  LOG_INFO_S(&wt_, "shutdown (caught {})", signal);
 
   /* We need to kill all children */
   for (unsigned i = 0; i < sessionProcessPids_.size(); ++i)
@@ -241,7 +241,7 @@ void Server::doHandleSigChld()
   int stat;
 
   while ((cpid = waitpid(0, &stat, WNOHANG)) > 0) {
-    LOG_INFO_S(&wt_, "caught SIGCHLD: pid=" << cpid << ", stat=" << stat);
+    LOG_INFO_S(&wt_, "caught SIGCHLD: pid={}, stat={}", cpid, stat);
 
     Configuration& conf = wt_.configuration();
 
@@ -252,7 +252,7 @@ void Server::doHandleSigChld()
       for (SessionMap::iterator i = sessions_.begin(); i != sessions_.end();
 	   ++i) {
 	if (i->second->childPId() == cpid) {
-	  LOG_INFO_S(&wt_, "deleting session: " << i->second->sessionId());
+	  LOG_INFO_S(&wt_, "deleting session: {}", i->second->sessionId());
 
 	  unlink(socketPath(i->second->sessionId()).c_str());
 	  delete i->second;

@@ -92,12 +92,12 @@ void ProxyReply::writeDone(bool success)
   if (request_.type == Request::TCP && !receiving_) {
     // Sent 101 response, start receiving more data from the client
     receiving_ = true;
-    LOG_DEBUG(this << ": receive() upstream");
+    LOG_DEBUG("{}: receive() upstream", this);
     receive();
   }
 
   if (more_ && socket_) {
-    LOG_DEBUG(this << ": async_read downstream");
+    LOG_DEBUG("{}: async_read downstream", this);
     asio::async_read
       (*socket_, responseBuf_,
        asio::transfer_at_least(1),
@@ -112,7 +112,7 @@ bool ProxyReply::consumeData(const char *begin,
 			     const char *end,
 			     Request::State state)
 {
-  LOG_DEBUG(this << ": consumeData()");
+  LOG_DEBUG("{}: consumeData()", this);
 
   if (state == Request::Error) {
     return false;
@@ -124,7 +124,7 @@ bool ProxyReply::consumeData(const char *begin,
 
   if (sessionProcess_) {
    if (socket_) {
-      LOG_DEBUG(this << ": sending to child");
+      LOG_DEBUG("{}: sending to child", this);
       // Connection with child already established, send request data
       asio::async_write
 	(*socket_,
@@ -271,13 +271,13 @@ void ProxyReply::assembleRequestHeaders()
       if (trustedProxy) {
         os << it->name << ": " << it->value << "\r\n";
       } else {
-        LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping " << it->name.str() << " header");
+        LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping {} header", it->name.str());
       }
     } else if (it->name.iequals(wtConfiguration.originalIPHeader().c_str())) {
       if (trustedProxy) {
         forwardedFor = it->value.str() + ", ";
       } else {
-        LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping " << it->name.str() << " header");
+        LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping {} header", it->name.str());
       }
     } else if (it->name.iequals("Upgrade")) {
       if (it->value.iequals("websocket")) {
@@ -287,19 +287,19 @@ void ProxyReply::assembleRequestHeaders()
       if (trustedProxy) {
         forwardedProto = it->value.str();
       } else {
-        LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping " << it->name.str() << " header");
+        LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping {} header", it->name.str());
       }
     } else if(it->name.iequals("X-Forwarded-Port")) {
       if (trustedProxy) {
         forwardedPort = it->value.str();
       } else {
-        LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping " << it->name.str() << " header");
+        LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping {} header", it->name.str());
       }
     } else if (it->name.iequals("X-Forwarded-Host")) {
       if (trustedProxy) {
         forwardedHost = it->value.str();
       } else {
-        LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping " << it->name.str() << " header");
+        LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping {} header", it->name.str());
       }
     } else if (it->name.length() > 0) {
       os << it->name << ": " << it->value << "\r\n";
@@ -369,7 +369,7 @@ void ProxyReply::handleDataWritten(const Wt::AsioWrapper::error_code &ec,
   if (!ec) {
     if (state_ == Request::Partial) {
       requestBuf_.consume(transferred);
-      LOG_DEBUG(this << ": receive() upstream");
+      LOG_DEBUG("{}: receive() upstream", this);
       receive();
     } else {
       asio::async_read_until
@@ -492,7 +492,7 @@ void ProxyReply::handleHeadersRead(const Wt::AsioWrapper::error_code &ec)
 
 void ProxyReply::handleResponseRead(const Wt::AsioWrapper::error_code &ec)
 {
-  LOG_DEBUG(this << ": async_read done.");
+  LOG_DEBUG("{}: async_read done.", this);
 
   if (!ec) {
     if (responseBuf_.size() > 0) {

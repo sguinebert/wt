@@ -189,7 +189,7 @@ private:
 	socket().close();
       }
     } catch (std::exception& e) {
-      LOG_INFO("Client::abort(), stop(), ignoring error: " << e.what());
+      LOG_INFO("Client::abort(), stop(), ignoring error: {}", e.what());
     }
   }
 
@@ -371,7 +371,7 @@ private:
 	return;
       }
 
-      LOG_DEBUG(status_code << " " << status_message);
+      LOG_DEBUG("{} {}", status_code, status_message);
 
       response_.setStatus(status_code);
 
@@ -534,7 +534,7 @@ private:
       if (maximumResponseSize_)
 	response_.addBodyText(text);
 
-      LOG_DEBUG("Data: " << text);
+      LOG_DEBUG("Data: {}", text);
       haveBodyData(text);
 
       return (contentLength_ >= 0) &&
@@ -613,7 +613,7 @@ private:
 	if (maximumResponseSize_)
 	  response_.addBodyText(text);
 
-	LOG_DEBUG("Chunked data: " << text);
+	LOG_DEBUG("Chunked data: {}", text);
 	haveBodyData(text);
 	chunkState_.size -= thisChunk;
 	pos += thisChunk;
@@ -818,7 +818,7 @@ protected:
   {
     if (verifyEnabled_) {
       socket_.set_verify_mode(asio::ssl::verify_peer);
-      LOG_DEBUG("verifying that peer is " << hostName_);
+      LOG_DEBUG("verifying that peer is {}", hostName_);
       socket_.set_verify_callback
         (asio::ssl::rfc2818_verification(hostName_));
     }

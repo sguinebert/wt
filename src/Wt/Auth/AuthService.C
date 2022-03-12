@@ -457,7 +457,7 @@ void AuthService::sendMail(const Mail::Message& message) const
   ss.imbue(std::locale::classic());
 #endif
   m.write(ss);
-  LOG_INFO("Sending Mail:\n" << ss.str());
+  LOG_INFO("Sending Mail:\n{}", ss.str());
 
   MailUtils::sendMail(m);
 }

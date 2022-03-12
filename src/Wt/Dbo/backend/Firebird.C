@@ -89,7 +89,7 @@ LOGGER("Dbo.backend.Firebird");
 	  
           snprintf(name_, 64, "SQL%p%08X", (void*)this, rand());
 	  
-	  LOG_DEBUG(this << " for: " << sql_);
+	  LOG_DEBUG("{} for: "this, sql_);
 	  
 	  IBPP::Transaction tr = conn_.impl_->m_tra;
 	  
@@ -116,42 +116,42 @@ LOGGER("Dbo.backend.Firebird");
 	// The first column index is 1!
 	virtual void bind(int column, const std::string& value) override
 	{
-          LOG_DEBUG("bind: " << column << " " << value);
+          LOG_DEBUG("bind: {} {}", column, value);
 	  
 	  m_stmt->Set(column + 1, value);
 	}
 
 	virtual void bind(int column, short value) override
 	{
-          LOG_DEBUG("bind: " << column << " " << value);
+          LOG_DEBUG("bind: {} {}", column, value);
 
 	  m_stmt->Set(column + 1, value);
 	}
 
 	virtual void bind(int column, int value) override
 	{
-          LOG_DEBUG("bind: " << column << " " << value);
+          LOG_DEBUG("bind: {} {}", column, value);
 	  
 	  m_stmt->Set(column + 1, value);
 	}
 
 	virtual void bind(int column, long long value) override
 	{
-          LOG_DEBUG("bind: " << column << " " << value);
+          LOG_DEBUG("bind: {} {}", column, value);
 	  
 	  m_stmt->Set(column + 1, (int64_t) value);
 	}
 
 	virtual void bind(int column, float value) override
 	{
-          LOG_DEBUG("bind: " << column << " " << value);
+          LOG_DEBUG("bind: {} {}", column, value);
 	  
 	  m_stmt->Set(column + 1, value);
 	}
 
 	virtual void bind(int column, double value) override
 	{
-          LOG_DEBUG("bind: " << column << " " << value);
+          LOG_DEBUG("bind: {} {}", column, value);
 	  
 	  m_stmt->Set(column + 1, value);
 	}
@@ -168,9 +168,10 @@ LOGGER("Dbo.backend.Firebird");
       std::chrono::system_clock::time_point tp(value);
       std::time_t time = std::chrono::system_clock::to_time_t(tp);
       std::tm *tm = thread_local_gmtime(&time);
-      char mbstr[100];
-      std::strftime(mbstr, sizeof(mbstr), "%Y-%b-%d %H:%M:%S", tm);
-      LOG_DEBUG("bind: " << column << " " << mbstr);
+	  LOG_DEBUG("bind: {} {%Y-%b-%d %H:%M:%S}", column, tm);
+    //   char mbstr[100];
+    //   std::strftime(mbstr, sizeof(mbstr), "%Y-%b-%d %H:%M:%S", tm);
+    //   LOG_DEBUG("bind: " << column << " " << mbstr);
 
       int h = tm->tm_hour;
       int m = tm->tm_min;
@@ -187,9 +188,10 @@ LOGGER("Dbo.backend.Firebird");
 	{
       std::time_t t = std::chrono::system_clock::to_time_t(value);
       std::tm *tm = thread_local_gmtime(&t);
-      char mbstr[100];
-      std::strftime(mbstr, sizeof(mbstr), "%Y-%b-%d %H:%M:%S", tm);
-      LOG_DEBUG("bind: " << column << " " << mbstr);
+	  LOG_DEBUG("bind: {} {%Y-%b-%d %H:%M:%S}", column, tm);
+    //   char mbstr[100];
+    //   std::strftime(mbstr, sizeof(mbstr), "%Y-%b-%d %H:%M:%S", tm);
+    //   LOG_DEBUG("bind: " << column << " " << mbstr);
 	  
       if (type == SqlDateTimeType::Date) {
         IBPP::Date idate(tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday);
@@ -222,7 +224,7 @@ LOGGER("Dbo.backend.Firebird");
 
 	virtual void bindNull(int column) override
 	{
-          LOG_DEBUG("bind: " << column << " null");
+          LOG_DEBUG("bind: {} null", column);
 	  
 	  m_stmt->SetNull(column + 1);
 	}
@@ -290,7 +292,7 @@ LOGGER("Dbo.backend.Firebird");
 	      
 	  getString(column, value, size);
 	  
-          LOG_DEBUG("getResult " << column << " " << *value);
+          LOG_DEBUG("getResult {} {}", column, *value);
 	  
 	  return true;
 	}
@@ -302,7 +304,7 @@ LOGGER("Dbo.backend.Firebird");
 
 	  m_stmt->Get(column, *value);
 	
-          LOG_DEBUG("getResult " << column << " " << *value);
+          LOG_DEBUG("getResult {} {}", column, *value);
 
 	  return true;
 	}
@@ -314,7 +316,7 @@ LOGGER("Dbo.backend.Firebird");
 
 	  m_stmt->Get(column, *value);
 
-          LOG_DEBUG("getResult " << column << " " << *value);
+          LOG_DEBUG("getResult {} {}", column, *value);
 
 	  return true;
 	}
@@ -326,7 +328,7 @@ LOGGER("Dbo.backend.Firebird");
 
 	  m_stmt->Get(column,  *((int64_t *)value));
 
-          LOG_DEBUG("getResult " << column << " " << *value);
+          LOG_DEBUG("getResult {} {}", column, *value);
 
 	  return true;
 	}
@@ -338,7 +340,7 @@ LOGGER("Dbo.backend.Firebird");
 
 	  m_stmt->Get(column, *value);
 	  
-          LOG_DEBUG("getResult " << column << " " << *value);
+          LOG_DEBUG("getResult {} {}", column, *value);
 	  	  
 	  return true;
 	}
@@ -350,7 +352,7 @@ LOGGER("Dbo.backend.Firebird");
 	  
 	  m_stmt->Get(column, *value);
 
-          LOG_DEBUG("getResult " << column << " " << *value);
+          LOG_DEBUG("getResult {} {}", column, *value);
 
 	  return true;
 	}
@@ -394,8 +396,9 @@ LOGGER("Dbo.backend.Firebird");
 	  case SqlDateTimeType::Time:
 	    break;
 	  }
-          std::time_t t = std::chrono::system_clock::to_time_t(*value);
-          LOG_DEBUG("getResult " << column << " " << std::ctime(&t));
+          //std::time_t t = std::chrono::system_clock::to_time_t(*value);
+          //LOG_DEBUG("getResult " << column << " " << std::ctime(&t));
+		  LOG_DEBUG("getResult {} {}", column, *value);
 	  
 	  return true;
 	}
@@ -413,7 +416,7 @@ LOGGER("Dbo.backend.Firebird");
 	  *value = std::chrono::hours(t.Hours()) + std::chrono::minutes(t.Minutes()) +
               std::chrono::seconds(t.Seconds()) + std::chrono::milliseconds(t.SubSeconds() / 10);
 	  
-          LOG_DEBUG("getResult " << column << " " << value->count() << "ms");
+          LOG_DEBUG("getResult {} {}ms", column, value->count());
 
 	  return true;
 	}

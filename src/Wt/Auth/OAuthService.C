@@ -82,7 +82,7 @@ public:
 
       const std::string *stateE = request.getParameter("state");
       if (!stateE || *stateE != process_->oAuthState_) {
-        LOG_ERROR("{}, state: {}",ERROR_MSG("invalid-state"), (stateE ? *stateE : "(empty)"));
+        LOG_ERROR("{}, state: {}", ERROR_MSG("invalid-state"), (stateE ? *stateE : "(empty)"));
         process_->setError(ERROR_MSG("invalid-state"));
         sendError(response);
         return;
@@ -90,7 +90,7 @@ public:
 
       const std::string *errorE = request.getParameter("error");
       if (errorE) {
-        LOG_ERROR(ERROR_MSG(+ *errorE));
+        LOG_ERROR(ERROR_MSG(+ *errorE).toUTF8());
         process_->setError(ERROR_MSG(+ *errorE));
         sendError(response);
         return;
@@ -98,7 +98,7 @@ public:
 
       const std::string *codeE = request.getParameter("code");
       if (!codeE) {
-        LOG_ERROR(ERROR_MSG("missing-code"));
+        LOG_ERROR(ERROR_MSG("missing-code").toUTF8());
         process_->setError(ERROR_MSG("missing-code"));
         sendError(response);
 	      return;
@@ -245,7 +245,7 @@ std::string OAuthProcess::authorizeUrl() const
       << "&response_type=code"
       << "&state=" << Wt::Utils::urlEncode(oAuthState_);
 
-  LOG_INFO("authorize URL: " << url.str());
+  LOG_INFO("authorize URL: {}", url.str());
 
   return url.str();
 }
@@ -265,7 +265,7 @@ void OAuthProcess::startAuthorize()
     try {
       timeout = Wt::Utils::stoi(value);
     } catch (std::exception& e) {
-      LOG_ERROR(ERROR_MSG("could not convert 'oauth2-redirect-timeout' to int: {}"), value);
+      LOG_ERROR(ERROR_MSG("could not convert 'oauth2-redirect-timeout' to int: {}").toUTF8(), value);
     }
   }
 
@@ -695,7 +695,7 @@ void OAuthService::configureRedirectEndpoint() const
       auto r = std::unique_ptr<Impl::RedirectEndpoint>(new Impl::RedirectEndpoint(*this));
       std::string path = redirectEndpointPath();
 
-      LOG_INFO("deploying endpoint at " << path);
+      LOG_INFO("deploying endpoint at {}", path);
       WApplication *app = WApplication::instance();
       WServer *server;
       if (app)

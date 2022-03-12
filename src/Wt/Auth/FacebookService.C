@@ -115,7 +115,7 @@ bool FacebookService::configured()
 
     return true;
   } catch (const std::exception& e) {
-    LOG_INFO("not configured: " << e.what());
+    LOG_INFO("not configured: {}", e.what());
 
     return false;
   }

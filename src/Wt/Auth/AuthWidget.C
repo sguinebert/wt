@@ -458,9 +458,7 @@ void AuthWidget::oAuthDone(OAuthProcess *oauth, const Identity& identity)
    * by passing the Login object ?
    */
   if (identity.isValid()) {
-    LOG_SECURE(oauth->service().name() << ": identified: as "
-	       << identity.id() << ", "
-	       << identity.name() << ", " << identity.email());
+    LOG_SECURE("{}: identified: as {}, {}, {}", oauth->service().name(), identity.id(), identity.name(), identity.email());
 
     std::unique_ptr<AbstractUserDatabase::Transaction>
       t(model_->users().startTransaction());
@@ -474,7 +472,7 @@ void AuthWidget::oAuthDone(OAuthProcess *oauth, const Identity& identity)
     if (t.get())
       t->commit();
   } else {
-    LOG_SECURE(oauth->service().name() << ": error: " << oauth->error());
+    LOG_SECURE("{}: error: {}", oauth->service().name(), oauth->error());
     displayError(oauth->error());
   }
 }
@@ -483,9 +481,7 @@ void AuthWidget::oAuthDone(OAuthProcess *oauth, const Identity& identity)
 void AuthWidget::samlDone(Saml::Process *process, const Identity &identity)
 {
   if (identity.isValid()) {
-    LOG_SECURE(process->service().name() << ": identified: as "
-                                       << identity.id() << ", "
-                                       << identity.name() << ", " << identity.email());
+    LOG_SECURE("{}: identified: as {}, {}, {}", process->service().name(), identity.id(), identity.name(), identity.email());
 
     std::unique_ptr<AbstractUserDatabase::Transaction>
       t(model_->users().startTransaction());
@@ -499,7 +495,7 @@ void AuthWidget::samlDone(Saml::Process *process, const Identity &identity)
     if (t.get())
       t->commit();
   } else {
-    LOG_SECURE(process->service().name() << ": error: " << process->error());
+    LOG_SECURE("{}: error: {}", process->service().name(), process->error());
     displayError(process->error());
   }
 }

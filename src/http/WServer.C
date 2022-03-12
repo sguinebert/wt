@@ -349,7 +349,7 @@ int WRun(const std::string &applicationPath,
         // MacOSX + valgrind:
         // for (;;) { sleep(100); }
         int sig = WServer::waitForShutdown();
-        LOG_INFO_S(&server, "shutdown (signal = " << sig << ")");
+        LOG_INFO_S(&server, "shutdown (signal = {})", sig);
 #endif
         server.stop();
 

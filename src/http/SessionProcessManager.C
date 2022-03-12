@@ -117,7 +117,7 @@ void SessionProcessManager
   std::unique_lock<std::mutex> lock(sessionsMutex_);
 #endif // WT_THREADED
 
-  LOG_DEBUG("addSessionProcess()" << sessionId);
+  LOG_DEBUG("addSessionProcess() {}", sessionId);
   for (SessionProcessList::iterator it = pendingProcesses_.begin();
        it != pendingProcesses_.end(); ++it) {
     if (process == *it) {
@@ -128,9 +128,7 @@ void SessionProcessManager
 
   if (!process->sessionId().empty()) {
     sessions_.erase(process->sessionId());
-    LOG_INFO("session id for child process " << process->pid()
-             << " changed from " << process->sessionId()
-             << " to " << sessionId);
+    LOG_INFO("session id for child process {} changed from {} to {}", process->pid(), process->sessionId(), sessionId);
   }
 
   process->setSessionId(sessionId);
@@ -200,8 +198,7 @@ void SessionProcessManager::processDeadChildren(Wt::AsioWrapper::error_code ec)
 
   for (std::vector<std::string>::iterator it = toErase.begin();
        it != toErase.end(); ++it) {
-    LOG_INFO("Child process " << sessions_[*it]->processInfo().dwProcessId << " died, removing session " << *it
-	<< " (#sessions: " << (sessions_.size() - 1) << ")");
+    LOG_INFO("Child process {} died, removing session {} (#sessions: {})", sessions_[*it]->processInfo().dwProcessId, *it, (sessions_.size() - 1));
     sessions_[*it]->stop();
     sessions_.erase(*it);
     -- numSessions_;
@@ -219,7 +216,7 @@ void SessionProcessManager::processDeadChildren(Wt::AsioWrapper::error_code ec)
 
   for (SessionProcessList::iterator it = processesToErase.begin();
 	   it != processesToErase.end(); ++it) {
-    LOG_WARN("Child process " << (*it)->processInfo().dwProcessId << " died before a session could be assigned");
+    LOG_WARN("Child process {} died before a session could be assigned", (*it)->processInfo().dwProcessId);
     (*it)->stop();
 	SessionProcessList::iterator it2 = std::find(pendingProcesses_.begin(), pendingProcesses_.end(), *it);
 	pendingProcesses_.erase(it2);
@@ -257,10 +254,9 @@ void SessionProcessManager::logExit(pid_t cpid,
 
   if (status && status.get() == 0) {
     if (signal) {
-      LOG_INFO("Child process " << cpid << " terminated normally after "
-               "receiving signal: " << signal.get());
+      LOG_INFO("Child process {} terminated normally after receiving signal: {}", cpid, signal.get());
     } else {
-      LOG_DEBUG("Child process " << cpid << " terminated normally");
+      LOG_DEBUG("Child process {} terminated normally", cpid);
     }
   } else {
     if (Wt::logInstance().logging("error", Wt::logger)) {
@@ -288,8 +284,7 @@ void SessionProcessManager::removeSessionForPid(pid_t cpid)
   for (SessionMap::iterator it = sessions_.begin();
        it != sessions_.end(); ++it) {
     if(it->second->pid() == cpid) {
-      LOG_INFO("Child process " << cpid << " died, removing session " << it->first
-	  << " (#sessions: " << (sessions_.size() - 1) << ")");
+      LOG_INFO("Child process {} died, removing session {} (#sessions: {})", cpid, it->first, (sessions_.size() - 1));
       it->second->stop();
       sessions_.erase(it);
       -- numSessions_;
@@ -299,7 +294,7 @@ void SessionProcessManager::removeSessionForPid(pid_t cpid)
   for (SessionProcessList::iterator it = pendingProcesses_.begin();
        it != pendingProcesses_.end(); ++it) {
     if ((*it)->pid() == cpid) {
-      LOG_WARN("Child process " << cpid << " died before a session could be assigned");
+      LOG_WARN("Child process {} died before a session could be assigned", cpid );
       (*it)->stop();
       pendingProcesses_.erase(it);
       -- numSessions_;

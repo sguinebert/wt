@@ -413,8 +413,7 @@ void WTransform::decomposeTranslateRotateScaleRotate(TRSRDecomposition& result)
 
   double mtm[4];
 
-  LOG_DEBUG("M: \n" << m_[M11] << " " << m_[M12] <<
-	    "\n   " << m_[M21] << " " << m_[M22]);
+  LOG_DEBUG("M: \n{} {}\n   {} {}", m_[M11], m_[M12], m_[M21], m_[M22]);
 
   matrixMultiply(m_[M11], m_[M21], m_[M12], m_[M22],
 		 m_[M11], m_[M12], m_[M21], m_[M22],
@@ -428,8 +427,7 @@ void WTransform::decomposeTranslateRotateScaleRotate(TRSRDecomposition& result)
   result.sx = std::sqrt(e[0]);
   result.sy = std::sqrt(e[1]);
 
-  LOG_DEBUG("V: \n" << V[M11] << " " << V[M12] <<
-	    "\n   " << V[M21] << " " << V[M22]);
+  LOG_DEBUG("V: \n{} {}\n   {} {}", V[M11], V[M12], V[M21], V[M22]);
 
   /*
    * if V is no rotation matrix, it contains a reflexion. A rotation
@@ -452,8 +450,7 @@ void WTransform::decomposeTranslateRotateScaleRotate(TRSRDecomposition& result)
   U[1] /= result.sy;
   U[3] /= result.sy;
 
-  LOG_DEBUG("U: \n" << U[M11] << " " << U[M12] <<
-	    "\n   " << U[M21] << " " << U[M22]);
+  LOG_DEBUG("U: \n{} {}   {} {}", U[M11], U[M12], U[M21], U[M22]);
 
   if (U[0]*U[3] - U[1]*U[2] < 0) {
     result.sx = -result.sx;
@@ -464,8 +461,7 @@ void WTransform::decomposeTranslateRotateScaleRotate(TRSRDecomposition& result)
   result.alpha1 = std::atan2(U[2], U[0]);
   result.alpha2 = std::atan2(V[1], V[0]);
 
-  LOG_DEBUG("alpha1: " << result.alpha1 << ", alpha2: " << result.alpha2
-	    << ", sx: " << result.sx << ", sy: " << result.sy);
+  LOG_DEBUG("alpha1: {}, alpha2: {}, sx: {}, sy: {}", result.alpha1, result.alpha2, result.sx, result.sy);
 
   /*
   // check our SVD: m_ = U S VT

@@ -270,7 +270,7 @@ namespace Wt
 
       void send(const std::string &s)
       {
-        LOG_DEBUG("C " << s);
+        LOG_DEBUG("C {}", s);
         // asio::const_buffer request = asio::buffer(s);
         write(asio::buffer(s));
 
@@ -304,7 +304,7 @@ namespace Wt
           std::string msg;
           std::getline(in, msg);
 
-          LOG_DEBUG("S " << code << msg);
+          LOG_DEBUG("S {}{}", code, msg);
 
           if (replyCode == -1)
             replyCode = code;
@@ -446,7 +446,7 @@ namespace Wt
       if (config.certificateVerificationEnabled_)
       {
         data_.stream_.set_verify_mode(ssl::verify_peer);
-        LOG_DEBUG("verifying that peer is " << hostName);
+        LOG_DEBUG("verifying that peer is {}", hostName);
         data_.stream_.set_verify_callback(ssl::rfc2818_verification(hostName));
       }
       data_.stream_.handshake(ssl::stream_base::client);
@@ -511,11 +511,10 @@ namespace Wt
         WApplication::readConfigurationProperty("smtp-self-host", configuration_.selfHost_);
 
         if (!logged)
-          LOG_INFO("using '" << configuration_.selfHost_ << "' (from smtp-self-host property) "
-                                                            "as self host");
+          LOG_INFO("using '{}' (from smtp-self-host property) as self host", configuration_.selfHost_);
       }
       else if (!logged)
-        LOG_INFO("using '" << configuration_.selfHost_ << "' as self host");
+        LOG_INFO("using '{}' as self host", configuration_.selfHost_);
 
       {
         std::string authMethod = "none";
@@ -531,7 +530,7 @@ namespace Wt
           }
           else if (!boost::iequals(authMethod, "none"))
           {
-            LOG_WARN("Unrecognized authentication method in 'smtp-auth-method' property: '" << authMethod << '\'');
+            LOG_WARN("Unrecognized authentication method in 'smtp-auth-method' property: '{}'", authMethod);
           }
         }
       }
@@ -569,7 +568,7 @@ namespace Wt
           }
           else if (!boost::iequals(encryptionMethod, "none"))
           {
-            LOG_WARN("Unrecognized encryption method in 'smtp-transport-encryption' property: '" << encryptionMethod << '\'');
+            LOG_WARN("Unrecognized encryption method in 'smtp-transport-encryption' property: '{}'", encryptionMethod);
           }
         }
       }
@@ -610,8 +609,7 @@ namespace Wt
       int smtpPort = Utils::stoi(smtpPortStr);
 
       if (!logged)
-        LOG_INFO("using '" << smtpHost << ":" << smtpPortStr
-                           << "' (from smtp-host and smtp-port properties) as SMTP host");
+        LOG_INFO("using '{}:{}' (from smtp-host and smtp-port properties) as SMTP host", smtpHost, smtpPortStr);
 
       return connect(smtpHost, smtpPort);
     }
@@ -620,7 +618,7 @@ namespace Wt
     {
       if (!logged)
       {
-        LOG_INFO("connecting to '" << smtpHost << ':' << smtpPort << '\'');
+        LOG_INFO("connecting to '{}:{}'", smtpHost, smtpPort);
         logged = true;
       }
 

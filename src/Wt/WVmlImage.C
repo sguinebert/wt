@@ -726,47 +726,60 @@ std::string WVmlImage::strokeElement(const WPen& pen) const
 
 void WVmlImage::processClipping()
 {
-  if (clippingChanged_) {
+  if (clippingChanged_)
+  {
     /*
      * We can only deal with rectangles.
      */
-    if (painter()->hasClipping()) {
+    if (painter()->hasClipping())
+    {
       WRectF rect(0, 0, 0, 0);
-      if (painter()->clipPath().asRect(rect)) {
-	WTransform t = painter()->clipPathTransform();
+      if (painter()->clipPath().asRect(rect))
+      {
+        WTransform t = painter()->clipPathTransform();
 
-	WPointF tl = t.map(rect.topLeft());
-	WPointF tr = t.map(rect.topRight());
-	WPointF bl = t.map(rect.bottomLeft());
-	WPointF br = t.map(rect.bottomRight());
+        WPointF tl = t.map(rect.topLeft());
+        WPointF tr = t.map(rect.topRight());
+        WPointF bl = t.map(rect.bottomLeft());
+        WPointF br = t.map(rect.bottomRight());
 
-	double tlx = 0, tly = 0, brx = 0, bry = 0;
-	bool ok = false;
-	if (fequal(tl.y(), tr.y())) {
-	  tlx = std::min(tl.x(), tr.x());
-	  brx = std::max(tl.x(), tr.x());
-	  tly = std::min(tl.y(), bl.y());
-	  bry = std::max(tl.y(), br.y());
+        double tlx = 0, tly = 0, brx = 0, bry = 0;
+        bool ok = false;
+        if (fequal(tl.y(), tr.y()))
+        {
+          tlx = std::min(tl.x(), tr.x());
+          brx = std::max(tl.x(), tr.x());
+          tly = std::min(tl.y(), bl.y());
+          bry = std::max(tl.y(), br.y());
 
-	  ok = true;
-	} else if (fequal(tl.x(), tr.x())) {
-	  tlx = std::min(tl.x(), bl.x());
-	  brx = std::max(tl.x(), bl.x());
-	  tly = std::min(tl.y(), tr.y());
-	  bry = std::max(tl.y(), tr.y());
+          ok = true;
+        }
+        else if (fequal(tl.x(), tr.x()))
+        {
+          tlx = std::min(tl.x(), bl.x());
+          brx = std::max(tl.x(), bl.x());
+          tly = std::min(tl.y(), tr.y());
+          bry = std::max(tl.y(), tr.y());
 
-	  ok = true;
-	}
+          ok = true;
+        }
 
-	if (ok) {
-	  stopClip();
-	  startClip(WRectF(tlx, tly, brx - tlx, bry - tly));
-	} else
-	  LOG_WARN("VML only supports rectangle clipping "
-		   << "with rectangles aligned to the window");
-      } else
-	LOG_WARN("VML only supports rectangle clipping");
-    } else {
+        if (ok)
+        {
+          stopClip();
+          startClip(WRectF(tlx, tly, brx - tlx, bry - tly));
+        }
+        else {
+          LOG_WARN("VML only supports rectangle clipping with rectangles aligned to the window");
+        }
+      }
+      else
+      {
+        LOG_WARN("VML only supports rectangle clipping");
+      }
+    }
+    else
+    {
       stopClip();
       startClip(WRectF(0, 0, width().value(), height().value()));
     }

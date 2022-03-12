@@ -327,8 +327,7 @@ std::vector<asio::ip::address> Server::resolveAddress(asio::ip::tcp::resolver &r
       result.push_back(it->endpoint().address());
     }
     if (errc)
-      LOG_DEBUG_S(&wt_, "Failed to resolve hostname \"" << address << "\" as IPv4: " <<
-                  Wt::AsioWrapper::system_error(errc).what());
+      LOG_DEBUG_S(&wt_, "Failed to resolve hostname \"{}\" as IPv4: {}", address, Wt::AsioWrapper::system_error(errc).what());
     // Resolve IPv6
     query = Wt::AsioWrapper::asio::ip::tcp::resolver::query(Wt::AsioWrapper::asio::ip::tcp::v6(), address, "http");
     for (Wt::AsioWrapper::asio::ip::tcp::resolver::iterator it = resolver.resolve(query, errc);
@@ -336,11 +335,9 @@ std::vector<asio::ip::address> Server::resolveAddress(asio::ip::tcp::resolver &r
       result.push_back(it->endpoint().address());
     }
     if (errc)
-      LOG_DEBUG_S(&wt_, "Failed to resolve hostname \"" << address << "\" as IPv6: " <<
-                  Wt::AsioWrapper::system_error(errc).what());
+      LOG_DEBUG_S(&wt_, "Failed to resolve hostname \"{}\" as IPv6: {}", address, Wt::AsioWrapper::system_error(errc).what());
     if (result.empty())
-      LOG_WARN_S(&wt_, "Failed to resolve hostname \"" << address << "\": " <<
-                 Wt::AsioWrapper::system_error(errc).what());
+      LOG_WARN_S(&wt_, "Failed to resolve hostname \"{}\": {}", address, Wt::AsioWrapper::system_error(errc).what());
     return result;
 #else // NO_RESOLVE_ACCEPT_ADDRESS
     LOG_WARN_S(&wt_, "Failed to resolve hostname \"" << address << "\": not supported");
@@ -403,7 +400,7 @@ void Server::addTcpEndpoint(const asio::ip::tcp::endpoint &endpoint,
   if (!errc) {
     tcp_acceptor.listen();
 
-    LOG_INFO_S(&wt_, "started server: " << addressString("http", endpoint, address));
+    LOG_INFO_S(&wt_, "started server: {}", addressString("http", endpoint, address));
 
     tcp_listeners_.back().new_connection.reset
       (new TcpConnection(wt_.ioService(), this, connection_manager_,
@@ -460,7 +457,7 @@ void Server::addSslEndpoint(const asio::ip::tcp::endpoint &endpoint,
   if (!errc) {
     ssl_acceptor.listen();
 
-    LOG_INFO_S(&wt_, "started server: " << addressString("https", endpoint, address));
+    LOG_INFO_S(&wt_, "started server: {}", addressString("https", endpoint, address));
 
     ssl_listeners_.back().new_connection.reset
       (new SslConnection(wt_.ioService(), this, ssl_context_, connection_manager_,

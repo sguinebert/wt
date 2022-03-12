@@ -449,7 +449,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 
 	return Request::Complete;
       } else {
-	LOG_INFO("ws: connect with protocol version " << req.webSocketVersion);
+	LOG_INFO("ws: connect with protocol version {}", req.webSocketVersion);
 	std::string accept = doWebSocketHandshake13(req);
 
 	if (accept.empty()) {
@@ -603,7 +603,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
       {
 	unsigned char frameType = *begin;
 
-	LOG_DEBUG("ws: new frame, opcode byte=" << (int)frameType);
+	LOG_DEBUG("ws: new frame, opcode byte={}", (int)frameType);
 
 #ifdef WTHTTP_WITH_ZLIB
 	/* RSV1-3 must be 0 */
@@ -683,7 +683,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
       --wsCount_;
 
       if (wsCount_ == 0) {
-	LOG_DEBUG("ws: new frame length " << remainder_);
+	LOG_DEBUG("ws: new frame length {}", remainder_);
 	if (remainder_ >= maxFrameLength) {
           LOG_ERROR("ws: oversized frame of length {} exceeds --max-memory-request-size (= {} bytes)", remainder_ , maxFrameLength);
 	  return Request::Error;
@@ -734,7 +734,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 	  wsCount_ = (wsCount_ + 1) % 4;
 	}
 
-	LOG_DEBUG("ws: reading payload, remains = " << remainder_);
+	LOG_DEBUG("ws: reading payload, remains = {}", remainder_);
 
 	if (remainder_ == 0) {
           if (wsFrameType_ & 0x80) {
@@ -753,7 +753,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
     }
   }
 
-  LOG_DEBUG("ws: " << (dataEnd - dataBegin) << "," << state);
+  LOG_DEBUG("ws: {}, {}", (dataEnd - dataBegin), state);
 
   if (dataBegin < dataEnd || state == Request::Complete) {
 	char* beg = &*dataBegin;
@@ -839,7 +839,7 @@ bool RequestParser::inflate(unsigned char* in, size_t size, unsigned char out[],
   }
 
   read_ += 16384 - zInState_.avail_out;
-  LOG_DEBUG("wthttp: ws: inflate - Size before " << size << " size after " << 16384 - zInState_.avail_out);
+  LOG_DEBUG("wthttp: ws: inflate - Size before {} size after {}", size, 16384 - zInState_.avail_out);
 
   if(zInState_.avail_out != 0)
     hasMore = false;

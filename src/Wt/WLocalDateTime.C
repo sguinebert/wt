@@ -88,8 +88,9 @@ WLocalDateTime::WLocalDateTime(const std::chrono::system_clock::time_point& dt,
     valid_(false),
     null_(false)
 {
-  if (!zone_)
+  if (!zone_){
     LOG_WARN("Invalid local date time: <no zone>");
+  }
   else
     valid_ = WDateTime(dt).isValid();
 }
@@ -157,21 +158,15 @@ void WLocalDateTime::setDateTime(const WDate& date, const WTime& time)
         else
           datetime_ = customZone_->to_sys(asLocalTime(WDateTime(date, time).toTimePoint()));
       } catch(std::exception& e){
-        LOG_WARN("Invalid local date time: " << e.what());
+        LOG_WARN("Invalid local date time: {}", e.what());
         setInvalid();
       }
     } else{
-      LOG_WARN("Invalid local date time ("
-               << date.toString() << " "
-               << time.toString() << ") in zone "
-               << "<no zone>");
+      LOG_WARN("Invalid local date time ({} {}) in zone <no zone>", date.toString(), time.toString());
       setInvalid();
     }
     if(isNull()){
-      LOG_WARN("Invalid local date time ("
-               << date.toString() << " "
-               << time.toString() << ") in zone "
-               << (zone_ ? std::string(zone_->name()) : (customZone_ ? customZone_->name() : "<no zone>")));
+      LOG_WARN("Invalid local date time ({} {}) in zone {}", date.toString(), time.toString(), (zone_ ? std::string(zone_->name()) : (customZone_ ? customZone_->name() : "<no zone>")));
       setInvalid();
     }
 
@@ -197,33 +192,21 @@ void WLocalDateTime::setDateTime(const WDate& date, const WTime& time,
         else
           datetime_ = zone_->to_sys(asLocalTime(WDateTime(date, time).toTimePoint()), cpp20::date::choose::earliest);
         if (isNull()) {
-          LOG_WARN("Invalid local date time ("
-                   << date.toString() << " "
-                   << time.toString() << " "
-                   << "dst=" << dst << ") in zone "
-                   << std::string(zone_->name()));
+          LOG_WARN("Invalid local date time ({} {} dst={}) in zone {}", date.toString(), time.toString(), dst, zone_->name());
           setInvalid();
         }
       } else if (customZone_) {
         datetime_ = customZone_->to_sys(asLocalTime(WDateTime(date, time).toTimePoint()));
         if (isNull()) {
-          LOG_WARN("Invalid local date time ("
-                   << date.toString() << " "
-                   << time.toString() << " "
-                   << "dst=" << dst << ") in zone "
-                   << customZone_->name());
+          LOG_WARN("Invalid local date time ({} {} dst={}) in zone {}", date.toString(), time.toString(), dst, customZone_->name());
           setInvalid();
         }
       } else{
-        LOG_WARN("Invalid local date time ("
-                 << date.toString() << " "
-                 << time.toString() << " "
-                 << "dst=" << dst << ") in zone "
-                 << "<no zone>");
+        LOG_WARN("Invalid local date time ({} {}) in zone <no zone>", date.toString(), time.toString(), dst);
         setInvalid();
       }
     } catch(std::exception& e) {
-      LOG_WARN("Invalid local date time " << e.what());
+      LOG_WARN("Invalid local date time {}", e.what());
       setInvalid();
     }
   } else

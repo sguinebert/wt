@@ -70,20 +70,19 @@ void SslConnection::handleHandshake(const Wt::AsioWrapper::error_code& error)
   } else {
     long sslState = SSL_get_verify_result(ssl);
     if (sslState != X509_V_OK) {
-      LOG_INFO("OpenSSL error: " 
-	       << X509_verify_cert_error_string(sslState));
+      LOG_INFO("OpenSSL error: {}", X509_verify_cert_error_string(sslState));
     }
 
-    LOG_INFO("SSL handshake error: " << error.message());
+    LOG_INFO("SSL handshake error: {}", error.message());
     ConnectionManager_.stop(shared_from_this());
   }
 }
 
 void SslConnection::stop()
 {
-  LOG_DEBUG(native() << ": stop()");
+  LOG_DEBUG("{}: stop()", native());
   finishReply();
-  LOG_DEBUG(native() << ": SSL shutdown");
+  LOG_DEBUG("{}: SSL shutdown", native());
 
   Connection::stop();
   
@@ -108,8 +107,7 @@ void SslConnection::stopNextLayer(const Wt::AsioWrapper::error_code& ec)
   // In case of timeout, we will get here twice.
   sslShutdownTimer_.cancel();
   if (ec) {
-    LOG_DEBUG(native() << ": ssl_shutdown failed:"
-      << ec.message());
+    LOG_DEBUG("{}: ssl_shutdown failed: {}", native(), ec.message());
   }
   try {
     if (socket().is_open()) {

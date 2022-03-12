@@ -95,14 +95,15 @@ void WDate::setDate(int year, int month, int day)
 {
     date::year_month_day ymd = date::day(day)/month/year;
     if(!ymd.ok()){
-        if(!ymd.year().ok())
-            LOG_WARN("Invalid date: year not in range "
-                     << (int)ymd.year().min()<< " .. "
-                     << (int)ymd.year().max());
-        if(!ymd.month().ok())
+        if(!ymd.year().ok()){
+            LOG_WARN("Invalid date: year not in range {} .. {}", (int)ymd.year().min(), (int)ymd.year().max());
+        }
+        if(!ymd.month().ok()){
             LOG_WARN("Invalid date: month not in range 1 .. 12");
-        if(!ymd.day().ok())
+        }
+        if(!ymd.day().ok()){
             LOG_WARN("Invalid date: day not in range 1 .. 31");
+        }
         ymd_ = 1;
         return;
     }

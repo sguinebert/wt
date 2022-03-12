@@ -88,7 +88,7 @@ void Service::StaticAcsResource::handleRequest(const Http::Request &request,
                                                Http::Response &response)
 {
   if (request.method() != "POST") {
-    LOG_DEBUG("Invalid request to Assertion Consumer Service: wrong method: " << request.method() << " instead of POST");
+    LOG_DEBUG("Invalid request to Assertion Consumer Service: wrong method: {} instead of POST", request.method());
     sendError(response);
     return;
   }
@@ -394,7 +394,7 @@ void Service::generateAcsEndpoint()
   auto resource = std::make_unique<StaticAcsResource>(*this);
   std::string path = acsPath();
 
-  LOG_INFO("deploying endpoint at " << path);
+  LOG_INFO("deploying endpoint at {}", path);
   WApplication *app = WApplication::instance();
   WServer *server = nullptr;
   if (app) {

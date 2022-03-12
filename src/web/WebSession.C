@@ -160,8 +160,7 @@ WebSession::WebSession(WebController *controller,
   }
 
 #ifndef WT_TARGET_JAVA
-  LOG_INFO("session created (#sessions = " <<
-	   (controller_->sessionCount() + 1) << ")");
+  LOG_INFO("session created (#sessions = {})", (controller_->sessionCount() + 1));
 
   expire_ = Time() + 60*1000;
 #endif // WT_TARGET_JAVA
@@ -276,8 +275,7 @@ WebSession::~WebSession()
   controller_->sessionDeleted();
 
 #ifndef WT_TARGET_JAVA
-  LOG_INFO("session destroyed (#sessions = " << controller_->sessionCount()
-	   << ")");
+  LOG_INFO("session destroyed (#sessions = {})", controller_->sessionCount());
 #endif // WT_TARGET_JAVA
 
 }
@@ -365,7 +363,7 @@ void WebSession::setState(State state, int timeout)
   if (state_ != State::Dead) {
     state_ = state;
 
-    LOG_DEBUG("Setting to expire in " << timeout << "s");
+    LOG_DEBUG("Setting to expire in {}s", timeout);
 
 #ifndef WT_TARGET_JAVA
     if (controller_->configuration().sessionTimeout() != -1)
@@ -988,7 +986,7 @@ std::shared_ptr<ApplicationEvent> WebSession::popQueuedEvent()
 
   std::shared_ptr<ApplicationEvent> result;
 
-  LOG_DEBUG("popQueuedEvent(): " << eventQueue_.size());
+  LOG_DEBUG("popQueuedEvent(): {}", eventQueue_.size());
 
   if (!eventQueue_.empty()) {
     result = eventQueue_.front();
@@ -1014,7 +1012,7 @@ void WebSession::queueEvent(const std::shared_ptr<ApplicationEvent>& event)
 
   eventQueue_.push_back(event);
 
-  LOG_DEBUG("queueEvent(): " << eventQueue_.size());
+  LOG_DEBUG("queueEvent(): {}", eventQueue_.size());
 
 #ifdef WT_TARGET_JAVA
   eventQueueMutex_.unlock();
@@ -1405,16 +1403,13 @@ void WebSession::handleRequest(Handler& handler)
    *
    * in other cases: discard the request
    */
-  if ((!wtdE || (*wtdE != sessionId_))
-      && state_ != State::JustCreated
-      && (requestE && (*requestE == "jsupdate" ||
-		       *requestE == "jserror" ||
-		       *requestE == "resource"))) {
-    LOG_DEBUG("CSRF: " << (wtdE ? *wtdE : "no wtd") << " != " << sessionId_ <<
-	      ", requestE: " << (requestE ? *requestE : "none"));
+  if ((!wtdE || (*wtdE != sessionId_)) && state_ != State::JustCreated && (requestE && (*requestE == "jsupdate" || *requestE == "jserror" || *requestE == "resource")))
+  {
+    LOG_DEBUG("CSRF: {} != {}, requestE: {}", (wtdE ? *wtdE : "no wtd"), sessionId_, (requestE ? *requestE : "none"));
     LOG_SECURE("CSRF prevention kicked in.");
     serveError(403, handler, "Forbidden");
-  } else
+  }
+  else
     try {
       /*
        * If we have just created a new session, we need to take care:
@@ -1459,8 +1454,7 @@ void WebSession::handleRequest(Handler& handler)
 	      kill();
 	      break;
 	    } else if (*requestE != "page") {
-              LOG_INFO("Not serving this: request of type '" << *requestE << "' "
-                       "in a brand new session (probably coming from an old session)");
+              LOG_INFO("Not serving this: request of type '{}' in a brand new session (probably coming from an old session)", *requestE);
 	      handler.response()->setContentType("text/html");
 	      handler.response()->out()
 		<< "<html><head></head><body></body></html>";
@@ -1909,7 +1903,7 @@ void WebSession::handleWebSocketMessage(Handler& handler)
 void WebSession::handleWebSocketMessage(std::weak_ptr<WebSession> session,
 					WebReadEvent event)
 {
-  LOG_DEBUG("handleWebSocketMessage: " << (int)event);
+  LOG_DEBUG("handleWebSocketMessage: {}", (int)event);
   std::shared_ptr<WebSession> lock = session.lock();
   if (lock) {
     Handler handler(lock, Handler::LockOption::TakeLock);
@@ -2139,9 +2133,7 @@ void WebSession::webSocketReady(std::weak_ptr<WebSession> session,
   if (lock) {
     Handler handler(lock, Handler::LockOption::TakeLock);
 
-    LOG_DEBUG("webSocketReady: webSocket_ = " << (long long)lock->webSocket_
-	      << " updatesPending = " << lock->updatesPending_
-	      << " event = " << (int)event);
+    LOG_DEBUG("webSocketReady: webSocket_ = {} updatesPending = {} event = {}", (long long)lock->webSocket_, lock->updatesPending_, (int)event);
 
     switch (event) {
     case WebWriteEvent::Completed:
@@ -2345,9 +2337,8 @@ void WebSession::notify(const WEvent& event)
 	if (str(handler.request()->headerValue("User-Agent")) 
 	    != env_->userAgent()) {
 	  LOG_SECURE("change of user-agent not allowed.");
-	  LOG_INFO("old user agent: " << env_->userAgent());
-	  LOG_INFO("new user agent: "
-		   << str(handler.request()->headerValue("User-Agent")));
+	  LOG_INFO("old user agent: {}", env_->userAgent());
+	  LOG_INFO("new user agent: {}", str(handler.request()->headerValue("User-Agent")));
 	  serveError(403, handler, "Forbidden");
 	  return;
 	}
@@ -2364,8 +2355,7 @@ void WebSession::notify(const WEvent& event)
 	}
 
 	if (isInvalid) {
-	  LOG_SECURE("change of IP address (" << env_->clientAddress()
-		     << " -> " << ca << ") not allowed.");
+	  LOG_SECURE("change of IP address ({} -> {}) not allowed.", env_->clientAddress(), ca);
 	  serveError(403, handler, "Forbidden");
 	  return;
 	}
@@ -2497,10 +2487,12 @@ void WebSession::notify(const WEvent& event)
 	  }
 
  	  if (invalidAckId) {
-	    if (!ackIdE)
+	    if (!ackIdE){
 	      LOG_SECURE("missing ackId");
-	    else
+      }
+	    else {
 	      LOG_SECURE("invalid ackId");
+      }
 	    serveError(403, handler, "Forbidden");
 	    return;
 	  }
@@ -2573,8 +2565,7 @@ void WebSession::notify(const WEvent& event)
 		handler.setRequest(nullptr, nullptr);
 	      } else {
 		++pollRequestsIgnored_;
-		LOG_DEBUG("ignored poll request (#" << pollRequestsIgnored_
-			  << ")");
+		LOG_DEBUG("ignored poll request (#{})", pollRequestsIgnored_);
 	      }
 	    } else
 	      pollRequestsIgnored_ = 0;
@@ -2982,7 +2973,7 @@ void WebSession::notifySignal(const WEvent& e)
     if (!signalE)
       return;
 
-    LOG_DEBUG("signal: " << *signalE);
+    LOG_DEBUG("signal: {}", *signalE);
 
     if (type() != EntryPointType::WidgetSet ||
 	(*signalE != "none" && *signalE != "load"))
@@ -3103,7 +3094,7 @@ void WebSession::generateNewSessionId()
   sessionId_ = controller_->generateNewSessionId(shared_from_this());
   sessionIdChanged_ = true;
 
-  LOG_INFO("new session id for " << oldId);
+  LOG_INFO("new session id for {}", oldId);
 
   if (!useUrlRewriting()) {
     std::string cookieName = env_->deploymentPath();

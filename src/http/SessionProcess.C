@@ -63,7 +63,7 @@ void SessionProcess::stop()
   closeClientSocket();
 #ifdef WT_WIN32
   if (processInfo_.hProcess != 0) {
-    LOG_DEBUG("Closing handles to process " << processInfo_.dwProcessId);
+    LOG_DEBUG("Closing handles to process {}", processInfo_.dwProcessId);
     CloseHandle(processInfo_.hProcess);
     CloseHandle(processInfo_.hThread);
     ZeroMemory(&processInfo_, sizeof(processInfo_));

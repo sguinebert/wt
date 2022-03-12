@@ -121,8 +121,7 @@ void WebController::shutdown()
 
       running_ = false;
 
-      LOG_INFO_S(&server_, "shutdown: stopping " << sessions_.size()
-		 << " sessions.");
+      LOG_INFO_S(&server_, "shutdown: stopping {} sessions.", sessions_.size());
 
       for (SessionMap::iterator i = sessions_.begin(); i != sessions_.end();
 	   ++i)
@@ -256,7 +255,7 @@ void WebController::removeSession(const std::string& sessionId)
   std::unique_lock<std::recursive_mutex> lock(mutex_);
 #endif // WT_THREADED
 
-  LOG_INFO("Removing session " << sessionId);
+  LOG_INFO("Removing session {}", sessionId);
 
   SessionMap::iterator i = sessions_.find(sessionId);
   if (i != sessions_.end()) {
