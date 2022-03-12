@@ -161,13 +161,13 @@ const char *WebRequest::contentType() const
     try {
       ::int64_t len = Utils::stoll(std::string(lenstr));
       if (len < 0) {
-	LOG_ERROR("Bad content-length: " << lenstr);
+	LOG_ERROR("Bad content-length: {}", lenstr);
 	throw WException("Bad content-length");
       } else {
 	return len;
       }
     } catch (std::exception& e) {
-      LOG_ERROR("Bad content-length: " << lenstr);
+      LOG_ERROR("Bad content-length: {}", lenstr);
       throw WException("Bad content-length");
     }
   }
@@ -296,8 +296,7 @@ std::string WebRequest::parsePreferredAcceptValue(const char *str) const
     else
       return std::string();
   } else {
-    LOG_ERROR("Could not parse 'Accept-Language: " << str
-	      << "', stopped at: '" << info.stop << '\'');
+    LOG_ERROR("Could not parse 'Accept-Language: {}', stopped at: '{}'", str, info.stop);
     return std::string();
   }
 }

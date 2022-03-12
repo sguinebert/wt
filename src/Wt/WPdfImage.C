@@ -342,7 +342,7 @@ void WPdfImage::setChanged(WFlags<PainterChangeFlag> flags)
               0, HPDF_TRUE);
           }
         } catch (const Wt::WException& e) {
-          LOG_ERROR("error reading font: '" << ttfFont << "': " << e.what());
+          LOG_ERROR("error reading font: '{}': {}", ttfFont, e.what());
         }
 
 	if (!font_name)
@@ -354,8 +354,7 @@ void WPdfImage::setChanged(WFlags<PainterChangeFlag> flags)
       }
 
       if (!fontOk)
-	LOG_ERROR("cannot read font: '" << ttfFont << "': "
-		  "expecting a true type font (.ttf, .ttc)");
+	LOG_ERROR("cannot read font: '{}': expecting a true type font (.ttf, .ttc)", ttfFont);
     }
 
     if (!font_ && font_name) {

@@ -269,8 +269,7 @@ void Server::start()
     SSL_CTX_set_session_id_context(native_ctx,
       reinterpret_cast<const unsigned char *>(sessionId.c_str()), sessionId.size());
 #else // HTTP_WITH_SSL
-    LOG_ERROR_S(&wt_, "built without support for SSL: "
-                "cannot start https server.");
+    LOG_ERROR_S(&wt_, "built without support for SSL: cannot start https server.");
 #endif // HTTP_WITH_SSL
   }
 
@@ -547,8 +546,7 @@ void Server
                               std::bind(&Server::handleMessageSent, this,
                                         buf, std::placeholders::_1));
   } else {
-    LOG_ERROR_S(&wt_, "child process couldn't connect to parent to "
-		"send listening port: " << err.message());
+    LOG_ERROR_S(&wt_, "child process couldn't connect to parent to send listening port: {}", err.message());
   }
 }
 
@@ -557,8 +555,7 @@ void Server
                     const Wt::AsioWrapper::error_code& err)
 {
   if (err) {
-    LOG_ERROR_S(&wt_, "child process couldn't send message to parent: "
-		<< err.message());
+    LOG_ERROR_S(&wt_, "child process couldn't send message to parent: {}", err.message());
     closeParentConnection();
   }
 }
@@ -615,10 +612,10 @@ void Server::handleTcpAccept(TcpListener *listener, const Wt::AsioWrapper::error
                                                      connection_manager_, request_handler_));
   } else if (!listener->acceptor.is_open()) {
     // server shutdown
-    LOG_DEBUG("handleTcpAccept: async_accept error (acceptor closed, probably server shutdown): " << e.message());
+    LOG_DEBUG("handleTcpAccept: async_accept error (acceptor closed, probably server shutdown): {}", e.message());
     return;
   } else {
-    LOG_ERROR("handleTcpAccept: async_accept error: " << e.message());
+    LOG_ERROR("handleTcpAccept: async_accept error: {}", e.message());
   }
 
   listener->acceptor.async_accept(listener->new_connection->socket(),
@@ -636,10 +633,10 @@ void Server::handleSslAccept(SslListener *listener, const Wt::AsioWrapper::error
                                                      ssl_context_, connection_manager_, request_handler_));
   } else if (!listener->acceptor.is_open()) {
     // server shutdown
-    LOG_DEBUG("handleSslAccept: async_accept error (acceptor closed, probably server shutdown): " << e.message());
+    LOG_DEBUG("handleSslAccept: async_accept error (acceptor closed, probably server shutdown): {}", e.message());
     return;
   } else {
-    LOG_ERROR("handleSslAccept: async_accept error: " << e.message());
+    LOG_ERROR("handleSslAccept: async_accept error: {}", e.message());
   }
 
   listener->acceptor.async_accept(listener->new_connection->socket(),
@@ -677,7 +674,7 @@ void Server::handleStop()
 
 void Server::expireSessions(Wt::AsioWrapper::error_code ec)
 {
-  LOG_DEBUG_S(&wt_, "expireSession()" << ec.message());
+  LOG_DEBUG_S(&wt_, "expireSession() {}", ec.message());
 
   if (!ec) {
     bool haveMoreSessions = wt_.expireSessions();
@@ -692,7 +689,7 @@ void Server::expireSessions(Wt::AsioWrapper::error_code ec)
 	(std::bind(&Server::expireSessions, this, std::placeholders::_1));
     }
   } else if (ec != asio::error::operation_aborted) {
-    LOG_ERROR_S(&wt_, "session expiration timer got an error: " << ec.message());
+    LOG_ERROR_S(&wt_, "session expiration timer got an error: {}", ec.message());
   }
 }
 

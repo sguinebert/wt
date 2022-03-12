@@ -1114,7 +1114,7 @@ EventSignalBase *WebSession::decodeSignal(const std::string& signalId,
   if (!result && checkExposed) {
     if (app_->justRemovedSignals().find(signalId) ==
 	app_->justRemovedSignals().end())
-      LOG_ERROR("decodeSignal(): signal '" << signalId << "' not exposed");
+      LOG_ERROR("decodeSignal(): signal '{}' not exposed", signalId);
   }
 
   return result;
@@ -1287,8 +1287,7 @@ void WebSession::handleRequest(Handler& handler)
     } else {
       // Not OK
       if (origin) {
-        LOG_ERROR("WebSocket request refused: Origin '" << origin <<
-            "' not allowed (trusted origin is '" << trustedOrigin << "')");
+        LOG_ERROR("WebSocket request refused: Origin '{}' not allowed (trusted origin is '{}')", origin, trustedOrigin);
       } else {
         LOG_ERROR("WebSocket request refused: missing Origin");
       }
@@ -1340,10 +1339,9 @@ void WebSession::handleRequest(Handler& handler)
   if (requestE && *requestE == "ws" && !request.isWebSocketRequest()) {
     LOG_ERROR("invalid WebSocket request, ignoring");
 
-    LOG_INFO("Connection: " << str(request.headerValue("Connection")));
-    LOG_INFO("Upgrade: " << str(request.headerValue("Upgrade")));
-    LOG_INFO("Sec-WebSocket-Version: "
-	     << str(request.headerValue("Sec-WebSocket-Version")));
+    LOG_INFO("Connection: {}", str(request.headerValue("Connection")));
+    LOG_INFO("Upgrade: {}", str(request.headerValue("Upgrade")));
+    LOG_INFO("Sec-WebSocket-Version: {}", str(request.headerValue("Sec-WebSocket-Version")));
 
     handler.flushResponse();
     return;
@@ -1742,7 +1740,7 @@ void WebSession::handleRequest(Handler& handler)
 	break;
       }
     } catch (WException& e) {
-      LOG_ERROR("fatal error: " << e.what());
+      LOG_ERROR("fatal error: {}", e.what());
 
 #ifdef WT_TARGET_JAVA
       e.printStackTrace();
@@ -1754,7 +1752,7 @@ void WebSession::handleRequest(Handler& handler)
 	serveError(500, handler, e.what());
 
     } catch (std::exception& e) {
-      LOG_ERROR("fatal error: " << e.what());
+      LOG_ERROR("fatal error: {}", e.what());
 
 #ifdef WT_TARGET_JAVA
       e.printStackTrace();
@@ -1964,7 +1962,7 @@ void WebSession::handleWebSocketMessage(std::weak_ptr<WebSession> session,
 	  try {
 	    cgi.parse(*message, CgiParser::ReadDefault);
 	  } catch (std::exception& e) {
-	    LOG_ERROR("could not parse ws message: " << e.what());
+	    LOG_ERROR("could not parse ws message: {}", e.what());
 	    closing = true;
 	  }
         }
@@ -2229,7 +2227,7 @@ void WebSession::notify(const WEvent& event)
     try {
       renderer_.serveResponse(*event.impl_.response);
     } catch (std::exception& e) {
-      LOG_ERROR("Exception in WApplication::notify(): " << e.what());
+      LOG_ERROR("Exception in WApplication::notify(): {}", e.what());
 
 #ifdef WT_TARGET_JAVA
       e.printStackTrace();
@@ -2247,7 +2245,7 @@ void WebSession::notify(const WEvent& event)
       if (event.impl_.handler->request())
 	render(*event.impl_.handler);
     } catch (std::exception& e) {
-      LOG_ERROR("Exception in WApplication::notify(): " << e.what());
+      LOG_ERROR("Exception in WApplication::notify(): {}", e.what());
 
 #ifdef WT_TARGET_JAVA
       e.printStackTrace();
@@ -2410,7 +2408,7 @@ void WebSession::notify(const WEvent& event)
 	if (request.postDataExceeded())
 	  app_->requestTooLarge().emit(request.postDataExceeded());
       } catch (std::exception& e) {
-	LOG_ERROR("Exception in WApplication::requestTooLarge" << e.what());
+	LOG_ERROR("Exception in WApplication::requestTooLarge {}", e.what());
 	RETHROW(e);
       } catch (...) {
 	LOG_ERROR("Exception in WApplication::requestTooLarge");
@@ -2461,15 +2459,14 @@ void WebSession::notify(const WEvent& event)
 	      resource->handle(&request, &response);
 	      handler.setRequest(nullptr, nullptr);
 	    } catch (std::exception& e) {
-	      LOG_ERROR("Exception while streaming resource" << e.what());
+	      LOG_ERROR("Exception while streaming resource {}", e.what());
 	      RETHROW(e);
 	    } catch (...) {
 	      LOG_ERROR("Exception while streaming resource");
 	      throw;
 	    }
 	  } else {
-	    LOG_ERROR("decodeResource(): resource '" << *resourceE
-		      << "' not exposed");
+	    LOG_ERROR("decodeResource(): resource '{}' not exposed", *resourceE);
             handler.response()->setStatus(404);
 	    handler.response()->setContentType("text/html");
 	    handler.response()->out() <<
@@ -2591,7 +2588,7 @@ void WebSession::notify(const WEvent& event)
 	  }
 
 	  if (handler.request()) {
-	    LOG_DEBUG("signal: " << *signalE);
+	    LOG_DEBUG("signal: {}", *signalE);
 
 	    /*
 	     * Special signal values:
@@ -2605,7 +2602,7 @@ void WebSession::notify(const WEvent& event)
 	      handler.nextSignal = -1;
 	      notifySignal(event);
 	    } catch (std::exception& e) {
-	      LOG_ERROR("error during event handling: " << e.what());
+	      LOG_ERROR("error during event handling: {}", e.what());
 	      RETHROW(e);
 	    } catch (...) {
 	      LOG_ERROR("error during event handling");
@@ -2786,7 +2783,7 @@ void WebSession::render(Handler& handler)
       try {
 	checkTimers();
       } catch (std::exception& e) {
-	LOG_ERROR("Exception while triggering timers" << e.what());
+	LOG_ERROR("Exception while triggering timers {}", e.what());
 	RETHROW(e);
       } catch (...) {
 	LOG_ERROR("Exception while triggering timers");

@@ -57,12 +57,12 @@ void OAuthAuthorizationEndpointProcess::processEnvironment()
   }
   client_ = db_->idpClientFindWithId(*clientId);
   if (!client_.checkValid()) {
-    LOG_ERROR("Unknown or invalid client_id " << *clientId);
+    LOG_ERROR("Unknown or invalid client_id {}", *clientId);
     return;
   }
   std::set<std::string> redirectUris = client_.redirectUris();
   if (redirectUris.find(redirectUri_) == redirectUris.end()) {
-    LOG_ERROR("The client application passed the  unregistered redirection URI " << redirectUri_);
+    LOG_ERROR("The client application passed the  unregistered redirection URI {}", redirectUri_);
     return;
   }
   const std::string *scope = env.getParameter("scope");

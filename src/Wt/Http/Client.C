@@ -1027,7 +1027,7 @@ bool Client::request(Http::Method method, const std::string& url,
 #endif // WT_WITH_SSL
 
   } else {
-    LOG_ERROR("unsupported protocol: " << parsedUrl.protocol);
+    LOG_ERROR("unsupported protocol: {}", parsedUrl.protocol);
     return false;
   }
 
@@ -1082,8 +1082,7 @@ void Client::handleRedirect(Http::Method method,
 	get(*newUrl, request.headers());
 	return;
       } else {
-	LOG_WARN("Redirect count of " << maxRedirects_ 
-		 << " exceeded! Redirect URL: " << *newUrl);
+	LOG_WARN("Redirect count of {} exceeded! Redirect URL: {}", maxRedirects_, *newUrl);
       }
     }
   }
@@ -1111,7 +1110,7 @@ bool Client::parseUrl(const std::string &url, URL &parsedUrl)
 {
   std::size_t i = url.find("://");
   if (i == std::string::npos) {
-    LOG_ERROR("ill-formed URL: " << url);
+    LOG_ERROR("ill-formed URL: {}", url);
     return false;
   }
 
@@ -1146,7 +1145,7 @@ bool Client::parseUrl(const std::string &url, URL &parsedUrl)
     try {
       parsedUrl.port = Utils::stoi(parsedUrl.host.substr(k + 1));
     } catch (std::exception& e) {
-      LOG_ERROR("invalid port: " << parsedUrl.host.substr(k + 1));
+      LOG_ERROR("invalid port: {}", parsedUrl.host.substr(k + 1));
       return false;
     }
     parsedUrl.host = parsedUrl.host.substr(0, k);

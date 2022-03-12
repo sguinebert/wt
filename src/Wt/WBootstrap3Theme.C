@@ -285,8 +285,7 @@ void WBootstrap3Theme::apply(WWidget *widget, DomElement& element,
         element.addPropertyWord(Property::Class, "with-label");
 
       if (!button->link().isNull())
-        LOG_ERROR("Cannot use WPushButton::setLink() after the button has "
-                  "been rendered with WBootstrapTheme");
+        LOG_ERROR("Cannot use WPushButton::setLink() after the button has been rendered with WBootstrapTheme");
     }
 
     break;

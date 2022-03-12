@@ -411,7 +411,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 	  && req.webSocketVersion != 7
 	  && req.webSocketVersion != 8
 	  && req.webSocketVersion != 13) {
-	LOG_ERROR("ws: unsupported protocol version " << req.webSocketVersion);
+	LOG_ERROR("ws: unsupported protocol version {}", req.webSocketVersion);
 	// FIXME add Sec-WebSocket-Version fields
 	return Request::Error;
       }
@@ -557,7 +557,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
       remainder_ = remainder_ << 7 | (*begin & 0x7F);
       if ((*begin & 0x80) == 0) {
 	if (remainder_ == 0 || remainder_ >= maxFrameLength) {
-	  LOG_ERROR("ws: oversized binary frame of length " << remainder_);
+	  LOG_ERROR("ws: oversized binary frame of length {}", remainder_);
 	  return Request::Error;
 	}
 	wsState_ = ws00_binary_data;
@@ -575,7 +575,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 	++remainder_;
 
 	if (remainder_ >= maxFrameLength) {
-	  LOG_ERROR("ws: oversized text frame of length " << remainder_);
+	  LOG_ERROR("ws: oversized text frame of length {}", remainder_);
 	  return Request::Error;
 	}
       }
@@ -655,7 +655,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
       remainder_ = *begin & 0x7F;
 
       if (remainder_ < 126) {
-	LOG_DEBUG("ws: new frame length " << remainder_);
+	LOG_DEBUG("ws: new frame length {}", remainder_);
 	wsMask_ = 0;
 	wsState_ = ws13_mask;
 	wsCount_ = 4;
@@ -685,7 +685,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
       if (wsCount_ == 0) {
 	LOG_DEBUG("ws: new frame length " << remainder_);
 	if (remainder_ >= maxFrameLength) {
-          LOG_ERROR("ws: oversized frame of length " << remainder_ << " exceeds --max-memory-request-size (= " << maxFrameLength << " bytes)");
+          LOG_ERROR("ws: oversized frame of length {} exceeds --max-memory-request-size (= {} bytes)", remainder_ , maxFrameLength);
 	  return Request::Error;
 	}
 	wsMask_ = 0;

@@ -162,7 +162,7 @@ namespace Wt
     }
     catch (std::exception &e)
     {
-      LOG_ERROR("exception while handling resource continuation: " << e.what());
+      LOG_ERROR("exception while handling resource continuation: {}", e.what());
     }
     catch (...)
     {

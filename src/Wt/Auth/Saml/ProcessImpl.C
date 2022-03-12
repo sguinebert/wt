@@ -257,7 +257,7 @@ bool ProcessImpl::createAuthnRequest(Wt::Http::Response &response)
   {
     location = service.impl_->ssoUrl();
     if (location.empty()) {
-      LOG_ERROR("Failed to find Single Sign On endpoint for IdP '" << service.idpEntityId() << "'");
+      LOG_ERROR("Failed to find Single Sign On endpoint for IdP '{}'", service.idpEntityId());
       process_.error_ = Wt::utf8("Failed to find Single Sign On endpoint in metadata.");
       return false;
     }
@@ -409,7 +409,7 @@ std::unique_ptr<saml2p::Response> ProcessImpl::decodeResponse(const Http::Reques
     response = unique_ptr_cast<saml2p::Response>(decoder->decode(relayState, req, *policy));
 #endif
   } catch (std::exception &exception) {
-    LOG_ERROR("An exception occurred when trying to decode SAML response: " << exception.what());
+    LOG_ERROR("An exception occurred when trying to decode SAML response: {}", exception.what());
     process_.error_ = Wt::utf8("Failed to decode SAML response");
     return nullptr;
   }
@@ -450,7 +450,7 @@ std::unique_ptr<saml2::SAML2AssertionPolicy> ProcessImpl::createPolicy(const cha
   auto criteria = std::make_unique<saml2md::MetadataProvider::Criteria>(idpEntityId, &opensaml::saml2md::IDPSSODescriptor::ELEMENT_QNAME);
   auto entityDescriptor = metadataProvider->getEntityDescriptor(*criteria);
   if (!entityDescriptor.first) {
-    LOG_ERROR("Could not retrieve metadata for IdP '" << service.idpEntityId() << "'");
+    LOG_ERROR("Could not retrieve metadata for IdP '{}'", service.idpEntityId());
     return nullptr;
   }
   auto idpRoleDescriptor = entityDescriptor.second;

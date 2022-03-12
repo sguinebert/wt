@@ -98,7 +98,7 @@ void Connection::start()
     request_.remoteIP = socket().remote_endpoint().address().to_string();
     request_.port = socket().local_endpoint().port();
   } catch (std::exception& e) {
-    LOG_ERROR("remote_endpoint() threw: " << e.what());
+    LOG_ERROR("remote_endpoint() threw: {}", e.what());
   }
 
   Wt::AsioWrapper::error_code ignored_ec;
@@ -221,7 +221,7 @@ void Connection::handleReadRequest0()
 	  (request_, lastWtReply_, lastProxyReply_, lastStaticReply_);
 	reply->setConnection(shared_from_this());
       } catch (Wt::AsioWrapper::system_error& e) {
-	LOG_ERROR("Error in handleRequest0(): " << e.what());
+	LOG_ERROR("Error in handleRequest0(): {}", e.what());
 	handleError(e.code());
 	return;
       }
@@ -369,9 +369,7 @@ void Connection::handleReadBody0(ReplyPtr reply,
       disconnectCallback_ = boost::function<void()>();
       f();
     } else if (!e) {
-      LOG_ERROR(native()
-		<< ": handleReadBody(): while waiting for disconnect, "
-		"received unexpected data, closing");
+      LOG_ERROR("{}: handleReadBody(): while waiting for disconnect, received unexpected data, closing", native());
       close();
     }
 

@@ -157,7 +157,7 @@ void WPen::assignFromJSON(const Json::Value &value)
       LOG_ERROR("Couldn't convert JSON to WPen");
     }
   } catch (std::exception &e) {
-    LOG_ERROR("Couldn't convert JSON to WPen: " + std::string(e.what()));
+    LOG_ERROR("Couldn't convert JSON to WPen: {}", e.what());
   }
 }
 

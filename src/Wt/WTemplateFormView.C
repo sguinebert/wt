@@ -128,8 +128,7 @@ void WTemplateFormView::updateViewField(WFormModel *model,
       std::unique_ptr<WWidget> nw = createFormWidget(field);
       edit = nw.get();
       if (!edit) {
-	LOG_ERROR("updateViewField: createFormWidget('"
-		  << field << "') returned 0");
+	LOG_ERROR("updateViewField: createFormWidget('{}') returned 0", field);
 	return;
       }
       bindWidget(var, std::move(nw));

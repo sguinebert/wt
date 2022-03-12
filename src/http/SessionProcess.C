@@ -91,7 +91,7 @@ void SessionProcess::asyncExec(const Configuration &config,
 #endif
 #endif // !WT_WIN32
   if (ec) {
-    LOG_ERROR("Couldn't create listening socket: " << ec.message());
+    LOG_ERROR("Couldn't create listening socket: {}", ec.message());
     if (onReady) {
       onReady(false);
       return;
@@ -100,8 +100,7 @@ void SessionProcess::asyncExec(const Configuration &config,
   acceptor_->async_accept
     (*socket_, std::bind(&SessionProcess::acceptHandler, shared_from_this(),
 			 std::placeholders::_1, onReady));
-  LOG_DEBUG("Listening to child process on port " 
-	    << acceptor_->local_endpoint(ec).port());
+  LOG_DEBUG("Listening to child process on port {}", acceptor_->local_endpoint(ec).port());
 
   exec(config, onReady);
 }
@@ -142,7 +141,7 @@ void SessionProcess::readHandler(const Wt::AsioWrapper::error_code& err,
       closeClientSocket();
       return;
     } else if (listeningCallback_) {
-      LOG_DEBUG("Child is listening on port " << port_);
+      LOG_DEBUG("Child is listening on port {}", port_);
       listeningCallback_(true);
       listeningCallback_ = nullptr;
     }
@@ -157,7 +156,7 @@ bool SessionProcess::handleChildMessage(const std::string& message)
 {
   auto idx = message.find_first_of(':');
   if (idx == std::string::npos) {
-    LOG_ERROR("received invalid message from child process: " << message);
+    LOG_ERROR("received invalid message from child process: {}", message);
     return false;
   }
 
@@ -168,14 +167,14 @@ bool SessionProcess::handleChildMessage(const std::string& message)
     try {
       port_ = Wt::Utils::stoi(value);
     } catch (std::invalid_argument& e) {
-      LOG_ERROR("invalid listening port: " << e.what());
+      LOG_ERROR("invalid listening port: {}", e.what());
       return false;
     }
   } else if (key == "session-id") {
     if (manager_)
       manager_->updateSessionId(value, shared_from_this());
   } else {
-    LOG_ERROR("received invalid message from child process: " << message);
+    LOG_ERROR("received invalid message from child process: {}", message);
     return false;
   }
 
@@ -262,7 +261,7 @@ void SessionProcess::exec(const Configuration& config,
 
   pid_ = fork();
   if (pid_ < 0) {
-    LOG_ERROR("failed to fork dedicated session process, error code: " << errno);
+    LOG_ERROR("failed to fork dedicated session process, error code: {}", errno);
     stop();
     if (onReady)
       onReady(false);
@@ -322,7 +321,7 @@ void SessionProcess::exec(const Configuration& config,
 
   if(!CreateProcessW(0, c_commandLine, 0, 0, true,
       0, 0, 0, &startupInfo, &processInfo_)) {
-    LOG_ERROR("failed to start dedicated session process, error code: " << GetLastError());
+    LOG_ERROR("failed to start dedicated session process, error code: {}", GetLastError());
     stop();
     if (onReady) {
       onReady(false);

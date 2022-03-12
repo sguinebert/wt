@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#include "fmtlog.h"
+#include "Wt/fmtlog.h"
 
 #if !defined(WT_DBO_LOGGER) || DOXYGEN_ONLY
 #define WT_LOGGER_API WT_API
@@ -32,10 +32,6 @@
 
 #ifndef WT_TARGET_JAVA
 
-struct Nullstream : std::ostream
-{
-  Nullstream() : std::ostream(0) {}
-};
 
 namespace Wt
 {
@@ -274,7 +270,6 @@ namespace Wt
 
     private:
       std::ostream *o_;
-      Nullstream nullstream_;
       bool nostream_ = false;
       bool ownStream_;
       std::vector<Field> fields_;
@@ -372,6 +367,7 @@ namespace Wt
         startField();
         if (impl_)
         {
+          //fmt::format_to(std::ostream_iterator<char>(impl_.line_), "{}", static_cast<void*>(t));
           char buf[100];
           std::sprintf(buf, "%p", t);
           impl_->line_ << buf;
@@ -387,6 +383,7 @@ namespace Wt
         startField();
         if (impl_)
         {
+         //  fmt::format_to(std::ostream_iterator<char>(impl_.line_), "{}", t);
           using std::to_string;
           impl_->line_ << to_string(t);
         }
@@ -394,13 +391,15 @@ namespace Wt
       }
 
     private:
-      Nullstream nullstream_;
+      using ctx = fmt::format_context;
+      
       bool mute_ = false;
       struct Impl
       {
         const WLogger *logger_;
         const WLogSink *customLogger_;
         WStringStream line_;
+        std::vector<fmt::basic_format_arg<ctx>> fmt_args_;
         std::string type_, scope_;
         int field_;
         bool fieldStarted_;
@@ -482,71 +481,56 @@ namespace Wt
 
 #define LOGGER(s) static const char *logger = s
 
+// #ifdef WT_DEBUG_ENABLED
+// #define LOG_DEBUG_S(s, m) (s)->log("debug") << WT_LOGGER << ": " << m
+// #define LOG_DEBUG(m, args...)                             \
+//   do                                             \
+//   {                                              \
+//   } while (0)
+// #else
+// #define LOG_DEBUG_S(s, m)
+// #define LOG_DEBUG(m, args...)
+// #endif
+
+// #define LOG_INFO_S(s, m) (s)->log("info") << WT_LOGGER << ": " << m
+// #define LOG_INFO(m, ...)                             \
+//   do                                            \
+//   {                                            \
+//       logi("[info] {}: {}", WT_LOGGER, fmt::format(m, ##__VA_ARGS__));                   \
+//   } while (0)
+// #define LOG_WARN_S(s, m) (s)->log("warning") << WT_LOGGER << ": " << m
+// #define LOG_WARN(m, args...) //fmtlog::FMTLOG(fmtlog::INF, "[info] ")
+// #define LOG_SECURE_S(s, m) (s)->log("secure") << WT_LOGGER << ": " << m
+// #define LOG_SECURE(m, ...)                             \
+//   do                                              \
+//   {                                               \
+//       logw("[secure] {}: {}", WT_LOGGER, fmt::format(m, ##__VA_ARGS__));                   \
+//   } while (0)
+// #define LOG_ERROR_S(s, m) (s)->log("error") << WT_LOGGER << ": " << m
+// #define LOG_ERROR(m, ...)                             \
+//   do                                             \
+//   {                                              \
+//       loge("[error] {}: {}", WT_LOGGER, fmt::format(m, ##__VA_ARGS__));\
+//   } while (0)
+
 #ifdef WT_DEBUG_ENABLED
-#define LOG_DEBUG_S(s, m) (s)->log("debug") << WT_LOGGER << ": " << m
-#define LOG_DEBUG(m)                             \
-  do                                             \
-  {                                              \
-    if (WT_LOGGING("debug", WT_LOGGER))          \
-      WT_LOG("debug") << WT_LOGGER << ": " << m; \
-  } while (0)
+#define LOG_DEBUG_S(s, m, ...) logd(m, ##__VA_ARGS__);
+#define LOG_DEBUG(m, ...) logd(m, ##__VA_ARGS__); 
 #else
-#define LOG_DEBUG_S(s, m)
-#define LOG_DEBUG(m)
+#define LOG_DEBUG_S(s, m, ...)
+#define LOG_DEBUG(m, ...)
 #endif
 
-#define LOG_INFO_S(s, m) (s)->log("info") << WT_LOGGER << ": " << m
-#define LOG_INFO(m)                             \
-  do                                            \
-  {                                             \
-    if (WT_LOGGING("info", WT_LOGGER))          \
-      WT_LOG("info") << WT_LOGGER << ": " << m; \
-  } while (0)
-#define LOG_WARN_S(s, m) (s)->log("warning") << WT_LOGGER << ": " << m
-#define LOG_WARN(m, ...)                                \
-  do                                               \
-  {                                                \
-    if (WT_LOGGING("warning", WT_LOGGER))          \
-      WT_LOG("warning") << WT_LOGGER << ": " << m; \
-  } while (0)
-#define LOG_SECURE_S(s, m) (s)->log("secure") << WT_LOGGER << ": " << m
-#define LOG_SECURE(m)                             \
-  do                                              \
-  {                                               \
-    if (WT_LOGGING("secure", WT_LOGGER))          \
-      WT_LOG("secure") << WT_LOGGER << ": " << m; \
-  } while (0)
-#define LOG_ERROR_S(s, m) (s)->log("error") << WT_LOGGER << ": " << m
-#define LOG_ERROR(m, ...)                             \
-  do                                             \
-  {                                              \
-    if (WT_LOGGING("error", WT_LOGGER))          \
-      WT_LOG("error") << WT_LOGGER << ": " << m; \
-  } while (0)
+#define LOG_INFO_S(s, m, ...) logi(m, ##__VA_ARGS__);
+#define LOG_INFO(m, ...) logi(m, ##__VA_ARGS__);
+#define LOG_WARN_S(s, m, ...) logw(m, ##__VA_ARGS__);
+#define LOG_WARN(m, ...) logw(m, ##__VA_ARGS__);
+#define LOG_SECURE_S(s, m, ...) logs(m, ##__VA_ARGS__);
+#define LOG_SECURE(m, ...) logs(m, ##__VA_ARGS__);
+#define LOG_ERROR_S(s, m, ...) loge(m, ##__VA_ARGS__);
+#define LOG_ERROR(m, ...) loge(m, ##__VA_ARGS__);
 
 #else // WT_TARGET_JAVA
-
-class Logger
-{
-public:
-  void debug(const std::ostream &s);
-  void info(const std::ostream &s);
-  void warn(const std::ostream &s);
-  void error(const std::ostream &s);
-};
-
-#define LOGGER(s) Logger logger;
-
-#define LOG_DEBUG_S(s, m) logger.debug(std::stringstream() << m)
-#define LOG_DEBUG(m) logger.debug(std::stringstream() << m)
-#define LOG_INFO_S(s, m) logger.info(std::stringstream() << m)
-#define LOG_INFO(m) logger.info(std::stringstream() << m)
-#define LOG_WARN_S(s, m) logger.warn(std::stringstream() << m)
-#define LOG_WARN(m, ...) logger.warn(std::stringstream() << m)
-#define LOG_SECURE_S(s, m) logger.warn(std::stringstream() << "secure:" << m)
-#define LOG_SECURE(m) logger.warn(std::stringstream() << "secure:" << m)
-#define LOG_ERROR_S(s, m) logger.error(std::stringstream() << m)
-#define LOG_ERROR(m, ...) logger.error(std::stringstream() << m)
 
 #endif // WT_TARGET_JAVA
 

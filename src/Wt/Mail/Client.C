@@ -132,7 +132,7 @@ namespace Wt
         if (error)
         {
           close();
-          LOG_ERROR("could not connect to: " << host << ":" << port);
+          LOG_ERROR("could not connect to: {}:{}", host, port);
           return;
         }
 

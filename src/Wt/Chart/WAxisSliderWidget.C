@@ -261,8 +261,7 @@ void WAxisSliderWidget::paintEvent(WPaintDevice *paintDevice)
   if (autoPadding && !(paintDevice->features() & 
 		       PaintDeviceFeatureFlag::FontMetrics) &&
       labelsEnabled_) {
-    LOG_ERROR("setAutoLayout(): device does not have font metrics "
-	"(not even server-side font metrics).");
+    LOG_ERROR("setAutoLayout(): device does not have font metrics (not even server-side font metrics).");
     autoPadding = false;
   }
 

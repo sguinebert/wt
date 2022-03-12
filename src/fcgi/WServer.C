@@ -63,15 +63,11 @@ struct WServer::Impl
       webMainInstance = webMain_ = nullptr;
 
     } catch (std::exception& e) {
-      LOG_ERROR_S(&server_,
-		  "fatal: dedicated session process for " << sessionId_ <<
-		  ": caught unhandled exception: " << e.what());
+      LOG_ERROR_S(&server_, "fatal: dedicated session process for {}: caught unhandled exception: {}", sessionId_, e.what());
 
       throw;
     } catch (...) {
-      LOG_ERROR_S(&server_,
-		  "fatal: dedicated session process for " << sessionId_ <<
-		  ": caught unknown, unhandled exception.");
+      LOG_ERROR_S(&server_, "fatal: dedicated session process for {}: caught unknown, unhandled exception", sessionId_);
 
       throw;
     }
@@ -94,15 +90,11 @@ struct WServer::Impl
       delete webMain_;
       webMainInstance = webMain_ = nullptr;
     } catch (std::exception& e) {
-      LOG_ERROR_S(&server_,
-		  "fatal: shared session process: caught unhandled exception: "
-		  << e.what());
+      LOG_ERROR_S(&server_, "fatal: shared session process: caught unhandled exception: {}", e.what());
 
       throw;
     } catch (...) {
-      LOG_ERROR_S(&server_,
-		  "fatal: shared session process: caught unknown, unhandled "
-		  "exception.");
+      LOG_ERROR_S(&server_, "fatal: shared session process: caught unknown, unhandled exception.");
 
       throw;
     }
@@ -119,7 +111,7 @@ namespace {
 void doShutdown(const char *signal)
 {
   if (webMainInstance) {
-    LOG_INFO_S(webMainInstance->controller().server(), "Caught " << signal);
+    LOG_INFO_S(webMainInstance->controller().server(), "Caught {}", signal);
     webMainInstance->shutdown();
   }
 }
@@ -209,9 +201,7 @@ bool WServer::start()
     return false;
   }
 
-  LOG_INFO_S(this, "initializing " <<
-	     (impl_->sessionId_.empty() ? "shared" : "dedicated") <<
-	     " wtfcgi session process");
+  LOG_INFO_S(this, "initializing {} wtfcgi session process", (impl_->sessionId_.empty() ? "shared" : "dedicated"));
 
   if (configuration().webSockets()) {
     LOG_ERROR_S(this, "FastCGI does not support web-sockets, disabling");
@@ -221,14 +211,11 @@ bool WServer::start()
   configuration().setNeedReadBodyBeforeResponse(true);
 
   if (signal(SIGTERM, Wt::handleSigTerm) == SIG_ERR)
-    LOG_ERROR_S(this, "cannot catch SIGTERM: signal(): "
-		<< (const char *)strerror(errno));
+    LOG_ERROR_S(this, "cannot catch SIGTERM: signal(): {}", (const char *)strerror(errno));
   if (signal(SIGUSR1, Wt::handleSigUsr1) == SIG_ERR) 
-    LOG_ERROR_S(this, "cannot catch SIGUSR1: signal(): "
-		<< (const char *)strerror(errno));
+    LOG_ERROR_S(this, "cannot catch SIGUSR1: signal(): {}", (const char *)strerror(errno));
   if (signal(SIGHUP, Wt::handleSigHup) == SIG_ERR) 
-    LOG_ERROR_S(this, "cannot catch SIGHUP: signal(): "
-		<< (const char *)strerror(errno));
+    LOG_ERROR_S(this, "cannot catch SIGHUP: signal(): {}", (const char *)strerror(errno));
 
   webController_ = new Wt::WebController(*this, impl_->sessionId_, false);
 
@@ -280,8 +267,7 @@ void WServer::resume()
 void WServer::setSslPasswordCallback(const std::function<std::string 
 			 (std::size_t max_length, int purpose)>& cb)
 {
-  LOG_INFO_S(this,
-    "setSslPasswordCallback(): has no effect in fcgi connector");
+  LOG_INFO_S(this, "setSslPasswordCallback(): has no effect in fcgi connector");
 }
 
 int WRun(int argc, char *argv[], ApplicationCreator createApplication)
@@ -306,14 +292,14 @@ int WRun(const std::string &applicationName,
 
       return 0;
     } catch (std::exception& e) {
-      LOG_ERROR_S(&server, "fatal: " << e.what());
+      LOG_ERROR_S(&server, "fatal: {}", e.what());
       return 1;
     }
   } catch (Wt::WServer::Exception& e) {
-    LOG_ERROR("fatal: " << e.what());
+    LOG_ERROR("fatal: {}", e.what());
     return 1;
   } catch (std::exception& e) {
-    LOG_ERROR("fatal exception: " << e.what());
+    LOG_ERROR("fatal exception: {}", e.what());
     return 1;
   }
 }

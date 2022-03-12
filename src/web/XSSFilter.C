@@ -84,7 +84,7 @@ bool XSSFilterRemoveScript(WString& text)
     print(out.back_inserter(), *doc.first_node(), print_no_indenting);
     result = out.str();
   } catch (parse_error& e) {
-    LOG_ERROR("Error reading XHTML string: " << e.what());
+    LOG_ERROR("Error reading XHTML string: {}", e.what());
     return false;
   }
 

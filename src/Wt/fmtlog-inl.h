@@ -36,6 +36,12 @@ SOFTWARE.
 #include <unistd.h>
 #endif
 
+#ifdef WT_DBO_LOGGER 
+#define FMTLOG_HEAD "[{YmdHMSe}] {t} [{l}] {s} DBO_LOGGER: "
+#else
+#define FMTLOG_HEAD "[{YmdHMSe}] {t} [{l}] {s} : \"" 
+#endif
+
 template<int ___ = 0>
 class fmtlogDetailT
 {
@@ -93,7 +99,7 @@ public:
     fmtlogWrapper<>::impl.init();
     resetDate();
     fmtlog::setLogFile(stdout);
-    setHeaderPattern("{HMSf} {s:<16} {l}[{t:<6}] ");
+    setHeaderPattern(FMTLOG_HEAD);
     logInfos.reserve(32);
     bgLogInfos.reserve(128);
     bgLogInfos.emplace_back(nullptr, nullptr, fmtlog::DBG, fmt::string_view());
@@ -372,7 +378,7 @@ public:
     hour.fromi(h);
     setArgVal<14>(info.getBase());
     setArgVal<15>(info.getLocation());
-    logLevel = (const char*)"DBG INF WRN ERR OFF" + (info.logLevel << 2);
+    logLevel = (const char*)"DBG INF SEC WRN ERR OFF" + (info.logLevel << 2);
 
     size_t headerPos = membuf.size();
     fmtlog::vformat_to(membuf, headerPattern, fmt::basic_format_args(args.data(), parttenArgSize));

@@ -70,8 +70,7 @@ void WAbstractToggleButton::setText(const WString& text)
     return;
 
   if (isRendered() && flags_.test(BIT_NAKED))
-    LOG_ERROR("setText() has no effect when already rendered as a naked "
-	      "checkbox (without label)");
+    LOG_ERROR("setText() has no effect when already rendered as a naked checkbox (without label)");
 
   text_.setText(text);
   flags_.reset(BIT_NAKED);

@@ -82,27 +82,26 @@ public:
 
       const std::string *stateE = request.getParameter("state");
       if (!stateE || *stateE != process_->oAuthState_) {
-	LOG_ERROR(ERROR_MSG("invalid-state") << 
-		  ", state: " << (stateE ? *stateE : "(empty)"));
-	process_->setError(ERROR_MSG("invalid-state"));
-	sendError(response);
-	return;
+        LOG_ERROR("{}, state: {}",ERROR_MSG("invalid-state"), (stateE ? *stateE : "(empty)"));
+        process_->setError(ERROR_MSG("invalid-state"));
+        sendError(response);
+        return;
       }
 
       const std::string *errorE = request.getParameter("error");
       if (errorE) {
-	LOG_ERROR(ERROR_MSG(+ *errorE));
-	process_->setError(ERROR_MSG(+ *errorE));
-	sendError(response);
-	return;
+        LOG_ERROR(ERROR_MSG(+ *errorE));
+        process_->setError(ERROR_MSG(+ *errorE));
+        sendError(response);
+        return;
       }
 
       const std::string *codeE = request.getParameter("code");
       if (!codeE) {
-	LOG_ERROR(ERROR_MSG("missing-code"));
-	process_->setError(ERROR_MSG("missing-code"));
-	sendError(response);
-	return;
+        LOG_ERROR(ERROR_MSG("missing-code"));
+        process_->setError(ERROR_MSG("missing-code"));
+        sendError(response);
+	      return;
       }
 
 #ifndef WT_TARGET_JAVA
@@ -266,7 +265,7 @@ void OAuthProcess::startAuthorize()
     try {
       timeout = Wt::Utils::stoi(value);
     } catch (std::exception& e) {
-      LOG_ERROR(ERROR_MSG("could not convert 'oauth2-redirect-timeout' to int: ") << value);
+      LOG_ERROR(ERROR_MSG("could not convert 'oauth2-redirect-timeout' to int: {}"), value);
     }
   }
 
@@ -400,7 +399,7 @@ void OAuthProcess::handleToken(AsioWrapper::error_code err,
   if (!err)
     doParseTokenResponse(response);
   else {
-    LOG_ERROR("handleToken(): " << err.message());
+    LOG_ERROR("handleToken(): {}", err.message());
     setError(WString::fromUTF8(err.message()));
   }
 
@@ -514,7 +513,7 @@ OAuthAccessToken OAuthProcess::parseJsonToken(const Http::Message& response)
 #endif
 
   if (!ok) {
-    LOG_ERROR("parseJsonToken(): " << pe.message());
+    LOG_ERROR("parseJsonToken(): {}", pe.message());
     throw TokenError(ERROR_MSG("badjson"));
   } else {
     if (response.status() == 200) {
@@ -530,7 +529,7 @@ OAuthAccessToken OAuthProcess::parseJsonToken(const Http::Message& response)
 
 	return OAuthAccessToken(accessToken, expires, refreshToken, idToken);
       } catch (std::exception& e) {
-	LOG_ERROR("token response error: " << e.what());
+	LOG_ERROR("token response error: {}", e.what());
 	throw TokenError(ERROR_MSG("badresponse"));
       }
     } else {
@@ -593,7 +592,7 @@ struct OAuthService::Impl
 	  response.addHeader("Location", redirectUrl);
 	  return;
 	} else
-	  LOG_ERROR("RedirectEndpoint: could not decode state " << *stateE);
+	  LOG_ERROR("RedirectEndpoint: could not decode state {}", *stateE);
       } else
 	LOG_ERROR("RedirectEndpoint: missing state");
 

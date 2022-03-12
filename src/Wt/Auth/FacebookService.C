@@ -76,7 +76,7 @@ private:
 #endif
 
       if (!ok) {
-	LOG_ERROR("could not parse Json: '" << response.body() << "'");
+	LOG_ERROR("could not parse Json: '{}'", response.body());
 	setError(ERROR_MSG("badjson"));
 	authenticated().emit(Identity::Invalid);
       } else {
@@ -90,10 +90,10 @@ private:
       }
     } else {
       if (!err) {
-	LOG_ERROR("user info request returned: " << response.status());
-	LOG_ERROR("with: " << response.body());
+	LOG_ERROR("user info request returned: {}", response.status());
+	LOG_ERROR("with: {}", response.body());
       } else
-	LOG_ERROR("handleMe(): " << err.message());
+	LOG_ERROR("handleMe(): {}", err.message());
 
       setError(ERROR_MSG("badresponse"));
 

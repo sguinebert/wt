@@ -147,7 +147,7 @@ void WFormDelegate<bool, void>::updateViewValue(Wt::WFormModel *model, Wt::WForm
       try {
         value = Wt::cpp17::any_cast<bool>(v);
       } catch (std::exception& e) {
-	LOG_ERROR("Could not convert value to bool: " << e.what());
+	LOG_ERROR("Could not convert value to bool: {}", e.what());
       }
     }
 
@@ -179,7 +179,7 @@ void WFormDelegate<int, void>::updateModelValue(Wt::WFormModel *model, Wt::WForm
     try {
       value = Wt::WLocale::currentLocale().toInt(edit->valueText());
     } catch (std::exception& e) {
-      LOG_ERROR("Could not convert '" << edit->valueText() << "' to integer: " << e.what());
+      LOG_ERROR("Could not convert '{}' to integer: {}", edit->valueText(), e.what());
 
       std::shared_ptr<Wt::WValidator> validator = edit->validator();
       if (validator) {
@@ -224,7 +224,7 @@ void WFormDelegate<double, void>::updateModelValue(Wt::WFormModel *model, Wt::WF
     try {
       value = Wt::WLocale::currentLocale().toDouble(edit->valueText());
     } catch (std::exception& e) {
-      LOG_ERROR("Could not convert '" << edit->valueText() << "' to double: " << e.what());
+      LOG_ERROR("Could not convert '{}' to double: {}", edit->valueText(), e.what());
 
       std::shared_ptr<Wt::WValidator> validator = edit->validator();
       if (validator) {
