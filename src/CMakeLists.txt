@@ -1,5 +1,6 @@
 SUBDIRS(web Wt)
 
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mssse3")
