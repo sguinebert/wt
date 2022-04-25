@@ -294,7 +294,7 @@ void SessionProcessManager::removeSessionForPid(pid_t cpid)
   for (SessionProcessList::iterator it = pendingProcesses_.begin();
        it != pendingProcesses_.end(); ++it) {
     if ((*it)->pid() == cpid) {
-      LOG_WARN("Child process {} died before a session could be assigned", cpid );
+      LOG_WARN("Child process {} died before a session could be assigned", cpid);
       (*it)->stop();
       pendingProcesses_.erase(it);
       -- numSessions_;
