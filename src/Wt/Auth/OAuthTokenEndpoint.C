@@ -147,7 +147,7 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
   if (*grantType != GRANT_TYPE) {
     response.setStatus(400);
     response.out() << "{\n\"error\": \"unsupported_grant_type\"\n}" << std::endl;
-    LOG_INFO("{\"error\": \"unsupported_grant_type\"}: id: {} grantType: {}", clientId, grantType);
+    LOG_INFO("{\"error\": \"unsupported_grant_type\"}: id: {} grantType: {}", clientId, *grantType);
     return;
   }
   IssuedToken authCode = db_->idpTokenFindWithValue(GRANT_TYPE, *code);

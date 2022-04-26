@@ -414,7 +414,7 @@ WT_USTRING WLineEdit::inputText(const WT_USTRING& text) const
       }
     }
     if (hadIgnoredChar) {
-      LOG_INFO("Input mask: not all characters in input '{}' complied with input mask {} and were ignored. Result is '{}'.", text, inputMask_, result);
+      //LOG_INFO("Input mask: not all characters in input '{}' complied with input mask {} and were ignored. Result is '{}'.", text, inputMask_, result);
     }
     return WT_USTRING(result);
   }

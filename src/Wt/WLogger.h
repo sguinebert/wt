@@ -391,7 +391,7 @@ namespace Wt
       }
 
     private:
-      using ctx = fmt::format_context;
+      //using ctx = fmt::format_context;
       
       bool mute_ = false;
       struct Impl
@@ -399,7 +399,7 @@ namespace Wt
         const WLogger *logger_;
         const WLogSink *customLogger_;
         WStringStream line_;
-        std::vector<fmt::basic_format_arg<ctx>> fmt_args_;
+        //std::vector<fmt::basic_format_arg<ctx>> fmt_args_;
         std::string type_, scope_;
         int field_;
         bool fieldStarted_;

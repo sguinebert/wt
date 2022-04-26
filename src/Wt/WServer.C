@@ -177,6 +177,8 @@ bool WServer::dedicatedSessionProcess() const {
 void WServer::initLogger(const std::string& logFile,
 			 const std::string& logConfig)
 {
+  fmtlog::startPollingThread(2);
+
   if (!logConfig.empty())
     logger_.configure(logConfig);
 
@@ -275,7 +277,7 @@ void WServer::addResource(WResource *resource, const std::string& path)
     resource->setInternalPath(path);
   else {
     WString error(Wt::utf8("WServer::addResource() error: "
-	                   "a static resource was already deployed on path '{1}'"));
+	                   "a static resource was already deployed on path '{0}'"));
     throw WServer::Exception(error.arg(path).toUTF8());
   }
 }
