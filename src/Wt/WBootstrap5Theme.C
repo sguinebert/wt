@@ -501,6 +501,12 @@ void WBootstrap5Theme::apply(WWidget *widget, DomElement& element,
   }
 }
 
+void WBootstrap5Theme::setDataTarget(WWidget *widget, WWidget *target) const
+{
+  widget->setAttributeValue("data-bs-toggle", "collapse");
+  widget->setAttributeValue("data-bs-target", WString("#{0}").arg(target->id()));
+}
+
 std::string WBootstrap5Theme::disabledClass() const
 {
   return "disabled";

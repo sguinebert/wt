@@ -10,8 +10,8 @@
 
 BOOST_AUTO_TEST_CASE(WString_test_empty_substition)
 {
-    Wt::WString tmplt = "{1}";
-    Wt::WString tmplt2 = "{1}{2}";
+    Wt::WString tmplt = "{0}";
+    Wt::WString tmplt2 = "{0}{1}";
     tmplt.arg("");
     tmplt2.arg("").arg("");
 
@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(WString_test_empty_substition)
 
 BOOST_AUTO_TEST_CASE(WString_test_non_empty_substition)
 {
-    Wt::WString tmplt = "{1}";
+    Wt::WString tmplt = "{0}";
     tmplt.arg("abc");
 
     BOOST_REQUIRE(!tmplt.empty());
@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(WString_test_append)
   // it was appended to. The string would then become "????" to indicate that the empty
   // key was not found.
   // Only localized strings should be regarded non-literal
-  Wt::WString s = "{1}";
+  Wt::WString s = "{0}";
   s.arg("Hello");
 
   BOOST_REQUIRE_EQUAL(s, "Hello");

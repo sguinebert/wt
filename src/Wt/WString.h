@@ -18,6 +18,7 @@
 #include <string_view>
 #include "fmt/format.h"
 #include "fmt/compile.h"
+#include "fmt/args.h"
 #include <chrono>
 
 
@@ -774,7 +775,8 @@ private:
   std::vector<std::tm> tmarguments_;
 
   using ctx = fmt::format_context;
-  std::vector<fmt::basic_format_arg<ctx>> fmt_args_;
+  //std::vector<fmt::basic_format_arg<ctx>> fmt_args_;
+  fmt::dynamic_format_arg_store<fmt::format_context> fmt_args_;
 
   std::string resolveKey(TextFormat format) const;
 

@@ -5,7 +5,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mssse3")
 
-add_definitions(-DFMT_HEADER_ONLY)
+add_definitions(-DFMTLOG_HEADER_ONLY)
+#add_definitions(-DFMT_HEADER_ONLY)
+#add_definitions(-DFMT_EXPORT)
+#add_definitions(-DBUILD_SHARED_LIBS)
+
+#target_link_libraries(wt PRIVATE fmt::fmt-header-only)
 
 INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_SOURCE_DIR}/web
@@ -15,6 +20,8 @@ INCLUDE_DIRECTORIES(
   ${BOOST_INCLUDE_DIRS}
   Wt/Dbo/backend/amalgamation # for sqlite3.h
 )
+
+add_subdirectory(Wt/fmt)
 
 LINK_DIRECTORIES(${BOOST_LIB_DIRS})
 
@@ -69,6 +76,8 @@ FILE_TO_STRING(xml/auth_css_theme.xml
 SET(libsources
 Wt/FlexLayoutImpl.h Wt/FlexLayoutImpl.C
 Wt/FlexItemImpl.h Wt/FlexItemImpl.C
+Wt/fmt/args.h Wt/fmt/chrono.h Wt/fmt/color.h Wt/fmt/compile.h Wt/fmt/core.h Wt/fmt/format-inl.h Wt/fmt/format.h Wt/fmt/locale.h Wt/fmt/os.h Wt/fmt/ostream.h Wt/fmt/printf.h Wt/fmt/ranges.h Wt/fmt/xchar.h Wt/fmt/format.cc Wt/fmt/os.cc
+Wt/fmtlog.h Wt/fmtlog-inl.h
 Wt/PopupWindow.h Wt/PopupWindow.C
 Wt/Resizable.h Wt/Resizable.C
 Wt/ResizeSensor.h Wt/ResizeSensor.C
@@ -369,6 +378,8 @@ Wt/Render/RenderUtils.h Wt/Render/RenderUtils.C
 Wt/Render/Specificity.h Wt/Render/Specificity.C
 Wt/Render/WTextRenderer.h Wt/Render/WTextRenderer.C
 Wt/Signals/signals.hpp Wt/Signals/signals.cpp
+Wt/turbo-base64/turbob64.h Wt/turbo-base64/turbob64c.c Wt/turbo-base64/turbob64d.c Wt/turbo-base64/turbob64sse.c Wt/turbo-base64/turbob64avx2.c 
+web/fasthex/hex.h web/fasthex/hex.cc
 web/md5.h web/md5.c
 web/sha1.h web/sha1.c
 web/CgiParser.h web/CgiParser.C
@@ -543,7 +554,7 @@ if(NOT APPLE OR SHARED_LIBS)
 endif()
 
 if (WT_ASIO_IS_STANDALONE_ASIO)
-  TARGET_LINK_LIBRARIES(wt
+  TARGET_LINK_LIBRARIES(wt 
     PRIVATE ${BOOST_WT_LIBRARIES})
 else (WT_ASIO_IS_STANDALONE_ASIO)
   TARGET_LINK_LIBRARIES(wt
@@ -556,6 +567,7 @@ endif()
 
 TARGET_LINK_LIBRARIES(wt
   PUBLIC
+    fmt
     ${WT_SOCKET_LIBRARY}
   PRIVATE
     ${WT_SAML_LIBS}

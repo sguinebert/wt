@@ -2,6 +2,6 @@
 <messages nplurals="1" 
           plural="2">
   <message id="file">
-    <plural case="0">{1} plik</plural>
+    <plural case="0">{0} plik</plural>
   </message>
 </messages>
