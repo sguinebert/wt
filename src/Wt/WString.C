@@ -30,7 +30,21 @@ using ctx = fmt::format_context;
 #ifndef WT_CNOR
 namespace Wt {
 
-std::vector<WString> WString::stArguments_;
+
+struct WString::Impl {
+    std::string key_;
+    ::int64_t n_;
+    //fmt::dynamic_format_arg_store<fmt::format_context> fmt_args_;
+    //std::vector<WString> arguments_;
+    //fmt::dynamic_format_arg_store<fmt::format_context> fmt_args_;
+    
+
+    Impl();
+
+    //Impl(Impl& impl) : key_(impl.key_), n_(impl.n_) {}
+};
+
+//std::vector<WString> WString::stArguments_;
 const WString WString::Empty;
 CharEncoding WString::defaultEncoding_ = Wt::CharEncoding::UTF8;
 
@@ -123,8 +137,8 @@ WString::WString(const std::string& value, const std::locale& loc)
 WString::WString(const WString& other)
   : utf8_(other.toUTF8()),
     //fmt_args_(other.fmt_args_),  
-    arguments_(other.arguments_),
-    tmarguments_(other.tmarguments_),
+    //arguments_(other.arguments_),
+    //tmarguments_(other.tmarguments_),
     impl_(nullptr)
 {
   if (other.impl_)
@@ -132,10 +146,10 @@ WString::WString(const WString& other)
 }
 
 WString::WString(WString&& other)
-  : utf8_(std::move(other.toUTF8())),
-    //fmt_args_(std::move(other.fmt_args_)),  
-    arguments_(std::move(other.arguments_)),
-    tmarguments_(std::move(other.tmarguments_)),
+  : utf8_(std::move(other.utf8_)),
+    fmt_args_(std::move(other.fmt_args_)),  
+    //arguments_(std::move(other.arguments_)),
+    //tmarguments_(std::move(other.tmarguments_)),
     impl_(other.impl_)
 {
   other.impl_ = nullptr;
@@ -391,7 +405,7 @@ std::string format_vector(std::string_view format,
 }
 std::string WString::toUTF8() const
 {
-  if(!fmt_args_.empty()) {
+  if(impl_ && !fmt_args_.empty()) {
     if(formatedUtf8_.empty()) {
       //formatedUtf8_ = format_vector(utf8_, fmt_args_);
       formatedUtf8_ = fmt::vformat(utf8_, fmt_args_);
@@ -403,6 +417,7 @@ std::string WString::toUTF8() const
 
 std::string WString::toXhtmlUTF8() const
 {
+  
   if(!fmt_args_.empty()) {
     if(formatedUtf8_.empty())
       //formatedUtf8_ = format_vector(utf8_, fmt_args_);
@@ -417,9 +432,9 @@ std::string WString::toXhtmlUTF8() const
   //   if (!impl_->key_.empty())
   //     result = resolveKey(TextFormat::XHTML);
 
-  //   for (unsigned i = 0; i < impl_->arguments_.size(); ++i) {
+  //   for (unsigned i = 0; i < //impl_->arguments_.size(); ++i) {
   //     std::string key = '{' + std::to_string(i+1) + '}';
-  //     Wt::Utils::replace(result, key, impl_->arguments_[i].toXhtmlUTF8());
+  //     Wt::Utils::replace(result, key, //impl_->arguments_[i].toXhtmlUTF8());
   //   }
 
   //   return result;
@@ -510,9 +525,9 @@ WString &WString::arg(const std::string &value, CharEncoding encoding)
   createImpl();
 
   if (realEncoding(encoding) == CharEncoding::UTF8) {
-    //impl_->arguments_.push_back(WString::fromUTF8(value, true));
-    arguments_.push_back(value);
-    fmt_args_.push_back(arguments_.back());
+    ////impl_->arguments_.push_back(WString::fromUTF8(value, true));
+    //impl_->arguments_.push_back(value);
+    fmt_args_.push_back(value);
     //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
     //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value));
   }
@@ -520,9 +535,9 @@ WString &WString::arg(const std::string &value, CharEncoding encoding)
   {
     //WString s;
     //s.utf8_ = Wt::toUTF8(value);
-    //impl_->arguments_.push_back(s);
-    arguments_.push_back(Wt::toUTF8(value));
-    fmt_args_.push_back(arguments_.back());
+    ////impl_->arguments_.push_back(s);
+    //impl_->arguments_.push_back(Wt::toUTF8(value));
+    fmt_args_.push_back(Wt::toUTF8(value));
     //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
     //fmt_args_.push_back(fmt::detail::make_arg<ctx>(Wt::toUTF8(value)));
   }
@@ -535,18 +550,18 @@ WString &WString::arg(const std::string&& value, CharEncoding encoding)
     createImpl();
 
   if (realEncoding(encoding) == CharEncoding::UTF8){
-    arguments_.push_back(std::move(value));
-    fmt_args_.push_back(arguments_.back());
-    //impl_->arguments_.push_back(WString::fromUTF8(value, true));
+    //impl_->arguments_.push_back(std::move(value));
+    fmt_args_.push_back(value);
+    ////impl_->arguments_.push_back(WString::fromUTF8(value, true));
     //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
   }
   else
   {
     //WString s;
     //s.utf8_ = Wt::toUTF8(value);
-    //impl_->arguments_.push_back(s);
-    arguments_.push_back(Wt::toUTF8(value));
-    fmt_args_.push_back(arguments_.back());
+    ////impl_->arguments_.push_back(s);
+    //impl_->arguments_.push_back(Wt::toUTF8(value));
+    fmt_args_.push_back(Wt::toUTF8(value));
     //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
   }
  return *this;
@@ -565,9 +580,9 @@ WString& WString::arg(const std::wstring& value)
 
   //WString s;
   //s.utf8_ = Wt::toUTF8(value);
-  //impl_->arguments_.push_back(s);
-  arguments_.push_back(Wt::toUTF8(value));
-  fmt_args_.push_back(arguments_.back());
+  ////impl_->arguments_.push_back(s);
+  //impl_->arguments_.push_back(Wt::toUTF8(value));
+  fmt_args_.push_back(Wt::toUTF8(value));
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
 
   return *this;
@@ -575,8 +590,8 @@ WString& WString::arg(const std::wstring& value)
 
 WString& WString::arg(const wchar_t *value)
 {
-  arguments_.push_back(Wt::toUTF8(value));
-  fmt_args_.push_back(arguments_.back());
+  //impl_->arguments_.push_back(Wt::toUTF8(value));
+  fmt_args_.push_back(Wt::toUTF8(value));
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
   return *this;
   //return arg(std::wstring(value));
@@ -588,10 +603,10 @@ WString& WString::arg(const std::u16string& value)
 
   //WString s;
   //s.utf8_ = Wt::toUTF8(value);
-  //impl_->arguments_.push_back(s);
+  ////impl_->arguments_.push_back(s);
 
-  arguments_.push_back(Wt::toUTF8(value));
-  fmt_args_.push_back(arguments_.back());
+  //impl_->arguments_.push_back(Wt::toUTF8(value));
+  fmt_args_.push_back(Wt::toUTF8(value));
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
 
   return *this;
@@ -608,10 +623,10 @@ WString& WString::arg(const std::u32string& value)
 
   //WString s;
   //s.utf8_ = Wt::toUTF8(value);
-  //impl_->arguments_.push_back(s);
+  ////impl_->arguments_.push_back(s);
 
-  arguments_.push_back(Wt::toUTF8(value));
-  fmt_args_.push_back(arguments_.back());
+  //impl_->arguments_.push_back(Wt::toUTF8(value));
+  fmt_args_.push_back(Wt::toUTF8(value));
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
 
   return *this;
@@ -624,11 +639,11 @@ WString& WString::arg(const char32_t *value)
 
 WString& WString::arg(const WString& value)
 {
-  //createImpl();
+  createImpl();
   
-  //impl_->arguments_.push_back(value);
-  arguments_.push_back(value.toUTF8());
-  fmt_args_.push_back(arguments_.back());
+  ////impl_->arguments_.push_back(value);
+  //impl_->arguments_.push_back(value.toUTF8());
+  fmt_args_.push_back(value.toUTF8());
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
 
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value.utf8_));
@@ -694,24 +709,24 @@ WString& WString::arg(double value)
 
 WString& WString::arg(const Wt::WDate& value)
 {
-  tmarguments_.push_back(fmt::gmtime(value.toTimePoint()));
-  fmt_args_.push_back(tmarguments_.back());
+  //tmarguments_.push_back(fmt::gmtime(value.toTimePoint()));
+  fmt_args_.push_back(fmt::gmtime(value.toTimePoint()));
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(tmarguments_.back()));
   return *this;
 }
 
 WString& WString::arg(const Wt::WDateTime& value)
 {
-  tmarguments_.push_back(fmt::gmtime(value.toTimePoint()));
-  fmt_args_.push_back(tmarguments_.back());
+  //tmarguments_.push_back(fmt::gmtime(value.toTimePoint()));
+  fmt_args_.push_back(fmt::gmtime(value.toTimePoint()));
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(tmarguments_.back()));
   return *this;
 }
 
 WString& WString::arg(const std::time_t& value)
 {
-  tmarguments_.push_back(fmt::gmtime(value));
-  fmt_args_.push_back(tmarguments_.back());
+  //tmarguments_.push_back(fmt::gmtime(value));
+  fmt_args_.push_back(fmt::gmtime(value));
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(tmarguments_.back()));
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(fmt::gmtime(value)));
   return *this;
@@ -719,11 +734,16 @@ WString& WString::arg(const std::time_t& value)
 
 WString& WString::arg(const std::chrono::system_clock::time_point& value)
 {
-  tmarguments_.push_back(fmt::gmtime(value));
-  fmt_args_.push_back(tmarguments_.back());
+  //tmarguments_.push_back(fmt::gmtime(value));
+  fmt_args_.push_back(fmt::gmtime(value));
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(tmarguments_.back()));
   //fmt_args_.push_back(fmt::detail::make_arg<ctx>(fmt::gmtime(value)));
   return *this;
+}
+
+bool WString::literal() const
+{ 
+  return !impl_ || impl_->key_.empty(); 
 }
 
 bool WString::refresh()
@@ -734,19 +754,19 @@ bool WString::refresh()
     return true;
 }
 
-const std::vector<WString>& WString::args() const
-{
-  stArguments_.clear();
-//  for(auto &arg : fmt_args_)
-//    stArguments_.push_back("");
+// const std::vector<WString>& WString::args() const
+// {
+// //  stArguments_.clear();
+// //  for(auto &arg : fmt_args_)
+// //    stArguments_.push_back("");
 
-  return stArguments_;
+//   return std::vector<WString>();
 
-  //if (impl_)
-  //  return impl_->arguments_;
-  //else
-  //  return stArguments_;
-}
+//   //if (impl_)
+//   //  return //impl_->arguments_;
+//   //else
+//   //  return stArguments_;
+// }
 
 WString utf8(const char *value)
 {
