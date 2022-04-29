@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mssse3")
 
-add_definitions(-DFMTLOG_HEADER_ONLY)
-#add_definitions(-DFMT_HEADER_ONLY)
+#add_definitions(-DFMTLOG_HEADER_ONLY)
+add_definitions(-DFMT_HEADER_ONLY)
 #add_definitions(-DFMT_EXPORT)
 #add_definitions(-DBUILD_SHARED_LIBS)
 
@@ -21,7 +21,7 @@ INCLUDE_DIRECTORIES(
   Wt/Dbo/backend/amalgamation # for sqlite3.h
 )
 
-add_subdirectory(Wt/fmt)
+#add_subdirectory(Wt/fmt)
 
 LINK_DIRECTORIES(${BOOST_LIB_DIRS})
 
@@ -76,8 +76,8 @@ FILE_TO_STRING(xml/auth_css_theme.xml
 SET(libsources
 Wt/FlexLayoutImpl.h Wt/FlexLayoutImpl.C
 Wt/FlexItemImpl.h Wt/FlexItemImpl.C
-Wt/fmt/args.h Wt/fmt/chrono.h Wt/fmt/color.h Wt/fmt/compile.h Wt/fmt/core.h Wt/fmt/format-inl.h Wt/fmt/format.h Wt/fmt/locale.h Wt/fmt/os.h Wt/fmt/ostream.h Wt/fmt/printf.h Wt/fmt/ranges.h Wt/fmt/xchar.h Wt/fmt/format.cc Wt/fmt/os.cc
-Wt/fmtlog.h Wt/fmtlog-inl.h
+#Wt/fmt/args.h Wt/fmt/chrono.h Wt/fmt/color.h Wt/fmt/compile.h Wt/fmt/core.h Wt/fmt/format-inl.h Wt/fmt/format.h Wt/fmt/locale.h Wt/fmt/os.h Wt/fmt/ostream.h Wt/fmt/printf.h Wt/fmt/ranges.h Wt/fmt/xchar.h #Wt/fmt/format.cc Wt/fmt/os.cc
+Wt/fmtlog.h Wt/fmtlog.cc
 Wt/PopupWindow.h Wt/PopupWindow.C
 Wt/Resizable.h Wt/Resizable.C
 Wt/ResizeSensor.h Wt/ResizeSensor.C
@@ -567,7 +567,7 @@ endif()
 
 TARGET_LINK_LIBRARIES(wt
   PUBLIC
-    fmt
+    #fmt
     ${WT_SOCKET_LIBRARY}
   PRIVATE
     ${WT_SAML_LIBS}

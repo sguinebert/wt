@@ -8,6 +8,7 @@ IF(CONNECTOR_FCGI)
     MESSAGE("** Enabling FastCGI connector.")
 
     SET(libfcgisources
+      ${CMAKE_CURRENT_SOURCE_DIR}/../Wt/fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../Wt/fmtlog.cc
       FCGIRecord.h FCGIRecord.C
       FCGIStream.h FCGIStream.C
       Server.h Server.C

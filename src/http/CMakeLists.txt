@@ -19,6 +19,7 @@ IF(CONNECTOR_HTTP)
   ENDIF (HAVE_STRNCASECMP)
 
   SET(libhttpsources
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Wt/fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../Wt/fmtlog.cc
     Android.h Android.C
     Configuration.h Configuration.C
     Connection.h Connection.C

@@ -10,6 +10,7 @@ IF(ENABLE_LIBWTDBO)
 
   ADD_LIBRARY(wtdbo
     ${wtdboversionrc}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../fmtlog.cc
     ptr.h ptr_impl.h ptr.C
     Call.h Call_impl.h Call.C
     DbAction.h DbAction_impl.h DbAction.C

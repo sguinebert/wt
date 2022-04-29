@@ -42,6 +42,7 @@ IF(ENABLE_SQLITE)
 
   ADD_LIBRARY(wtdbosqlite3
     Sqlite3.h Sqlite3.C
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${Sqlite3_SRCS}
     )
 
@@ -122,6 +123,7 @@ IF(ENABLE_POSTGRES AND POSTGRES_FOUND)
 
   ADD_LIBRARY(wtdbopostgres
     Postgres.h Postgres.C
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${postgres_SRCS}
     )
 
@@ -216,6 +218,7 @@ IF(ENABLE_FIREBIRD AND FIREBIRD_FOUND)
 
   ADD_LIBRARY(wtdbofirebird
     Firebird.h Firebird.C
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${IBPP_ALL_IN_ONE_FILE}
     ${firebird_SRCS}
   )
@@ -290,6 +293,7 @@ IF(ENABLE_MYSQL AND MYSQL_FOUND)
 
   ADD_LIBRARY(wtdbomysql
     MySQL.h MySQL.C
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${mysql_SRCS}
     )
 
@@ -358,6 +362,7 @@ IF(ENABLE_MSSQLSERVER AND ODBC_FOUND)
 
   ADD_LIBRARY(wtdbomssqlserver
     MSSQLServer.h MSSQLServer.C
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${mssqlserver_SRCS}
   )
 
