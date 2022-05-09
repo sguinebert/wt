@@ -36,11 +36,7 @@ SOFTWARE.
 #include <unistd.h>
 #endif
 
-#ifdef WT_DBO_LOGGER 
-#define FMTLOG_HEAD "[{YmdHMSe}] {t} [{l}] {s} DBO_LOGGER: "
-#else
-#define FMTLOG_HEAD "[{YmdHMSe}] {t} [{l}] {s} : \"" 
-#endif
+#define FMTLOG_HEAD "[{YmdHMSe}] {t} [{l}] {s} : " 
 
 template<int ___ = 0>
 class fmtlogDetailT
@@ -104,6 +100,7 @@ public:
     bgLogInfos.reserve(128);
     bgLogInfos.emplace_back(nullptr, nullptr, fmtlog::DBG, fmt::string_view());
     bgLogInfos.emplace_back(nullptr, nullptr, fmtlog::INF, fmt::string_view());
+    bgLogInfos.emplace_back(nullptr, nullptr, fmtlog::SEC, fmt::string_view());
     bgLogInfos.emplace_back(nullptr, nullptr, fmtlog::WRN, fmt::string_view());
     bgLogInfos.emplace_back(nullptr, nullptr, fmtlog::ERR, fmt::string_view());
     threadBuffers.reserve(8);
