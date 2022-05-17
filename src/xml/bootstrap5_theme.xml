@@ -2,73 +2,73 @@
 <messages xmlns:if="Wt.WTemplate.conditions">
   <message id="Wt.Auth.field">
     <![CDATA[
-    ${<if:{1}>}
+    ${{<if:{0}>}}
     <div class="form-group row">
-      <label for="${id:{1}}" class="col-form-label">
-        ${tr:Wt.Auth.{1}}
+      <label for="${{id:{0}}}" class="col-form-label">
+        ${{tr:Wt.Auth.{0}}}
       </label>
       <div class="">
-        ${{1}}
+        ${{{0}}}
       </div>
       <div class="form-text">
-        ${{1}-info}
+        ${{{0}-info}}
       </div>
     </div>
-    ${</if:{1}>}
+    ${{</if:{0}>}}
     ]]>
   </message>
 
   <message id="Wt.Auth.field-check">
     <![CDATA[
-    ${<if:{1}>}
+    ${{<if:{0}>}}
     <div class="form-group row">
-      <label for="${id:{1}}" class="col-form-label">
-        ${tr:Wt.Auth.{1}}
+      <label for="${{id:{0}}}" class="col-form-label">
+        ${{tr:Wt.Auth.{0}}}
       </label>
       <div class="">
-        ${{1}}
+        ${{{0}}}
       </div>
       <div class="form-text">
-        ${{1}-info}
+        ${{{0}-info}}
       </div>
     </div>
-    ${</if:{1}>}
+    ${{</if:{0}>}}
     ]]>
   </message>
 
   <message id="Wt.Auth.field2">
     <![CDATA[
-    ${<if:{1}>}
+    ${{<if:{0}>}}
     <div class="form-group row">
-      <label for="${id:{1}}" class="col-form-label">
-        ${{2}}
+      <label for="${{id:{0}}}" class="col-form-label">
+        ${{{1}}}
       </label>
       <div class="">
-        ${{1}}
+        ${{{0}}}
       </div>
       <div class="form-text">
-        ${{1}-info}
+        ${{{0}-info}}
       </div>
     </div>
-    ${</if:{1}>}
+    ${{</if:{0}>}}
     ]]>
   </message>
 
   <message id="Wt.Auth.field3">
     <![CDATA[
-    ${<if:{1}>}
+    ${{<if:{0}>}}
     <div class="form-group row">
-      <label for="${id:{1}}" class="col-form-label">
-        ${{2}}
+      <label for="${{id:{0}}}" class="col-form-label">
+        ${{{1}}}
       </label>
       <div class="">
-        ${{1}}
+        ${{{0}}}
       </div>
       <div class="form-text">
-        ${{1}-info} ${{3} class="btn-link"}
+        ${{{0}-info}} ${{{2} class="btn-link"}}
       </div>
     </div>
-    ${</if:{1}>}
+    ${{</if:{0}>}}
     ]]>
   </message>
 
