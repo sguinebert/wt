@@ -53,6 +53,7 @@ BOOST_JSON_NS_BEGIN
 */
 class WT_API Value
 {
+    struct source_location{};
 #ifndef BOOST_JSON_DOCS
     using scalar = detail::scalar;
 
