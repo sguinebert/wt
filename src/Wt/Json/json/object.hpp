@@ -1511,6 +1511,13 @@ public:
         return output;
     }
 private:
+    template<class CharRange>
+    friend
+    std::pair<key_value_pair*, std::size_t>
+    detail::find_in_object(
+        Object const& obj,
+        CharRange key) noexcept;
+
     template<class InputIt>
     void
     construct(

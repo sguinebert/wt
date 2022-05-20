@@ -414,7 +414,7 @@ insert_or_assign(
         std::pair<iterator, bool>
 {
     reserve(size() + 1);
-    auto const result = find_impl(key);
+    auto const result = detail::find_in_object(*this, key);
     if(result.first)
     {
         Value(std::forward<M>(m),
@@ -436,7 +436,7 @@ emplace(
         std::pair<iterator, bool>
 {
     reserve(size() + 1);
-    auto const result = find_impl(key);
+    auto const result = detail::find_in_object(*this, key);
     if(result.first)
         return { result.first, false };
     key_value_pair kv(key,
