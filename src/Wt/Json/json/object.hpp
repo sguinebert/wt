@@ -1489,27 +1489,7 @@ public:
     {
         return ! (lhs == rhs);
     }
-    std::vector<string_view>
-    splitSV(string_view strv, string_view delims = ".") const
-    {
-        std::vector<string_view> output;
-        size_t first = 0;
 
-        while (first < strv.size())
-        {
-            const auto second = strv.find_first_of(delims, first);
-
-            if (first != second)
-                output.emplace_back(strv.substr(first, second-first));
-
-            if (second == std::string_view::npos)
-                break;
-
-            first = second + 1;
-        }
-
-        return output;
-    }
 private:
     template<class CharRange>
     friend
