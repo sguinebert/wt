@@ -177,7 +177,7 @@ bool WServer::dedicatedSessionProcess() const {
 void WServer::initLogger(const std::string& logFile,
 			 const std::string& logConfig)
 {
-  fmtlog::startPollingThread(2);
+  fmtlog::startPollingThread();
 
   if (!logConfig.empty())
     logger_.configure(logConfig);
