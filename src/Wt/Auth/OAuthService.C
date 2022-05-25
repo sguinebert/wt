@@ -498,8 +498,8 @@ OAuthAccessToken OAuthProcess::parseUrlEncodedToken(const Http::Message& respons
 OAuthAccessToken OAuthProcess::parseJsonToken(const Http::Message& response)
 {
   /* OAuth 2.0 style */
-  Json::Object root;
-  Json::ParseError pe;
+  Wt::Json::Object root;
+  Wt::Json::ParseError pe;
 
 #ifndef WT_TARGET_JAVA
   bool ok = Json::parse(response.body(), root, pe);
@@ -518,14 +518,14 @@ OAuthAccessToken OAuthProcess::parseJsonToken(const Http::Message& response)
   } else {
     if (response.status() == 200) {
       try {
-	std::string accessToken = root.at("access_token").get_string("");
-	int secs = root.get("expires_in")->get_int64(-1);
+	std::string accessToken = root["access_token"].get_string("");
+	int secs = root["expires_in"].get_int64(-1);
 	WDateTime expires;
 	if (secs > 0)
 	  expires = WDateTime::currentDateTime().addSecs(secs);
 
-        std::string refreshToken = root.get("refresh_token")->get_string("");
-        std::string idToken = root.get("id_token")->get_string("");
+        std::string refreshToken = root.at("refresh_token").get_string("");
+        std::string idToken = root.at("id_token").get_string("");
 
 	return OAuthAccessToken(accessToken, expires, refreshToken, idToken);
       } catch (std::exception& e) {
@@ -534,7 +534,7 @@ OAuthAccessToken OAuthProcess::parseJsonToken(const Http::Message& response)
       }
     } else {
       throw TokenError
-	(ERROR_MSG(+ (root.get("error")->get_string("missing error"))));
+	(ERROR_MSG(+ (root["error"].get_string("missing error"))));
     }
   }
 }
