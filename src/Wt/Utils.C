@@ -121,9 +121,15 @@ namespace Wt
       auto size = tb64enc((unsigned char *)data.data(), data.size(), out);
       return std::string(out, out + size);
 
+      // std::vector<unsigned char> out;
+      // out.reserve((std::size_t)(data.size() * 1.35));
+      // auto size = tb64enc((unsigned char *)data.data(), data.size(), out.data());
+      // return std::string(out.data(), out.data() + size);
+
       // std::string v;
       // v.reserve((std::size_t)(data.size() * 1.35));
       // auto size = tb64enc((unsigned char *)data.data(), data.size(), (unsigned char *)v.data());
+      // v[size] = 0;
       // return v; //copy ellison
 
       // std::vector<char> v;
@@ -142,6 +148,7 @@ namespace Wt
       // std::string v;
       // v.reserve((std::size_t)(data.size() * 0.8));
       // auto size = tb64enc((unsigned char *)data.data(), data.size(), (unsigned char *)v.data());
+      // v[size] = 0;
       // return v; //copy ellison
 
       // std::vector<char> v;
