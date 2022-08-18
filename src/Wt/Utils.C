@@ -117,7 +117,7 @@ namespace Wt
 
     std::string base64Encode(std::string_view data, bool crlf)
     {
-      unsigned char out[(std::size_t)(data.size() * 1.35)];
+      unsigned char out[(std::size_t)(data.size() * 1.35)]; //segfault if too much data
       auto size = tb64enc((unsigned char *)data.data(), data.size(), out);
       return std::string(out, out + size);
 
