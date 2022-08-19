@@ -17,6 +17,7 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <thread>
 
 namespace Wt {
 
@@ -95,7 +96,7 @@ public:
   // decrement the blocked thread counter
   void releaseBlockedThread();
 
-  std::vector<std::unique_ptr<std::thread>> threads() const;
+  std::vector<std::unique_ptr<std::thread>>& threads() const;
 
 private:
   WIOServiceImpl *impl_;
