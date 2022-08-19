@@ -184,7 +184,7 @@ void WIOService::run()
   asio::io_service::run();
 }
 
-std::vector<std::unique_ptr<std::thread>> WIOService::threads() const
+std::vector<std::unique_ptr<std::thread>>& WIOService::threads() const
 {
     return impl_->threads_;
 }
