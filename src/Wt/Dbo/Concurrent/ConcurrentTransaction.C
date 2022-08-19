@@ -23,14 +23,29 @@ Transaction::Transaction(Session& session)
   : committed_(false),
     session_(session)
 {
-  auto id_ = std::this_thread::get_id();
-  Transaction::Impl *transaction(nullptr);
-  session_.transactions_.find(id_, transaction);
+  // auto id_ = std::this_thread::get_id();
+  // Transaction::Impl *transaction(nullptr);
+  // session_.transactions_.find(id_, transaction);
   //auto it = session_.transactions_.find(id_);
+
+  Transaction::Impl *transaction(nullptr);
+
+  auto id = std::this_thread::get_id();
+  if(!session_.transactions_.contains(id))
+    throw std::exception("no concurrent thread register");
+
+  session_.transactions_.find(id, transaction);
+    
+  // if (auto search = transactions_.find(id); search != freq_of.end())
+  // {
+  //   transaction = *search;
+  // }
+  //auto transaction = it == transactions_.end() ? nullptr : it->second;
+
 
   if (!transaction) {
     impl_ = new Impl(session_);
-    session_.transactions_.insert(id_, impl_);
+    session_.transactions_.at(id) = impl_;
   }
   else {
     impl_ = transaction;
@@ -172,9 +187,10 @@ void Transaction::Impl::commit()
   objects_.clear();
 
   session_.returnConnection(std::move(connection_));
-  auto id_ = std::this_thread::get_id();
+  auto id = std::this_thread::get_id();
+  session_.transactions_.at(id) = nullptr;
   //auto it = session_.transactions_.find(id_);
-  session_.transactions_.erase(id_);
+  //session_.transactions_.erase(id_);
   //session_.transaction_ = nullptr;
   active_ = false;
   needsRollback_ = false;
@@ -200,9 +216,10 @@ void Transaction::Impl::rollback()
 
 
   session_.returnConnection(std::move(connection_));
-  auto id_ = std::this_thread::get_id();
+  auto id = std::this_thread::get_id();
+  session_.transactions_.at(id) = nullptr;
   //auto it = session_.transactions_.find(id_);
-  session_.transactions_.erase(id_);
+  //session_.transactions_.erase(id_);
   //session_.transaction_ = nullptr;
   active_ = false;
 }

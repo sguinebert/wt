@@ -305,10 +305,20 @@ void Session::prune(MetaDbo<C> *obj)
 template<class C>
 void Session::implSave(MetaDbo<C>& dbo)
 {
-  auto id_ = std::this_thread::get_id();
-  Transaction::Impl *transaction(nullptr);
-  transactions_.find(id_, transaction);
-  //auto transaction = it == transactions_.end() ? nullptr : it->second;
+  Transaction::Impl *transaction = transaction_;
+
+  if (!transactions_.empty())
+  {
+    auto id = std::this_thread::get_id();
+    transactions_.find(id, transaction);
+    
+    // if (auto search = transactions_.find(id); search != freq_of.end())
+    // {
+    //   transaction = *search;
+    // }
+    //auto transaction = it == transactions_.end() ? nullptr : it->second;
+  }
+
   if (!transaction)
     throw Exception("Dbo save(): no active transaction");
 
@@ -326,10 +336,20 @@ void Session::implSave(MetaDbo<C>& dbo)
 template<class C>
 void Session::implDelete(MetaDbo<C>& dbo)
 {
-  auto id_ = std::this_thread::get_id();
-  Transaction::Impl *transaction(nullptr);
-  transactions_.find(id_, transaction);
-  //auto transaction = it == transactions_.end() ? nullptr : it->second;
+  Transaction::Impl *transaction = transaction_;
+
+  if (!transactions_.empty())
+  {
+    auto id = std::this_thread::get_id();
+    transactions_.find(id, transaction);
+    
+    // if (auto search = transactions_.find(id); search != freq_of.end())
+    // {
+    //   transaction = *search;
+    // }
+    //auto transaction = it == transactions_.end() ? nullptr : it->second;
+  }
+
   if (!transaction)
     throw Exception("Dbo save(): no active transaction");
 
@@ -388,10 +408,20 @@ void Session::implUpdate(MetaDbo<C>& dbo)
 template <class C>
 void Session::implLoad(MetaDbo<C>& dbo, SqlStatement *statement, int& column)
 {
-  auto id_ = std::this_thread::get_id();
-  Transaction::Impl *transaction(nullptr);
-  transactions_.find(id_, transaction);
-  //auto transaction = it == transactions_.end() ? nullptr : it->second;
+  Transaction::Impl *transaction = transaction_;
+
+  if (!transactions_.empty())
+  {
+    auto id = std::this_thread::get_id();
+    transactions_.find(id, transaction);
+    
+    // if (auto search = transactions_.find(id); search != freq_of.end())
+    // {
+    //   transaction = *search;
+    // }
+    //auto transaction = it == transactions_.end() ? nullptr : it->second;
+  }
+  
   if (!transaction)
     throw Exception("Dbo load(): no active transaction");
 
