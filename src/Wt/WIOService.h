@@ -95,6 +95,8 @@ public:
   // decrement the blocked thread counter
   void releaseBlockedThread();
 
+  std::vector<std::unique_ptr<std::thread>> threads() const;
+
 private:
   WIOServiceImpl *impl_;
   strand strand_;

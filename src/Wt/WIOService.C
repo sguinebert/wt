@@ -87,10 +87,9 @@ void WIOService::start()
     pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask);
 #endif // _WIN32
 
-    for (int i = 0; i < impl_->threadCount_; ++i) {
-      impl_->threads_.push_back
-	(std::unique_ptr<std::thread>
-	 (new std::thread(std::bind(&WIOService::run, this))));
+    for (int i = 0; i < impl_->threadCount_; ++i)
+    {
+      impl_->threads_.push_back(std::unique_ptr<std::thread>(new std::thread(std::bind(&WIOService::run, this))));
     }
 
 #if !defined(WT_WIN32)
@@ -183,6 +182,11 @@ void WIOService::run()
 {
   initializeThread();
   asio::io_service::run();
+}
+
+std::vector<std::unique_ptr<std::thread>> WIOService::threads() const
+{
+    return impl_->threads_;
 }
 
 }

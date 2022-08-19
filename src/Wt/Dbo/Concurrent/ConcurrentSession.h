@@ -146,6 +146,10 @@ public:
   Session(Session &&) = delete;
   Session& operator=(Session &&) = delete;
 
+  void setConcurrentThread(std::thread::id id) {
+    transactions_.insert(id, nullptr);
+  }
+
   /*! \brief Sets a dedicated connection.
    *
    * The connection will be used exclusively by this session.
@@ -568,7 +572,7 @@ private:
   std::vector<MetaDboBase*> objectsToAdd_;
   std::unique_ptr<SqlConnection> connection_;
   SqlConnectionPool *connectionPool_;
-  //Transaction::Impl *transaction_;
+  Transaction::Impl *transaction_;
   libcuckoo::cuckoohash_map<std::thread::id, Transaction::Impl*> transactions_;
   FlushMode flushMode_;
 
