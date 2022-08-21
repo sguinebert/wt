@@ -159,6 +159,7 @@ private:
   Impl *impl_;
 
   friend class Session;
+  friend class ConcurrentTransaction;
 
   void release();
 };
