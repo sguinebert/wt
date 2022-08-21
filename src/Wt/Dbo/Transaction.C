@@ -7,6 +7,7 @@
 #include <exception>
 #include <iostream>
 
+#include "Wt/Dbo/Exception.h"
 #include "Wt/Dbo/Logger.h"
 #include "Wt/Dbo/Session.h"
 #include "Wt/Dbo/SqlConnection.h"
@@ -23,10 +24,31 @@ Transaction::Transaction(Session& session)
   : committed_(false),
     session_(session)
 {
-  if (!session_.transaction_)
-    session_.transaction_ = new Impl(session_);
 
-  impl_ = session_.transaction_;
+  if (!session_.transactions_.empty())
+  {
+    Transaction::Impl *transaction = session_.transaction_;
+    auto id = std::this_thread::get_id();
+    if (auto search = session_.transactions_.find(id); search != session_.transactions_.end()) {
+      transaction = search->second;
+    }
+    else
+      throw Exception("Thread not find : the thread need to be register to dbo::session");
+
+    if (!transaction) {
+      impl_ = new Transaction::Impl(session_);
+      session_.transactions_.at(id) = impl_;
+    }
+    else {
+      impl_ = transaction;
+    }
+  }
+  else {
+    if (!session_.transaction_)
+      session_.transaction_ = new Impl(session_);
+
+    impl_ = session_.transaction_;
+  }
 
   ++impl_->transactionCount_;
 }
@@ -77,8 +99,11 @@ void Transaction::release()
 {
   --impl_->transactionCount_;
 
-  if (impl_->transactionCount_ == 0)
+  if (impl_->transactionCount_ == 0){
+    if (!session_.transactions_.empty())
+      session_.transactions_.at(std::this_thread::get_id()) = nullptr;
     delete impl_;
+  }
 }
 
 bool Transaction::isActive() const

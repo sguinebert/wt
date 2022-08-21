@@ -145,9 +145,7 @@ public:
   Session(Session &&) = delete;
   Session& operator=(Session &&) = delete;
 
-  void setConcurrentThread(std::thread::id id) {
-    transactions_.emplace(id, nullptr);
-  }
+  void setConcurrentThread(std::thread::id id);
 
   /*! \brief Sets a dedicated connection.
    *
@@ -573,6 +571,7 @@ private:
   SqlConnectionPool *connectionPool_;
   Transaction::Impl *transaction_;
   std::map<std::thread::id, Transaction::Impl*> transactions_;
+  std::map<std::thread::id, Impl::MetaDboBaseSet*> ts_dirtyObjects_;
   FlushMode flushMode_;
 
   void initSchema() const;
@@ -690,6 +689,7 @@ private:
   friend class SaveBaseAction;
   friend class SessionAddAction;
   friend class Transaction;
+  friend class ConcurrentTransaction;
   friend class TransactionDoneAction;
 
   friend struct Transaction::Impl;

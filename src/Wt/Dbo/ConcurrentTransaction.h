@@ -4,12 +4,13 @@
  *
  * See the LICENSE file for terms of use.
  */
-#ifndef WT_DBO_TRANSACTION_H_
-#define WT_DBO_TRANSACTION_H_
+#ifndef WT_DBO_CONCURRENTTRANSACTION_H_
+#define WT_DBO_CONCURRENTTRANSACTION_H_
 
 #include <memory>
 #include <vector>
 #include <Wt/Dbo/WDboDllDefs.h>
+#include "Wt/Dbo/Transaction.h"
 
 namespace Wt {
   namespace Dbo {
@@ -67,7 +68,7 @@ class ptr_base;
  *
  * \ingroup dbo
  */
-class WTDBO_API Transaction
+class WTDBO_API ConcurrentTransaction
 {
 public:
   /*! \brief Constructor.
@@ -77,21 +78,21 @@ public:
    * transactions must commit successfully for the entire transaction to
    * succeed.
    */
-  explicit Transaction(Session& session);
+  explicit ConcurrentTransaction(Session& session);
 
   /*! \brief Destructor.
    *
    * If the transaction is still active, it is rolled back.
    */
-  virtual ~Transaction() noexcept(false);
+  virtual ~ConcurrentTransaction() noexcept(false);
 
   // Transactions are not copyable
-  Transaction(const Transaction&) = delete;
-  Transaction& operator=(const Transaction&) = delete;
+  ConcurrentTransaction(const ConcurrentTransaction&) = delete;
+  ConcurrentTransaction& operator=(const ConcurrentTransaction&) = delete;
 
   // Transactions are not movable
-  Transaction(Transaction&&) = delete;
-  Transaction& operator=(Transaction&&) = delete;
+  ConcurrentTransaction(ConcurrentTransaction&&) = delete;
+  ConcurrentTransaction& operator=(ConcurrentTransaction&&) = delete;
 
   /*! \brief Returns whether the transaction is still active.
    *
@@ -135,28 +136,28 @@ public:
   SqlConnection *connection() const;
 
 private:
-  struct Impl {
-    Session& session_;
-    bool active_;
-    bool needsRollback_;
-    bool open_;
+  // struct Impl {
+  //   Session& session_;
+  //   bool active_;
+  //   bool needsRollback_;
+  //   bool open_;
 
-    int transactionCount_;
-    std::vector<ptr_base *> objects_;
+  //   int transactionCount_;
+  //   std::vector<ptr_base *> objects_;
 
-    std::unique_ptr<SqlConnection> connection_;
+  //   std::unique_ptr<SqlConnection> connection_;
 
-    void open();
-    void commit();
-    void rollback();
+  //   void open();
+  //   void commit();
+  //   void rollback();
 
-    Impl(Session& session_);
-    ~Impl();
-  };
+  //   Impl(Session& session_);
+  //   ~Impl();
+  // };
 
   bool committed_;
   Session& session_;
-  Impl *impl_;
+  Transaction::Impl *impl_;
 
   friend class Session;
 
@@ -166,4 +167,4 @@ private:
   }
 }
 
-#endif // WT_DBO_TRANSACTION_H_
+#endif // WT_DBO_CONCURRENTTRANSACTION_H_
