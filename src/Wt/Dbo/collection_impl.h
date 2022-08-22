@@ -425,6 +425,8 @@ void collection<C>::iterateDone() const
     data_.query->statement = nullptr;
 }
 
+//[SG] BUG : if transaction commit is called before iterating the results -> connection is already in the pool and 
+// therefore can be used by two threads concurrently -> postgres : throw 2 commands at the same time exception
 template <class C>
 SqlStatement *collection<C>::executeStatement() const
 {
@@ -443,14 +445,14 @@ SqlStatement *collection<C>::executeStatement() const
     }
   }
 
-  if (statement)
+  if (statement) 
     statement->execute();
 
   return statement;
 }
 
 template <class C>
-typename collection<C>::iterator collection<C>::begin()
+typename collection<C>::iterator collection<C>::begin() //what if Transaction already committed ()
 {
   return iterator(*this, executeStatement());
 }
