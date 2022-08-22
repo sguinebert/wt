@@ -117,14 +117,14 @@ namespace Wt
 
     std::string base64Encode(std::string_view data, bool crlf)
     {
-      unsigned char out[(std::size_t)(data.size() * 1.35)]; //segfault if too much data
-      auto size = tb64enc((unsigned char *)data.data(), data.size(), out);
-      return std::string(out, out + size);
+      // unsigned char out[(std::size_t)(data.size() * 1.35)]; //segfault if exceed the stack frame size
+      // auto size = tb64enc((unsigned char *)data.data(), data.size(), out);
+      // return std::string(out, out + size);
 
-      // std::vector<unsigned char> out;
-      // out.reserve((std::size_t)(data.size() * 1.35));
-      // auto size = tb64enc((unsigned char *)data.data(), data.size(), out.data());
-      // return std::string(out.data(), out.data() + size);
+      std::vector<unsigned char> out;
+      out.reserve((std::size_t)(data.size() * 1.35));
+      auto size = tb64enc((unsigned char *)data.data(), data.size(), out.data());
+      return std::string(out.data(), out.data() + size);
 
       // std::string v;
       // v.reserve((std::size_t)(data.size() * 1.35));
@@ -141,13 +141,22 @@ namespace Wt
 
     std::string base64Decode(std::string_view data)
     {
-      unsigned char out[(std::size_t)(data.size() * 0.8)];
+      // unsigned char out[(std::size_t)(data.size() * 0.8)]; //segfault if exceed the stack frame size
+      // auto size = tb64dec((const unsigned char *)data.data(), data.size(), out);
+      // return std::string(out, out + size);
+
+      unsigned char out[(std::size_t)(data.size() * 0.8)]; //segfault if exceed the stack frame size
       auto size = tb64dec((const unsigned char *)data.data(), data.size(), out);
       return std::string(out, out + size);
 
+      std::vector<unsigned char> out;
+      out.reserve((std::size_t)(data.size() * 0.8));
+      auto size = tb64dec((unsigned char *)data.data(), data.size(), out.data());
+      return std::string(out.data(), out.data() + size);
+
       // std::string v;
       // v.reserve((std::size_t)(data.size() * 0.8));
-      // auto size = tb64enc((unsigned char *)data.data(), data.size(), (unsigned char *)v.data());
+      // auto size = tb64dec((unsigned char *)data.data(), data.size(), (unsigned char *)v.data());
       // v[size] = 0;
       // return v; //copy ellison
 
