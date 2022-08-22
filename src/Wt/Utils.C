@@ -145,10 +145,6 @@ namespace Wt
       // auto size = tb64dec((const unsigned char *)data.data(), data.size(), out);
       // return std::string(out, out + size);
 
-      unsigned char out[(std::size_t)(data.size() * 0.8)]; //segfault if exceed the stack frame size
-      auto size = tb64dec((const unsigned char *)data.data(), data.size(), out);
-      return std::string(out, out + size);
-
       std::vector<unsigned char> out;
       out.reserve((std::size_t)(data.size() * 0.8));
       auto size = tb64dec((unsigned char *)data.data(), data.size(), out.data());
