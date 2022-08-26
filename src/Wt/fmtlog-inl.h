@@ -26,6 +26,7 @@ SOFTWARE.
 #include <thread>
 #include <limits>
 #include <ios>
+#include <iostream>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -100,7 +101,7 @@ public:
     fmtlogWrapper<>::impl.init();
     resetDate();
     fmtlog::setLogFile(stdout);
-    setHeaderPattern("[{YmdHMSe}] {t} [{l}] {s} : ");
+    setHeaderPattern("[{YmdHMSe}] {t} [{l}] [{p}] {s} : ");
     logInfos.reserve(32);
     bgLogInfos.reserve(128);
     bgLogInfos.emplace_back(nullptr, nullptr, fmtlog::DBG, fmt::string_view());
@@ -295,8 +296,8 @@ public:
   void preallocate() {
     if (fmtlog::threadBuffer) return;
     fmtlog::threadBuffer = new fmtlog::ThreadBuffer();
-    fmtlog::pathBuffer = new fmtlog::ThreadBuffer();
-    fmtlog::pathBuffer->nameSize = 10;
+    // fmtlog::pathBuffer = new fmtlog::ThreadBuffer();
+    // fmtlog::pathBuffer->nameSize = 10;
 #ifdef _WIN32
     uint32_t tid = static_cast<uint32_t>(::GetCurrentThreadId());
 #else
@@ -432,6 +433,11 @@ public:
   void poll(bool forceFlush) {
     fmtlogWrapper<>::impl.tscns.calibrate();
     int64_t tsc = fmtlogWrapper<>::impl.tscns.rdtsc();
+    if (!fmtlog::pathBuffer)
+    {
+      fmtlog::pathBuffer = new fmtlog::ThreadBuffer();
+      fmtlog::pathBuffer->nameSize = 0;
+    }
     if (logInfos.size()) {
       std::unique_lock<std::mutex> lock(logInfoMutex);
       for (auto& info : logInfos) {
