@@ -548,7 +548,7 @@ namespace Wt
 #define LOG_ERROR_S(s, m, ...)                    \
   do                                              \
   {                                               \
-      (s)->log("info");                           \
+      (s)->log("error");                           \
       loge(m, ##__VA_ARGS__);                     \
       fmtlog::setPathName("");                    \
   } while (0) 
