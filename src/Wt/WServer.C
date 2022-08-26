@@ -156,8 +156,6 @@ const WLogSink * WServer::customLogger() const
 
 WLogEntry WServer::log(const std::string& type) const
 {
-  fmtlog::setPathName("");
-
   if (customLogger_) {
     return WLogEntry(*customLogger_, type);
   }

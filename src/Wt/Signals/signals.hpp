@@ -214,15 +214,6 @@ public:
     return false;
   }
 
-  // awaitable<void> custom_async_foo()
-  // {
-  //   auto token = co_await this_coro::executor_t();
-  //   token.
-  //     co_await async_wait_for_third_party_callback();
-
-  //     return co_return;
-  // }
-
   // Emit a signal, i.e. invoke all its callbacks.
   void emit (Args... args) const
   {
