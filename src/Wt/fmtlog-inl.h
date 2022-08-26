@@ -255,7 +255,7 @@ public:
 
   fmtlog::MemoryBuffer membuf;
 
-  const static int parttenArgSize = 26;
+  const static int parttenArgSize = 25;
   uint32_t reorderIdx[parttenArgSize];
   Str<3> weekdayName;
   Str<3> monthName;
