@@ -525,7 +525,7 @@ namespace Wt
   do                                              \
   {                                               \
       (s)->log("info");                           \
-      logi(m, ##__VA_ARGS__);                     \
+      logi(m, ##__VA_ARGS__); fmtlog::poll(true);                     \
       fmtlog::setPathName("");                    \
   } while (0) 
 #define LOG_INFO(m, ...) logi(m, ##__VA_ARGS__);
