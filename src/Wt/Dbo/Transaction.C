@@ -82,8 +82,10 @@ Transaction::~Transaction() noexcept(false)
         rollback();
         } catch (std::exception &e) {
           LOG_ERROR("Unexpected exception during Transaction::rollback(): {}", e.what());
+          fmtlog::poll();
     } catch (...) {
       LOG_ERROR("Unexpected exception during Transaction::rollback()");
+      fmtlog::poll();
     }
 
     release();
@@ -198,6 +200,7 @@ void Transaction::Impl::rollback()
       connection_->rollbackTransaction();
   } catch (const std::exception& e) {
     LOG_ERROR("Transaction::rollback(): {}", e.what());
+    fmtlog::poll();
   }
 
   for (unsigned i = 0; i < objects_.size(); ++i) {

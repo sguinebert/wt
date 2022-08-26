@@ -66,6 +66,7 @@ SqlStatement *SqlConnection::getStatement(const std::string& id)
     auto count = statementCache_.count(id);
     if (count >= WARN_NUM_STATEMENTS_THRESHOLD) {
       LOG_WARN("Warning: number of instances ({}) of prepared statement '{}' for this connection exceeds threshold ({}). This could indicate a programming error.", (count + 1), id, WARN_NUM_STATEMENTS_THRESHOLD);
+      fmtlog::poll();
     }
     auto stmt = prepareStatement(result->sql());
     result = stmt.get();

@@ -170,6 +170,7 @@ Session::~Session()
 {
   if (!dirtyObjects_->empty()) {
     LOG_WARN("Session exiting with {} dirty objects", dirtyObjects_->size());
+    fmtlog::poll();
   }
 
   while (!dirtyObjects_->empty()) {
@@ -203,19 +204,19 @@ void Session::setConnectionPool(SqlConnectionPool &pool)
 
 SqlConnection *Session::connection(bool openTransaction)
 {
-  Transaction::Impl *transaction = transaction_;
+  Transaction::Impl *transaction = nullptr; 
 
   if (!transactions_.empty())
   {
     auto id = std::this_thread::get_id();
-    //transactions_.find(id, transaction);
-    
+    //transactions_.find(id, transaction);   
     if (auto search = transactions_.find(id); search != transactions_.end())
     {
       transaction = search->second;
     }
-    //auto transaction = it == transactions_.end() ? nullptr : it->second;
   }
+  else
+    transaction = transaction_;
   
   if (!transaction)
     throw Exception("Operation requires an active transaction");
@@ -256,19 +257,19 @@ Call Session::execute(const std::string& sql)
 {
   initSchema();
 
-  Transaction::Impl *transaction = transaction_;
+  Transaction::Impl *transaction = nullptr; 
 
   if (!transactions_.empty())
   {
     auto id = std::this_thread::get_id();
-    //transactions_.find(id, transaction);
-    
+    //transactions_.find(id, transaction);   
     if (auto search = transactions_.find(id); search != transactions_.end())
     {
       transaction = search->second;
     }
-    //auto transaction = it == transactions_.end() ? nullptr : it->second;
   }
+  else
+    transaction = transaction_;
 
   if (!transaction)
     throw Exception("Dbo execute(): no active transaction");
@@ -342,19 +343,19 @@ void Session::prepareStatements(Impl::MappingInfo *mapping)
   std::unique_ptr<SqlConnection> connPtr;
   SqlConnection *conn;
 
-  Transaction::Impl *transaction = transaction_;
+  Transaction::Impl *transaction = nullptr; 
 
   if (!transactions_.empty())
   {
     auto id = std::this_thread::get_id();
-    //transactions_.find(id, transaction);
-    
+    //transactions_.find(id, transaction);   
     if (auto search = transactions_.find(id); search != transactions_.end())
     {
       transaction = search->second;
     }
-    //auto transaction = it == transactions_.end() ? nullptr : it->second;
   }
+  else
+    transaction = transaction_;
 
   if (transaction)
     conn = transaction->connection_.get();
@@ -1155,17 +1156,19 @@ void Session::dropTables()
 {
   initSchema();
 
-  Transaction::Impl *transaction = transaction_;
+  Transaction::Impl *transaction = nullptr; 
 
   if (!transactions_.empty())
   {
     auto id = std::this_thread::get_id();
-    //transactions_.find(id, transaction);
+    //transactions_.find(id, transaction);   
     if (auto search = transactions_.find(id); search != transactions_.end())
     {
       transaction = search->second;
     }
   }
+  else
+    transaction = transaction_;
   
   if (transaction) {
     flush();

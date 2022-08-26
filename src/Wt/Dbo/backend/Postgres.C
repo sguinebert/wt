@@ -330,8 +330,10 @@ namespace Wt
         {
           conn_.checkConnection(TRANSACTION_LIFETIME_MARGIN);
 
-          if (conn_.showQueries())
+          if (conn_.showQueries()){
             LOG_INFO(sql_);
+            fmtlog::poll();
+          }
 
           if (!result_)
           {
@@ -916,7 +918,7 @@ namespace Wt
 
       bool Postgres::reconnect()
       {
-        //LOG_INFO("{} reconnecting...", this);
+        LOG_INFO("{} reconnecting...", this);
 
         if (conn_)
         {
@@ -952,6 +954,7 @@ namespace Wt
         if (PQstatus(conn_) != CONNECTION_OK)
         {
           LOG_WARN("connection lost to server, trying to reconnect...");
+          fmtlog::poll();
           if (!reconnect())
           {
             throw PostgresException("Could not reconnect to server...");
@@ -998,8 +1001,10 @@ namespace Wt
           }
         }
 
-        if (showQuery && showQueries())
+        if (showQuery && showQueries()) {
           LOG_INFO(sql);
+          fmtlog::poll();
+        }
 
         int err;
 
