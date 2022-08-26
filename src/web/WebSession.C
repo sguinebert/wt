@@ -214,17 +214,20 @@ WLogger& WebSession::logInstance() const
 
 WLogEntry WebSession::log(const std::string& type) const
 {
+  auto path = deploymentPath_ + " " + sessionId_;
+  fmtlog::setPathName(path.c_str());
+
   if (controller_->server()->customLogger()) {
     return WLogEntry(*controller_->server()->customLogger(), type);
   }
 
   WLogEntry e = controller_->server()->logger().entry(type);
 
-#ifndef WT_TARGET_JAVA
-  e << WLogger::timestamp << WLogger::sep << getpid() << WLogger::sep
-    << '[' << deploymentPath_ << ' ' << sessionId()
-    << ']' << WLogger::sep << '[' << type << ']' << WLogger::sep;
-#endif // WT_TARGET_JAVA
+// #ifndef WT_TARGET_JAVA
+//   e << WLogger::timestamp << WLogger::sep << getpid() << WLogger::sep
+//     << '[' << deploymentPath_ << ' ' << sessionId()
+//     << ']' << WLogger::sep << '[' << type << ']' << WLogger::sep;
+// #endif // WT_TARGET_JAVA
 
   return e;
 }
