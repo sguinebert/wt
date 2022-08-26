@@ -521,39 +521,14 @@ namespace Wt
 #define LOG_DEBUG(m, ...)
 #endif
 
-#define LOG_INFO_S(s, m, ...)                     \
-  do                                              \
-  {                                               \
-      (s)->log("info");                           \
-      logi(m, ##__VA_ARGS__);                     \
-      fmtlog::setPathName("");                    \
-  } while (0) 
+#define LOG_INFO_S(s, m, ...) logi(m, ##__VA_ARGS__);
 #define LOG_INFO(m, ...) logi(m, ##__VA_ARGS__);
-#define LOG_WARN_S(s, m, ...)                     \
-  do                                              \
-  {                                               \
-      (s)->log("warning");                        \
-      logw(m, ##__VA_ARGS__);                     \
-      fmtlog::setPathName("");                    \
-  } while (0) 
+#define LOG_WARN_S(s, m, ...) logw(m, ##__VA_ARGS__);
 #define LOG_WARN(m, ...) logw(m, ##__VA_ARGS__);
-#define LOG_SECURE_S(s, m, ...)                   \
-  do                                              \
-  {                                               \
-      (s)->log("secure");                         \
-      logs(m, ##__VA_ARGS__);                     \
-      fmtlog::setPathName("");                    \
-  } while (0) 
+#define LOG_SECURE_S(s, m, ...) logs(m, ##__VA_ARGS__);
 #define LOG_SECURE(m, ...) logs(m, ##__VA_ARGS__);
-#define LOG_ERROR_S(s, m, ...)                    \
-  do                                              \
-  {                                               \
-      (s)->log("info");                           \
-      loge(m, ##__VA_ARGS__);                     \
-      fmtlog::setPathName("");                    \
-  } while (0) 
+#define LOG_ERROR_S(s, m, ...) loge(m, ##__VA_ARGS__);
 #define LOG_ERROR(m, ...) loge(m, ##__VA_ARGS__);
-
 
 #else // WT_TARGET_JAVA
 
