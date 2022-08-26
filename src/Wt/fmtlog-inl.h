@@ -28,7 +28,9 @@ SOFTWARE.
 #include <ios>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 #include <processthreadsapi.h>
 #else
@@ -36,7 +38,10 @@ SOFTWARE.
 #include <unistd.h>
 #endif
 
-#define FMTLOG_HEAD "[{YmdHMSe}] {t} [{l}] {s} : " 
+namespace {
+void fmtlogEmptyFun(void*) {
+}
+} // namespace
 
 template<int ___ = 0>
 class fmtlogDetailT
@@ -95,7 +100,7 @@ public:
     fmtlogWrapper<>::impl.init();
     resetDate();
     fmtlog::setLogFile(stdout);
-    setHeaderPattern(FMTLOG_HEAD);
+    setHeaderPattern("[{YmdHMSe}] {t} [{l}] {s} : ");
     logInfos.reserve(32);
     bgLogInfos.reserve(128);
     bgLogInfos.emplace_back(nullptr, nullptr, fmtlog::DBG, fmt::string_view());
@@ -125,7 +130,7 @@ public:
       "t"_a = "thread name", "F"_a = "", "f"_a = "", "e"_a = "", "S"_a = "", "M"_a = "", "H"_a = "",
       "l"_a = fmtlog::LogLevel(), "s"_a = "fmtlog.cc:123", "g"_a = "/home/raomeng/fmtlog/fmtlog.cc:123", "Ymd"_a = "",
       "HMS"_a = "", "HMSe"_a = "", "HMSf"_a = "", "HMSF"_a = "", "YmdHMS"_a = "", "YmdHMSe"_a = "", "YmdHMSf"_a = "",
-      "YmdHMSF"_a = "");
+      "YmdHMSF"_a = "", "p"_a = "/");
     shouldDeallocateHeader = headerPattern.data() != pattern;
 
     setArg<0>(fmt::string_view(weekdayName.s, 3));
@@ -153,6 +158,7 @@ public:
     setArg<22>(fmt::string_view(year.s, 23));   // YmdHMSe
     setArg<23>(fmt::string_view(year.s, 26));   // YmdHMSf
     setArg<24>(fmt::string_view(year.s, 29));   // YmdHMSF
+    setArg<25>(fmt::string_view());   // url path arg
   }
 
   class ThreadBufferDestroyer
@@ -163,9 +169,14 @@ public:
     void threadBufferCreated() {}
 
     ~ThreadBufferDestroyer() {
+      fmtlog::poll(true); //purge before delete
       if (fmtlog::threadBuffer != nullptr) {
         fmtlog::threadBuffer->shouldDeallocate = true;
         fmtlog::threadBuffer = nullptr;
+      }
+      if(fmtlog::pathBuffer != nullptr) {
+          fmtlog::pathBuffer->shouldDeallocate = true;
+          fmtlog::pathBuffer = nullptr;
       }
     }
   };
@@ -239,6 +250,8 @@ public:
 
   fmtlog::LogCBFn logCB = nullptr;
   fmtlog::LogLevel minCBLogLevel;
+  fmtlog::LogQFullCBFn logQFullCB = fmtlogEmptyFun;
+  void* logQFullCBArg = nullptr;
 
   fmtlog::MemoryBuffer membuf;
 
@@ -282,6 +295,8 @@ public:
   void preallocate() {
     if (fmtlog::threadBuffer) return;
     fmtlog::threadBuffer = new fmtlog::ThreadBuffer();
+    fmtlog::pathBuffer = new fmtlog::ThreadBuffer();
+    fmtlog::pathBuffer->nameSize = 10;
 #ifdef _WIN32
     uint32_t tid = static_cast<uint32_t>(::GetCurrentThreadId());
 #else
@@ -346,8 +361,9 @@ public:
     if (thr.joinable()) thr.join();
   }
 
-  void handleLog(fmt::string_view threadName, const fmtlog::SPSCVarQueueOPT::MsgHeader* header) {
+  void handleLog(fmt::string_view threadName, fmt::string_view pathName, const fmtlog::SPSCVarQueueOPT::MsgHeader* header) {
     setArgVal<6>(threadName);
+    setArgVal<25>(pathName);
     StaticLogInfo& info = bgLogInfos[header->logId];
     const char* data = (const char*)(header + 1);
     const char* end = (const char*)header + header->size;
@@ -414,6 +430,7 @@ public:
   }
 
   void poll(bool forceFlush) {
+    fmtlogWrapper<>::impl.tscns.calibrate();
     int64_t tsc = fmtlogWrapper<>::impl.tscns.rdtsc();
     if (logInfos.size()) {
       std::unique_lock<std::mutex> lock(logInfoMutex);
@@ -454,7 +471,7 @@ public:
       auto h = bgThreadBuffers[0].header;
       if (!h || h->logId >= bgLogInfos.size() || *(int64_t*)(h + 1) >= tsc) break;
       auto tb = bgThreadBuffers[0].tb;
-      handleLog(fmt::string_view(tb->name, tb->nameSize), h);
+      handleLog(fmt::string_view(tb->name, tb->nameSize), fmt::string_view(fmtlog::pathBuffer->name, fmtlog::pathBuffer->nameSize), h);
       tb->varq.pop();
       bgThreadBuffers[0].header = tb->varq.front();
       adjustHeap(0);
@@ -487,7 +504,7 @@ fmtlogDetailT<> fmtlogDetailWrapper<_>::impl;
 
 template<int _>
 void fmtlogT<_>::registerLogInfo(uint32_t& logId, FormatToFn fn, const char* location,
-                                 LogLevel level, fmt::string_view fmtString) noexcept {
+                                 LogLevel level, fmt::string_view fmtString) FMT_NOEXCEPT {
   auto& d = fmtlogDetailWrapper<>::impl;
   std::lock_guard<std::mutex> lock(d.logInfoMutex);
   if (logId) return;
@@ -514,13 +531,23 @@ void fmtlogT<_>::vformat_to(char* out, fmt::string_view fmt, fmt::format_args ar
 }
 
 template<int _>
+typename fmtlogT<_>::SPSCVarQueueOPT::MsgHeader* fmtlogT<_>::allocMsg(uint32_t size,
+                                                                      bool q_full_cb) FMT_NOEXCEPT {
+  auto& d = fmtlogDetailWrapper<>::impl;
+  if (threadBuffer == nullptr) preallocate();
+  auto ret = threadBuffer->varq.alloc(size);
+  if ((ret == nullptr) & q_full_cb) d.logQFullCB(d.logQFullCBArg);
+  return ret;
+}
+
+template<int _>
 typename fmtlogT<_>::SPSCVarQueueOPT::MsgHeader*
-fmtlogT<_>::SPSCVarQueueOPT::allocMsg(uint32_t size) noexcept {
+fmtlogT<_>::SPSCVarQueueOPT::allocMsg(uint32_t size) FMT_NOEXCEPT {
   return alloc(size);
 }
 
 template<int _>
-void fmtlogT<_>::preallocate() noexcept {
+void fmtlogT<_>::preallocate() FMT_NOEXCEPT {
   fmtlogDetailWrapper<>::impl.preallocate();
 }
 
@@ -530,7 +557,7 @@ void fmtlogT<_>::setLogFile(const char* filename, bool truncate) {
   FILE* newFp = fopen(filename, truncate ? "w" : "a");
   if (!newFp) {
     std::string err = fmt::format("Unable to open file: {}: {}", filename, strerror(errno));
-    throw std::ios_base::failure(err);
+    fmt::detail::throw_format_error(err.c_str());
   }
   setbuf(newFp, nullptr);
   d.fpos = ftell(newFp);
@@ -555,22 +582,22 @@ void fmtlogT<_>::setLogFile(FILE* fp, bool manageFp) {
 }
 
 template<int _>
-void fmtlogT<_>::setFlushDelay(int64_t ns) noexcept {
+void fmtlogT<_>::setFlushDelay(int64_t ns) FMT_NOEXCEPT {
   fmtlogDetailWrapper<>::impl.flushDelay = ns;
 }
 
 template<int _>
-void fmtlogT<_>::flushOn(LogLevel flushLogLevel) noexcept {
+void fmtlogT<_>::flushOn(LogLevel flushLogLevel) FMT_NOEXCEPT {
   fmtlogDetailWrapper<>::impl.flushLogLevel = flushLogLevel;
 }
 
 template<int _>
-void fmtlogT<_>::setFlushBufSize(uint32_t bytes) noexcept {
+void fmtlogT<_>::setFlushBufSize(uint32_t bytes) FMT_NOEXCEPT {
   fmtlogDetailWrapper<>::impl.flushBufSize = bytes;
 }
 
 template<int _>
-void fmtlogT<_>::closeLogFile() noexcept {
+void fmtlogT<_>::closeLogFile() FMT_NOEXCEPT {
   fmtlogDetailWrapper<>::impl.closeLogFile();
 }
 
@@ -580,16 +607,29 @@ void fmtlogT<_>::poll(bool forceFlush) {
 }
 
 template<int _>
-void fmtlogT<_>::setThreadName(const char* name) noexcept {
+void fmtlogT<_>::setThreadName(const char* name) FMT_NOEXCEPT {
   preallocate();
   threadBuffer->nameSize = fmt::format_to_n(threadBuffer->name, sizeof(fmtlog::threadBuffer->name), "{}", name).size;
 }
 
 template<int _>
-void fmtlogT<_>::setLogCB(LogCBFn cb, LogLevel minCBLogLevel_) noexcept {
+void fmtlogT<_>::setPathName(const char* name) noexcept {
+  preallocate();
+  pathBuffer->nameSize = fmt::format_to_n(pathBuffer->name, sizeof(fmtlog::pathBuffer->name), "{}", name).size;
+}
+
+template<int _>
+void fmtlogT<_>::setLogCB(LogCBFn cb, LogLevel minCBLogLevel_) FMT_NOEXCEPT {
   auto& d = fmtlogDetailWrapper<>::impl;
   d.logCB = cb;
   d.minCBLogLevel = minCBLogLevel_;
+}
+
+template<int _>
+void fmtlogT<_>::setLogQFullCB(LogQFullCBFn cb, void* userData) FMT_NOEXCEPT {
+  auto& d = fmtlogDetailWrapper<>::impl;
+  d.logQFullCB = cb;
+  d.logQFullCBArg = userData;
 }
 
 template<int _>
@@ -598,18 +638,13 @@ void fmtlogT<_>::setHeaderPattern(const char* pattern) {
 }
 
 template<int _>
-void fmtlogT<_>::startPollingThread(int64_t pollInterval) noexcept {
+void fmtlogT<_>::startPollingThread(int64_t pollInterval) FMT_NOEXCEPT {
   fmtlogDetailWrapper<>::impl.startPollingThread(pollInterval);
 }
 
 template<int _>
-void fmtlogT<_>::stopPollingThread() noexcept {
+void fmtlogT<_>::stopPollingThread() FMT_NOEXCEPT {
   fmtlogDetailWrapper<>::impl.stopPollingThread();
-}
-
-template<int _>
-void fmtlogT<_>::setTscGhz(double tscGhz) noexcept {
-  fmtlogWrapper<>::impl.tscns.init(tscGhz);
 }
 
 template class fmtlogT<0>;
