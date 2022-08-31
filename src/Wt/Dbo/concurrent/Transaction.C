@@ -7,6 +7,7 @@
 #include <exception>
 #include <iostream>
 
+#include "Wt/Dbo/Exception.h"
 #include "Wt/Dbo/Logger.h"
 #include "Wt/Dbo/Session.h"
 #include "Wt/Dbo/SqlConnection.h"
@@ -23,40 +24,33 @@ Transaction::Transaction(Session& session)
   : committed_(false),
     session_(session)
 {
-  // auto id_ = std::this_thread::get_id();
-  // Transaction::Impl *transaction(nullptr);
-  // session_.transactions_.find(id_, transaction);
-  //auto it = session_.transactions_.find(id_);
 
-  Transaction::Impl *transaction(nullptr);
+  if (!session_.transactions_.empty())
+  {
+    Transaction::Impl *transaction = session_.transaction_;
+    auto id = std::this_thread::get_id();
+    if (auto search = session_.transactions_.find(id); search != session_.transactions_.end()) {
+      transaction = search->second;
+    }
+    else
+      throw Exception("Thread not find : the thread need to be register to dbo::session");
 
-  auto id = std::this_thread::get_id();
-  if(!session_.transactions_.contains(id))
-    throw std::exception("no concurrent thread register");
-
-  session_.transactions_.find(id, transaction);
-    
-  // if (auto search = transactions_.find(id); search != freq_of.end())
-  // {
-  //   transaction = *search;
-  // }
-  //auto transaction = it == transactions_.end() ? nullptr : it->second;
-
-
-  if (!transaction) {
-    impl_ = new Impl(session_);
-    session_.transactions_.at(id) = impl_;
+    if (!transaction) {
+      impl_ = new Transaction::Impl(session_);
+      session_.transactions_.at(id) = impl_;
+    }
+    else {
+      impl_ = transaction;
+    }
   }
   else {
-    impl_ = transaction;
+    if (!session_.transaction_)
+      session_.transaction_ = new Impl(session_);
+
+    impl_ = session_.transaction_;
   }
+
   ++impl_->transactionCount_;
-  //if (!session_.transaction_)
-  //  session_.transaction_ = new Impl(session_);
-
-  //impl_ = session_.transaction_;
-
-  //++impl_->transactionCount_;
 }
 
 /*
@@ -70,30 +64,37 @@ Transaction::~Transaction() noexcept(false)
   if (!committed_ || impl_->needsRollback_) {
     // A commit attempt failed (and thus we need to rollback) or we
     // are unwinding a stack while an exception is thrown
-    if (impl_->needsRollback_ || std::uncaught_exception()) {
-      bool canThrow = !std::uncaught_exception();
+    if (impl_->needsRollback_ || std::uncaught_exceptions()) {
+      bool canThrow = std::uncaught_exceptions() == 0;
       try {
-    rollback();
-      } catch (...) {
-    release();
-    if (canThrow)
-      throw;
-      }
-    } else {
-      try {
-    commit();
-      } catch (...) {
-    try {
-      if (impl_->transactionCount_ == 1)
         rollback();
-        } catch (std::exception &e) {
-          LOG_ERROR("Unexpected exception during Transaction::rollback(): " << e.what());
-    } catch (...) {
-      LOG_ERROR("Unexpected exception during Transaction::rollback()");
+      }
+      catch (...) {
+        release();
+        if (canThrow)
+          throw;
+      }
     }
+    else {
+      try {
+        commit();
+      }
+      catch (...) {
+        try {
+          if (impl_->transactionCount_ == 1)
+            rollback();
+        }
+        catch (std::exception &e) {
+          LOG_ERROR("Unexpected exception during Transaction::rollback(): {}", e.what());
+          fmtlog::poll();
+        }
+        catch (...) {
+          LOG_ERROR("Unexpected exception during Transaction::rollback()");
+          fmtlog::poll();
+        }
 
-    release();
-    throw;
+        release();
+        throw;
       }
     }
   }
@@ -105,8 +106,11 @@ void Transaction::release()
 {
   --impl_->transactionCount_;
 
-  if (impl_->transactionCount_ == 0)
+  if (impl_->transactionCount_ == 0){
+    if (!session_.transactions_.empty())
+      session_.transactions_.at(std::this_thread::get_id()) = nullptr;
     delete impl_;
+  }
 }
 
 bool Transaction::isActive() const
@@ -187,11 +191,7 @@ void Transaction::Impl::commit()
   objects_.clear();
 
   session_.returnConnection(std::move(connection_));
-  auto id = std::this_thread::get_id();
-  session_.transactions_.at(id) = nullptr;
-  //auto it = session_.transactions_.find(id_);
-  //session_.transactions_.erase(id_);
-  //session_.transaction_ = nullptr;
+  session_.transaction_ = nullptr;
   active_ = false;
   needsRollback_ = false;
 }
@@ -204,7 +204,8 @@ void Transaction::Impl::rollback()
     if (open_)
       connection_->rollbackTransaction();
   } catch (const std::exception& e) {
-    LOG_ERROR("Transaction::rollback(): " << e.what());
+    LOG_ERROR("Transaction::rollback(): {}", e.what());
+    fmtlog::poll();
   }
 
   for (unsigned i = 0; i < objects_.size(); ++i) {
@@ -216,11 +217,7 @@ void Transaction::Impl::rollback()
 
 
   session_.returnConnection(std::move(connection_));
-  auto id = std::this_thread::get_id();
-  session_.transactions_.at(id) = nullptr;
-  //auto it = session_.transactions_.find(id_);
-  //session_.transactions_.erase(id_);
-  //session_.transaction_ = nullptr;
+  session_.transaction_ = nullptr;
   active_ = false;
 }
 

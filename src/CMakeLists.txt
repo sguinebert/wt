@@ -2,13 +2,14 @@ SUBDIRS(web Wt)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -march=native")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mssse3")
 
-#add_definitions(-DFMTLOG_HEADER_ONLY)
+#add_definitions(-DFMTLOG_HEADER_ONLY) 
 add_definitions(-DFMT_HEADER_ONLY)
 #add_definitions(-DFMT_EXPORT)
 #add_definitions(-DBUILD_SHARED_LIBS)
+add_definitions(-DBOOST_JSON_STANDALONE)
 
 #target_link_libraries(wt PRIVATE fmt::fmt-header-only)
 
