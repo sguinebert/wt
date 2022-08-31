@@ -310,12 +310,12 @@ void Session::implSave(MetaDbo<C>& dbo)
   if (!transactions_.empty())
   {
     auto id = std::this_thread::get_id();
-    transactions_.find(id, transaction);
+    //transactions_.find(id, transaction);
     
-    // if (auto search = transactions_.find(id); search != freq_of.end())
-    // {
-    //   transaction = *search;
-    // }
+    if (auto search = transactions_.find(id); search != transactions_.end())
+    {
+      transaction = search->second;
+    }
     //auto transaction = it == transactions_.end() ? nullptr : it->second;
   }
 
@@ -341,12 +341,12 @@ void Session::implDelete(MetaDbo<C>& dbo)
   if (!transactions_.empty())
   {
     auto id = std::this_thread::get_id();
-    transactions_.find(id, transaction);
+    //transactions_.find(id, transaction);
     
-    // if (auto search = transactions_.find(id); search != freq_of.end())
-    // {
-    //   transaction = *search;
-    // }
+    if (auto search = transactions_.find(id); search != transactions_.end())
+    {
+      transaction = search->second;
+    }
     //auto transaction = it == transactions_.end() ? nullptr : it->second;
   }
 
@@ -413,12 +413,12 @@ void Session::implLoad(MetaDbo<C>& dbo, SqlStatement *statement, int& column)
   if (!transactions_.empty())
   {
     auto id = std::this_thread::get_id();
-    transactions_.find(id, transaction);
+    //transactions_.find(id, transaction);
     
-    // if (auto search = transactions_.find(id); search != freq_of.end())
-    // {
-    //   transaction = *search;
-    // }
+    if (auto search = transactions_.find(id); search != transactions_.end())
+    {
+      transaction = search->second;
+    }
     //auto transaction = it == transactions_.end() ? nullptr : it->second;
   }
   

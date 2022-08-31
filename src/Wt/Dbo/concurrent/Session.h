@@ -12,8 +12,7 @@
 #include <string>
 #include <typeinfo>
 #include <thread>
-#include <unordered_map>
-#include <libcuckoo/cuckoohash_map.hh>
+//#include <libcuckoo/cuckoohash_map.hh>
 
 #include <Wt/Dbo/ptr.h>
 #include <Wt/Dbo/Field.h>
@@ -146,9 +145,7 @@ public:
   Session(Session &&) = delete;
   Session& operator=(Session &&) = delete;
 
-  void setConcurrentThread(std::thread::id id) {
-    transactions_.insert(id, nullptr);
-  }
+  void setConcurrentThread(std::thread::id id);
 
   /*! \brief Sets a dedicated connection.
    *
@@ -568,12 +565,13 @@ private:
   mutable LimitQuery limitQueryMethod_;
   mutable bool requireSubqueryAlias_;
 
-  Impl::MetaDboBaseSet *dirtyObjects_;
+  thread_local static Impl::MetaDboBaseSet *dirtyObjects_;
   std::vector<MetaDboBase*> objectsToAdd_;
   std::unique_ptr<SqlConnection> connection_;
   SqlConnectionPool *connectionPool_;
-  Transaction::Impl *transaction_;
-  libcuckoo::cuckoohash_map<std::thread::id, Transaction::Impl*> transactions_;
+  thread_local static Transaction::Impl *transaction_;
+  std::map<std::thread::id, Transaction::Impl*> transactions_;
+  std::map<std::thread::id, Impl::MetaDboBaseSet*> ts_dirtyObjects_;
   FlushMode flushMode_;
 
   void initSchema() const;
@@ -691,6 +689,7 @@ private:
   friend class SaveBaseAction;
   friend class SessionAddAction;
   friend class Transaction;
+  friend class ConcurrentTransaction;
   friend class TransactionDoneAction;
 
   friend struct Transaction::Impl;

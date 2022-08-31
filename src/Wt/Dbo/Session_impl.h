@@ -307,17 +307,16 @@ void Session::implSave(MetaDbo<C>& dbo)
 {
   Transaction::Impl *transaction = transaction_;
 
-  if (!transactions_.empty())
-  {
-    auto id = std::this_thread::get_id();
-    //transactions_.find(id, transaction);
+  // if (!transactions_.empty())
+  // {
+  //   auto id = std::this_thread::get_id();
+  //   //transactions_.find(id, transaction);
     
-    if (auto search = transactions_.find(id); search != transactions_.end())
-    {
-      transaction = search->second;
-    }
-    //auto transaction = it == transactions_.end() ? nullptr : it->second;
-  }
+  //   if (auto search = transactions_.find(id); search != transactions_.end())
+  //   {
+  //     transaction = search->second;
+  //   }
+  // }
 
   if (!transaction)
     throw Exception("Dbo save(): no active transaction");
@@ -338,17 +337,16 @@ void Session::implDelete(MetaDbo<C>& dbo)
 {
   Transaction::Impl *transaction = transaction_;
 
-  if (!transactions_.empty())
-  {
-    auto id = std::this_thread::get_id();
-    //transactions_.find(id, transaction);
+  // if (!transactions_.empty())
+  // {
+  //   auto id = std::this_thread::get_id();
+  //   //transactions_.find(id, transaction);
     
-    if (auto search = transactions_.find(id); search != transactions_.end())
-    {
-      transaction = search->second;
-    }
-    //auto transaction = it == transactions_.end() ? nullptr : it->second;
-  }
+  //   if (auto search = transactions_.find(id); search != transactions_.end())
+  //   {
+  //     transaction = search->second;
+  //   }
+  // }
 
   if (!transaction)
     throw Exception("Dbo save(): no active transaction");
@@ -410,17 +408,16 @@ void Session::implLoad(MetaDbo<C>& dbo, SqlStatement *statement, int& column)
 {
   Transaction::Impl *transaction = transaction_;
 
-  if (!transactions_.empty())
-  {
-    auto id = std::this_thread::get_id();
-    //transactions_.find(id, transaction);
+  // if (!transactions_.empty())
+  // {
+  //   auto id = std::this_thread::get_id();
+  //   //transactions_.find(id, transaction);
     
-    if (auto search = transactions_.find(id); search != transactions_.end())
-    {
-      transaction = search->second;
-    }
-    //auto transaction = it == transactions_.end() ? nullptr : it->second;
-  }
+  //   if (auto search = transactions_.find(id); search != transactions_.end())
+  //   {
+  //     transaction = search->second;
+  //   }
+  // }
   
   if (!transaction)
     throw Exception("Dbo load(): no active transaction");

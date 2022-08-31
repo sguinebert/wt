@@ -565,13 +565,13 @@ private:
   mutable LimitQuery limitQueryMethod_;
   mutable bool requireSubqueryAlias_;
 
-  Impl::MetaDboBaseSet *dirtyObjects_;
+  thread_local static Impl::MetaDboBaseSet *dirtyObjects_;
   std::vector<MetaDboBase*> objectsToAdd_;
   std::unique_ptr<SqlConnection> connection_;
   SqlConnectionPool *connectionPool_;
-  Transaction::Impl *transaction_;
-  std::map<std::thread::id, Transaction::Impl*> transactions_;
-  std::map<std::thread::id, Impl::MetaDboBaseSet*> ts_dirtyObjects_;
+  thread_local static Transaction::Impl *transaction_;
+  //std::map<std::thread::id, Transaction::Impl*> transactions_;
+  //std::map<std::thread::id, Impl::MetaDboBaseSet*> ts_dirtyObjects_;
   FlushMode flushMode_;
 
   void initSchema() const;
