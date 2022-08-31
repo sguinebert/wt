@@ -67,29 +67,34 @@ Transaction::~Transaction() noexcept(false)
     if (impl_->needsRollback_ || std::uncaught_exceptions()) {
       bool canThrow = std::uncaught_exceptions() == 0;
       try {
-    rollback();
-      } catch (...) {
-    release();
-    if (canThrow)
-      throw;
-      }
-    } else {
-      try {
-    commit();
-      } catch (...) {
-    try {
-      if (impl_->transactionCount_ == 1)
         rollback();
-        } catch (std::exception &e) {
+      }
+      catch (...) {
+        release();
+        if (canThrow)
+          throw;
+      }
+    }
+    else {
+      try {
+        commit();
+      }
+      catch (...) {
+        try {
+          if (impl_->transactionCount_ == 1)
+            rollback();
+        }
+        catch (std::exception &e) {
           LOG_ERROR("Unexpected exception during Transaction::rollback(): {}", e.what());
           fmtlog::poll();
-    } catch (...) {
-      LOG_ERROR("Unexpected exception during Transaction::rollback()");
-      fmtlog::poll();
-    }
+        }
+        catch (...) {
+          LOG_ERROR("Unexpected exception during Transaction::rollback()");
+          fmtlog::poll();
+        }
 
-    release();
-    throw;
+        release();
+        throw;
       }
     }
   }
