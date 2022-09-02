@@ -287,6 +287,8 @@ public:
    */
   WT_USTRING toString(const WT_USTRING& format) const;
 
+  WT_USTRING format(std::string_view format) const;
+
   std::chrono::system_clock::time_point toTimePoint() const;
 
   /*! \brief Parses a string to a date using a default format.
