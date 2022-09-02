@@ -605,8 +605,9 @@ bool WDate::parseLast(const std::string& v, unsigned& vi,
   return true;
 }
 
-WString WDate::toString() const
+WString WDate::toString() const //ddd MMM d yyyy
 {
+  //return fmt::format("{:%a :%b :%d :%Y}", toTimePoint());
   return WDate::toString(defaultFormat());
 }
 
