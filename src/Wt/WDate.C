@@ -615,6 +615,11 @@ WString WDate::toString(const WString& format) const
   return WDateTime::toString(this, nullptr, format, true, 0);
 }
 
+WT_USTRING WDate::format(std::string_view format) const
+{
+  return fmt::format(format, toTimePoint());
+}
+
 bool WDate::writeSpecial(const std::string& f, unsigned& i,
 			 WStringStream& result, bool localized) const
 {
