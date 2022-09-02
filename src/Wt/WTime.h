@@ -196,6 +196,8 @@ public:
    */
   WT_USTRING toString(const WT_USTRING& format) const;
 
+  WT_USTRING format(std::string_view format) const;
+
   /*! \brief Parses a string to a time using a default format.
    *
    * The default format is "hh:mm:ss".

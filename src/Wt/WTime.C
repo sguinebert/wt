@@ -15,6 +15,8 @@
 
 #include "WebUtils.h"
 
+using namespace std::literals::chrono_literals;
+
 namespace Wt {
 
 LOGGER("WTime");
@@ -345,12 +347,19 @@ bool WTime::parseLast(const std::string& v, unsigned& vi,
 
 WString WTime::toString() const
 {
+  // std::chrono::duration<long> dur(time_);
+  // return fmt::format(FMT_COMPILE("{:%T}"), dur);
   return WTime::toString(defaultFormat());
 }
 
 WString WTime::toString(const WString& format) const
 {
   return WDateTime::toString(nullptr, this, format, true, 0);
+}
+
+WT_USTRING WTime::format(std::string_view format) const
+{
+  return fmt::format(format, time_);
 }
 
 std::chrono::duration<int, std::milli> WTime::toTimeDuration() const
