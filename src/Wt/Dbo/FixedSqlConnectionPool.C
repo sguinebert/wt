@@ -70,6 +70,7 @@ namespace Wt
       while (impl_->freeList.empty())
       {
         LOG_WARN("no free connections, waiting for connection");
+        fmtlog::poll();
         if (impl_->timeout > std::chrono::steady_clock::duration::zero())
         {
           if (impl_->connectionAvailable.wait_for(lock, impl_->timeout) == std::cv_status::timeout)
