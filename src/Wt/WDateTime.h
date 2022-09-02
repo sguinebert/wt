@@ -13,6 +13,7 @@
 #include <Wt/WString.h>
 #include <exception>
 #include <chrono>
+#include "Wt/fmt/chrono.h"
 
 namespace Wt {
 
@@ -296,6 +297,10 @@ public:
    * \sa WDate::toString(), WTime::toString()
    */
   WT_USTRING toString(const WT_USTRING& format, bool localized = true) const;
+
+  WT_USTRING format() const;
+
+  WT_USTRING format(std::string_view format, bool localized = true) const;
 
   /*! \brief Parses a string to a time using a default format.
    *

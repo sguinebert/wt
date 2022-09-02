@@ -314,7 +314,7 @@ namespace Wt
    */
       ~WLogEntry();
 
-      /*! \brief Writes a field separator.
+   /*! \brief Writes a field separator.
    *
    * You must separate fields in a single entry using the WLogger::sep
    * constant.

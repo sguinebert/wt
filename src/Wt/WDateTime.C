@@ -593,6 +593,16 @@ namespace Wt
     return WString::fromUTF8(result.str());
   }
 
+  WT_USTRING WDateTime::format() const //ddd MMM d HH:mm:ss yyyy
+  {
+    return fmt::format(FMT_COMPILE("{:%c}"), fmt::localtime(datetime_));
+  }
+
+  WT_USTRING WDateTime::format(std::string_view format, bool localized) const
+  {
+    return fmt::format(format, fmt::localtime(datetime_));
+  }
+
   WDateTime WDateTime::fromTime_t(std::time_t t)
   {
     WDateTime dt;
