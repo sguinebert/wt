@@ -347,9 +347,9 @@ bool WTime::parseLast(const std::string& v, unsigned& vi,
 
 WString WTime::toString() const
 {
-  // std::chrono::duration<long> dur(time_);
-  // return fmt::format(FMT_COMPILE("{:%T}"), dur);
-  return WTime::toString(defaultFormat());
+  std::chrono::duration<long, std::milli> duration(time_);
+  return fmt::format(FMT_COMPILE("{:%T}"), duration);
+  //return WTime::toString(defaultFormat());
 }
 
 WString WTime::toString(const WString& format) const
