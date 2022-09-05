@@ -431,6 +431,7 @@ void parseSql(const std::string &sql,
 
   if (!err_s.str().empty()) {
     LOG_ERROR(err_s.str());
+    fmtlog::poll();
   }
 
   if (success) {
