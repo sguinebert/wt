@@ -1246,14 +1246,14 @@ Impl::MappingInfo *Session::getMapping(const char *tableName) const
 
 void Session::needsFlush(MetaDboBase *obj)
 {
-  if(!transaction_) {
-    if(threadsafe_)
-      throw Exception("Dbo ThreadSafe Session: require active Wt::Dbo::Transaction for all operations");
-    //mutex_.lock();
-    objectsToAdd_.push_back(obj);
-    //mutex_.unlock();
-    return;
-  }
+  // if(!transaction_) {
+  //   if(threadsafe_)
+  //     throw Exception("Dbo ThreadSafe Session: require active Wt::Dbo::Transaction for all operations");
+  //   //mutex_.lock();
+  //   objectsToAdd_.push_back(obj);
+  //   //mutex_.unlock();
+  //   return;
+  // }
 
   typedef Impl::MetaDboBaseSet::nth_index<1>::type Set;
 
@@ -1325,7 +1325,8 @@ void Session::flush()
   while (!dirtyObjects_->empty()) {
     Impl::MetaDboBaseSet::iterator i = dirtyObjects_->begin();
     MetaDboBase *dbo = *i;
-    dbo->flush();
+    if(dbo->session() == this) //do not flush an object from another Session
+      dbo->flush();
     dirtyObjects_->erase(i);
     dbo->decRef();
   }
