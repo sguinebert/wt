@@ -194,6 +194,7 @@ Session::~Session()
 
 void Session::setConcurrentThread(std::thread::id id)
 {
+  threadsafe_ = true;
   // transactions_.emplace(id, nullptr);
   // ts_dirtyObjects_.emplace(id, new Impl::MetaDboBaseSet());
 }
@@ -1245,6 +1246,15 @@ Impl::MappingInfo *Session::getMapping(const char *tableName) const
 
 void Session::needsFlush(MetaDboBase *obj)
 {
+  if(!transaction_) {
+    if(threadsafe_)
+      throw Exception("Dbo ThreadSafe Session: require active Wt::Dbo::Transaction for all operations");
+    //mutex_.lock();
+    objectsToAdd_.push_back(obj);
+    //mutex_.unlock();
+    return;
+  }
+
   typedef Impl::MetaDboBaseSet::nth_index<1>::type Set;
 
   if(!dirtyObjects_)

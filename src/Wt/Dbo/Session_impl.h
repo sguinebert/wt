@@ -225,8 +225,11 @@ ptr<C> Session::add(ptr<C>& obj)
     dbo->setSession(this);
     if (flushMode() == FlushMode::Auto)
       needsFlush(dbo);
-    else
+    else {
+      //mutex_.lock();
       objectsToAdd_.push_back(dbo);
+      //mutex_.unlock();
+    }
 
     SessionAddAction act(*dbo, *getMapping<MutC>());
     act.visit(*dbo->obj());

@@ -12,7 +12,7 @@
 #include <string>
 #include <typeinfo>
 #include <thread>
-//#include <libcuckoo/cuckoohash_map.hh>
+#include <mutex>
 
 #include <Wt/Dbo/ptr.h>
 #include <Wt/Dbo/Field.h>
@@ -570,6 +570,8 @@ private:
   std::unique_ptr<SqlConnection> connection_;
   SqlConnectionPool *connectionPool_;
   inline thread_local static Transaction::Impl *transaction_;
+  bool threadsafe_ = false;
+  //std::mutex mutex_;
   //std::map<std::thread::id, Transaction::Impl*> transactions_;
   //std::map<std::thread::id, Impl::MetaDboBaseSet*> ts_dirtyObjects_;
   FlushMode flushMode_;
