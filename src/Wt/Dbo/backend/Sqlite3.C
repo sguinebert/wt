@@ -266,6 +266,7 @@ public:
   {
     if (db_.showQueries()) {
       LOG_INFO(sql_);
+      fmtlog::poll();
     }
 
     int result = sqlite3_step(st_);
@@ -469,6 +470,7 @@ public:
 	}
       } catch (std::exception& e) {
         LOG_ERROR("Sqlite3::getResult(ptime): {}", e.what());
+        fmtlog::poll();
 	return false;
       }
 

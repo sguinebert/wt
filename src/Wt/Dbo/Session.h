@@ -673,6 +673,7 @@ private:
   template <class C> friend struct query_result_traits;
   template <class C> friend class SaveDbAction;
   template <class C> friend class LoadDbAction;
+  template <class C> friend class UpdateBaseAction; //added
   template <class C> friend class PtrRef;
   friend class SetReciproceAction;
   friend class ToAnysAction;
@@ -686,10 +687,9 @@ private:
   friend class InitSchema;
   friend class LoadBaseAction;
   friend class MetaDboBase;
-  friend class SaveBaseAction;
+  friend class SaveBaseAction; 
   friend class SessionAddAction;
   friend class Transaction;
-  friend class ConcurrentTransaction;
   friend class TransactionDoneAction;
 
   friend struct Transaction::Impl;

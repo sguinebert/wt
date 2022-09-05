@@ -222,6 +222,7 @@ SqlConnection *Session::connection(bool openTransaction)
   //   }
   // }
   // else
+
     transaction = transaction_;
   
   if (!transaction)

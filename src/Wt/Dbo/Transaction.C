@@ -192,6 +192,8 @@ void Transaction::Impl::commit()
 
   session_.returnConnection(std::move(connection_));
   session_.transaction_ = nullptr;
+  // if (!session_.transactions_.empty())
+  //   session_.transactions_.at(std::this_thread::get_id()) = nullptr;
   active_ = false;
   needsRollback_ = false;
 }
@@ -218,6 +220,8 @@ void Transaction::Impl::rollback()
 
   session_.returnConnection(std::move(connection_));
   session_.transaction_ = nullptr;
+  // if (!session_.transactions_.empty())
+  //     session_.transactions_.at(std::this_thread::get_id()) = nullptr;
   active_ = false;
 }
 

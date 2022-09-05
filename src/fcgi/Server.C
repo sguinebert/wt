@@ -56,7 +56,7 @@ bool Server::bindUDStoStdin(const std::string& socketPath, Wt::WServer& server)
 {
   int s = socket(AF_UNIX, SOCK_STREAM, 0);
   if (s == -1) {
-    LOG_ERROR_S(&wt_, "fatal error: fork(): {}", (const char *)strerror(errno));
+    LOG_ERROR_S(&server, "fatal error: fork(): {}", (const char *)strerror(errno));
     return false;
   }
 

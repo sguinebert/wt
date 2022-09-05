@@ -549,6 +549,7 @@ public:
   {
     if (conn_.showQueries()) {
       LOG_INFO(sql_);
+      fmtlog::poll();
     }
 
     SQLRETURN rc = SQLExecute(stmt_);
@@ -946,6 +947,7 @@ void MSSQLServer::executeSql(const std::string &sql)
 {
   if (showQueries()) {
     LOG_INFO(sql);
+    fmtlog::poll();
   }
 
   SQLRETURN rc = SQL_SUCCESS;
@@ -984,6 +986,7 @@ void MSSQLServer::startTransaction()
 {
   if (showQueries()) {
     LOG_INFO("begin transaction -- implicit");
+    fmtlog::poll();
   }
 }
 
@@ -991,6 +994,7 @@ void MSSQLServer::commitTransaction()
 {
   if (showQueries()) {
     LOG_INFO("commit transaction -- using SQLEndTran");
+    fmtlog::poll();
   }
 
   SQLRETURN rc = SQLEndTran(SQL_HANDLE_DBC, impl_->dbc, SQL_COMMIT);
@@ -1001,6 +1005,7 @@ void MSSQLServer::rollbackTransaction()
 {
   if (showQueries()) {
     LOG_INFO("rollback transaction -- using SQLEndTran");
+    fmtlog::poll();
   }
 
   SQLRETURN rc = SQLEndTran(SQL_HANDLE_DBC, impl_->dbc, SQL_ROLLBACK);
