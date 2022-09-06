@@ -165,38 +165,28 @@ Session::Session()
     //transaction_(nullptr),
     flushMode_(FlushMode::Auto)
 { 
-  if(!dirtyObjects_)
-    dirtyObjects_ = new Impl::MetaDboBaseSet();
 }
 
 Session::~Session()
 {
-  if(!dirtyObjects_)
-    dirtyObjects_ = new Impl::MetaDboBaseSet();
-
-  if (!dirtyObjects_->empty()) {
+  if (dirtyObjects_ && !dirtyObjects_->empty()) {
     LOG_WARN("Session exiting with {} dirty objects", dirtyObjects_->size());
     fmtlog::poll();
   }
 
-  while (!dirtyObjects_->empty()) {
+  while (dirtyObjects_ && !dirtyObjects_->empty()) {
     MetaDboBase *b = *dirtyObjects_->begin();
     b->decRef();
   }
 
-  dirtyObjects_->clear();
-  //delete dirtyObjects_;
+  if(dirtyObjects_) {
+    dirtyObjects_->clear();
+    //delete dirtyObjects_;
+  }
 
   for (ClassRegistry::iterator i = classRegistry_.begin();
        i != classRegistry_.end(); ++i)
     delete i->second;
-}
-
-void Session::setConcurrentThread(std::thread::id id)
-{
-  threadsafe_ = true;
-  // transactions_.emplace(id, nullptr);
-  // ts_dirtyObjects_.emplace(id, new Impl::MetaDboBaseSet());
 }
 
 void Session::setConnection(std::unique_ptr<SqlConnection> connection)
@@ -210,29 +200,14 @@ void Session::setConnectionPool(SqlConnectionPool &pool)
 }
 
 SqlConnection *Session::connection(bool openTransaction)
-{
-  Transaction::Impl *transaction = nullptr; 
-
-  // if (!transactions_.empty())
-  // {
-  //   auto id = std::this_thread::get_id();
-  //   //transactions_.find(id, transaction);   
-  //   if (auto search = transactions_.find(id); search != transactions_.end())
-  //   {
-  //     transaction = search->second;
-  //   }
-  // }
-  // else
-
-    transaction = transaction_;
-  
-  if (!transaction)
+{ 
+  if (!transaction_)
     throw Exception("Operation requires an active transaction");
 
   if (openTransaction)
-    transaction->open();
+    transaction_->open();
 
-  return transaction->connection_.get();
+  return transaction_->connection_.get();
 }
 
 std::unique_ptr<SqlConnection> Session::useConnection()
@@ -268,21 +243,7 @@ Call Session::execute(const std::string& sql)
 {
   initSchema();
 
-  Transaction::Impl *transaction = nullptr; 
-
-  // if (!transactions_.empty())
-  // {
-  //   auto id = std::this_thread::get_id();
-  //   //transactions_.find(id, transaction);   
-  //   if (auto search = transactions_.find(id); search != transactions_.end())
-  //   {
-  //     transaction = search->second;
-  //   }
-  // }
-  // else
-    transaction = transaction_;
-
-  if (!transaction)
+  if (!transaction_)
     throw Exception("Dbo execute(): no active transaction");
 
   return Call(*this, sql);
@@ -354,22 +315,8 @@ void Session::prepareStatements(Impl::MappingInfo *mapping)
   std::unique_ptr<SqlConnection> connPtr;
   SqlConnection *conn;
 
-  Transaction::Impl *transaction = nullptr; 
-
-  // if (!transactions_.empty())
-  // {
-  //   auto id = std::this_thread::get_id();
-  //   //transactions_.find(id, transaction);   
-  //   if (auto search = transactions_.find(id); search != transactions_.end())
-  //   {
-  //     transaction = search->second;
-  //   }
-  // }
-  // else
-    transaction = transaction_;
-
-  if (transaction)
-    conn = transaction->connection_.get();
+  if (transaction_)
+    conn = transaction_->connection_.get();
   else {
     connPtr = useConnection();
     conn = connPtr.get();
@@ -411,7 +358,7 @@ void Session::prepareStatements(Impl::MappingInfo *mapping)
     }
   }
 
-  if (!transaction)
+  if (!transaction_)
     returnConnection(std::move(connPtr));
 
   mapping->statements.push_back(sql.str()); // SqlInsert
@@ -1246,31 +1193,10 @@ Impl::MappingInfo *Session::getMapping(const char *tableName) const
 
 void Session::needsFlush(MetaDboBase *obj)
 {
-  // if(!transaction_) {
-  //   if(threadsafe_)
-  //     throw Exception("Dbo ThreadSafe Session: require active Wt::Dbo::Transaction for all operations");
-  //   //mutex_.lock();
-  //   objectsToAdd_.push_back(obj);
-  //   //mutex_.unlock();
-  //   return;
-  // }
-
   typedef Impl::MetaDboBaseSet::nth_index<1>::type Set;
 
   if(!dirtyObjects_)
     dirtyObjects_ = new Impl::MetaDboBaseSet();
-
-  // assign concurrent vs non concurrent dirtyObjects
-  // Impl::MetaDboBaseSet *dirtyObjects = nullptr;  
-  // if (ts_dirtyObjects_.empty()) 
-  //   dirtyObjects = dirtyObjects_; 
-  // else {
-  //   auto id = std::this_thread::get_id();
-  //   if (auto search = ts_dirtyObjects_.find(id); search != ts_dirtyObjects_.end())
-  //   {
-  //     dirtyObjects = search->second;
-  //   }
-  // }
 
   Set& setIndex = dirtyObjects_->get<1>();
 
@@ -1302,25 +1228,13 @@ void Session::needsFlush(MetaDboBase *obj)
 
 void Session::flush()
 {
-  for (unsigned i=0; i < objectsToAdd_.size(); i++) // flush mode manuel not compatible with concurrent dbo::session
+  for (unsigned i=0; i < objectsToAdd_.size(); i++) //manual flush mode not compatible with concurrent dbo::session
     needsFlush(objectsToAdd_[i]);
 
   objectsToAdd_.clear();
 
   if(!dirtyObjects_)
     dirtyObjects_ = new Impl::MetaDboBaseSet();
-
-  // Impl::MetaDboBaseSet *dirtyObjects = nullptr;  
-
-  // if(ts_dirtyObjects_.empty()) 
-  //   dirtyObjects = dirtyObjects_; 
-  // else {
-  //   auto id = std::this_thread::get_id();
-  //   if (auto search = ts_dirtyObjects_.find(id); search != ts_dirtyObjects_.end())
-  //   {
-  //     dirtyObjects = search->second;
-  //   }
-  // }
 
   while (!dirtyObjects_->empty()) {
     Impl::MetaDboBaseSet::iterator i = dirtyObjects_->begin();

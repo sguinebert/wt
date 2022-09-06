@@ -308,24 +308,11 @@ void Session::prune(MetaDbo<C> *obj)
 template<class C>
 void Session::implSave(MetaDbo<C>& dbo)
 {
-  Transaction::Impl *transaction = transaction_;
-
-  // if (!transactions_.empty())
-  // {
-  //   auto id = std::this_thread::get_id();
-  //   //transactions_.find(id, transaction);
-    
-  //   if (auto search = transactions_.find(id); search != transactions_.end())
-  //   {
-  //     transaction = search->second;
-  //   }
-  // }
-
-  if (!transaction)
+  if (!transaction_)
     throw Exception("Dbo save(): no active transaction");
 
   if (!dbo.savedInTransaction())
-    transaction->objects_.push_back(new ptr<C>(&dbo));
+    transaction_->objects_.push_back(new ptr<C>(&dbo));
 
   Session::Mapping<C> *mapping = getMapping<C>();
 
@@ -338,25 +325,12 @@ void Session::implSave(MetaDbo<C>& dbo)
 template<class C>
 void Session::implDelete(MetaDbo<C>& dbo)
 {
-  Transaction::Impl *transaction = transaction_;
-
-  // if (!transactions_.empty())
-  // {
-  //   auto id = std::this_thread::get_id();
-  //   //transactions_.find(id, transaction);
-    
-  //   if (auto search = transactions_.find(id); search != transactions_.end())
-  //   {
-  //     transaction = search->second;
-  //   }
-  // }
-
-  if (!transaction)
+  if (!transaction_)
     throw Exception("Dbo save(): no active transaction");
 
   // when saved in transaction, we are already in this list
   if (!dbo.savedInTransaction())
-    transaction->objects_.push_back(new ptr<C>(&dbo));
+    transaction_->objects_.push_back(new ptr<C>(&dbo));
 
   bool versioned = getMapping<C>()->versionFieldName && dbo.obj() != nullptr;
   SqlStatement *statement
@@ -409,20 +383,7 @@ void Session::implUpdate(MetaDbo<C>& dbo)
 template <class C>
 void Session::implLoad(MetaDbo<C>& dbo, SqlStatement *statement, int& column)
 {
-  Transaction::Impl *transaction = transaction_;
-
-  // if (!transactions_.empty())
-  // {
-  //   auto id = std::this_thread::get_id();
-  //   //transactions_.find(id, transaction);
-    
-  //   if (auto search = transactions_.find(id); search != transactions_.end())
-  //   {
-  //     transaction = search->second;
-  //   }
-  // }
-  
-  if (!transaction)
+  if (!transaction_)
     throw Exception("Dbo load(): no active transaction");
 
   LoadDbAction<C> action(dbo, *getMapping<C>(), statement, column);
