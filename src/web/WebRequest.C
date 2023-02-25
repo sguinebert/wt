@@ -30,6 +30,8 @@
 
 #endif // WT_NO_SPIRIT
 
+#define BENCH 1
+
 using std::atoi;
 
 namespace {

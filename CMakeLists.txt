@@ -11,8 +11,8 @@ SET(CMAKE_MODULE_PATH
 )
 
 SET(VERSION_SERIES 4)
-SET(VERSION_MAJOR 9)
-SET(VERSION_MINOR 2)
+SET(VERSION_MAJOR 7)
+SET(VERSION_MINOR 0)
 
 IF(NOT SHARED_LIBS)
   IF(WIN32)
@@ -29,7 +29,6 @@ OPTION(BUILD_EXAMPLES "Build examples" ON)
 OPTION(INSTALL_DOCUMENTATION "Install documentation (tutorials and reference)" OFF)
 OPTION(INSTALL_EXAMPLES "Install examples (binaries and source)" OFF)
 OPTION(INSTALL_RESOURCES "Install resources directory" ON)
-option(INSTALL_THEMES "Install the source files for Wt's themes" ON)
 OPTION(ENABLE_SSL "Enable cryptography functions, using OpenSSL" ON)
 OPTION(ENABLE_HARU "Enable Haru Free PDF Library, which is used to provide support for painting to PDF (WPdfImage)" ON)
 OPTION(ENABLE_PANGO "Enable Pango Library, which is used for improved font support (WPdfImage and WRasterImage)" ON)
@@ -41,7 +40,6 @@ OPTION(ENABLE_MYSQL "Build mariadb/mysql backend for Wt::Dbo" ON)
 OPTION(ENABLE_MSSQLSERVER "Build Microsoft SQL Server backend for Wt::Dbo" ON)
 OPTION(ENABLE_QT4 "Build Qt4 interworking library (libwtwithqt)" ON)
 OPTION(ENABLE_QT5 "Build Qt5 interworking library (libwtwithqt5)" ON)
-OPTION(ENABLE_QT6 "Build Qt6 interworking library (libwtwithqt6)" ON)
 OPTION(ENABLE_SAML "Build built-in SAML service provider for Wt::Auth" OFF)
 OPTION(ENABLE_LIBWTTEST "Build Wt::Test" ON)
 OPTION(ENABLE_LIBWTDBO "Build Wt::Dbo" ON)
@@ -49,12 +47,10 @@ OPTION(WT_NO_STD_LOCALE "Build Wt to run on a system without std::locale support
 OPTION(WT_NO_STD_WSTRING "Build Wt to run on a system without std::wstring support" OFF)
 OPTION(ENABLE_OPENGL "Build Wt with support for server-side opengl rendering" ON)
 OPTION(ENABLE_UNWIND "Build Wt with stacktrace support using libunwind" OFF)
-
-option(DEBUG_JS "Serve non-minified JavaScript from the filesystem instead of embedding it, for debugging." OFF)
-mark_as_advanced(DEBUG_JS)
+OPTION(ENABLE_URING "Build Wt with IO_URING for asio reactor using liburing" OFF)
 
 IF(NOT CMAKE_CXX_STANDARD)
-  SET(CMAKE_CXX_STANDARD 14)
+  SET(CMAKE_CXX_STANDARD 20)
 ENDIF(NOT CMAKE_CXX_STANDARD)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_CXX_EXTENSIONS OFF)
@@ -198,6 +194,8 @@ SET(ZLIB_PREFIX ${USERLIB_PREFIX} CACHE PATH
   "Installation prefix of zlib library (overrides USERLIB_PREFIX)")
 SET(GM_PREFIX ${USERLIB_PREFIX} CACHE PATH
   "Installation prefix of GraphicsMagick library (overrides USERLIB_PREFIX)")
+SET(SKIA_PREFIX ${USERLIB_PREFIX} CACHE PATH
+  "Prefix of skia library (overrides USERLIB_PREFIX)")
 SET(ASIO_PREFIX ${USERLIB_PREFIX} CACHE PATH
   "Prefix of Asio (overrides USERLIB_PREFIX), only used when WT_ASIO_IMPLEMENTATION is standalone")
 SET(UNWIND_PREFIX ${UNWIND_PREFIX} CACHE PATH
@@ -251,6 +249,8 @@ INCLUDE(cmake/WtFindAsciidoc.txt)
 INCLUDE(cmake/WtFindHaru.txt)
 INCLUDE(cmake/WtFindGm.txt)
 INCLUDE(cmake/WtFindGL.txt)
+INCLUDE(cmake/WtFindSkia.txt)
+INCLUDE(cmake/WtFindUring.txt)
 
 set(OPENSSL_ROOT_DIR ${SSL_PREFIX})
 find_package(OpenSSL)
@@ -280,21 +280,23 @@ IF(ENABLE_QT4)
   ENDIF(QT_FOUND)
 ENDIF(ENABLE_QT4)
 
+
+
+IF(ENABLE_URING)
+  SET(HAVE_URING TRUE)
+  add_definitions(-DASIO_HAS_IO_URING=1 -DASIO_DISABLE_EPOLL=1)
+ENDIF(ENABLE_URING)
+
+
 IF(ENABLE_QT5)
   FIND_PACKAGE(Qt5Core)
 ENDIF(ENABLE_QT5)
-
-IF(ENABLE_QT6)
-  FIND_PACKAGE(Qt6 CONFIG COMPONENTS Core)
-ENDIF(ENABLE_QT6)
 
 set(WT_THREAD_LIB "")
 IF(MULTI_THREADED)
   find_package(Threads)
   set(WT_THREAD_LIB Threads::Threads)
 ENDIF(MULTI_THREADED)
-
-find_package(Atomics REQUIRED)
 
 IF(NOT BOOST_WT_FOUND)
   SET(ERR
@@ -338,6 +340,8 @@ ELSE(BOOST_WT_MT_FOUND)
   ADD_DEFINITIONS(-DBOOST_DISABLE_THREADS -DSQLITE_THREADSAFE=0)
 ENDIF(BOOST_WT_MT_FOUND)
 
+# decide on GraphicsMagick vs skia
+# todo: set default to whatever was found
 IF (WIN32)
   SET(WT_WRASTERIMAGE_DEFAULT_IMPLEMENTATION "Direct2D")
 ELSE (WIN32)
@@ -345,19 +349,28 @@ ELSE (WIN32)
 ENDIF (WIN32)
 
 SET(WT_WRASTERIMAGE_IMPLEMENTATION ${WT_WRASTERIMAGE_DEFAULT_IMPLEMENTATION} CACHE STRING "Implementation for WRasterImage server-side rendering")
-SET_PROPERTY(CACHE WT_WRASTERIMAGE_IMPLEMENTATION PROPERTY STRINGS GraphicsMagick Direct2D none)
+IF (CMAKE_MAJOR_VERSION EQUAL 2 AND CMAKE_MINOR_VERSION LESS 8)
+  MESSAGE(STATUS "Informational: WT_WRASTERIMAGE_IMPLEMENTATION should be either GraphicsMagick, skia, or Direct2D")
+ELSE (CMAKE_MAJOR_VERSION EQUAL 2 AND CMAKE_MINOR_VERSION LESS 8)
+  SET_PROPERTY(CACHE WT_WRASTERIMAGE_IMPLEMENTATION PROPERTY STRINGS GraphicsMagick skia Direct2D none)
+ENDIF (CMAKE_MAJOR_VERSION EQUAL 2 AND CMAKE_MINOR_VERSION LESS 8)
 
 IF (${WT_WRASTERIMAGE_IMPLEMENTATION} STREQUAL "GraphicsMagick")
   IF (NOT GM_FOUND)
     MESSAGE(FATAL_ERROR "WT_WRASTERIMAGE_IMPLEMENTATION set to GraphicsMagick but GM is not found. Indicate the location of your graphicsmagick library using -DGM_PREFIX=...")
   ENDIF (NOT GM_FOUND)
   SET(WT_HAS_WRASTERIMAGE true)
+ELSEIF (${WT_WRASTERIMAGE_IMPLEMENTATION} STREQUAL "skia")
+  IF (NOT SKIA_FOUND)
+    MESSAGE(FATAL_ERROR "WT_WRASTERIMAGE_IMPLEMENTATION set to skia but skia is not found. Indicate the location of your skia library using -DSKIA_PREFIX=...")
+  ENDIF (NOT SKIA_FOUND)
+  SET(WT_HAS_WRASTERIMAGE true)
 ELSEIF (${WT_WRASTERIMAGE_IMPLEMENTATION} STREQUAL "Direct2D")
   IF (WIN32)
     SET(WT_HAS_WRASTERIMAGE true)
   ENDIF (WIN32)
 ELSE (${WT_WRASTERIMAGE_IMPLEMENTATION} STREQUAL "GraphicsMagick")
-    MESSAGE("** Disabled WRasterimage support. Set WT_WRASTERIMAGE_IMPLEMENTATION to GraphicsMagick or Direct2D.")
+    MESSAGE("** Disabled WRasterimage support. Set WT_WRASTERIMAGE_IMPLEMENTATION to GraphicsMagick, skia, or Direct2D.")
 ENDIF (${WT_WRASTERIMAGE_IMPLEMENTATION} STREQUAL "GraphicsMagick")
 
 IF((CMAKE_CXX_STANDARD EQUAL 17) OR (CMAKE_CXX_STANDARD GREATER 17))
@@ -509,17 +522,9 @@ INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/resources DESTINATION
     ${CMAKE_INSTALL_PREFIX}/share/Wt/)
 ENDIF(INSTALL_RESOURCES)
 
-if(INSTALL_THEMES)
-  install(DIRECTORY ${PROJECT_SOURCE_DIR}/src/themes
-          DESTINATION ${CMAKE_INSTALL_PREFIX}/share/Wt/
-          PATTERN "node_modules" EXCLUDE)
-endif()
-
 IF(INSTALL_EXAMPLES)
-  INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/
-          DESTINATION ${CMAKE_INSTALL_PREFIX}/${EXAMPLES_DESTINATION}
-          PATTERN "examples/*"
-          PATTERN "node_modules" EXCLUDE)
+  INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/ DESTINATION
+      ${CMAKE_INSTALL_PREFIX}/${EXAMPLES_DESTINATION} PATTERN "examples/*")
 ENDIF(INSTALL_EXAMPLES)
 
 IF(INSTALL_DOCUMENTATION)

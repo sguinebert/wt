@@ -407,7 +407,7 @@ void Server::addTcpEndpoint(const asio::ip::tcp::endpoint &endpoint,
       (new TcpConnection(wt_.ioService(), this, connection_manager_,
                          request_handler_));
   } else {
-    LOG_WARN_S(&wt_, bindError(endpoint, errc));
+    LOG_WARN_S(&wt_, fmt::runtime(bindError(endpoint, errc)));
     tcp_listeners_.pop_back();
   }
 }
@@ -464,7 +464,7 @@ void Server::addSslEndpoint(const asio::ip::tcp::endpoint &endpoint,
       (new SslConnection(wt_.ioService(), this, ssl_context_, connection_manager_,
                          request_handler_));
   } else {
-    LOG_WARN_S(&wt_, bindError(endpoint, errc));
+    LOG_WARN_S(&wt_, fmt::runtime(bindError(endpoint, errc)));
     ssl_listeners_.pop_back();
   }
 }

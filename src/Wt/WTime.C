@@ -359,7 +359,7 @@ WString WTime::toString(const WString& format) const
 
 WT_USTRING WTime::format(std::string_view format) const
 {
-  return fmt::format(format, time_);
+  return fmt::format(fmt::runtime(format), time_);
 }
 
 std::chrono::duration<int, std::milli> WTime::toTimeDuration() const

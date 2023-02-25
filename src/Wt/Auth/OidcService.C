@@ -88,7 +88,7 @@ LOGGER("Auth.OidcService");
         authenticated().emit(parseClaims(userInfo));
       }
     } else {
-      LOG_ERROR(ERROR_MSG("badresponse").toUTF8());
+      LOG_ERROR(fmt::runtime(ERROR_MSG("badresponse").toUTF8()));
       setError(ERROR_MSG("badresponse"));
 
       if (!err) {

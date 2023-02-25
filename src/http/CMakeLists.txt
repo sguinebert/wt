@@ -111,6 +111,10 @@ IF(CONNECTOR_HTTP)
     TARGET_LINK_LIBRARIES(wthttp PRIVATE ${WT_THREAD_LIB})
   ENDIF(BOOST_WT_MT_FOUND)
 
+  IF(HAVE_URING)
+  target_link_libraries (wthttp PRIVATE uring)
+  ENDIF(HAVE_URING)
+
   INSTALL(TARGETS wthttp
     EXPORT wt-target-http
     RUNTIME DESTINATION bin
