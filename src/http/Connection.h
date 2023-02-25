@@ -21,6 +21,19 @@
 #include <Wt/AsioWrapper/strand.hpp>
 #include <Wt/AsioWrapper/steady_timer.hpp>
 
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
+#include <asio/experimental/as_tuple.hpp>
+using boost::asio::awaitable;
+using boost::asio::buffer;
+using boost::asio::co_spawn;
+using boost::asio::detached;
+using boost::asio::ip::tcp;
+using boost::asio::use_awaitable;
+constexpr auto use_nothrow_awaitable = asio::experimental::as_tuple(use_awaitable);
+using namespace std::literals::chrono_literals;
+#endif
+using std::chrono::steady_clock;
+
 #include "Buffer.h"
 #include "Reply.h"
 #include "Request.h"
@@ -40,6 +53,8 @@ class Server;
 /// Represents a single connection from a client.
 class Connection : public std::enable_shared_from_this<Connection>
 {
+    friend class TcpConnection;
+
 public:
   /// Construct a connection with the given io_service.
   Connection(asio::io_service& io_service, Server *server,
@@ -126,6 +141,11 @@ protected:
 
   virtual void stop();
 
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
+  awaitable<void> watchdog(steady_clock::time_point& deadline);
+  steady_clock::time_point deadline_;
+#endif
+
 private:
   /*
    * Asynchronoulsy reading a request
@@ -161,6 +181,7 @@ private:
 
   /// Timer for reading data.
   asio::steady_timer readTimer_, writeTimer_;
+  //asio::steady_timer timer_;
 
   /// Current request buffer data
   std::list<Buffer> rcv_buffers_;

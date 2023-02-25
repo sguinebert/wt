@@ -1,8 +1,8 @@
 SUBDIRS(web Wt)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -march=native")
+#set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mssse3")
 
 #add_definitions(-DFMTLOG_HEADER_ONLY) 
@@ -10,8 +10,6 @@ add_definitions(-DFMT_HEADER_ONLY)
 #add_definitions(-DFMT_EXPORT)
 #add_definitions(-DBUILD_SHARED_LIBS)
 add_definitions(-DBOOST_JSON_STANDALONE)
-
-#target_link_libraries(wt PRIVATE fmt::fmt-header-only)
 
 INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_SOURCE_DIR}/web
@@ -21,8 +19,6 @@ INCLUDE_DIRECTORIES(
   ${BOOST_INCLUDE_DIRS}
   Wt/Dbo/backend/amalgamation # for sqlite3.h
 )
-
-#add_subdirectory(Wt/fmt)
 
 LINK_DIRECTORIES(${BOOST_LIB_DIRS})
 
@@ -466,6 +462,11 @@ IF(WT_HAS_SAML)
   list(APPEND libsources ${samlsources})
 ENDIF(WT_HAS_SAML)
 
+
+IF(HAVE_URING)
+#target_link_libraries (wt PRIVATE liburing)
+ENDIF(HAVE_URING)
+
 ADD_DEFINITIONS(-DWT_BUILDING)
 
 IF (MULTI_THREADED_BUILD)
@@ -565,7 +566,6 @@ endif (WT_ASIO_IS_STANDALONE_ASIO)
 
 TARGET_LINK_LIBRARIES(wt
   PUBLIC
-    #fmt
     ${WT_SOCKET_LIBRARY}
   PRIVATE
     ${WT_SAML_LIBS}

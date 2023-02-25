@@ -13,7 +13,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#define DEBUG
+//#define DEBUG
 
 #include <vector>
 
@@ -104,6 +104,9 @@ void Connection::start()
 
   rcv_buffers_.push_back(Buffer());
   startAsyncReadRequest(rcv_buffers_.back(), CONNECTION_TIMEOUT);
+  #if defined(BOOST_ASIO_HAS_CO_AWAIT)
+  co_spawn(server_->service(), watchdog(deadline_), detached);
+  #endif
 }
 
 void Connection::stop()
@@ -124,6 +127,22 @@ void Connection::setReadTimeout(int seconds)
 				    std::placeholders::_1));
   }
 }
+#if defined(BOOST_ASIO_HAS_CO_AWAIT)
+awaitable<void> Connection::watchdog(steady_clock::time_point& deadline)
+{
+  asio::steady_timer timer(co_await boost::asio::this_coro::executor);
+  deadline = std::max(deadline, steady_clock::now() + 10s);
+
+  auto now = steady_clock::now();
+  while (deadline > now)
+  {
+    timer.expires_at(deadline);
+    co_await timer.async_wait(use_awaitable);
+    now = steady_clock::now();
+  }
+  asio::post(strand_, std::bind(&Connection::doTimeout, shared_from_this()));
+}
+#endif
 
 void Connection::setWriteTimeout(int seconds)
 {

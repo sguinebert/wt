@@ -66,16 +66,23 @@ void TcpConnection::startAsyncReadRequest(Buffer& buffer, int timeout)
     return;
   }
 
-  setReadTimeout(timeout);
+  //setReadTimeout(timeout);
+  deadline_ = std::max(deadline_, steady_clock::now() + 5min);
 
   std::shared_ptr<TcpConnection> sft 
     = std::static_pointer_cast<TcpConnection>(shared_from_this());
+
   socket_.async_read_some(asio::buffer(buffer),
-			  strand_.wrap
-			  (std::bind(&TcpConnection::handleReadRequest,
-				     sft,
-				     std::placeholders::_1,
-				     std::placeholders::_2)));
+                          strand_.wrap
+                          (std::bind(&TcpConnection::handleReadRequest,
+                                     sft,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2)));
+
+//  asio::async_read_until(socket_, asio::dynamic_buffer(rcv_buffers_), "\r\n\r\n",
+//                         std::bind(&TcpConnection::handleReadRequest, sft, std::placeholders::_1, std::placeholders::_2));
+
+
 }
 
 void TcpConnection::startAsyncReadBody(ReplyPtr reply,
@@ -91,7 +98,8 @@ void TcpConnection::startAsyncReadBody(ReplyPtr reply,
     return;
   }
 
-  setReadTimeout(timeout);
+  //setReadTimeout(timeout);
+  deadline_ = std::max(deadline_, steady_clock::now() + 5min);
 
   std::shared_ptr<TcpConnection> sft 
     = std::static_pointer_cast<TcpConnection>(shared_from_this());
@@ -119,7 +127,8 @@ void TcpConnection::startAsyncWriteResponse
     return;
   }
 
-  setWriteTimeout(timeout);
+  //setWriteTimeout(timeout);
+  deadline_ = std::max(deadline_, steady_clock::now() + 5min);
 
   std::shared_ptr<TcpConnection> sft 
     = std::static_pointer_cast<TcpConnection>(shared_from_this());

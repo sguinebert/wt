@@ -90,7 +90,7 @@ public:
 
       const std::string *errorE = request.getParameter("error");
       if (errorE) {
-        LOG_ERROR(ERROR_MSG(+ *errorE).toUTF8());
+        LOG_ERROR(fmt::runtime(ERROR_MSG(+ *errorE).toUTF8()));
         process_->setError(ERROR_MSG(+ *errorE));
         sendError(response);
         return;
@@ -98,7 +98,7 @@ public:
 
       const std::string *codeE = request.getParameter("code");
       if (!codeE) {
-        LOG_ERROR(ERROR_MSG("missing-code").toUTF8());
+        LOG_ERROR(fmt::runtime(ERROR_MSG("missing-code").toUTF8()));
         process_->setError(ERROR_MSG("missing-code"));
         sendError(response);
 	      return;
@@ -265,7 +265,7 @@ void OAuthProcess::startAuthorize()
     try {
       timeout = Wt::Utils::stoi(value);
     } catch (std::exception& e) {
-      LOG_ERROR(ERROR_MSG("could not convert 'oauth2-redirect-timeout' to int: {}").toUTF8(), value);
+      LOG_ERROR(fmt::runtime(ERROR_MSG("could not convert 'oauth2-redirect-timeout' to int: {}").toUTF8()), value);
     }
   }
 

@@ -331,7 +331,7 @@ namespace Wt
           conn_.checkConnection(TRANSACTION_LIFETIME_MARGIN);
 
           if (conn_.showQueries()){
-            LOG_INFO(sql_);
+            LOG_INFO(fmt::runtime(sql_));
             fmtlog::poll();
           }
 
@@ -1002,7 +1002,7 @@ namespace Wt
         }
 
         if (showQuery && showQueries()) {
-          LOG_INFO(sql);
+          LOG_INFO(fmt::runtime(sql));
           fmtlog::poll();
         }
 

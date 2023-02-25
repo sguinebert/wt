@@ -153,7 +153,7 @@ namespace Wt
         catch (std::exception &e)
         {
           close();
-          LOG_ERROR(e.what());
+          LOG_ERROR(fmt::runtime(e.what()));
           return;
         }
       }
@@ -171,7 +171,7 @@ namespace Wt
           catch (std::exception &e)
           {
             close();
-            LOG_ERROR(e.what());
+            LOG_ERROR(fmt::runtime(e.what()));
             return;
           }
         }
@@ -211,7 +211,7 @@ namespace Wt
         catch (std::exception &e)
         {
           close();
-          LOG_ERROR(e.what());
+          LOG_ERROR(fmt::runtime(e.what()));
           return false;
         }
         return true;

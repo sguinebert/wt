@@ -47,9 +47,10 @@ OPTION(WT_NO_STD_LOCALE "Build Wt to run on a system without std::locale support
 OPTION(WT_NO_STD_WSTRING "Build Wt to run on a system without std::wstring support" OFF)
 OPTION(ENABLE_OPENGL "Build Wt with support for server-side opengl rendering" ON)
 OPTION(ENABLE_UNWIND "Build Wt with stacktrace support using libunwind" OFF)
+OPTION(ENABLE_URING "Build Wt with IO_URING for asio reactor using liburing" OFF)
 
 IF(NOT CMAKE_CXX_STANDARD)
-  SET(CMAKE_CXX_STANDARD 14)
+  SET(CMAKE_CXX_STANDARD 20)
 ENDIF(NOT CMAKE_CXX_STANDARD)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_CXX_EXTENSIONS OFF)
@@ -249,6 +250,7 @@ INCLUDE(cmake/WtFindHaru.txt)
 INCLUDE(cmake/WtFindGm.txt)
 INCLUDE(cmake/WtFindGL.txt)
 INCLUDE(cmake/WtFindSkia.txt)
+INCLUDE(cmake/WtFindUring.txt)
 
 set(OPENSSL_ROOT_DIR ${SSL_PREFIX})
 find_package(OpenSSL)
@@ -277,6 +279,14 @@ IF(ENABLE_QT4)
     INCLUDE(${QT_USE_FILE})
   ENDIF(QT_FOUND)
 ENDIF(ENABLE_QT4)
+
+
+
+IF(ENABLE_URING)
+  SET(HAVE_URING TRUE)
+  add_definitions(-DASIO_HAS_IO_URING=1 -DASIO_DISABLE_EPOLL=1)
+ENDIF(ENABLE_URING)
+
 
 IF(ENABLE_QT5)
   FIND_PACKAGE(Qt5Core)

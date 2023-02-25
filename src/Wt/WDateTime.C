@@ -600,7 +600,7 @@ namespace Wt
 
   WT_USTRING WDateTime::format(std::string_view format, bool localized) const
   {
-    return fmt::format(format, fmt::localtime(datetime_));
+    return fmt::format(fmt::runtime(format), fmt::localtime(datetime_));
   }
 
   WDateTime WDateTime::fromTime_t(std::time_t t)

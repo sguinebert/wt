@@ -426,7 +426,7 @@ void parseSql(const std::string &sql,
   bool success = x3::phrase_parse(iter, end, parser, x3::ascii::space, result);
 
   if (!err_s.str().empty()) {
-    LOG_ERROR(err_s.str());
+    LOG_ERROR(fmt::runtime(err_s.str()));
     fmtlog::poll();
   }
 

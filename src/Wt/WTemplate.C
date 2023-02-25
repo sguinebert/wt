@@ -613,7 +613,7 @@ bool WTemplate::renderTemplateText(std::ostream& result, const WString& template
           errorStream << "variable syntax error near \"" << text.substr(pos)
                       << "\"";
           errorText_ = errorStream.str();
-          LOG_ERROR(errorText_);
+          LOG_ERROR(fmt::runtime(errorText_));
           return false;
         }
 
@@ -632,7 +632,7 @@ bool WTemplate::renderTemplateText(std::ostream& result, const WString& template
               std::stringstream errorStream;
               errorStream << "mismatching condition block end: " << cond;
               errorText_ = errorStream.str();
-              LOG_ERROR(errorText_);
+              LOG_ERROR(fmt::runtime(errorText_));
               return false;
 	    }
 	    conditions.pop_back();

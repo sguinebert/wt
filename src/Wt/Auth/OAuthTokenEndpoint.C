@@ -116,7 +116,7 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
   if (!code || clientId.empty() || clientSecret.empty() || !grantType || !redirectUri) {
     response.setStatus(400);
     response.out() << "{\"error\": \"invalid_request\"}" << std::endl;
-    LOG_INFO("{\"error\": \"invalid_request\"}: code: {} clientId: {} clientSecret: {} grantType: {} redirectUri: {}", 
+    LOG_INFO(fmt::runtime("{\"error\": \"invalid_request\"}: code: {} clientId: {} clientSecret: {} grantType: {} redirectUri: {}"),
             (code ? *code : "NULL"),
             clientId,
             (clientSecret.empty() ? "MISSING" : "NOT MISSING"),
@@ -136,7 +136,7 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
             methodToString(client.authMethod()));
     }
     response.out() << "{\n\"error\": \"invalid_client\"\n}" << std::endl;
-    LOG_INFO("{\"error\": \"invalid_client\"}: id: {} client: {} secret: {} method: {}",
+    LOG_INFO(fmt::runtime("{\"error\": \"invalid_client\"}: id: {} client: {} secret: {} method: {}"),
              clientId,
              (client.checkValid() ? "valid" : "not valid"),
              (client.verifySecret(clientSecret) ? "correct" : "incorrect"),
@@ -147,7 +147,7 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
   if (*grantType != GRANT_TYPE) {
     response.setStatus(400);
     response.out() << "{\n\"error\": \"unsupported_grant_type\"\n}" << std::endl;
-    LOG_INFO("{\"error\": \"unsupported_grant_type\"}: id: {} grantType: {}", clientId, *grantType);
+    LOG_INFO(fmt::runtime("{\"error\": \"unsupported_grant_type\"}: id: {} grantType: {}"), clientId, *grantType);
     return;
   }
   IssuedToken authCode = db_->idpTokenFindWithValue(GRANT_TYPE, *code);
@@ -155,7 +155,7 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
       || WDateTime::currentDateTime() > authCode.expirationTime()) {
     response.setStatus(400);
     response.out() << "{\n\"error\": \"invalid_grant\"\n}" << std::endl;
-    LOG_INFO("{\"error\": \"invalid_grant\"}: id:{} code: {} authcode: {} redirectUri: {}{} timestamp: {}{}",
+    LOG_INFO(fmt::runtime("{\"error\": \"invalid_grant\"}: id:{} code: {} authcode: {} redirectUri: {}{} timestamp: {}{}"),
              clientId,
              *code,
              (authCode.checkValid() ? "valid" : "not valid"),
@@ -204,7 +204,7 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
 
 #ifdef WT_TARGET_JAVA
   } catch (std::io_exception ioe) {
-    LOG_ERROR(ioe.message());
+  LOG_ERROR(fmt::runtime(ioe.message()));
   }
 #endif
 }

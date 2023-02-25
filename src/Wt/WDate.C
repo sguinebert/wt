@@ -618,7 +618,7 @@ WString WDate::toString(const WString& format) const
 
 WT_USTRING WDate::format(std::string_view format) const
 {
-  return fmt::format(format, toTimePoint());
+  return fmt::format(fmt::runtime(format), toTimePoint());
 }
 
 bool WDate::writeSpecial(const std::string& f, unsigned& i,

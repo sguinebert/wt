@@ -21,12 +21,15 @@
 #include <Wt/AsioWrapper/asio.hpp>
 #include <Wt/AsioWrapper/ssl.hpp>
 
+
+
+namespace Wt {
+  namespace Ssl {
+
 #ifdef WT_ASIO_IS_BOOST_ASIO
 namespace asio = boost::asio;
 #endif // WT_ASIO_IS_BOOST_ASIO
 
-namespace Wt {
-  namespace Ssl {
     std::vector<Wt::WSslCertificate::DnAttribute>
     getDnAttributes(struct X509_name_st *sn);
 
