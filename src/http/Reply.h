@@ -105,7 +105,7 @@ public:
   /*
    * Returns true if ready to read more.
    */
-  virtual bool consumeData(const char *begin,
+  virtual asio::awaitable<bool> consumeData(const char *begin,
                            const char *end,
                            Request::State state) = 0;
 

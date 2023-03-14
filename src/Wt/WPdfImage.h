@@ -172,7 +172,7 @@ public:
 
   void errorHandler(HPDF_STATUS error_no, HPDF_STATUS detail_no);
 
-  virtual void handleRequest(const Http::Request& request,
+  virtual WRE handleRequest(const Http::Request& request,
                              Http::Response& response) override;
 
 protected:

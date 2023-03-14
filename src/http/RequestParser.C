@@ -173,7 +173,7 @@ RequestParser::parse(Request& req, char *begin,
   return boost::make_tuple(result, begin);
 }
 
-RequestParser::ParseResult RequestParser::parseBody(Request& req, ReplyPtr reply,
+awaitable<RequestParser::ParseResult> RequestParser::parseBody(Request& req, ReplyPtr reply,
                                                     char *& begin, char *end)
 {
   if (req.type == Request::WebSocket) {
@@ -183,9 +183,9 @@ RequestParser::ParseResult RequestParser::parseBody(Request& req, ReplyPtr reply
     } while (begin != end && state == Request::Partial);
 
     if (state == Request::Error)
-      reply->consumeData(begin, begin, Request::Error);
+      co_await reply->consumeData(begin, begin, Request::Error);
 
-    return state == Request::Partial ? ReadMore : Done;
+    co_return state == Request::Partial ? ReadMore : Done;
   } else if (req.type == Request::TCP) {
     ::int64_t thisSize = (::int64_t)(end - begin);
 
@@ -194,14 +194,14 @@ RequestParser::ParseResult RequestParser::parseBody(Request& req, ReplyPtr reply
 
     begin = thisEnd;
 
-    bool canReadMore = reply->consumeData(thisBegin, thisEnd, Request::Partial);
+    bool canReadMore = co_await reply->consumeData(thisBegin, thisEnd, Request::Partial);
 
     if (reply->status() == Reply::request_entity_too_large)
-      return Done;
+      co_return Done;
     else if (canReadMore)
-      return ReadMore;
+      co_return ReadMore;
     else
-      return NotReady;
+      co_return NotReady;
   } else {
     ::int64_t thisSize = std::min((::int64_t)(end - begin), remainder_);
 
@@ -213,17 +213,17 @@ RequestParser::ParseResult RequestParser::parseBody(Request& req, ReplyPtr reply
 
     bool endOfRequest = remainder_ == 0;
 
-    bool canReadMore = reply->consumeData(thisBegin, thisEnd,
+    bool canReadMore = co_await reply->consumeData(thisBegin, thisEnd,
                                           endOfRequest ? Request::Complete : Request::Partial);
 
     if (reply->status() == Reply::request_entity_too_large)
-      return Done;
+      co_return Done;
     else if (endOfRequest)
-      return Done;
+      co_return Done;
     else if (canReadMore)
-      return ReadMore;
+      co_return ReadMore;
     else
-      return NotReady;
+      co_return NotReady;
   }
 }
 

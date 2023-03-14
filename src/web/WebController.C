@@ -609,12 +609,12 @@ std::string WebController::redirectSecret(const Wt::WebRequest &request) const
   return redirectSecret_;
 }
 
-void WebController::handleRequest(WebRequest *request)
+asio::awaitable<void> WebController::handleRequest(WebRequest *request)
 {
   if (!running_) {
     request->setStatus(500);
     request->flush();
-    return;
+    co_return;
   }
 
   if (!request->entryPoint_) {
@@ -623,7 +623,7 @@ void WebController::handleRequest(WebRequest *request)
     if (!request->entryPoint_) {
       request->setStatus(404);
       request->flush();
-      return;
+      co_return;
     }
     request->urlParams_ = std::move(match.urlParams);
   }
@@ -644,19 +644,18 @@ void WebController::handleRequest(WebRequest *request)
          "Error parsing CGI request: " << e.what() << std::endl;
 
     request->flush(WebResponse::ResponseState::ResponseDone);
-    return;
+    co_return;
   }
 
   if (request->entryPoint_->type() == EntryPointType::StaticResource) {
-    request
-      ->entryPoint_->resource()->handle(request, (WebResponse *)request);
-    return;
+    co_await request->entryPoint_->resource()->handle(request, (WebResponse *)request);
+    co_return;
   }
 
   const std::string *requestE = request->getParameter("request");
   if (requestE && *requestE == "redirect") {
     handleRedirect(request);
-    return;
+    co_return;
   }
 
   std::string sessionId;
@@ -726,7 +725,7 @@ void WebController::handleRequest(WebRequest *request)
                         "no cookie received (expecting multi session cookie)");
             request->setStatus(403);
             request->flush(WebResponse::ResponseState::ResponseDone);
-            return;
+            co_return;
           }
         }
 
@@ -736,7 +735,7 @@ void WebController::handleRequest(WebRequest *request)
                                "trying to reconnect (e.g. when the server was restarted)");
           request->setStatus(403);
           request->flush(WebResponse::ResponseState::ResponseDone);
-          return;
+          co_return;
         }
 
         if (singleSessionId_.empty()) {
@@ -778,7 +777,7 @@ void WebController::handleRequest(WebRequest *request)
       } catch (std::exception& e) {
         LOG_ERROR_S(&server_, "could not create new session: " << e.what());
         request->flush(WebResponse::ResponseState::ResponseDone);
-        return;
+        co_return;
       }
     } else {
       session = i->second;

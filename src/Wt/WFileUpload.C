@@ -41,7 +41,7 @@ public:
   }
 
 protected:
-  virtual void handleRequest(const Http::Request& request,
+  virtual WRE handleRequest(const Http::Request& request,
                              Http::Response& response) override
   {
     bool triggerUpdate = false;

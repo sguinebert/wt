@@ -51,7 +51,8 @@ public:
   virtual asio::ip::tcp::socket& socket() = 0;
 
   /// Start the first asynchronous operation for the connection.
-  virtual void start();
+  void start();
+  awaitable<void> loop();
 
   void close();
   bool closed() const;
@@ -73,10 +74,10 @@ public:
 
   bool waitingResponse() const { return waitingResponse_; }
   void setHaveResponse() { haveResponse_ = true; }
-  void startWriteResponse(ReplyPtr reply);
+  awaitable<void> startWriteResponse(ReplyPtr reply);
 
-  void handleReadBody(ReplyPtr reply);
-  void readMore(ReplyPtr reply, int timeout);
+  awaitable<bool> handleReadBody(ReplyPtr reply);
+  awaitable<bool> readMore(ReplyPtr reply, int timeout);
   bool readAvailable();
 
   // NOTE: detectDisconnect will only register one callback at a time,
@@ -94,15 +95,15 @@ protected:
   asio::ip::tcp::socket::native_type native();
 #endif
 
-  void handleWriteResponse0(ReplyPtr reply,
+  awaitable<void> handleWriteResponse0(ReplyPtr reply,
                             const Wt::AsioWrapper::error_code& e,
                             std::size_t bytes_transferred);
-  void handleWriteResponse(ReplyPtr reply);
-  void handleReadRequest(const Wt::AsioWrapper::error_code& e,
+  awaitable<void> handleWriteResponse(ReplyPtr reply);
+  awaitable<void> handleReadRequest(const Wt::AsioWrapper::error_code& e,
                          std::size_t bytes_transferred);
   /// Process read buffer, reading request.
-  void handleReadRequest0();
-  void handleReadBody0(ReplyPtr reply,
+  awaitable<void> handleReadRequest0();
+  awaitable<void> handleReadBody0(ReplyPtr reply,
                        const Wt::AsioWrapper::error_code& e,
                        std::size_t bytes_transferred);
 
@@ -130,25 +131,25 @@ private:
   /*
    * Asynchronoulsy reading a request
    */
-  virtual void startAsyncReadRequest(Buffer& buffer, int timeout) = 0;
+    virtual awaitable<void> startAsyncReadRequest(Buffer& buffer, int timeout) = 0;
 
   /*
    * Asynchronoulsy reading a request body
    */
-  virtual void startAsyncReadBody(ReplyPtr reply, Buffer& buffer,
+  virtual awaitable<void> startAsyncReadBody(ReplyPtr reply, Buffer& buffer,
                                   int timeout) = 0;
 
   /*
    * Asynchronoulsy writing a response
    */
-  virtual void startAsyncWriteResponse(ReplyPtr reply,
+  virtual awaitable<void> startAsyncWriteResponse(ReplyPtr reply,
                                        const std::vector<asio::const_buffer>& buffers,
                                        int timeout) = 0;
 
   /// Generic I/O error handling: closes the connection and cancels timers
   void handleError(const Wt::AsioWrapper::error_code& e);
 
-  void sendStockReply(Reply::status_type code);
+  awaitable<ReplyPtr> sendStockReply(Reply::status_type code);
 
   /// The handler used to process the incoming request.
   RequestHandler& request_handler_;

@@ -131,17 +131,17 @@ void WtReply::logReply(Wt::WLogger& logger)
     httpRequest_->log();
 }
 
-bool WtReply::consumeData(const char *begin,
-                          const char *end,
-                          Request::State state)
+asio::awaitable<bool> WtReply::consumeData(const char *begin,
+                                           const char *end,
+                                           Request::State state)
 {
-  consumeRequestBody(begin, end, state);
-  return true;
+  co_await consumeRequestBody(begin, end, state);
+  co_return true;
 }
 
-void WtReply::consumeRequestBody(const char *begin,
-                                 const char *end,
-                                 Request::State state)
+asio::awaitable<void> WtReply::consumeRequestBody(const char *begin,
+                                                  const char *end,
+                                                  Request::State state)
 {
   if (request().type != Request::WebSocket) {
     /*
@@ -239,13 +239,18 @@ void WtReply::consumeRequestBody(const char *begin,
 
         // But (for benchmark's sake), there's no need to post for a static
         // resource
+
         if (entryPoint_->resource())
-          connection()->server()->controller()->handleRequest(httpRequest_);
+           co_await connection()->server()->controller()->handleRequest(httpRequest_);
         else
-          connection()->server()->service().post
-            (std::bind(&Wt::WebController::handleRequest,
-                       connection()->server()->controller(),
-                       httpRequest_));
+           co_spawn(connection()->server()->service(), connection()->server()->controller()->handleRequest(httpRequest_), detached);
+//          connection()->server()->service().post
+//            (std::bind(&Wt::WebController::handleRequest,
+//                       connection()->server()->controller(),
+//                       httpRequest_));
+//        asio::post(connection()->server()->service(), std::bind(&Wt::WebController::handleRequest,
+//                                                                connection()->server()->controller(),
+//                                                                httpRequest_));
       }
     }
   } else {
@@ -516,9 +521,12 @@ void WtReply::readWebSocketMessage(const Wt::WebRequest::ReadCallback& callBack)
   in_mem_.str("");
   in_mem_.clear();
 
-  connection()->strand().post(std::bind(&Connection::handleReadBody,
-                                        connection(),
-                                        shared_from_this()));
+//  connection()->strand().post(std::bind(&Connection::handleReadBody,
+//                                        connection(),
+//                                        shared_from_this()));
+  asio::post(connection()->strand(), std::bind(&Connection::handleReadBody,
+                                               connection(),
+                                               shared_from_this()));
 }
 
 bool WtReply::readAvailable()

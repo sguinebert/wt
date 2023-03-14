@@ -13,7 +13,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#define DEBUG
+//#define DEBUG
 
 #include <vector>
 
@@ -44,7 +44,7 @@ static const int KEEPALIVE_TIMEOUT  = 10;  // 10 seconds
 Connection::Connection(asio::io_service& io_service, Server *server,
     ConnectionManager& manager, RequestHandler& handler)
   : ConnectionManager_(manager),
-    strand_(io_service),
+    strand_(make_strand(io_service)),
     state_(Idle),
     request_handler_(handler),
     readTimer_(io_service),
@@ -84,8 +84,9 @@ void Connection::finishReply()
 
 void Connection::scheduleStop()
 {
-  server_->service()
-    .post(strand_.wrap(std::bind(&Connection::stop, shared_from_this())));
+//  server_->service()
+//    .post(strand_.wrap(std::bind(&Connection::stop, shared_from_this())));
+  asio::post(strand_, std::bind(&Connection::stop, shared_from_this()));
 }
 
 void Connection::start()
@@ -105,7 +106,230 @@ void Connection::start()
   socket().set_option(asio::ip::tcp::no_delay(true), ignored_ec);
 
   rcv_buffers_.push_back(Buffer());
-  startAsyncReadRequest(rcv_buffers_.back(), CONNECTION_TIMEOUT);
+
+
+//  std::shared_ptr<Connection> sft
+//      = std::static_pointer_cast<Connection>(shared_from_this());
+//  socket().async_read_some(asio::buffer(rcv_buffers_.back()),
+//                            boost::asio::bind_executor(strand_,
+//                            (std::bind(&TcpConnection::handleReadRequest,
+//                                       sft,
+//                                       std::placeholders::_1,
+//                                        std::placeholders::_2))));
+
+  co_spawn(strand_, loop(), detached);
+}
+
+awaitable<void> Connection::loop()
+{
+
+  std::shared_ptr<TcpConnection> sft
+      = std::static_pointer_cast<TcpConnection>(shared_from_this());
+
+  bool step = true;
+  bool gob = true;
+  bool readreq0 = false;
+  bool writeresponse = true;
+
+  for(;;)
+  {
+    if(!readreq0) {
+        co_await startAsyncReadRequest(rcv_buffers_.back(), CONNECTION_TIMEOUT);
+    }
+//    else
+//        std::cout << "go directly to handlerequest0 : " << rcv_buffer_size_ << std::endl;
+
+    step = true;
+    gob = true;
+    readreq0 = false;
+    writeresponse = true;
+
+    if(!rcv_buffer_size_)
+        continue;
+
+    ReplyPtr reply;
+    while (step) {
+
+    { //handlerequest0
+        Buffer& buffer = rcv_buffers_.back();
+        boost::tribool result;
+        boost::tie(result, rcv_remaining_)
+            = request_parser_.parse(request_,
+                                    &*rcv_remaining_, buffer.data() + rcv_buffer_size_);
+
+        if (result) {
+            Reply::status_type status = request_parser_.validate(request_);
+            // FIXME: Let the reply decide whether we're doing websockets, move this logic to WtReply
+            bool doWebSockets = server_->controller()->configuration().webSockets() &&
+                                (server_->controller()->configuration().sessionPolicy() != Wt::Configuration::DedicatedProcess ||
+                                 server_->configuration().parentPort() != -1);
+
+            if (doWebSockets)
+                request_.enableWebSocket();
+
+            LOG_DEBUG(native() << "request: " << status);
+
+            if (status >= 300){
+                reply = co_await sendStockReply(status);
+                step = false;
+            }
+            else {
+                if (request_.webSocketVersion >= 0) {
+                    // replace 'http' with 'ws'
+                    request_.urlScheme[0] = 'w';
+                    request_.urlScheme[1] = 's';
+                    strncpy(request_.urlScheme + 2, urlScheme() + 4, 7);
+                    request_.urlScheme[9] = 0;
+                } else
+                    strncpy(request_.urlScheme, urlScheme(), 9);
+
+
+                try {
+                    reply = request_handler_.handleRequest
+                            (request_, lastWtReply_, lastProxyReply_, lastStaticReply_);
+                    reply->setConnection(shared_from_this());
+                } catch (Wt::AsioWrapper::system_error& e) {
+                    LOG_ERROR("Error in handleRequest0(): " << e.what());
+                    handleError(e.code());
+                }
+
+                rcv_body_buffer_ = false;
+                step = co_await handleReadBody(reply);
+            }
+        } else if (!result) {
+            reply = co_await sendStockReply(StockReply::bad_request);
+            step = false;
+        } else {
+            rcv_buffers_.push_back(Buffer());
+//          startAsyncReadRequest(rcv_buffers_.back(),
+//                                           request_parser_.initialState()
+//                                               ? KEEPALIVE_TIMEOUT
+//                                               : CONNECTION_TIMEOUT);
+            gob = false;
+            step = false;
+        }
+    }//END handlerequest0
+
+    }
+
+    if(!gob) //return to startAsyncReadRequest
+        continue;
+
+    assert(reply != nullptr);
+    if(reply == nullptr)
+        std::cout << "nullptr " << std::endl;
+
+    Wt::AsioWrapper::error_code e;
+    //ReplyPtr reply;
+    while (writeresponse) {
+        { //startWriteResponse
+            haveResponse_ = false;
+
+            if (disconnectCallback_)
+                socket().cancel();
+
+            if (state_ & Writing) {
+                LOG_ERROR("Connection::startWriteResponse(): connection already writing");
+                close();
+                //    server_->service()
+                //      .post(strand_.wrap(std::bind(&Reply::writeDone, reply, false)));
+                asio::post(strand_, std::bind(&Reply::writeDone, reply, false));
+                co_return;
+            }
+
+            std::vector<asio::const_buffer> buffers;
+            responseDone_ = reply->nextBuffers(buffers);
+
+            if (!buffers.empty()) {
+                co_await startAsyncWriteResponse(reply, buffers, BODY_TIMEOUT);
+
+                //handleWriteResponse0 ->
+                cancelWriteTimer();
+
+                haveResponse_ = false;
+                waitingResponse_ = true;
+                reply->writeDone(!e);
+                waitingResponse_ = false;
+
+                if (!e) {
+                    //co_await handleWriteResponse(reply);
+                    if (haveResponse_){
+                        //startWriteResponse(reply);
+                    }
+                    else {
+                        if (!responseDone_) {
+                            /*
+                        * Keep reply open and wait for more data.
+                        */
+                        } else {
+                            reply->logReply(request_handler_.logger());
+
+                            if (reply->closeConnection())
+                                ConnectionManager_.stop(shared_from_this());
+                            else {
+                                request_parser_.reset();
+                                request_.reset();
+                                responseDone_ = false;
+
+                                while (rcv_buffers_.size() > 1)
+                                    rcv_buffers_.pop_front();
+
+                                if (rcv_remaining_ < rcv_buffers_.back().data() + rcv_buffer_size_)
+                                {
+                                    readreq0 = true;
+                                    //handleReadRequest0();
+                                }
+                                //else
+                                //   startAsyncReadRequest(rcv_buffers_.back(), KEEPALIVE_TIMEOUT);
+                                writeresponse = false;
+                            }
+                        }
+                    }
+                } else {
+                if (e != asio::error::operation_aborted)
+                    handleError(e);
+                } //
+
+            } else {
+                cancelWriteTimer();
+
+                //handleWriteResponse(reply); ->
+                if (haveResponse_){
+                    //startWriteResponse(reply);
+                }
+                else {
+                    if (!responseDone_) {
+                   /*
+                    * Keep reply open and wait for more data.
+                    */
+                    } else {
+                        reply->logReply(request_handler_.logger());
+
+                        if (reply->closeConnection())
+                            ConnectionManager_.stop(shared_from_this());
+                        else {
+                            request_parser_.reset();
+                            request_.reset();
+                            responseDone_ = false;
+
+                            while (rcv_buffers_.size() > 1)
+                                rcv_buffers_.pop_front();
+
+                            if (rcv_remaining_ < rcv_buffers_.back().data() + rcv_buffer_size_)
+                            {
+                                readreq0 = true;
+                                //handleReadRequest0();
+                            }
+                            //else
+                            //   startAsyncReadRequest(rcv_buffers_.back(), KEEPALIVE_TIMEOUT);
+                            writeresponse = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+  }
 }
 
 void Connection::stop()
@@ -158,7 +382,7 @@ void Connection::cancelWriteTimer()
 void Connection::timeout(const Wt::AsioWrapper::error_code& e)
 {
   if (e != asio::error::operation_aborted)
-    strand_.post(std::bind(&Connection::doTimeout, shared_from_this()));
+    asio::post(strand_, std::bind(&Connection::doTimeout, shared_from_this()));
 }
 
 void Connection::doTimeout()
@@ -169,7 +393,7 @@ void Connection::doTimeout()
   writeTimer_.cancel();
 }
 
-void Connection::handleReadRequest0()
+awaitable<void> Connection::handleReadRequest0()
 {
   Buffer& buffer = rcv_buffers_.back();
 
@@ -223,7 +447,7 @@ void Connection::handleReadRequest0()
       } catch (Wt::AsioWrapper::system_error& e) {
         LOG_ERROR("Error in handleRequest0(): " << e.what());
         handleError(e.code());
-        return;
+        co_return;
       }
 
       rcv_body_buffer_ = false;
@@ -233,14 +457,14 @@ void Connection::handleReadRequest0()
     sendStockReply(StockReply::bad_request);
   } else {
     rcv_buffers_.push_back(Buffer());
-    startAsyncReadRequest(rcv_buffers_.back(),
-                          request_parser_.initialState()
-                          ? KEEPALIVE_TIMEOUT
-                          : CONNECTION_TIMEOUT);
+     startAsyncReadRequest(rcv_buffers_.back(),
+                                   request_parser_.initialState()
+                                       ? KEEPALIVE_TIMEOUT
+                                       : CONNECTION_TIMEOUT);
   }
 }
 
-void Connection::sendStockReply(StockReply::status_type status)
+awaitable<ReplyPtr> Connection::sendStockReply(StockReply::status_type status)
 {
   ReplyPtr reply
     (new StockReply(request_, status, "", server_->configuration()));
@@ -248,10 +472,10 @@ void Connection::sendStockReply(StockReply::status_type status)
   reply->setConnection(shared_from_this());
   reply->setCloseConnection();
 
-  startWriteResponse(reply);
+  co_return reply;
 }
 
-void Connection::handleReadRequest(const Wt::AsioWrapper::error_code& e,
+awaitable<void> Connection::handleReadRequest(const Wt::AsioWrapper::error_code& e,
                                    std::size_t bytes_transferred)
 {
   LOG_DEBUG(native() << ": handleReadRequest(): " << e.message());
@@ -261,7 +485,8 @@ void Connection::handleReadRequest(const Wt::AsioWrapper::error_code& e,
   if (!e) {
     rcv_remaining_ = rcv_buffers_.back().data();
     rcv_buffer_size_ = bytes_transferred;
-    handleReadRequest0();
+    //co_await handleReadRequest0();
+    co_return;
   } else if (e != asio::error::operation_aborted &&
              e != asio::error::bad_descriptor) {
     handleError(e);
@@ -291,7 +516,7 @@ void Connection::handleError(const Wt::AsioWrapper::error_code& e)
   close();
 }
 
-void Connection::handleReadBody(ReplyPtr reply)
+awaitable<bool> Connection::handleReadBody(ReplyPtr reply)
 {
   if (request_.type != Request::WebSocket) {
     /*
@@ -303,7 +528,7 @@ void Connection::handleReadBody(ReplyPtr reply)
     waitingResponse_ = true;
   }
 
-  RequestParser::ParseResult result = request_parser_
+  RequestParser::ParseResult result = co_await request_parser_
     .parseBody(request_, reply, rcv_remaining_,
                rcv_buffers_.back().data() + rcv_buffer_size_);
 
@@ -311,18 +536,22 @@ void Connection::handleReadBody(ReplyPtr reply)
     waitingResponse_ = false;
 
   if (result == RequestParser::ReadMore) {
-    readMore(reply, BODY_TIMEOUT);
-  } else if (result == RequestParser::Done && haveResponse_)
-    startWriteResponse(reply);
+    co_return co_await readMore(reply, BODY_TIMEOUT);
+  } else if (result == RequestParser::Done && haveResponse_){
+    //co_await startWriteResponse(reply);
+    co_return false;
+  }
+    co_return false;
 }
 
-void Connection::readMore(ReplyPtr reply, int timeout)
+awaitable<bool> Connection::readMore(ReplyPtr reply, int timeout)
 {
   if (!rcv_body_buffer_) {
     rcv_body_buffer_ = true;
     rcv_buffers_.push_back(Buffer());
   }
-  startAsyncReadBody(reply, rcv_buffers_.back(), timeout);
+  co_await startAsyncReadBody(reply, rcv_buffers_.back(), timeout);
+  co_return true;
 }
 
 bool Connection::readAvailable()
@@ -338,8 +567,9 @@ bool Connection::readAvailable()
 void Connection::detectDisconnect(ReplyPtr reply,
                                   const std::function<void()>& callback)
 {
-  server_->service()
-    .post(strand_.wrap(std::bind(&Connection::asyncDetectDisconnect, this, reply, callback)));
+//  server_->service()
+//    .post(strand_.wrap(std::bind(&Connection::asyncDetectDisconnect, this, reply, callback)));
+  asio::post(strand_, std::bind(&Connection::asyncDetectDisconnect, this, reply, callback));
 }
 
 void Connection::asyncDetectDisconnect(ReplyPtr reply,
@@ -357,7 +587,7 @@ void Connection::asyncDetectDisconnect(ReplyPtr reply,
   startAsyncReadBody(reply, rcv_buffers_.back(), 0);
 }
 
-void Connection::handleReadBody0(ReplyPtr reply,
+awaitable<void> Connection::handleReadBody0(ReplyPtr reply,
                                  const Wt::AsioWrapper::error_code& e,
                                  std::size_t bytes_transferred)
 {
@@ -375,7 +605,7 @@ void Connection::handleReadBody0(ReplyPtr reply,
       close();
     }
 
-    return;
+    co_return;
   }
 
   cancelReadTimer();
@@ -383,15 +613,15 @@ void Connection::handleReadBody0(ReplyPtr reply,
   if (!e) {
     rcv_remaining_ = rcv_buffers_.back().data();
     rcv_buffer_size_ = bytes_transferred;
-    handleReadBody(reply);
+    co_await handleReadBody(reply);
   } else if (e != asio::error::operation_aborted
              && e != asio::error::bad_descriptor) {
-    reply->consumeData(rcv_remaining_, rcv_remaining_, Request::Error);
+    co_await reply->consumeData(rcv_remaining_, rcv_remaining_, Request::Error);
     handleError(e);
   }
 }
 
-void Connection::startWriteResponse(ReplyPtr reply)
+awaitable<void> Connection::startWriteResponse(ReplyPtr reply)
 {
   haveResponse_ = false;
 
@@ -401,16 +631,18 @@ void Connection::startWriteResponse(ReplyPtr reply)
   if (state_ & Writing) {
     LOG_ERROR("Connection::startWriteResponse(): connection already writing");
     close();
-    server_->service()
-      .post(strand_.wrap(std::bind(&Reply::writeDone, reply, false)));
-    return;
+//    server_->service()
+//      .post(strand_.wrap(std::bind(&Reply::writeDone, reply, false)));
+    asio::post(strand_, std::bind(&Reply::writeDone, reply, false));
+    co_return;
   }
 
   std::vector<asio::const_buffer> buffers;
   responseDone_ = reply->nextBuffers(buffers);
 
-  unsigned s = 0;
+
 #ifdef DEBUG
+  unsigned s = 0;
   for (unsigned i = 0; i < buffers.size(); ++i) {
     int size = asio::buffer_size(buffers[i]);
     s += size;
@@ -420,10 +652,9 @@ void Connection::startWriteResponse(ReplyPtr reply)
       std::cerr << data[j];
 #endif
   }
-#endif
-
   LOG_DEBUG(native() << " sending: " << s << "(buffers: "
-            << buffers.size() << ")");
+                     << buffers.size() << ")");
+#endif
 
   if (!buffers.empty()) {
     startAsyncWriteResponse(reply, buffers, BODY_TIMEOUT);
@@ -433,7 +664,7 @@ void Connection::startWriteResponse(ReplyPtr reply)
   }
 }
 
-void Connection::handleWriteResponse(ReplyPtr reply)
+awaitable<void> Connection::handleWriteResponse(ReplyPtr reply)
 {
   LOG_DEBUG(native() << ": handleWriteResponse() " <<
             haveResponse_ << " " << responseDone_);
@@ -466,9 +697,9 @@ void Connection::handleWriteResponse(ReplyPtr reply)
   }
 }
 
-void Connection::handleWriteResponse0(ReplyPtr reply,
-                                      const Wt::AsioWrapper::error_code& e,
-                                      std::size_t bytes_transferred)
+awaitable<void> Connection::handleWriteResponse0(ReplyPtr reply,
+                                                 const Wt::AsioWrapper::error_code& e,
+                                                 std::size_t bytes_transferred)
 {
   LOG_DEBUG(native() << ": handleWriteResponse0(): "
             << bytes_transferred << " ; " << e.message());
@@ -481,7 +712,7 @@ void Connection::handleWriteResponse0(ReplyPtr reply,
   waitingResponse_ = false;
 
   if (!e) {
-    handleWriteResponse(reply);
+    co_await handleWriteResponse(reply);
   } else {
     if (e != asio::error::operation_aborted)
       handleError(e);

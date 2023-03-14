@@ -46,8 +46,9 @@ SessionProcess::SessionProcess(SessionProcessManager *manager) noexcept
 
 void SessionProcess::requestStop() noexcept
 {
-  io_service_.post(strand_.wrap(
-          std::bind(&SessionProcess::stop, shared_from_this())));
+//  io_service_.post(strand_.wrap(
+//          std::bind(&SessionProcess::stop, shared_from_this())));
+  asio::post(strand_, std::bind(&SessionProcess::stop, shared_from_this()));
 }
 
 void SessionProcess::closeClientSocket() noexcept

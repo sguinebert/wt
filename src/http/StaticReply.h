@@ -37,7 +37,7 @@ public:
   virtual void reset(const Wt::EntryPoint *ep) override;
   virtual void writeDone(bool success) override;
 
-  virtual bool consumeData(const char *begin,
+  virtual asio::awaitable<bool> consumeData(const char *begin,
                            const char *end,
                            Request::State state) override;
 

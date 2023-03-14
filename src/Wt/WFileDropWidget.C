@@ -41,7 +41,7 @@ public:
   void setCurrentFile(File *file) { currentFile_ = file; }
 
 protected:
-  virtual void handleRequest(const Http::Request &request,
+  virtual WRE handleRequest(const Http::Request &request,
                              Http::Response &response) override
   {
     // In JWt we still have the update lock
@@ -58,20 +58,32 @@ protected:
     const std::string *fileId = request.getParameter("file-id");
     if (fileId == 0 || (*fileId).empty()) {
       response.setStatus(404);
-      return;
+#ifndef AWAIT_WRESOURCE
+        return;
+#else
+        co_return;
+#endif
     }
     int id = boost::lexical_cast<int>(*fileId);
     bool validId = parent_->incomingIdCheck(id);
     if (!validId) {
       response.setStatus(404);
-      return;
+#ifndef AWAIT_WRESOURCE
+        return;
+#else
+        co_return;
+#endif
     }
 
     std::vector<Http::UploadedFile> files;
     Utils::find(request.uploadedFiles(), "data", files);
     if (files.empty()) {
       response.setStatus(404);
-      return;
+#ifndef AWAIT_WRESOURCE
+        return;
+#else
+        co_return;
+#endif
     }
 
     // check is js filter was used

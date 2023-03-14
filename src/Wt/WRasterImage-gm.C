@@ -312,7 +312,7 @@ void WRasterImage::Impl::internalDone()
   }
 }
 
-void WRasterImage::handleRequest(const Http::Request &request,
+WRE WRasterImage::handleRequest(const Http::Request &request,
                                  Http::Response &response)
 {
   std::size_t size = 0;

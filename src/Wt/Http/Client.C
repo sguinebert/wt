@@ -69,7 +69,7 @@ public:
        const std::shared_ptr<WebSession>& session,
        asio::io_service& ioService)
     : ioService_(ioService),
-      strand_(ioService),
+      strand_(boost::asio::make_strand(ioService)),
       resolver_(ioService_),
       method_(Http::Method::Get),
       client_(client),
@@ -146,18 +146,18 @@ public:
     tcp::resolver::query query(server, std::to_string(port));
 
     startTimer();
-    resolver_.async_resolve
-      (query,
-       strand_.wrap(std::bind(&Impl::handleResolve,
-                              shared_from_this(),
-                              std::placeholders::_1,
-                              std::placeholders::_2)));
+//    resolver_.async_resolve
+//      (query,
+//       strand_.wrap(std::bind(&Impl::handleResolve,
+//                              shared_from_this(),
+//                              std::placeholders::_1,
+//                              std::placeholders::_2)));
   }
 
   void asyncStop()
   {
-    ioService_.post
-      (strand_.wrap(std::bind(&Impl::stop, shared_from_this())));
+//    ioService_.post
+//      (strand_.wrap(std::bind(&Impl::stop, shared_from_this())));
   }
 
 protected:
@@ -196,9 +196,9 @@ private:
   void startTimer()
   {
     timer_.expires_from_now(timeout_);
-    timer_.async_wait
-      (strand_.wrap(std::bind(&Impl::timeout, shared_from_this(),
-                              std::placeholders::_1)));
+//    timer_.async_wait
+//      (strand_.wrap(std::bind(&Impl::timeout, shared_from_this(),
+//                              std::placeholders::_1)));
   }
 
   void cancelTimer()
@@ -235,11 +235,11 @@ private:
       tcp::endpoint endpoint = *endpoint_iterator;
 
       startTimer();
-      asyncConnect(endpoint,
-                   strand_.wrap(std::bind(&Impl::handleConnect,
-                                          shared_from_this(),
-                                          std::placeholders::_1,
-                                          ++endpoint_iterator)));
+//      asyncConnect(endpoint,
+//                   strand_.wrap(std::bind(&Impl::handleConnect,
+//                                          shared_from_this(),
+//                                          std::placeholders::_1,
+//                                          ++endpoint_iterator)));
     } else {
       if (aborted_)
         err_ = asio::error::operation_aborted;
@@ -259,10 +259,10 @@ private:
     if (!err && !aborted_) {
       // The connection was successful. Do the handshake (SSL only)
       startTimer();
-      asyncHandshake
-        (strand_.wrap(std::bind(&Impl::handleHandshake,
-                                shared_from_this(),
-                                std::placeholders::_1)));
+//      asyncHandshake
+//        (strand_.wrap(std::bind(&Impl::handleHandshake,
+//                                shared_from_this(),
+//                                std::placeholders::_1)));
     } else if (endpoint_iterator != tcp::resolver::iterator()) {
       // The connection failed. Try the next endpoint in the list.
       socket().close();
@@ -286,12 +286,12 @@ private:
     if (!err && !aborted_) {
       // The handshake was successful. Send the request.
       startTimer();
-      asyncWriteRequest
-        (strand_.wrap
-         (std::bind(&Impl::handleWriteRequest,
-                      shared_from_this(),
-                      std::placeholders::_1,
-                      std::placeholders::_2)));
+//      asyncWriteRequest
+//        (strand_.wrap
+//         (std::bind(&Impl::handleWriteRequest,
+//                      shared_from_this(),
+//                      std::placeholders::_1,
+//                      std::placeholders::_2)));
     } else {
       if (aborted_)
         err_ = asio::error::operation_aborted;
@@ -311,13 +311,13 @@ private:
     if (!err && !aborted_) {
       // Read the response status line.
       startTimer();
-      asyncReadUntil
-        ("\r\n",
-         strand_.wrap
-         (std::bind(&Impl::handleReadStatusLine,
-                      shared_from_this(),
-                      std::placeholders::_1,
-                      std::placeholders::_2)));
+//      asyncReadUntil
+//        ("\r\n",
+//         strand_.wrap
+//         (std::bind(&Impl::handleReadStatusLine,
+//                      shared_from_this(),
+//                      std::placeholders::_1,
+//                      std::placeholders::_2)));
     } else {
       if (aborted_)
         err_ = asio::error::operation_aborted;
@@ -377,13 +377,13 @@ private:
 
       // Read the response headers, which are terminated by a blank line.
       startTimer();
-      asyncReadUntil
-        ("\r\n\r\n",
-         strand_.wrap
-         (std::bind(&Impl::handleReadHeaders,
-                      shared_from_this(),
-                      std::placeholders::_1,
-                      std::placeholders::_2)));
+//      asyncReadUntil
+//        ("\r\n\r\n",
+//         strand_.wrap
+//         (std::bind(&Impl::handleReadHeaders,
+//                      shared_from_this(),
+//                      std::placeholders::_1,
+//                      std::placeholders::_2)));
     } else {
       if (aborted_)
         err_ = asio::error::operation_aborted;
@@ -456,11 +456,11 @@ private:
       if (!done) {
         // Start reading remaining data until EOF.
         startTimer();
-        asyncRead(strand_.wrap
-            (std::bind(&Impl::handleReadContent,
-                       shared_from_this(),
-                       std::placeholders::_1,
-                       std::placeholders::_2)));
+//        asyncRead(strand_.wrap
+//            (std::bind(&Impl::handleReadContent,
+//                       shared_from_this(),
+//                       std::placeholders::_1,
+//                       std::placeholders::_2)));
       } else {
         complete();
       }
@@ -494,12 +494,12 @@ private:
       if (!done) {
         // Continue reading remaining data until EOF.
         startTimer();
-        asyncRead
-          (strand_.wrap
-           (std::bind(&Impl::handleReadContent,
-                      shared_from_this(),
-                      std::placeholders::_1,
-                      std::placeholders::_2)));
+//        asyncRead
+//          (strand_.wrap
+//           (std::bind(&Impl::handleReadContent,
+//                      shared_from_this(),
+//                      std::placeholders::_1,
+//                      std::placeholders::_2)));
       } else {
         complete();
       }

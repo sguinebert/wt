@@ -37,7 +37,7 @@ void WFileResource::setFileName(const std::string& fileName)
   setChanged();
 }
 
-void WFileResource::handleRequest(const Http::Request& request,
+WRE WFileResource::handleRequest(const Http::Request& request,
                                   Http::Response& response)
 {
   std::ifstream r(fileName_.c_str(), std::ios::in | std::ios::binary);

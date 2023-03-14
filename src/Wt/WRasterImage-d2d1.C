@@ -1114,7 +1114,7 @@ private:
   LONG refcount_;
 };
 
-void WRasterImage::handleRequest(const Http::Request& request,
+WRE WRasterImage::handleRequest(const Http::Request& request,
                                  Http::Response& response)
 {
   response.setMimeType("image/" + impl_->type_);

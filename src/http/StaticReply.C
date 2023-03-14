@@ -225,13 +225,13 @@ std::string StaticReply::computeExpires()
   return httpDate(t);
 }
 
-bool StaticReply::consumeData(const char *begin,
+asio::awaitable<bool> StaticReply::consumeData(const char *begin,
                               const char *end,
                               Request::State state)
 {
   if (state != Request::Partial)
     send();
-  return true;
+  co_return true;
 }
 
 std::string StaticReply::contentType()

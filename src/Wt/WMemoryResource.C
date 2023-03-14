@@ -90,7 +90,7 @@ const std::vector<unsigned char> WMemoryResource::data() const
     return *data;
 }
 
-void WMemoryResource::handleRequest(const Http::Request& request,
+WRE WMemoryResource::handleRequest(const Http::Request& request,
                                     Http::Response& response)
 {
   DataPtr data;
@@ -102,7 +102,11 @@ void WMemoryResource::handleRequest(const Http::Request& request,
   }
 
   if (!data)
+#ifndef AWAIT_WRESOURCE
     return;
+#else
+    co_return;
+#endif
 
   response.setMimeType(mimeType_);
 

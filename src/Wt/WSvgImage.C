@@ -900,7 +900,7 @@ std::string WSvgImage::rendered()
   return s.str();
 }
 
-void WSvgImage::handleRequest(const Http::Request& request,
+WRE WSvgImage::handleRequest(const Http::Request& request,
                               Http::Response& response)
 {
   response.setMimeType("image/svg+xml");

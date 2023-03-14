@@ -43,9 +43,9 @@ public:
   virtual const char *urlScheme() override { return "http"; }
 
 protected:
-  virtual void startAsyncReadRequest(Buffer& buffer, int timeout) override;
-  virtual void startAsyncReadBody(ReplyPtr reply, Buffer& buffer, int timeout) override;
-  virtual void startAsyncWriteResponse
+  virtual awaitable<void> startAsyncReadRequest(Buffer& buffer, int timeout) override;
+  virtual awaitable<void> startAsyncReadBody(ReplyPtr reply, Buffer& buffer, int timeout) override;
+  virtual awaitable<void> startAsyncWriteResponse
       (ReplyPtr reply, const std::vector<asio::const_buffer>& buffers,
        int timeout) override;
 
@@ -53,6 +53,7 @@ protected:
 
   /// Socket for the connection.
   asio::ip::tcp::socket socket_;
+  //asio::basic_stream_socket<asio::ip::tcp, asio::strand<asio::io_context::executor_type>> socket_; no perf gain type erasure
 };
 
 typedef std::shared_ptr<TcpConnection> TcpConnectionPtr;

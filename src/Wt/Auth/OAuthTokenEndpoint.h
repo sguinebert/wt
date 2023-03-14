@@ -73,7 +73,7 @@ public:
 
   ~OAuthTokenEndpoint();
 
-  virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
+  virtual WRE handleRequest(const Http::Request& request, Http::Response& response) override;
 
   /*! \brief Sets the amount of seconds after which generated access
    * tokens expire.

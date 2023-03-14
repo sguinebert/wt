@@ -24,6 +24,8 @@
 #include <mutex>
 #endif
 
+#include <boost/asio.hpp>
+
 namespace http {
   namespace server {
     class ProxyReply;
@@ -31,6 +33,8 @@ namespace http {
 }
 
 namespace Wt {
+
+namespace asio = boost::asio;
 
 class Configuration;
 class EntryPoint;
@@ -124,7 +128,7 @@ public:
   bool requestDataReceived(WebRequest *request, std::uintmax_t current,
                            std::uintmax_t total);
 
-  void handleRequest(WebRequest *request);
+  asio::awaitable<void> handleRequest(WebRequest *request);
 
 #ifndef WT_CNOR
   bool handleApplicationEvent(const std::shared_ptr<ApplicationEvent>& event);

@@ -54,7 +54,7 @@ void TcpConnection::stop()
   Connection::stop();
 }
 
-void TcpConnection::startAsyncReadRequest(Buffer& buffer, int timeout)
+awaitable<void> TcpConnection::startAsyncReadRequest(Buffer& buffer, int timeout)
 {
   LOG_DEBUG(native() << ": startAsyncReadRequest");
 
@@ -63,22 +63,30 @@ void TcpConnection::startAsyncReadRequest(Buffer& buffer, int timeout)
               << (state_ & Reading ? "reading " : "")
               << (state_ & Writing ? "writing " : ""));
     stop();
-    return;
+    co_return;
   }
-
-  setReadTimeout(timeout);
+  //setReadTimeout(timeout);
 
   std::shared_ptr<TcpConnection> sft
     = std::static_pointer_cast<TcpConnection>(shared_from_this());
-  socket_.async_read_some(asio::buffer(buffer),
-                          strand_.wrap
-                          (std::bind(&TcpConnection::handleReadRequest,
-                                     sft,
-                                     std::placeholders::_1,
-                                     std::placeholders::_2)));
+//  socket_.async_read_some(asio::buffer(buffer),
+//                          strand_.wrap
+//                          (std::bind(&TcpConnection::handleReadRequest,
+//                                     sft,
+//                                     std::placeholders::_1,
+//                                     std::placeholders::_2)));
+
+   Wt::AsioWrapper::error_code ec;
+   std::size_t bytes_transferred = co_await socket_.async_read_some(asio::buffer(buffer), redirect_error(use_awaitable, ec));
+
+//   if(ec)
+//    std::cout << "bytes_transferred: " << bytes_transferred << " - " << ec.message() << std::endl;
+
+   co_await handleReadRequest(ec, bytes_transferred);
+   //sft->handleReadRequest(ec, bytes_transferred);
 }
 
-void TcpConnection::startAsyncReadBody(ReplyPtr reply,
+awaitable<void> TcpConnection::startAsyncReadBody(ReplyPtr reply,
                                        Buffer& buffer, int timeout)
 {
   LOG_DEBUG(native() << ": startAsyncReadBody");
@@ -88,26 +96,31 @@ void TcpConnection::startAsyncReadBody(ReplyPtr reply,
               << (state_ & Reading ? "reading " : "")
               << (state_ & Writing ? "writing " : ""));
     stop();
-    return;
+    co_return;
   }
 
-  setReadTimeout(timeout);
+  //setReadTimeout(timeout);
 
   std::shared_ptr<TcpConnection> sft
     = std::static_pointer_cast<TcpConnection>(shared_from_this());
-  socket_.async_read_some(asio::buffer(buffer),
-                          strand_.wrap
-                          (std::bind(&TcpConnection::handleReadBody0,
-                                     sft,
-                                     reply,
-                                     std::placeholders::_1,
-                                     std::placeholders::_2)));
+//  socket_.async_read_some(asio::buffer(buffer),
+//                          strand_.wrap
+//                          (std::bind(&TcpConnection::handleReadBody0,
+//                                     sft,
+//                                     reply,
+//                                     std::placeholders::_1,
+//                                     std::placeholders::_2)));
+
+   Wt::AsioWrapper::error_code ec;
+   std::size_t bytes_transferred = co_await socket_.async_read_some(asio::buffer(buffer), redirect_error(use_awaitable, ec));
+   //co_await handleReadBody0(reply, ec, bytes_transferred);
+   //co_spawn(strand_, handleReadBody0(reply, ec, bytes_transferred), detached);
 }
 
-void TcpConnection::startAsyncWriteResponse
-     (ReplyPtr reply,
-      const std::vector<asio::const_buffer>& buffers,
-      int timeout)
+awaitable<void> TcpConnection::startAsyncWriteResponse
+    (ReplyPtr reply,
+     const std::vector<asio::const_buffer>& buffers,
+     int timeout)
 {
   LOG_DEBUG(native() << ": startAsyncWriteResponse");
 
@@ -116,20 +129,27 @@ void TcpConnection::startAsyncWriteResponse
               << (state_ & Reading ? "reading " : "")
               << (state_ & Writing ? "writing " : ""));
     stop();
-    return;
+    co_return;
   }
 
-  setWriteTimeout(timeout);
+  //setWriteTimeout(timeout);
 
-  std::shared_ptr<TcpConnection> sft
-    = std::static_pointer_cast<TcpConnection>(shared_from_this());
-  asio::async_write(socket_, buffers,
-                    strand_.wrap
-                    (std::bind(&TcpConnection::handleWriteResponse0,
-                               sft,
-                               reply,
-                               std::placeholders::_1,
-                               std::placeholders::_2)));
+//  std::shared_ptr<TcpConnection> sft
+//    = std::static_pointer_cast<TcpConnection>(shared_from_this());
+
+//  std::string str = "HTTP/1.1 200 OK\r\nDate: Sat, 10 Jul 2021 19:01:56 GMT\r\nContent-Length: 12\r\nContent-Type:text/plain; charset=utf-8\r\n\r\nHello world!";
+//  asio::const_buffer buf{str.c_str(), str.size()};
+//  asio::async_write(socket_, buffers,
+//                    strand_.wrap
+//                    (std::bind(&TcpConnection::handleWriteResponse0,
+//                               sft,
+//                               reply,
+//                               std::placeholders::_1,
+//                               std::placeholders::_2)));
+   Wt::AsioWrapper::error_code ec;
+   std::size_t bytes_transferred = co_await asio::async_write(socket_, buffers, redirect_error(use_awaitable, ec));
+   //co_await sft->handleWriteResponse0(reply, ec, bytes_transferred);
+   //co_spawn(strand_, handleWriteResponse0(reply, ec, bytes_transferred), detached);
 }
 
 } // namespace server

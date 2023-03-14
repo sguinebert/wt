@@ -94,7 +94,7 @@ private:
                       Wt::AsioWrapper::error_code &errc);
 
   /// Starts accepting http/https connections
-  void startAccept();
+  awaitable<void> startAccept();
 
   /// Start to connect to a listening TCP socket of the parent
   /// Used for dedicated processes.
@@ -110,7 +110,7 @@ private:
   void closeParentConnection();
 
   /// Handle completion of an asynchronous accept operation.
-  void handleTcpAccept(TcpListener *listener, const Wt::AsioWrapper::error_code& e);
+  awaitable<void> handleTcpAccept(TcpListener *listener, const Wt::AsioWrapper::error_code& e);
 
   /// Handle a request to stop the server.
   void handleStop();
@@ -183,6 +183,7 @@ private:
   asio::steady_timer expireSessionsTimer_;
 
   std::unique_ptr<asio::ip::tcp::socket> parentSocket_;
+  //std::unique_ptr<asio::basic_stream_socket<asio::ip::tcp, asio::strand<asio::io_context::executor_type>>> parentSocket_;
 };
 
 } // namespace server

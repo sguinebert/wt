@@ -295,13 +295,13 @@ void StockReply::reset(const Wt::EntryPoint *ep)
   assert(false);
 }
 
-bool StockReply::consumeData(const char *begin,
+asio::awaitable<bool> StockReply::consumeData(const char *begin,
                              const char *end,
                              Request::State state)
 {
   if (state != Request::Partial)
     send();
-  return true;
+  co_return true;
 }
 
 std::string StockReply::contentType()

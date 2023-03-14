@@ -54,7 +54,7 @@ public:
     beingDeleted();
   }
 
-  virtual void handleRequest(const Wt::Http::Request& request,
+  virtual WRE handleRequest(const Wt::Http::Request& request,
                              Wt::Http::Response& response) override
   {
 #ifndef WT_TARGET_JAVA

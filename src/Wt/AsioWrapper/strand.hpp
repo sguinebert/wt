@@ -15,7 +15,8 @@
 namespace Wt {
   namespace AsioWrapper {
 #if BOOST_VERSION >= 106600
-    using strand = boost::asio::io_context::strand;
+    using strand = boost::asio::strand<boost::asio::io_context::executor_type>;
+    //using strand = boost::asio::io_context::strand;
 #else
     using strand = boost::asio::strand;
 #endif

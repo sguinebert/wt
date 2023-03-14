@@ -144,13 +144,13 @@ void WResource::haveMoreData()
     cs[i]->haveMoreData();
 }
 
-void WResource::doContinue(Http::ResponseContinuationPtr continuation)
+asio::awaitable<void> WResource::doContinue(Http::ResponseContinuationPtr continuation)
 {
   WebResponse *webResponse = continuation->response();
   WebRequest *webRequest = webResponse;
 
   try {
-    handle(webRequest, webResponse, continuation);
+    co_await handle(webRequest, webResponse, continuation);
   } catch (std::exception& e) {
     LOG_ERROR("exception while handling resource continuation: " << e.what());
   } catch (...) {
@@ -179,7 +179,7 @@ WResource::addContinuation(Http::ResponseContinuation *c)
   return result;
 }
 
-void WResource::handle(WebRequest *webRequest, WebResponse *webResponse,
+asio::awaitable<void> WResource::handle(WebRequest *webRequest, WebResponse *webResponse,
                        Http::ResponseContinuationPtr continuation)
 {
   /*
@@ -198,7 +198,7 @@ void WResource::handle(WebRequest *webRequest, WebResponse *webResponse,
   if (takesUpdateLock() && continuation && app_) {
     updateLock.reset(new Wt::WApplication::UpdateLock(app_));
     if (!*updateLock) {
-      return;
+      co_return;
     }
   }
 
@@ -206,7 +206,7 @@ void WResource::handle(WebRequest *webRequest, WebResponse *webResponse,
     std::unique_lock<std::recursive_mutex> lock(*mutex_);
 
     if (!useLock.use(this))
-      return;
+      co_return;
 
     if (!takesUpdateLock() &&
         handler->haveLock() &&
@@ -228,7 +228,12 @@ void WResource::handle(WebRequest *webRequest, WebResponse *webResponse,
     response.setStatus(200);
 
   try {
+#ifndef AWAIT_WRESOURCE
     handleRequest(request, response);
+#else
+    co_await handleRequest(request, response);
+#endif
+
   } catch (std::exception& e) {
     LOG_ERROR("Uncaught exception from handleRequest (aborting request): " << e.what());
     // If the status was not already sent, set it to 500 Internal Server Error

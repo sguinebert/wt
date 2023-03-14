@@ -18,7 +18,20 @@
 #include <mutex>
 #endif // WT_THREADED
 
+#include <boost/asio.hpp>
+namespace  asio = boost::asio;
+
+
+#define AWAIT_WRESOURCE
+
+#ifndef AWAIT_WRESOURCE
+#define WRE void
+#else
+#define WRE asio::awaitable<void>
+#endif
+
 namespace Wt {
+
 
   class WebRequest;
   class WebResponse;
@@ -381,7 +394,7 @@ public:
    * not being concurrently deleted, but multiple requests may happend
    * simultaneously for a single resource.
    */
-  virtual void handleRequest(const Http::Request& request,
+  virtual WRE handleRequest(const Http::Request& request,
                              Http::Response& response) = 0;
 
   /*! \brief Handles a continued request being aborted.
@@ -482,8 +495,8 @@ private:
 
   void removeContinuation(Http::ResponseContinuationPtr continuation);
   Http::ResponseContinuationPtr addContinuation(Http::ResponseContinuation *c);
-  void doContinue(Http::ResponseContinuationPtr continuation);
-  void handle(WebRequest *webRequest, WebResponse *webResponse,
+  asio::awaitable<void> doContinue(Http::ResponseContinuationPtr continuation);
+  asio::awaitable<void> handle(WebRequest *webRequest, WebResponse *webResponse,
               Http::ResponseContinuationPtr continuation
                 = Http::ResponseContinuationPtr());
 

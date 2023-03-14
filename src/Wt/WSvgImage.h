@@ -89,7 +89,7 @@ public:
   virtual WLength width() const override { return width_; }
   virtual WLength height() const override { return height_; }
 
-  virtual void handleRequest(const Http::Request& request,
+  virtual WRE handleRequest(const Http::Request& request,
                              Http::Response& response) override;
 
 protected:

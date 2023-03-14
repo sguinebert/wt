@@ -43,7 +43,7 @@ public:
 
   ~WtReply();
 
-  virtual bool consumeData(const char *begin,
+  virtual asio::awaitable<bool> consumeData(const char *begin,
                            const char *end,
                            Request::State state) override;
 
@@ -97,7 +97,7 @@ protected:
 private:
   void readRestWebSocketHandshake();
 
-  void consumeRequestBody(const char *begin,
+    asio::awaitable<void> consumeRequestBody(const char *begin,
                           const char *end,
                           Request::State state);
   void formatResponse(std::vector<asio::const_buffer>& result);

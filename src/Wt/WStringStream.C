@@ -217,6 +217,10 @@ void WStringStream::asioBuffers(std::vector<AsioWrapper::asio::const_buffer>& re
 
   result.push_back(AsioWrapper::asio::buffer(buf_, buf_i_));
 }
+void WStringStream::asioBuffer(boost::asio::const_buffer& result) const
+{
+  result = AsioWrapper::asio::buffer(buf_, buf_i_);
+}
 #endif
 
 WStringStream::iterator WStringStream::back_inserter()

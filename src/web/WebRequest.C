@@ -32,6 +32,8 @@
 
 using std::atoi;
 
+#define BENCH 1
+
 namespace {
 
 inline std::string str(const char *s) {

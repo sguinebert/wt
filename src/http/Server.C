@@ -119,7 +119,7 @@ namespace server {
 Server::Server(const Configuration& config, Wt::WServer& wtServer)
   : config_(config),
     wt_(wtServer),
-    accept_strand_(wt_.ioService()),
+    accept_strand_(boost::asio::make_strand(wt_.ioService())),
     // post_strand_(ioService_),
 #ifdef HTTP_WITH_SSL
 #if (defined(WT_ASIO_IS_BOOST_ASIO) && BOOST_VERSION >= 106600) || (defined(WT_ASIO_IS_STANDALONE_ASIO) && ASIO_VERSION >= 101100)
@@ -296,7 +296,8 @@ void Server::start()
   // accept exits. To avoid that this happens when called within the
   // WServer context, we post the action of calling accept to one of
   // the threads in the threadpool.
-  wt_.ioService().post(std::bind(&Server::startAccept, this));
+  //wt_.ioService().post(std::bind(&Server::startAccept, this));
+  co_spawn(wt_.ioService(), std::bind(&Server::startAccept, this), detached);
 
   if (config_.parentPort() != -1) {
     // This is a child process, connect to parent to
@@ -490,7 +491,7 @@ int Server::httpPort() const
   return tcp_listeners_.front().acceptor.local_endpoint().port();
 }
 
-void Server::startAccept()
+awaitable<void> Server::startAccept()
 {
   /*
    * For simplicity, we are using the same accept_strand_ for Tcp
@@ -504,11 +505,16 @@ void Server::startAccept()
   for (std::size_t i = 0; i < tcp_listeners_.size(); ++i) {
     asio::ip::tcp::acceptor &acceptor = tcp_listeners_[i].acceptor;
     TcpConnectionPtr &new_connection = tcp_listeners_[i].new_connection;
-    acceptor.async_accept(new_connection->socket(),
-                          accept_strand_.wrap(
-                            std::bind(&Server::handleTcpAccept, this,
-                                        &tcp_listeners_[i],
-                                        std::placeholders::_1)));
+//    acceptor.async_accept(new_connection->socket(),
+//                          accept_strand_.wrap(
+//                            std::bind(&Server::handleTcpAccept, this,
+//                                        &tcp_listeners_[i],
+//                                        std::placeholders::_1)));
+
+    Wt::AsioWrapper::error_code ec;
+    co_await acceptor.async_accept(new_connection->socket(), redirect_error(use_awaitable, ec));
+    co_spawn(accept_strand_, handleTcpAccept(&tcp_listeners_[i], ec), detached);
+
   }
 
 #ifdef HTTP_WITH_SSL
@@ -583,8 +589,9 @@ void Server::stop()
   // Post a call to the stop function so that server::stop() is safe
   // to call from any thread, and not simultaneously with waiting for
   // a new async_accept() call.
-  wt_.ioService().post
-    (accept_strand_.wrap(std::bind(&Server::handleStop, this)));
+//  wt_.ioService().post
+//    (accept_strand_.wrap(std::bind(&Server::handleStop, this)));
+  asio::post(accept_strand_, std::bind(&Server::handleStop, this));
 }
 
 void Server::resume()
@@ -607,7 +614,7 @@ void Server::handleResume()
   start();
 }
 
-void Server::handleTcpAccept(TcpListener *listener, const Wt::AsioWrapper::error_code& e)
+awaitable<void> Server::handleTcpAccept(TcpListener *listener, const Wt::AsioWrapper::error_code& e)
 {
   if (!e) {
     connection_manager_.start(listener->new_connection);
@@ -616,15 +623,20 @@ void Server::handleTcpAccept(TcpListener *listener, const Wt::AsioWrapper::error
   } else if (!listener->acceptor.is_open()) {
     // server shutdown
     LOG_DEBUG("handleTcpAccept: async_accept error (acceptor closed, probably server shutdown): " << e.message());
-    return;
+    co_return;
   } else {
     LOG_ERROR("handleTcpAccept: async_accept error: " << e.message());
   }
 
-  listener->acceptor.async_accept(listener->new_connection->socket(),
-                                  accept_strand_.wrap(
-                                          std::bind(&Server::handleTcpAccept, this,
-                                                    listener, std::placeholders::_1)));
+//  listener->acceptor.async_accept(listener->new_connection->socket(),
+//                                  boost::asio::bind_executor(accept_strand_,
+//                                          std::bind(&Server::handleTcpAccept, this,
+//                                                    listener, std::placeholders::_1)));
+
+   Wt::AsioWrapper::error_code ec;
+   co_await listener->acceptor.async_accept(listener->new_connection->socket(), redirect_error(use_awaitable, ec));
+   co_spawn(accept_strand_, std::bind(&Server::handleTcpAccept, this, listener, ec), detached);
+
 }
 
 #ifdef HTTP_WITH_SSL

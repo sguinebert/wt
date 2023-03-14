@@ -72,7 +72,7 @@ public:
     o << "<html><body>OAuth error</body></html>";
   }
 
-  virtual void handleRequest(const Http::Request& request,
+  virtual WRE handleRequest(const Http::Request& request,
                              Http::Response& response) override
   {
 #ifndef WT_TARGET_JAVA
@@ -86,7 +86,11 @@ public:
                   ", state: " << (stateE ? *stateE : "(empty)"));
         process_->setError(ERROR_MSG("invalid-state"));
         sendError(response);
+#ifndef AWAIT_WRESOURCE
         return;
+#else
+        co_return;
+#endif
       }
 
       const std::string *errorE = request.getParameter("error");
@@ -94,7 +98,11 @@ public:
         LOG_ERROR(ERROR_MSG(+ *errorE));
         process_->setError(ERROR_MSG(+ *errorE));
         sendError(response);
+#ifndef AWAIT_WRESOURCE
         return;
+#else
+        co_return;
+#endif
       }
 
       const std::string *codeE = request.getParameter("code");
@@ -102,7 +110,11 @@ public:
         LOG_ERROR(ERROR_MSG("missing-code"));
         process_->setError(ERROR_MSG("missing-code"));
         sendError(response);
+#ifndef AWAIT_WRESOURCE
         return;
+#else
+        co_return;
+#endif
       }
 
 #ifndef WT_TARGET_JAVA
@@ -568,7 +580,7 @@ struct OAuthService::Impl
       beingDeleted();
     }
 
-    virtual void handleRequest(const Http::Request& request,
+    virtual WRE handleRequest(const Http::Request& request,
                                Http::Response& response) override
     {
       const std::string *stateE = request.getParameter("state");
@@ -591,7 +603,11 @@ struct OAuthService::Impl
 
           response.setStatus(302);
           response.addHeader("Location", redirectUrl);
+#ifndef AWAIT_WRESOURCE
           return;
+#else
+          co_return;
+#endif
         } else
           LOG_ERROR("RedirectEndpoint: could not decode state " << *stateE);
       } else

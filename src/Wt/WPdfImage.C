@@ -738,7 +738,7 @@ WTextItem WPdfImage::measureText(const WString& text, double maxWidth,
   }
 }
 
-void WPdfImage::handleRequest(const Http::Request& request,
+WRE WPdfImage::handleRequest(const Http::Request& request,
                               Http::Response& response)
 {
   HPDF_SaveToStream(pdf_);

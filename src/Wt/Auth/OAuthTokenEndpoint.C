@@ -67,7 +67,7 @@ OAuthTokenEndpoint::~OAuthTokenEndpoint()
 #endif // WT_TARGET_JAVA
 }
 
-void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Response &response)
+WRE OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Response &response)
 {
 #ifdef WT_TARGET_JAVA
   try {
@@ -123,7 +123,11 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
       << " clientSecret: " << (clientSecret.empty() ? "MISSING" : "NOT MISSING")
       << " grantType: " << (grantType ? *grantType : "NULL")
       << " redirectUri: " << (redirectUri ? *redirectUri : "NULL"));
+#ifndef AWAIT_WRESOURCE
     return;
+#else
+    co_return;
+#endif
   }
   OAuthClient client = db_->idpClientFindWithId(clientId);
   if (!client.checkValid() || !client.verifySecret(clientSecret)
@@ -143,7 +147,11 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
       << " secret: " << (client.verifySecret(clientSecret) ? "correct" : "incorrect")
       << " method: " << (client.authMethod() != authMethod ? "no match" : "match")
     );
+#ifndef AWAIT_WRESOURCE
     return;
+#else
+    co_return;
+#endif
   }
   if (*grantType != GRANT_TYPE) {
     response.setStatus(400);
@@ -152,7 +160,11 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
       << " id: " << clientId
       << " grantType: " << grantType
     );
+#ifndef AWAIT_WRESOURCE
     return;
+#else
+    co_return;
+#endif
   }
   IssuedToken authCode = db_->idpTokenFindWithValue(GRANT_TYPE, *code);
   if (!authCode.checkValid() || authCode.redirectUri() != *redirectUri
@@ -166,7 +178,11 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
       << " redirectUri: " << *redirectUri << (authCode.redirectUri() != *redirectUri ? " - invalid" : " - valid")
       << " timestamp: " << authCode.expirationTime().toString() << (WDateTime::currentDateTime() > authCode.expirationTime() ? ", expired" : ", not expired")
     );
+#ifndef AWAIT_WRESOURCE
     return;
+#else
+    co_return;
+#endif
   }
   std::string accessTokenValue = WRandom::generateId();
   WDateTime expirationTime = WDateTime::currentDateTime().addSecs(accessExpSecs_);

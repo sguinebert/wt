@@ -60,8 +60,8 @@ public:
   /// Validate
   Reply::status_type validate(Request& req);
 
-  ParseResult parseBody(Request& req, ReplyPtr reply,
-                        char *& begin, char *end);
+  boost::asio::awaitable<RequestParser::ParseResult>
+  parseBody(Request& req, ReplyPtr reply, char *& begin, char *end);
 
   bool initialState() const;
 

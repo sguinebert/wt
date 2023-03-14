@@ -50,14 +50,18 @@ OidcUserInfoEndpoint::~OidcUserInfoEndpoint()
   beingDeleted();
 }
 
-void OidcUserInfoEndpoint::handleRequest(const Http::Request& request, Http::Response& response)
+WRE OidcUserInfoEndpoint::handleRequest(const Http::Request& request, Http::Response& response)
 {
   std::string authHeader = request.headerValue("Authorization");
   if (!boost::starts_with(authHeader, AUTH_TYPE)) {
     response.setStatus(400);
     response.addHeader("WWW-Authenticate", "error=\"invalid_request\"");
     LOG_INFO("error=\"invalid_request\": Authorization header missing");
+#ifndef AWAIT_WRESOURCE
     return;
+#else
+    co_return;
+#endif
   }
   std::string tokenValue = authHeader.substr(AUTH_TYPE.length());
   IssuedToken accessToken = db_->idpTokenFindWithValue("access_token", tokenValue);
@@ -65,7 +69,11 @@ void OidcUserInfoEndpoint::handleRequest(const Http::Request& request, Http::Res
     response.setStatus(401);
     response.addHeader("WWW-Authenticate", "error=\"invalid_token\"");
     LOG_INFO("error=\"invalid_token\" " << authHeader);
+#ifndef AWAIT_WRESOURCE
     return;
+#else
+    co_return;
+#endif
   }
   response.setMimeType("application/json");
   response.setStatus(200);

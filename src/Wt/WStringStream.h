@@ -173,6 +173,7 @@ public:
 #ifndef WT_DBO_STRINGSTREAM
 #ifdef WT_ASIO_IS_BOOST_ASIO
   void asioBuffers(std::vector<boost::asio::const_buffer>& result) const;
+  void asioBuffer(boost::asio::const_buffer& result) const;
 #else
   void asioBuffers(std::vector<asio::const_buffer>& result) const;
 #endif

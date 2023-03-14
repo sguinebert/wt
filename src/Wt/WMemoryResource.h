@@ -89,7 +89,7 @@ public:
    */
   void setMimeType(const std::string& mimeType);
 
-  virtual void handleRequest(const Http::Request& request,
+  virtual WRE handleRequest(const Http::Request& request,
                              Http::Response& response) override;
 
 private:

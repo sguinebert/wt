@@ -103,24 +103,24 @@ void ProxyReply::writeDone(bool success)
 
   if (more_ && socket_) {
     LOG_DEBUG(this << ": async_read downstream");
-    asio::async_read
-      (*socket_, responseBuf_,
-       asio::transfer_at_least(1),
-       connection()->strand().wrap
-       (std::bind(&ProxyReply::handleResponseRead,
-                  std::static_pointer_cast<ProxyReply>(shared_from_this()),
-                  std::placeholders::_1)));
+//    asio::async_read
+//      (*socket_, responseBuf_,
+//       asio::transfer_at_least(1),
+//       connection()->strand().wrap
+//       (std::bind(&ProxyReply::handleResponseRead,
+//                  std::static_pointer_cast<ProxyReply>(shared_from_this()),
+//                  std::placeholders::_1)));
   }
 }
 
-bool ProxyReply::consumeData(const char *begin,
+asio::awaitable<bool> ProxyReply::consumeData(const char *begin,
                              const char *end,
                              Request::State state)
 {
   LOG_DEBUG(this << ": consumeData()");
 
   if (state == Request::Error) {
-    return false;
+    co_return false;
   }
 
   beginRequestBuf_ = begin;
@@ -131,15 +131,15 @@ bool ProxyReply::consumeData(const char *begin,
    if (socket_) {
       LOG_DEBUG(this << ": sending to child");
       // Connection with child already established, send request data
-      asio::async_write
-        (*socket_,
-         asio::buffer(beginRequestBuf_, endRequestBuf_ - beginRequestBuf_),
-         connection()->strand().wrap
-         (std::bind
-          (&ProxyReply::handleDataWritten,
-           std::static_pointer_cast<ProxyReply>(shared_from_this()),
-           std::placeholders::_1,
-           std::placeholders::_2)));
+//      asio::async_write
+//        (*socket_,
+//         asio::buffer(beginRequestBuf_, endRequestBuf_ - beginRequestBuf_),
+//         connection()->strand().wrap
+//         (std::bind
+//          (&ProxyReply::handleDataWritten,
+//           std::static_pointer_cast<ProxyReply>(shared_from_this()),
+//           std::placeholders::_1,
+//           std::placeholders::_2)));
     } else {
       /* Connection with child was closed */
       error(service_unavailable);
@@ -169,17 +169,17 @@ bool ProxyReply::consumeData(const char *begin,
           if (i->second[0] == "resource" || i->second[0] == "style") {
             LOG_INFO("resource request from dead session, not responding.");
             error(not_found);
-            return true;
+            co_return true;
           } else if (i->second[0] == "ws") {
             LOG_INFO("websocket request from dead session, not responding.");
             error(service_unavailable);
-            return true;
+            co_return true;
           }
         } else if (request_.method.icontains("POST") &&
                    queryParams_.size() == 1) {
           sendReload();
 
-          return true;
+          co_return true;
         }
       }
 
@@ -188,13 +188,13 @@ bool ProxyReply::consumeData(const char *begin,
         // Launch new child process
         sessionProcess_ = sessionManager_.createSessionProcess();
 
-        sessionProcess_->asyncExec(
-            configuration(),
-            connection()->strand().wrap
-            (std::bind
-             (&ProxyReply::connectToChild,
-              std::static_pointer_cast<ProxyReply>(shared_from_this()),
-              std::placeholders::_1)));
+//        sessionProcess_->asyncExec(
+//            configuration(),
+//            connection()->strand().wrap
+//            (std::bind
+//             (&ProxyReply::connectToChild,
+//              std::static_pointer_cast<ProxyReply>(shared_from_this()),
+//              std::placeholders::_1)));
       } else {
         LOG_ERROR("maximum amount of sessions reached!");
         error(service_unavailable);
@@ -206,19 +206,19 @@ bool ProxyReply::consumeData(const char *begin,
 
   // Don't immediately consume more data, but do this when it has
   // been sent to child
-  return false;
+  co_return false;
 }
 
 void ProxyReply::connectToChild(bool success)
 {
   if (success) {
     socket_.reset(new asio::ip::tcp::socket(connection()->server()->service()));
-    socket_->async_connect
-      (sessionProcess_->endpoint(),
-       connection()->strand().wrap
-       (std::bind(&ProxyReply::handleChildConnected,
-                  std::static_pointer_cast<ProxyReply>(shared_from_this()),
-                  std::placeholders::_1)));
+//    socket_->async_connect
+//      (sessionProcess_->endpoint(),
+//       connection()->strand().wrap
+//       (std::bind(&ProxyReply::handleChildConnected,
+//                  std::static_pointer_cast<ProxyReply>(shared_from_this()),
+//                  std::placeholders::_1)));
   } else {
     error(service_unavailable);
   }
@@ -239,13 +239,13 @@ void ProxyReply::handleChildConnected(const Wt::AsioWrapper::error_code& ec)
   std::ostream os(&requestBuf_);
   os.write(beginRequestBuf_, static_cast<std::streamsize>(endRequestBuf_ - beginRequestBuf_));
 
-  asio::async_write
-    (*socket_, requestBuf_,
-     connection()->strand().wrap
-     (std::bind
-      (&ProxyReply::handleDataWritten,
-       std::static_pointer_cast<ProxyReply>(shared_from_this()),
-       std::placeholders::_1, std::placeholders::_2)));
+//  asio::async_write
+//    (*socket_, requestBuf_,
+//     connection()->strand().wrap
+//     (std::bind
+//      (&ProxyReply::handleDataWritten,
+//       std::static_pointer_cast<ProxyReply>(shared_from_this()),
+//       std::placeholders::_1, std::placeholders::_2)));
 }
 
 void ProxyReply::assembleRequestHeaders()
@@ -388,13 +388,13 @@ void ProxyReply::handleDataWritten(const Wt::AsioWrapper::error_code &ec,
       LOG_DEBUG(this << ": receive() upstream");
       receive();
     } else {
-      asio::async_read_until
-        (*socket_, responseBuf_, "\r\n",
-         connection()->strand().wrap
-         (std::bind
-          (&ProxyReply::handleStatusRead,
-           std::static_pointer_cast<ProxyReply>(shared_from_this()),
-           std::placeholders::_1)));
+//      asio::async_read_until
+//        (*socket_, responseBuf_, "\r\n",
+//         connection()->strand().wrap
+//         (std::bind
+//          (&ProxyReply::handleStatusRead,
+//           std::static_pointer_cast<ProxyReply>(shared_from_this()),
+//           std::placeholders::_1)));
     }
   } else {
     LOG_ERROR("error sending data to child: " << ec.message());
@@ -421,12 +421,12 @@ void ProxyReply::handleStatusRead(const Wt::AsioWrapper::error_code &ec)
       return;
     }
 
-    asio::async_read_until
-      (*socket_, responseBuf_, "\r\n\r\n",
-       connection()->strand().wrap
-       (std::bind(&ProxyReply::handleHeadersRead,
-                  std::static_pointer_cast<ProxyReply>(shared_from_this()),
-                  std::placeholders::_1)));
+//    asio::async_read_until
+//      (*socket_, responseBuf_, "\r\n\r\n",
+//       connection()->strand().wrap
+//       (std::bind(&ProxyReply::handleHeadersRead,
+//                  std::static_pointer_cast<ProxyReply>(shared_from_this()),
+//                  std::placeholders::_1)));
   } else {
     LOG_ERROR("error reading status line from child process " << sessionProcess_->pid() << ": " << ec.message());
     if (!sendReload())
