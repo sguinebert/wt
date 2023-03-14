@@ -348,7 +348,6 @@ Wt/Form/WFormDelegate.h Wt/Form/WFormDelegate.C
 Wt/Json/json.hpp 
 Wt/Json/simdjson.h Wt/Json/simdjson.cpp
 Wt/Json/Parser.h Wt/Json/Parser.C
-Wt/Json/Serializer.h Wt/Json/Serializer.C
 Wt/Http/HttpUtils.h Wt/Http/HttpUtils.C
 Wt/Http/Client.h Wt/Http/Client.C
 Wt/Http/Message.h Wt/Http/Message.C
