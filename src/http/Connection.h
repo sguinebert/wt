@@ -21,17 +21,7 @@
 #include <Wt/AsioWrapper/strand.hpp>
 #include <Wt/AsioWrapper/steady_timer.hpp>
 
-#if defined(BOOST_ASIO_HAS_CO_AWAIT)
-#include <asio/experimental/as_tuple.hpp>
-using boost::asio::awaitable;
-using boost::asio::buffer;
-using boost::asio::co_spawn;
-using boost::asio::detached;
-using boost::asio::ip::tcp;
-using boost::asio::use_awaitable;
-constexpr auto use_nothrow_awaitable = asio::experimental::as_tuple(use_awaitable);
-using namespace std::literals::chrono_literals;
-#endif
+
 using std::chrono::steady_clock;
 
 #include "Buffer.h"
