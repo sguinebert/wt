@@ -144,6 +144,7 @@ awaitable<void> Connection::watchdog(steady_clock::time_point& deadline)
     now = steady_clock::now();
   }
   asio::post(strand_, std::bind(&Connection::doTimeout, shared_from_this()));
+  co_return;
 }
 #endif
 
@@ -307,6 +308,7 @@ void Connection::handleError(const Wt::AsioWrapper::error_code& e)
 {
   LOG_DEBUG(native() << ": error: " << e.message());
 
+  //std::cerr << "error: " << e.message() << std::endl;
   close();
 }
 
