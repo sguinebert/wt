@@ -24,6 +24,12 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/member.hpp>
 
+#include <Wt/Dbo/backend/Sqlite3.h>
+#include <Wt/Dbo/backend/Postgres.h>
+#include <Wt/Dbo/backend/MySQL.h>
+#include <Wt/Dbo/backend/MSSQLServer.h>
+#include <Wt/Dbo/backend/Firebird.h>
+
 namespace Wt {
   namespace Dbo {
 
@@ -262,20 +268,17 @@ void Session::initSchema() const
   SqlConnection *conn = self->connection(false);
   longlongType_ = sql_value_traits<long long>::type(conn, 0);
   intType_ = sql_value_traits<int>::type(conn, 0);
-  haveSupportUpdateCascade_ = conn->supportUpdateCascade();
-  limitQueryMethod_ = conn->limitQueryMethod();
-  requireSubqueryAlias_ = conn->requireSubqueryAlias();
+  haveSupportUpdateCascade_ = std::visit([] (auto& conn) -> bool { return conn.supportUpdateCascade(); }, *conn); // conn->supportUpdateCascade();
+  limitQueryMethod_ = std::visit([] (auto& conn) -> LimitQuery { return conn.limitQueryMethod(); }, *conn); //conn->limitQueryMethod();
+  requireSubqueryAlias_ = std::visit([] (auto& conn) -> bool { return conn.requireSubqueryAlias(); }, *conn); //conn->requireSubqueryAlias();
 
-  for (ClassRegistry::const_iterator i = classRegistry_.begin();
-       i != classRegistry_.end(); ++i)
+  for (auto i = classRegistry_.begin(); i != classRegistry_.end(); ++i)
     i->second->init(*self);
 
-  for (ClassRegistry::const_iterator i = classRegistry_.begin();
-       i != classRegistry_.end(); ++i)
+  for (auto i = classRegistry_.begin(); i != classRegistry_.end(); ++i)
     self->resolveJoinIds(i->second);
 
-  for (ClassRegistry::const_iterator i = classRegistry_.begin();
-       i != classRegistry_.end(); ++i)
+  for (auto i = classRegistry_.begin(); i != classRegistry_.end(); ++i)
     self->prepareStatements(i->second);
 
   t.commit();
@@ -323,7 +326,7 @@ void Session::prepareStatements(Impl::MappingInfo *mapping)
   }
 
   if (mapping->surrogateIdFieldName) {
-    sql << conn->autoincrementInsertInfix(mapping->surrogateIdFieldName);
+    sql << std::visit([&] (auto& conn) -> std::string { return conn.autoincrementInsertInfix(mapping->surrogateIdFieldName); }, *conn); // conn->autoincrementInsertInfix(mapping->surrogateIdFieldName);
   }
 
   sql << " values (";
@@ -348,7 +351,7 @@ void Session::prepareStatements(Impl::MappingInfo *mapping)
   sql << ")";
 
   if (mapping->surrogateIdFieldName) {
-    sql << conn->autoincrementInsertSuffix(mapping->surrogateIdFieldName);
+    sql << std::visit([&] (auto& conn) -> std::string { return conn.autoincrementInsertSuffix(mapping->surrogateIdFieldName); }, *conn); //conn->autoincrementInsertSuffix(mapping->surrogateIdFieldName);
   }
   else {
     auto defaultkeys = mapping->primaryKeys(true);
@@ -664,7 +667,7 @@ void Session::executeSql(std::vector<std::string>& sql, std::ostream *sout)
     if (sout)
       *sout << sql[i] << ";\n";
     else
-      connection(true)->executeSql(sql[i]);
+      std::visit([&] (auto& conn) { conn.executeSql(sql[i]);}, *connection(true)); //connection(true)->executeSql(sql[i]);
 }
 
 void Session::executeSql(std::stringstream& sql, std::ostream *sout)
@@ -672,7 +675,7 @@ void Session::executeSql(std::stringstream& sql, std::ostream *sout)
   if (sout)
     *sout << sql.str() << ";\n";
   else
-    connection(true)->executeSql(sql.str());
+    std::visit([&] (auto& conn) { conn.executeSql(sql.str());}, *connection(true)); //connection(true)->executeSql(sql.str());
 }
 
 std::string Session::constraintName(const char *tableName,
@@ -762,12 +765,10 @@ void Session::createTables()
 
   std::set<std::string> tablesCreated;
 
-  for (ClassRegistry::iterator i = classRegistry_.begin();
-       i != classRegistry_.end(); ++i)
+  for (auto i = classRegistry_.begin(); i != classRegistry_.end(); ++i)
     createTable(i->second, tablesCreated, nullptr, false);
 
-  for (ClassRegistry::iterator i = classRegistry_.begin();
-       i != classRegistry_.end(); ++i)
+  for (auto i = classRegistry_.begin(); i != classRegistry_.end(); ++i)
     createRelations(i->second, tablesCreated, nullptr);
 
   t.commit();
@@ -790,12 +791,14 @@ void Session::createTable(Impl::MappingInfo *mapping,
 
   bool firstField = true;
 
+  auto conn = connection(false);
+
   // Auto-generated id
   if (mapping->surrogateIdFieldName) {
     sql << "  \"" << mapping->surrogateIdFieldName << "\" "
-	<< connection(false)->autoincrementType()
+        << std::visit([] (auto& conn) -> std::string { return conn.autoincrementType(); }, *conn) //connection(false)->autoincrementType()
 	<< " primary key "
-	<< connection(false)->autoincrementSql() << "";
+    << std::visit([] (auto& conn) -> std::string { return conn.autoincrementSql(); }, *conn) /*connection(false)->autoincrementSql()*/ << "";
     firstField = false;
   }
 
@@ -847,8 +850,8 @@ void Session::createTable(Impl::MappingInfo *mapping,
   for (unsigned i = 0; i < mapping->fields.size();) {
     const FieldInfo& field = mapping->fields[i];
 
-    if (field.isForeignKey() && 
-	(createConstraints || !connection(false)->supportAlterTable())) {
+    if (field.isForeignKey() &&
+        (createConstraints || !std::visit([] (auto& conn) ->bool { return conn.supportAlterTable() ;}, *connection(false)) /*connection(false)->supportAlterTable()*/)) {
       if (!firstField)
 	sql << ",\n";
 
@@ -869,9 +872,8 @@ void Session::createTable(Impl::MappingInfo *mapping,
     std::string tableName = Impl::quoteSchemaDot(mapping->tableName);
     std::string idFieldName = mapping->surrogateIdFieldName;
 
-    std::vector<std::string> sql = 
-      connection(false)->autoincrementCreateSequenceSql(tableName,
-							idFieldName);
+    auto sql = std::visit([&] (auto& conn) -> std::vector<std::string> { return conn.autoincrementCreateSequenceSql(tableName, idFieldName);}, *connection(false));
+      //connection(false)->autoincrementCreateSequenceSql(tableName, idFieldName);
 
     executeSql(sql, sout);
   }
@@ -898,7 +900,7 @@ void Session::createRelations(Impl::MappingInfo *mapping,
     }
   }
 
-  if (connection(false)->supportAlterTable()){ //backend condition
+  if (std::visit([] (auto& conn) ->bool { return conn.supportAlterTable() ;}, *connection(false))){ //backend condition
     for (unsigned i = 0; i < mapping->fields.size();) {
       const FieldInfo& field = mapping->fields[i];
       if (field.isForeignKey()){
@@ -960,7 +962,7 @@ std::string Session::constraintString(Impl::MappingInfo *mapping,
   else if (field.fkConstraints() & Impl::FKOnDeleteRestrict)
     sql << " on delete restrict";
 
-  if (connection(false)->supportDeferrableFKConstraint()) //backend condition
+  if (std::visit([] (auto& conn) ->bool { return conn.supportDeferrableFKConstraint() ;}, *connection(false)) /*connection(false)->supportDeferrableFKConstraint()*/) //backend condition
     sql << " deferrable initially deferred";
 
   return sql.str();
@@ -1135,20 +1137,25 @@ void Session::dropTables()
   if (connectionPool_) {
     connectionPool_->prepareForDropTables();
     if (transaction) {
-      transaction->connection_->prepareForDropTables();
+      std::visit([&] (auto& conn) { conn.prepareForDropTables();  }, *transaction->connection_);
+      //transaction->connection_->prepareForDropTables();
     }
   } else if (connection_) {
-    connection_->prepareForDropTables();
+    std::visit([&] (auto& conn) { conn.prepareForDropTables();  }, *connection_);
+    //connection_->prepareForDropTables();
   } else if (transaction) {
-    transaction->connection_->prepareForDropTables();
+    std::visit([&] (auto& conn) { conn.prepareForDropTables();  }, *transaction->connection_);
+    //transaction->connection_->prepareForDropTables();
   }
 
   Transaction t(*this);
 
   flush();
 
+  auto conn = connection(false);
+
   //remove constraints first.
-  if (connection(false)->supportAlterTable()){
+  if (std::visit([] (auto& conn) ->bool { return conn.supportAlterTable() ;}, *conn)){
     for (ClassRegistry::iterator i = classRegistry_.begin();
          i != classRegistry_.end(); ++i){
       Impl::MappingInfo *mapping = i->second;
@@ -1162,7 +1169,7 @@ void Session::dropTables()
 
           sql << "alter table \"" << table << "\""
               << " drop "
-              << connection(false)->alterTableConstraintString() << " "
+              << std::visit([] (auto& conn) ->bool { return conn.alterTableConstraintString() ;}, *conn) /*connection(false)->alterTableConstraintString()*/ << " "
               << constraintName(mapping->tableName, field.foreignKeyName());
 
           j = findLastForeignKeyField(mapping, field, j);
@@ -1174,8 +1181,7 @@ void Session::dropTables()
   }
 
   std::set<std::string> tablesDropped;
-  for (ClassRegistry::iterator i = classRegistry_.begin();
-       i != classRegistry_.end(); ++i)
+  for (auto i = classRegistry_.begin(); i != classRegistry_.end(); ++i)
     i->second->dropTable(*this, tablesDropped);
 
   t.commit();
@@ -1267,7 +1273,7 @@ std::string Session::statementId(const char *tableName, int statementIdx)
 
 SqlStatement *Session::getStatement(const std::string& id)
 {
-  return connection(true)->getStatement(id);
+  return std::visit([&] (auto& conn) -> SqlStatement* { return conn.getStatement(id); }, *connection(true)); //connection(true)->getStatement(id);
 }
 
 SqlStatement *Session::getOrPrepareStatement(const std::string& sql)
@@ -1297,20 +1303,18 @@ Session::getStatementSql(const char *tableName, int statementIdx)
   return getMapping(tableName)->statements[statementIdx];
 }
 
-SqlStatement *Session::prepareStatement(const std::string& id,
-					const std::string& sql)
+SqlStatement *Session::prepareStatement(const std::string& id, const std::string& sql)
 {
   SqlConnection *conn = connection(false);
-  std::unique_ptr<SqlStatement> stmt = conn->prepareStatement(sql);
+  auto stmt = std::visit([&] (auto& conn) -> std::unique_ptr<SqlStatement> { return conn.prepareStatement(sql); }, *conn); //conn->prepareStatement(sql);
   SqlStatement *result = stmt.get();
-  conn->saveStatement(id, std::move(stmt));
+  std::visit([&] (auto& conn) { conn.saveStatement(id, std::move(stmt)); }, *conn); //conn->saveStatement(id, std::move(stmt));
   result->use();
 
   return result;
 }
 
-void Session::getFields(const char *tableName,
-			std::vector<FieldInfo>& result)
+void Session::getFields(const char *tableName, std::vector<FieldInfo>& result)
 {
   initSchema();
 

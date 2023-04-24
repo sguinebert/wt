@@ -12,10 +12,12 @@
 #include <memory>
 #include <vector>
 
+#include "Wt/Dbo/SqlConnection.h"
+
 namespace Wt {
   namespace Dbo {
 
-class SqlConnection;
+//class SqlConnectionBase;
 
 /*! \class SqlConnectionPool Wt/Dbo/SqlConnectionPool.h Wt/Dbo/SqlConnectionPool.h
  *  \brief Abstract base class for a SQL connection pool.

@@ -121,7 +121,7 @@ namespace Wt {
     template<>
     struct sql_value_traits<Pet>
     {
-      static std::string type(SqlConnection *conn, int size)
+      static std::string type(SqlConnectionBase *conn, int size)
       {
         return sql_value_traits<std::string>::type(conn, size);
       }

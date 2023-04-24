@@ -22,7 +22,7 @@ namespace Wt {
  *
  * \ingroup dbo
  */
-class WTDBOMSSQLSERVER_API MSSQLServer : public SqlConnection
+class WTDBOMSSQLSERVER_API MSSQLServer : public SqlConnectionBase
 {
 public:
   /*! \brief Creates a new Microsoft SQL Server backend connection.
@@ -55,7 +55,7 @@ public:
    */
   virtual ~MSSQLServer();
 
-  virtual std::unique_ptr<Wt::Dbo::SqlConnection> clone() const override;
+  std::unique_ptr<MSSQLServer> clone() const;
 
   /*! \brief Tries to connect.
    *
@@ -84,30 +84,30 @@ public:
    */
   bool connect(const std::string &connectionString);
 
-  virtual void executeSql(const std::string &sql) override;
+  void executeSql(const std::string &sql) override;
 
-  virtual void startTransaction() override;
-  virtual void commitTransaction() override;
-  virtual void rollbackTransaction() override;
+  void startTransaction();
+  void commitTransaction();
+  void rollbackTransaction();
   
   virtual std::unique_ptr<SqlStatement> prepareStatement(const std::string &sql) override;
 
   /** @name Methods that return dialect information
    */
   //!@{
-  virtual std::string autoincrementSql() const override;
-  virtual std::vector<std::string> autoincrementCreateSequenceSql(const std::string &table, const std::string &id) const override;
-  virtual std::vector<std::string> autoincrementDropSequenceSql(const std::string &table, const std::string &id) const override;
-  virtual std::string autoincrementType() const override;
-  virtual std::string autoincrementInsertInfix(const std::string &id) const override;
-  virtual std::string autoincrementInsertSuffix(const std::string &id) const override;
-  virtual const char *dateTimeType(SqlDateTimeType type) const override;
-  virtual const char *blobType() const override;
-  virtual bool requireSubqueryAlias() const override;
-  virtual const char *booleanType() const override;
-  virtual bool supportAlterTable() const override;
-  virtual std::string textType(int size) const override;
-  virtual LimitQuery limitQueryMethod() const override;
+  std::string autoincrementSql() const;
+  std::vector<std::string> autoincrementCreateSequenceSql(const std::string &table, const std::string &id) const;
+  std::vector<std::string> autoincrementDropSequenceSql(const std::string &table, const std::string &id) const;
+  std::string autoincrementType() const;
+  std::string autoincrementInsertInfix(const std::string &id) const override;
+  std::string autoincrementInsertSuffix(const std::string &id) const;
+  const char *dateTimeType(SqlDateTimeType type) const;
+  const char *blobType() const;
+  bool requireSubqueryAlias() const override;
+  const char *booleanType() const override;
+  bool supportAlterTable() const override;
+  std::string textType(int size) const override;
+  LimitQuery limitQueryMethod() const override;
   //!@}
 
 private:

@@ -18,6 +18,12 @@
 
 #include <iostream>
 
+#include <Wt/Dbo/backend/Postgres.h>
+#include <Wt/Dbo/backend/Sqlite3.h>
+#include <Wt/Dbo/backend/MySQL.h>
+#include <Wt/Dbo/backend/MSSQLServer.h>
+#include <Wt/Dbo/backend/Firebird.h>
+
 namespace Wt
 {
   namespace Dbo
@@ -36,15 +42,14 @@ namespace Wt
       std::vector<std::unique_ptr<SqlConnection>> freeList;
     };
 
-    FixedSqlConnectionPool::FixedSqlConnectionPool(std::unique_ptr<SqlConnection> connection,
-                                                   int size)
+    FixedSqlConnectionPool::FixedSqlConnectionPool(std::unique_ptr<SqlConnection> connection, int size)
         : impl_(new Impl)
     {
       SqlConnection *conn = connection.get();
       impl_->freeList.push_back(std::move(connection));
 
       for (int i = 1; i < size; ++i)
-        impl_->freeList.push_back(conn->clone());
+        impl_->freeList.push_back(std::visit([&] (auto& conn) -> std::unique_ptr<SqlConnection> { return std::make_unique<SqlConnection>(*conn.clone());  }, *conn));
     }
 
     FixedSqlConnectionPool::~FixedSqlConnectionPool()
@@ -115,7 +120,7 @@ namespace Wt
     void FixedSqlConnectionPool::prepareForDropTables() const
     {
       for (unsigned i = 0; i < impl_->freeList.size(); ++i)
-        impl_->freeList[i]->prepareForDropTables();
+            std::visit([&] (auto& conn) { conn.prepareForDropTables();  }, *impl_->freeList[i]); //impl_->freeList[i]->prepareForDropTables();
     }
 
   }

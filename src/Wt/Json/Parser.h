@@ -36,7 +36,7 @@ namespace Wt {
  *
  * \ingroup json
  */
-  WT_API extern Value parse(const std::string& input, bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
+  WT_API extern Value parse(const std::string& input, bool valideUTF8, bool allow_trailing_commas = false, bool allow_comments = false);
 
   //WT_API extern Value parse(const std::string& input);
 

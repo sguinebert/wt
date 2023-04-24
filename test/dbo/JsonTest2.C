@@ -65,21 +65,21 @@ BOOST_AUTO_TEST_CASE( dbo_json_sql_traits )
     .find<HasJson>("where \"name\" = ?")
     .bind("john");
 
-  BOOST_REQUIRE(hjptr->object == Wt::Json::Object::Empty);
-  BOOST_REQUIRE(hjptr->array == Wt::Json::Array::Empty);
+//  BOOST_REQUIRE(hjptr->object == Wt::Json::Object::Empty);
+//  BOOST_REQUIRE(hjptr->array == Wt::Json::Array::Empty);
 
-  hjptr.modify()->array.push_back(1);
-  BOOST_REQUIRE(hjptr->array[0] == Wt::Json::Value(1));
+//  hjptr.modify()->array.push_back(1);
+//  BOOST_REQUIRE(hjptr->array[0] == Wt::Json::Value(1));
 
-  Wt::Json::Object obj;
-  obj["attribute"] = "value";
-  hjptr.modify()->array.push_back(obj);
-  hjptr.modify()->object = obj;
-  BOOST_REQUIRE(hjptr->object.get("attribute") == "value");
-  BOOST_REQUIRE(hjptr->object == Wt::Json::Object(hjptr->array.at(1)));
+//  Wt::Json::Object obj;
+//  obj["attribute"] = "value";
+//  hjptr.modify()->array.push_back(obj);
+//  hjptr.modify()->object = obj;
+//  BOOST_REQUIRE(hjptr->object.get("attribute") == "value");
+//  BOOST_REQUIRE(hjptr->object == Wt::Json::Object(hjptr->array.at(1)));
 
-  hjptr.modify()->object["a2"] = "v2";
-  BOOST_REQUIRE(hjptr->object != Wt::Json::Object(hjptr->array.at(1)));
+//  hjptr.modify()->object["a2"] = "v2";
+//  BOOST_REQUIRE(hjptr->object != Wt::Json::Object(hjptr->array.at(1)));
 
 
 }

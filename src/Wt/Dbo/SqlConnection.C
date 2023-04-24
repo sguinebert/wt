@@ -18,40 +18,36 @@ namespace Wt {
 
 LOGGER("Dbo.SqlConnection");
 
-namespace {
-  static const std::size_t WARN_NUM_STATEMENTS_THRESHOLD = 10;
-}
-
-SqlConnection::SqlConnection()
+SqlConnectionBase::SqlConnectionBase()
 { }
 
-SqlConnection::SqlConnection(const SqlConnection& other)
+SqlConnectionBase::SqlConnectionBase(const SqlConnectionBase& other)
   : properties_(other.properties_)
 { }
 
-SqlConnection::~SqlConnection()
+SqlConnectionBase::~SqlConnectionBase()
 {
   assert(statementCache_.empty());
 }
 
-void SqlConnection::clearStatementCache()
+void SqlConnectionBase::clearStatementCache()
 {
   statementCache_.clear();
 }
 
-void SqlConnection::executeSql(const std::string& sql)
+void SqlConnectionBase::executeSql(const std::string& sql)
 {
   std::unique_ptr<SqlStatement> s = prepareStatement(sql);
   s->execute();
 }
 
-void SqlConnection::executeSqlStateful(const std::string& sql)
+void SqlConnectionBase::executeSqlStateful(const std::string& sql)
 {
   statefulSql_.push_back(sql);
   executeSql(sql);
 }
 
-SqlStatement *SqlConnection::getStatement(const std::string& id)
+SqlStatement *SqlConnectionBase::getStatement(const std::string& id)
 {
   StatementMap::const_iterator start;
   StatementMap::const_iterator end;
@@ -75,13 +71,13 @@ SqlStatement *SqlConnection::getStatement(const std::string& id)
   return nullptr;
 }
 
-void SqlConnection::saveStatement(const std::string& id,
+void SqlConnectionBase::saveStatement(const std::string& id,
 				  std::unique_ptr<SqlStatement> statement)
 {
   statementCache_.emplace(id, std::move(statement));
 }
 
-std::string SqlConnection::property(const std::string& name) const
+std::string SqlConnectionBase::property(const std::string& name) const
 {
   std::map<std::string, std::string>::const_iterator i = properties_.find(name);
 
@@ -91,43 +87,43 @@ std::string SqlConnection::property(const std::string& name) const
     return std::string();
 }
 
-void SqlConnection::setProperty(const std::string& name,
+void SqlConnectionBase::setProperty(const std::string& name,
 				const std::string& value)
 {
   properties_[name] = value;
 }
 
-bool SqlConnection::usesRowsFromTo() const
+bool SqlConnectionBase::usesRowsFromTo() const
 {
   return false;
 }
 
-LimitQuery SqlConnection::limitQueryMethod() const
+LimitQuery SqlConnectionBase::limitQueryMethod() const
 {
   return LimitQuery::Limit;
 }
 
-bool SqlConnection::supportAlterTable() const
+bool SqlConnectionBase::supportAlterTable() const
 {
   return false;
 }
 
-bool SqlConnection::supportDeferrableFKConstraint() const
+bool SqlConnectionBase::supportDeferrableFKConstraint() const
 {
   return false;
 }
 
-const char *SqlConnection::alterTableConstraintString() const
+const char *SqlConnectionBase::alterTableConstraintString() const
 {
   return "constraint";
 }
 
-bool SqlConnection::showQueries() const
+bool SqlConnectionBase::showQueries() const
 {
   return property("show-queries") == "true";
 }
 
-std::string SqlConnection::textType(int size) const
+std::string SqlConnectionBase::textType(int size) const
 {
   if (size == -1)
     return "text";
@@ -136,35 +132,35 @@ std::string SqlConnection::textType(int size) const
   }
 }
 
-std::string SqlConnection::longLongType() const
+std::string SqlConnectionBase::longLongType() const
 {
   return "bigint";
 }
 
-const char *SqlConnection::booleanType() const
+const char *SqlConnectionBase::booleanType() const
 {
   return "boolean";
 }
 
-bool SqlConnection::supportUpdateCascade() const
+bool SqlConnectionBase::supportUpdateCascade() const
 {
   return true;
 }
 
-bool SqlConnection::requireSubqueryAlias() const
+bool SqlConnectionBase::requireSubqueryAlias() const
 {
   return false;
 }
 
-std::string SqlConnection::autoincrementInsertInfix(const std::string &) const
+std::string SqlConnectionBase::autoincrementInsertInfix(const std::string &) const
 {
   return "";
 }
 
-void SqlConnection::prepareForDropTables()
+void SqlConnectionBase::prepareForDropTables()
 { }
 
-std::vector<SqlStatement *> SqlConnection::getStatements() const
+std::vector<SqlStatement *> SqlConnectionBase::getStatements() const
 {
   std::vector<SqlStatement *> result;
 

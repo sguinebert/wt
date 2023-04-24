@@ -222,7 +222,7 @@ struct JsonDboFixture
       logged = true;
     }
 
-    std::unique_ptr<dbo::SqlConnection> sqlite3(new dbo::backend::Sqlite3(":memory:"));
+    std::unique_ptr<dbo::SqlConnectionBase> sqlite3(new dbo::backend::Sqlite3(":memory:"));
 
     session_ = std::unique_ptr<dbo::Session>(new dbo::Session());
     session_->setConnection(std::move(sqlite3));

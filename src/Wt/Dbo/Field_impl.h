@@ -188,21 +188,20 @@ void id(A& action, V& value, const std::string& name, bool mutation, int size)
 
 template <class A, class C>
 void id(A& action, ptr<C>& value, const std::string& name,
-	ForeignKeyConstraint constraint, int size)
+        ForeignKeyConstraint constraint, int size)
 {
   action.actId(value, name, size, constraint.value());
 }
 
 template <class Action, typename V>
-void auxId(Action& action, V& value, const std::string& name,
-	   int size)
+void auxId(Action& action, V& value, const std::string& name, int size)
 {
   action.act(FieldRef<V>(value, name, size, FieldRef<V>::AuxId));
 }
 
 template <class Action, class C>
 void auxId(Action& action, ptr<C>& value, const std::string& name,
-	   ForeignKeyConstraint constraint, int size)
+           ForeignKeyConstraint constraint, int size)
 {
   action.actPtr(PtrRef<C>(value, name, constraint.value(), PtrRef<C>::AuxId));
 }

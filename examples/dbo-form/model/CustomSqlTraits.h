@@ -18,7 +18,7 @@ namespace Wt {
   namespace Dbo {
 template<>
 struct sql_value_traits<Text, void> {
-  static std::string type(SqlConnection *conn, int size)
+  static std::string type(SqlConnectionBase *conn, int size)
   {
     return conn->textType(size);
   }

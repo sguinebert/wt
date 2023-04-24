@@ -388,7 +388,7 @@ class MySQLStatement final : public SqlStatement
     virtual void execute() override
     {
       if (conn_.showQueries())
-        LOG_INFO(sql_);
+        LOG_INFO(fmt::runtime(sql_));
 
       conn_.checkConnection();
       if(mysql_stmt_bind_param(stmt_, &in_pars_[0]) == 0){
@@ -861,8 +861,8 @@ class MySQLStatement final : public SqlStatement
 	    out_pars_[i].buffer_length = 256; // Reserve 256 bytes, if the content is longer, it will be reallocated later
 	    //http://dev.mysql.com/doc/refman/5.0/en/mysql-stmt-fetch.html
 	    break;
-	  default:
-            LOG_ERROR("MySQL Backend Programming Error: unknown type {}", field->type);
+      default:
+        LOG_ERROR("MySQL Backend Programming Error: unknown type {}", (int)field->type);
 	  }
 	  out_pars_[i].buffer_type = field->type;
 	  out_pars_[i].length = (unsigned long *) malloc(sizeof(unsigned long));
@@ -926,7 +926,7 @@ MySQL::MySQL(const std::string &db,  const std::string &dbuser,
 }
 
 MySQL::MySQL(const MySQL& other)
-  : SqlConnection(other),
+  : SqlConnectionBase(other),
     impl_(new MySQL_impl())
 {
   setFractionalSecondsPart(other.fractionalSecondsPart_);
@@ -952,9 +952,9 @@ MySQL::~MySQL()
   }
 }
 
-std::unique_ptr<SqlConnection> MySQL::clone() const
+std::unique_ptr<MySQL> MySQL::clone() const
 {
-  return std::unique_ptr<SqlConnection>(new MySQL(*this));
+  return std::make_unique<MySQL>(*this);// std::unique_ptr<MySQL>(new MySQL(*this));
 }
 
 bool MySQL::connect(const std::string &db,  const std::string &dbuser,
@@ -1053,12 +1053,11 @@ std::unique_ptr<SqlStatement> MySQL::prepareStatement(const std::string& sql)
 void MySQL::executeSql(const std::string &sql)
 {
   if (showQueries())
-    LOG_INFO(sql);
+    LOG_INFO(fmt::runtime(sql));
 
   checkConnection();
   if( mysql_query(impl_->mysql, sql.c_str()) != 0 ){
-    throw MySQLException("MySQL error performing query: '" +
-			 sql + "': " + mysql_error(impl_->mysql));
+    throw MySQLException("MySQL error performing query: '" + sql + "': " + mysql_error(impl_->mysql));
   }
   //use any results up
   MYSQL_RES* res = mysql_store_result(impl_->mysql);

@@ -64,7 +64,7 @@ enum class DateTimeStorage {
  *
  * \ingroup dbo
  */
-class WTDBOSQLITE3_API Sqlite3 : public SqlConnection
+class WTDBOSQLITE3_API Sqlite3 final : public SqlConnectionBase
 {
 public:
   /*! \brief Opens a new SQLite3 backend connection.
@@ -83,7 +83,7 @@ public:
    */
   ~Sqlite3();
 
-  virtual std::unique_ptr<SqlConnection> clone() const override;
+  std::unique_ptr<Sqlite3> clone() const;
 
   /*! \brief Returns the underlying connection.
    */
@@ -103,28 +103,64 @@ public:
    */
   DateTimeStorage dateTimeStorage(SqlDateTimeType type) const;
 
-  virtual void startTransaction() override;
-  virtual void commitTransaction() override;
-  virtual void rollbackTransaction() override;
+  void startTransaction();
+  void commitTransaction();
+  void rollbackTransaction();
 
-  virtual std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql) override;
+  std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql) override;
   
   /** @name Methods that return dialect information
    */
   //@{
-  virtual std::string autoincrementSql() const override;
-  virtual std::vector<std::string> 
+  std::string autoincrementSql() const;
+  std::vector<std::string>
     autoincrementCreateSequenceSql(const std::string &table,
-                                   const std::string &id) const override;
-  virtual std::vector<std::string> 
+                                   const std::string &id) const;
+  std::vector<std::string>
     autoincrementDropSequenceSql(const std::string &table,
-                                 const std::string &id) const override;
-  virtual std::string autoincrementType() const override;
-  virtual std::string autoincrementInsertSuffix(const std::string& id) const override;
-  virtual const char *dateTimeType(SqlDateTimeType type) const override;
-  virtual const char *blobType() const override;
-  virtual bool supportDeferrableFKConstraint() const override;
+                                 const std::string &id) const;
+  std::string autoincrementType() const;
+  std::string autoincrementInsertSuffix(const std::string& id) const;
+  const char *dateTimeType(SqlDateTimeType type) const;
+  const char *blobType() const;
+  bool supportDeferrableFKConstraint() const override;
   //@}
+
+  //  void executeSql(const std::string& sql)
+  //  {
+  //      std::unique_ptr<SqlStatement> s = prepareStatement(sql);
+  //      s->execute();
+  //  }
+
+  //  void executeSqlStateful(const std::string& sql)
+  //  {
+  //      statefulSql_.push_back(sql);
+  //      executeSql(sql);
+  //  }
+
+  //  SqlStatement *getStatement(const std::string& id)
+  //  {
+  //      StatementMap::const_iterator start;
+  //      StatementMap::const_iterator end;
+  //      std::tie(start, end) = statementCache_.equal_range(id);
+  //      SqlStatement *result = nullptr;
+  //      for (auto i = start; i != end; ++i) {
+  //          result = i->second.get();
+  //          if (result->use())
+  //              return result;
+  //      }
+  //      if (result) {
+  //          auto count = statementCache_.count(id);
+  //          if (count >= WARN_NUM_STATEMENTS_THRESHOLD) {
+  //              LOG_WARN("Warning: number of instances ({}) of prepared statement '{}' for this connection exceeds threshold ({}). This could indicate a programming error.", (count + 1), id, WARN_NUM_STATEMENTS_THRESHOLD);
+  //              fmtlog::poll();
+  //          }
+  //          auto stmt = prepareStatement(result->sql());
+  //          result = stmt.get();
+  //          saveStatement(id, std::move(stmt));
+  //      }
+  //      return nullptr;
+  //  }
 private:
   DateTimeStorage dateTimeStorage_[2];
 

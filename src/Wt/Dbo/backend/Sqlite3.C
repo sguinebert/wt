@@ -265,7 +265,7 @@ public:
   virtual void execute() override
   {
     if (db_.showQueries()) {
-      LOG_INFO(sql_);
+      LOG_INFO(fmt::runtime(sql_));
       fmtlog::poll();
     }
 
@@ -627,7 +627,7 @@ Sqlite3::Sqlite3(const std::string& db)
 }
 
 Sqlite3::Sqlite3(const Sqlite3& other)
-  : SqlConnection(other),
+  : SqlConnectionBase(other),
     conn_(other.conn_)
 {
   dateTimeStorage_[static_cast<unsigned>(SqlDateTimeType::Date)] 
@@ -659,15 +659,14 @@ Sqlite3::~Sqlite3()
   sqlite3_close(db_);
 }
 
-std::unique_ptr<SqlConnection> Sqlite3::clone() const
+std::unique_ptr<Sqlite3> Sqlite3::clone() const
 {
-  return std::unique_ptr<SqlConnection>(new Sqlite3(*this));
+  return std::unique_ptr<Sqlite3>(new Sqlite3(*this));
 }
 
 std::unique_ptr<SqlStatement> Sqlite3::prepareStatement(const std::string& sql)
 {
-  return std::unique_ptr<SqlStatement>(
-      new Sqlite3Statement(*this, sql));
+  return std::unique_ptr<SqlStatement>(new Sqlite3Statement(*this, sql));
 }
 
 std::string Sqlite3::autoincrementType() const

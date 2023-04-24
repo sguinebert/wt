@@ -290,7 +290,7 @@ namespace Wt {
     class ObjectNotFoundException;
     class SaveBaseAction;
     class Session;
-    class SqlConnection;
+    class SqlConnectionBase;
     class SqlConnectionPool;
     class SqlStatement;
     class StaleObjectException;

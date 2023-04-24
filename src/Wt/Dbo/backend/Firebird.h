@@ -41,7 +41,7 @@ namespace Wt {
        *
        * \ingroup dbo
        */
-      class WTDBOFIREBIRD_API Firebird : public SqlConnection
+      class WTDBOFIREBIRD_API Firebird final : public SqlConnectionBase
       {
       public:
         /*! \brief Creates a %Firebird backend connection.
@@ -91,33 +91,33 @@ namespace Wt {
 		     const std::string& CharSet = std::string(), 
 		     const std::string& CreateParams = std::string());
 
-	virtual std::unique_ptr<SqlConnection> clone() const override;
+    std::unique_ptr<Firebird> clone() const;
 
         /*! \brief Returns the underlying connection handle.
          */
         IBPP::Database connection();
 
-        virtual void startTransaction() override;
-        virtual void commitTransaction() override;
-        virtual void rollbackTransaction() override;
+        void startTransaction();
+        void commitTransaction();
+        void rollbackTransaction();
 	
         virtual std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql) override;
 
         /** @name Methods that return dialect information
          */
         //!@{
-        virtual std::string autoincrementSql() const override;
-        virtual std::vector<std::string>
+        std::string autoincrementSql() const;
+        std::vector<std::string>
 	  autoincrementCreateSequenceSql(const std::string &table,
-                                         const std::string &id) const override;
-	virtual std::vector<std::string> 
+                                         const std::string &id) const;
+    std::vector<std::string>
 	  autoincrementDropSequenceSql(const std::string &table,
-                                       const std::string &id) const override;
-        virtual std::string autoincrementType() const override;
-        virtual std::string autoincrementInsertSuffix(const std::string& id) const override;
-        virtual const char *dateTimeType(SqlDateTimeType type) const override;
-        virtual const char *blobType() const override;
-        virtual std::string textType(int size) const override;
+                                       const std::string &id) const;
+        std::string autoincrementType() const;
+        std::string autoincrementInsertSuffix(const std::string& id) const;
+        const char *dateTimeType(SqlDateTimeType type) const;
+        const char *blobType() const;
+        std::string textType(int size) const override;
         virtual const char *booleanType() const override;
         virtual LimitQuery limitQueryMethod() const override;
         virtual bool supportAlterTable() const override;

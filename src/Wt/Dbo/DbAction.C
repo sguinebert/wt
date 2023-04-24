@@ -47,9 +47,9 @@ bool InitSchema::getsValue() const { return false; }
 bool InitSchema::setsValue() const { return false; }
 bool InitSchema::isSchema() const { return true; }
 
-DropSchema::DropSchema(Session& session, 
-		       Impl::MappingInfo& mapping,
-		       std::set<std::string>& tablesDropped)
+DropSchema::DropSchema(Session& session,
+                       Impl::MappingInfo& mapping,
+                       std::set<std::string>& tablesDropped)
   : session_(session),
     mapping_(mapping),
     tablesDropped_(tablesDropped)
@@ -65,16 +65,29 @@ void DropSchema::drop(const std::string& table)
   tablesDropped_.insert(table);
 
   if (table == mapping_.tableName && mapping_.surrogateIdFieldName) {
-      std::vector<std::string> sql = session_.connection(false)
-	->autoincrementDropSequenceSql(Impl::quoteSchemaDot(table),
-				       mapping_.surrogateIdFieldName);
-      
-      for (unsigned i = 0; i < sql.size(); i++)
-	session_.connection(true)->executeSql(sql[i]);
+
+    auto sql = std::visit([&](const auto &conn) -> std::vector<std::string> {
+        return conn.autoincrementDropSequenceSql(Impl::quoteSchemaDot(table),
+                                                 mapping_.surrogateIdFieldName);
+    }, *session_.connection(false));
+
+    //      std::vector<std::string> sql = session_.connection(false)
+    //        ->autoincrementDropSequenceSql(Impl::quoteSchemaDot(table),
+    //                                       mapping_.surrogateIdFieldName);
+    auto& conn = *session_.connection(true);
+    for (unsigned i = 0; i < sql.size(); i++)
+          std::visit([&](auto &conn) {
+              conn.executeSql(sql[i]);
+          }, conn);
+    //session_.connection(true)->executeSql(sql[i]);
   }
 
-  session_.connection(true)
-    ->executeSql("drop table \"" + Impl::quoteSchemaDot(table) + "\"");
+  auto conn = session_.connection(true);
+  std::visit([&](auto &conn) {
+      conn.executeSql("drop table \"" + Impl::quoteSchemaDot(table) + "\"");
+  }, *conn);
+
+  //session_.connection(true)->executeSql("drop table \"" + Impl::quoteSchemaDot(table) + "\"");
 }
 
 bool DropSchema::getsValue() const { return false; }

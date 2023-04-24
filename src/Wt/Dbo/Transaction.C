@@ -147,7 +147,8 @@ void Transaction::Impl::open()
 {
   if (!open_) {
     open_ = true;
-    connection_->startTransaction();
+    std::visit([] (auto& conn) { conn.startTransaction(); }, *connection_);
+    //connection_->startTransaction();
   }
 }
 
@@ -158,7 +159,8 @@ void Transaction::Impl::commit()
     session_.flush();
 
   if (open_)
-    connection_->commitTransaction();
+    std::visit([] (auto& conn) { conn.commitTransaction(); }, *connection_);
+    //connection_->commitTransaction();
 
   for (unsigned i = 0; i < objects_.size(); ++i) {
     objects_[i]->transactionDone(true);
@@ -179,7 +181,8 @@ void Transaction::Impl::rollback()
 
   try {
     if (open_)
-      connection_->rollbackTransaction();
+      std::visit([] (auto& conn) { conn.rollbackTransaction(); }, *connection_);
+      //connection_->rollbackTransaction();
   } catch (const std::exception& e) {
     LOG_ERROR("Transaction::rollback(): {}", e.what());
     fmtlog::poll();

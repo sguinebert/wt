@@ -895,7 +895,7 @@ MSSQLServer::MSSQLServer(const std::string &connectionString)
 }
 
 MSSQLServer::MSSQLServer(const MSSQLServer &other)
-  : SqlConnection(other),
+  : SqlConnectionBase(other),
     impl_(other.impl_ ? new Impl(*other.impl_) : 0)
 {
   if (impl_)
@@ -908,9 +908,9 @@ MSSQLServer::~MSSQLServer()
   delete impl_;
 }
 
-std::unique_ptr<SqlConnection> MSSQLServer::clone() const
+std::unique_ptr<MSSQLServer> MSSQLServer::clone() const
 {
-  return std::unique_ptr<SqlConnection>(new MSSQLServer(*this));
+  return std::unique_ptr<MSSQLServer>(new MSSQLServer(*this));
 }
 
 bool MSSQLServer::connect(const std::string &connectionString)

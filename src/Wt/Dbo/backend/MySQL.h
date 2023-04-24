@@ -35,7 +35,7 @@ class MySQL_impl;
  *
  * \ingroup dbo
  */
-class WTDBOMYSQL_API MySQL : public SqlConnection
+class WTDBOMYSQL_API MySQL final : public SqlConnectionBase
 {
 public:
   /*! \brief Opens a new MySQL backend connection.
@@ -71,7 +71,7 @@ public:
 
   /*! \brief Returns a copy of the connection.
    */
-  virtual std::unique_ptr<SqlConnection> clone() const override;
+  std::unique_ptr<MySQL> clone() const;
 
   /*! \brief Tries to connect.
    *
@@ -99,30 +99,30 @@ public:
 
   virtual void executeSql(const std::string &sql) override;
 
-  virtual void startTransaction() override;
-  virtual void commitTransaction() override;
-  virtual void rollbackTransaction() override;
+  void startTransaction();
+  void commitTransaction();
+  void rollbackTransaction();
 
-  virtual std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql) override;
+  std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql) override;
 
   /** @name Methods that return dialect information
    */
   //!@{
-  virtual std::string autoincrementSql() const override;
-  virtual std::string autoincrementType() const override;
-  virtual std::string autoincrementInsertSuffix(const std::string& id) const override;
-  virtual std::vector<std::string>
+  std::string autoincrementSql() const;
+  std::string autoincrementType() const;
+  std::string autoincrementInsertSuffix(const std::string& id) const;
+  std::vector<std::string>
     autoincrementCreateSequenceSql(const std::string &table,
-                                   const std::string &id) const override;
-  virtual std::vector<std::string>
+                                   const std::string &id) const;
+  std::vector<std::string>
     autoincrementDropSequenceSql(const std::string &table,
-                                 const std::string &id) const override;
+                                 const std::string &id) const;
 
-  virtual const char *dateTimeType(SqlDateTimeType type) const override;
-  virtual const char *blobType() const override;
-  virtual bool supportAlterTable() const override;
-  virtual const char *alterTableConstraintString() const override;
-  virtual bool requireSubqueryAlias() const override {return true;}
+  const char *dateTimeType(SqlDateTimeType type) const;
+  const char *blobType() const;
+  bool supportAlterTable() const override;
+  const char *alterTableConstraintString() const override;
+  bool requireSubqueryAlias() const override {return true;}
   //!@}
 
   /*! \brief Returns the supported fractional seconds part
@@ -146,6 +146,42 @@ public:
   * \sa setFractionalSecondsPart()
   */
   void setFractionalSecondsPart(int fractionalSecondsPart);
+
+//  void executeSql(const std::string& sql)
+//  {
+//      std::unique_ptr<SqlStatement> s = prepareStatement(sql);
+//      s->execute();
+//  }
+
+//  void executeSqlStateful(const std::string& sql)
+//  {
+//      statefulSql_.push_back(sql);
+//      executeSql(sql);
+//  }
+
+//  SqlStatement *getStatement(const std::string& id)
+//  {
+//      StatementMap::const_iterator start;
+//      StatementMap::const_iterator end;
+//      std::tie(start, end) = statementCache_.equal_range(id);
+//      SqlStatement *result = nullptr;
+//      for (auto i = start; i != end; ++i) {
+//          result = i->second.get();
+//          if (result->use())
+//              return result;
+//      }
+//      if (result) {
+//          auto count = statementCache_.count(id);
+//          if (count >= WARN_NUM_STATEMENTS_THRESHOLD) {
+//              LOG_WARN("Warning: number of instances ({}) of prepared statement '{}' for this connection exceeds threshold ({}). This could indicate a programming error.", (count + 1), id, WARN_NUM_STATEMENTS_THRESHOLD);
+//              fmtlog::poll();
+//          }
+//          auto stmt = prepareStatement(result->sql());
+//          result = stmt.get();
+//          saveStatement(id, std::move(stmt));
+//      }
+//      return nullptr;
+//  }
 
 private:
   std::string dbname_;

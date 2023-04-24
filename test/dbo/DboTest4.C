@@ -203,7 +203,7 @@ BOOST_AUTO_TEST_CASE( dbo4_test1 )
   }
 
   // None of the following should throw!
-  std::unique_ptr<Wt::Dbo::SqlConnection> connection = f.connectionPool_->getConnection();
+  std::unique_ptr<Wt::Dbo::SqlConnectionBase> connection = f.connectionPool_->getConnection();
   connection->startTransaction();
   connection->executeSql("SELECT \"side1_name\",\"side2_name\" FROM \"friends1\"");
   connection->executeSql("SELECT \"side1\",\"side2\" FROM \"friends2\"");

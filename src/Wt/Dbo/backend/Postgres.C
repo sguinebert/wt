@@ -844,7 +844,7 @@ namespace Wt
       }
 
       Postgres::Postgres(const Postgres &other)
-          : SqlConnection(other),
+          : SqlConnectionBase(other),
             conn_(NULL),
             timeout_(other.timeout_),
             maximumLifetime_(other.maximumLifetime_)
@@ -890,9 +890,9 @@ namespace Wt
         timeout_ = timeout;
       }
 
-      std::unique_ptr<SqlConnection> Postgres::clone() const
+      std::unique_ptr<Postgres> Postgres::clone() const
       {
-        return std::unique_ptr<SqlConnection>(new Postgres(*this));
+        return std::unique_ptr<Postgres>(new Postgres(*this));
       }
 
       bool Postgres::connect(const std::string &db)

@@ -11,10 +11,42 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <variant>
 #include <Wt/Dbo/WDboDllDefs.h>
+
+
+namespace {
+    static const std::size_t WARN_NUM_STATEMENTS_THRESHOLD = 10;
+
+    template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+    template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+    template <class... Fs>
+    auto make_visitor(Fs... fs)
+    {
+        return overload<Fs...>(fs...);
+    }
+}
 
 namespace Wt {
   namespace Dbo {
+      namespace backend {
+
+        class Sqlite3;
+        class Postgres;
+        class MySQL;
+        class MSSQLServer;
+        class Firebird;
+
+      }
+
+
+      typedef std::variant<backend::Postgres,
+                           backend::Sqlite3,
+                           backend::MySQL,
+                           backend::MSSQLServer,
+                           backend::Firebird
+                           > SqlConnection;
 
 /*! \brief Enum that defines a date time type.
  */
@@ -54,12 +86,16 @@ class SqlStatement;
  *
  * \ingroup dbo
  */
-class WTDBO_API SqlConnection
+class WTDBO_API SqlConnectionBase
 {
+        friend class backend::Postgres;
+        friend class backend::Sqlite3;
+        friend class backend::MySQL;
+        friend class backend::MSSQLServer;
 public:
   /*! \brief Destructor.
    */
-  virtual ~SqlConnection();
+  virtual ~SqlConnectionBase();
 
   /*! \brief Clones the connection.
    *
@@ -67,7 +103,7 @@ public:
    * object. This is used by connection pool implementations to create
    * its connections.
    */
-  virtual std::unique_ptr<SqlConnection> clone() const = 0;
+  //virtual std::unique_ptr<SqlConnectionBase> clone() const = 0;
 
   /*! \brief Executes an SQL statement.
    *
@@ -96,19 +132,19 @@ public:
    *
    * This function starts a transaction. 
    */
-  virtual void startTransaction() = 0;
+  //virtual void startTransaction() = 0;
   
   /*! \brief Commits a transaction
    *
    * This function commits a transaction.
    */
-  virtual void commitTransaction() = 0;
+  //virtual void commitTransaction() = 0;
   
   /*! \brief Rolls back a transaction
    *
    * This function rolls back a transaction.
    */
-  virtual void rollbackTransaction() = 0;
+  //virtual void rollbackTransaction() = 0;
   
   /*! \brief Returns the statement with the given id.
    *
@@ -123,7 +159,7 @@ public:
    * Saves the statement for future reuse using getStatement()
    */
   virtual void saveStatement(const std::string& id,
-			     std::unique_ptr<SqlStatement> statement);
+                 std::unique_ptr<SqlStatement> statement);
 
   /*! \brief Prepares a statement.
    *
@@ -159,7 +195,7 @@ public:
    * This is used by Session::createTables() to create the <i>id</i>
    * column.
    */
-  virtual std::string autoincrementSql() const = 0;
+  //virtual std::string autoincrementSql() const = 0;
 
   /*! \brief Returns the SQL statement(s) required to create an id sequence.
    *
@@ -168,9 +204,9 @@ public:
    * The table's name and primary key are passed as arguments to this function
    * and can be used to construct an SQL sequence that is unique for the table.
    */
-  virtual std::vector<std::string> 
-    autoincrementCreateSequenceSql(const std::string &table,
-				   const std::string &id) const = 0;
+//  virtual std::vector<std::string>
+//    autoincrementCreateSequenceSql(const std::string &table,
+//				   const std::string &id) const = 0;
 
   /*! \brief Returns the SQL statement(s) required to drop an id sequence.
    *
@@ -178,16 +214,16 @@ public:
    * The table's name and primary key are passed as arguments to this function
    * and can be used to construct an SQL sequence that is unique for the table.
    */
-  virtual std::vector<std::string> 
-    autoincrementDropSequenceSql(const std::string &table,
-				 const std::string &id) const = 0;
+//  virtual std::vector<std::string>
+//    autoincrementDropSequenceSql(const std::string &table,
+//				 const std::string &id) const = 0;
 
   /*! \brief Returns the 'autoincrement' SQL type.
    *
    * This is used by Session::createTables() to create the <i>id</i>
    * column.
    */
-  virtual std::string autoincrementType() const = 0;
+  //virtual std::string autoincrementType() const = 0;
 
   /*! \brief Returns the infix for an 'autoincrement' insert statement.
    *
@@ -204,7 +240,7 @@ public:
    * This is appended to the <tt>insert</tt> statement, since some back-ends
    * need to be indicated that they should return the autoincrement id.
    */
-  virtual std::string autoincrementInsertSuffix(const std::string& id) const = 0;
+  //virtual std::string autoincrementInsertSuffix(const std::string& id) const = 0;
 
   /*! \brief Execute code before dropping the tables.
    *
@@ -217,13 +253,13 @@ public:
    *
    * \sa SqlStatement::bind(int, const std::chrono::system_clock::time_point&, SqlDateTimeType)
    */
-  virtual const char *dateTimeType(SqlDateTimeType type) const = 0;
+  //virtual const char *dateTimeType(SqlDateTimeType type) const = 0;
 
   /*! \brief Returns the blob type.
    *
    * \sa SqlStatement::bind(int, const std::vector<unsigned char>&)
    */
-  virtual const char *blobType() const = 0;
+  //virtual const char *blobType() const = 0;
 
   /*! \brief Returns the text type.
    *
@@ -302,9 +338,9 @@ public:
   bool showQueries() const;
 
 protected:
-  SqlConnection();
-  SqlConnection(const SqlConnection& other);
-  SqlConnection& operator=(const SqlConnection&) = delete;
+  SqlConnectionBase();
+  SqlConnectionBase(const SqlConnectionBase& other);
+  SqlConnectionBase& operator=(const SqlConnectionBase&) = delete;
 
   void clearStatementCache();
 

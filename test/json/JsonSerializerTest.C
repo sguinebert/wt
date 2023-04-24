@@ -6,10 +6,12 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/version.hpp>
 
-#include <Wt/Json/Parser.h>
-#include <Wt/Json/Serializer.h>
-#include <Wt/Json/Object.h>
-#include <Wt/Json/Array.h>
+//#include <Wt/Json/Parser.h>
+//#include <Wt/Json/Serializer.h>
+//#include <Wt/Json/Object.h>
+//#include <Wt/Json/Array.h>
+#include <Wt/Json/json.hpp>
+#include "Wt/Json/Parser.h"
 
 #include <fstream>
 #include <streambuf>
@@ -25,7 +27,7 @@ using namespace Wt;
 
 BOOST_AUTO_TEST_CASE( json_generate_object )
 {
-  Json::Value initial;
+  Json::Value initial =
   Json::parse("{"
 	      "  \"first\" : 1,"
 	      "  \"second\" : true,"
@@ -48,22 +50,19 @@ BOOST_AUTO_TEST_CASE( json_generate_object )
 	      "    null,"
 	      "    666"
 	      "  ]"
-	      "}"
-	      ,
-  	      initial);
+          "}");
   
-  Json::Object obj = initial;
+  Json::Object obj = initial.as_object();
   std::string generated = Json::serialize(obj);
   
-  Json::Value reconstructed;
-  Json::parse(generated, reconstructed);
+  Json::Value reconstructed = Json::parse(generated);
 
   BOOST_REQUIRE(initial == reconstructed);
 }
 
 BOOST_AUTO_TEST_CASE( json_generate_array )
 {
-  Json::Value initial;
+  Json::Value initial =
   Json::parse("["
 	      "  \"string1\","
 	      "  \"string2 (after string1)\","
@@ -83,15 +82,12 @@ BOOST_AUTO_TEST_CASE( json_generate_array )
 	      "    20,"
 	      "    30"
 	      "  ]"
-	      "]"
-	      ,
-  	      initial);
+          "]");
 
-  Json::Array arr = initial;
+  Json::Array arr = initial.as_array();
   std::string generated = Json::serialize(arr);
   
-  Json::Value reconstructed;
-  Json::parse(generated, reconstructed);
+  Json::Value reconstructed = Json::parse(generated);
 
   BOOST_REQUIRE(initial == reconstructed);
 }
@@ -103,8 +99,7 @@ BOOST_AUTO_TEST_CASE( json_generate_UTF8 )
   std::string str((std::istreambuf_iterator<char>(t)),
                    std::istreambuf_iterator<char>());
 
-  Json::Object initial;
-  Json::parse(str, initial);
+  Json::Object initial = Json::parse(str).as_object();
 
   std::string generated = Json::serialize(initial);
 
@@ -141,7 +136,7 @@ BOOST_AUTO_TEST_CASE( json_test_nan )
   Json::parse(generated, reconstructed);
 
   Json::Object obj2;
-  obj2["test"] = Json::Value::Null;
+  obj2["test"] = nullptr;
 
   BOOST_REQUIRE(obj2 == reconstructed);
 }
@@ -157,7 +152,7 @@ BOOST_AUTO_TEST_CASE( json_test_infinity )
   Json::parse(generated, reconstructed);
 
   Json::Object obj2;
-  obj2["test"] = Json::Value::Null;
+  obj2["test"] = nullptr;
 
   BOOST_REQUIRE(obj2 == reconstructed);
 }
@@ -173,7 +168,7 @@ BOOST_AUTO_TEST_CASE( json_test_negative_infinity )
   Json::parse(generated, reconstructed);
 
   Json::Object obj2;
-  obj2["test"] = Json::Value::Null;
+  obj2["test"] = nullptr;
 
   BOOST_REQUIRE(obj2 == reconstructed);
 }

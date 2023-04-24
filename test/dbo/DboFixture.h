@@ -37,7 +37,7 @@ struct DboFixtureBase
   DboFixtureBase(bool showQueries = true)
   {
     static bool logged = false;
-    std::unique_ptr<dbo::SqlConnection> connection;
+    std::unique_ptr<dbo::SqlConnectionBase> connection;
 
 #ifdef SQLITE3
     if (!logged) {
@@ -49,7 +49,7 @@ struct DboFixtureBase
     sqlite3->setDateTimeStorage
       (dbo::SqlDateTimeType::Date,
        dbo::backend::DateTimeStorage::JulianDaysAsReal);
-    connection = std::unique_ptr<dbo::SqlConnection>(sqlite3);
+    connection = std::unique_ptr<dbo::SqlConnectionBase>(sqlite3);
 #endif // SQLITE3
 
 #ifdef POSTGRES
@@ -58,7 +58,7 @@ struct DboFixtureBase
       logged = true;
     }
 
-    connection = std::unique_ptr<dbo::SqlConnection>(new dbo::backend::Postgres
+    connection = std::unique_ptr<dbo::SqlConnectionBase>(new dbo::backend::Postgres
         ("host=db user=postgres_test password=postgres_test port=5432 dbname=wt_test"));
 
 #endif // POSTGRES");
@@ -92,7 +92,7 @@ struct DboFixtureBase
       logged = true;
     }
 
-    connection = std::unique_ptr<dbo::SqlConnection>(
+    connection = std::unique_ptr<dbo::SqlConnectionBase>(
           new dbo::backend::Firebird ("db",
                                       file,
                                       "test_user", "test_pwd",
@@ -105,7 +105,7 @@ struct DboFixtureBase
       logged = true;
     }
 
-    connection = std::unique_ptr<dbo::SqlConnection>(
+    connection = std::unique_ptr<dbo::SqlConnectionBase>(
 	new dbo::backend::MSSQLServer(
 	"Driver={ODBC Driver 17 for SQL Server};"
 	"Server=db;"

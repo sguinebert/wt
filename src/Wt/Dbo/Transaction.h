@@ -10,12 +10,13 @@
 #include <memory>
 #include <vector>
 #include <Wt/Dbo/WDboDllDefs.h>
+#include "Wt/Dbo/SqlConnection.h"
 
 namespace Wt {
   namespace Dbo {
 
 class Session;
-class SqlConnection;
+//class SqlConnectionBase;
 
 class ptr_base;
 

@@ -20,6 +20,13 @@
 #include <Wt/Dbo/Transaction.h>
 #include <Wt/Dbo/SqlConnection.h>
 
+#include <Wt/Dbo/backend/Sqlite3.h>
+#include <Wt/Dbo/backend/Postgres.h>
+#include <Wt/Dbo/backend/MySQL.h>
+#include <Wt/Dbo/backend/MSSQLServer.h>
+#include <Wt/Dbo/backend/Firebird.h>
+
+
 namespace Wt {
   namespace Dbo {
     namespace Impl {
