@@ -195,8 +195,7 @@ bool WServer::start()
   }
 
   try {
-    impl_->server_ = new http::server::Server(*impl_->serverConfiguration_,
-					      *this);
+    impl_->server_ = new http::server::Server(*impl_->serverConfiguration_, *this);
 
 #ifndef WT_THREADED
     LOG_WARN("No thread support, running in main thread.");
@@ -204,7 +203,7 @@ bool WServer::start()
 
     webController_->start();
 
-    ioService().start();
+    ioService().run();
 
 #ifndef WT_THREADED
     delete impl_->server_;

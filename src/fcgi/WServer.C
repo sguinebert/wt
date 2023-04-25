@@ -169,8 +169,7 @@ std::vector<WServer::SessionInfo> WServer::sessions() const
   return std::vector<WServer::SessionInfo>();
 }
 
-void WServer::setServerConfiguration(int argc, char *argv[],
-				     const std::string&)
+void WServer::setServerConfiguration(int argc, char *argv[], const std::string&)
 {
   std::string applicationPath = argv[0];
   std::vector<std::string> args(argv + 1, argv + argc);

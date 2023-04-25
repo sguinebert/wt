@@ -121,7 +121,7 @@ namespace Wt {
   class WInPlaceEdit;
   class WIntValidator;
   class WInteractWidget;
-  class WIOService;
+  //class WIOService;
   class WItemDelegate;
   class WItemSelectionModel;
   class WKeyEvent;

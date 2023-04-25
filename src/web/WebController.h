@@ -157,7 +157,7 @@ private:
   std::string singleSessionId_;
   bool autoExpire_;
   int plainHtmlSessions_, ajaxSessions_;
-  volatile int zombieSessions_;
+  int zombieSessions_;
   std::string redirectSecret_;
   bool running_;
 

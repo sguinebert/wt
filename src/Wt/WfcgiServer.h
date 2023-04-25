@@ -1,17 +1,9 @@
-// This may look like C code, but it's really -*- C++ -*-
-/*
- * Copyright (C) 2008 Emweb bv, Herent, Belgium.
- *
- * See the LICENSE file for terms of use.
- */
-#ifndef WSERVER_H_
-#define WSERVER_H_
+#pragma once
 
 #include <Wt/WApplication.h>
 #include <Wt/WException.h>
 #include <Wt/WLogger.h>
 #include <Wt/WIOService.h>
-#include <Wt/cuehttp/cuehttp.hpp>
 
 #include <chrono>
 
@@ -80,7 +72,7 @@ int WRun(int argc, char *argv[], ApplicationCreator createApplication)
 #ifdef WT_WIN32
 class WServer
 #else // WT_WIN32
-class WTCONNECTOR_API WServer
+class WTCONNECTOR_API WfcgiServer
 #endif // WT_WIN32
 {
 public:
@@ -126,26 +118,26 @@ public:
    * \sa setServerConfiguration()
    */
   WTCONNECTOR_API
-  WServer(const std::string& wtApplicationPath = std::string(),
+  WfcgiServer(const std::string& wtApplicationPath = std::string(),
           const std::string& wtConfigurationFile = std::string());
 
-  WServer(const WServer &) = delete;
+  WfcgiServer(const WfcgiServer &) = delete;
 
   /*! \brief Creates a new server instance and configures it.
    *
    * This is equivalent to:
    * \code
-    WServer server(argv[0]);
+    WfcgiServer server(argv[0]);
     server.setServerConfiguration(argc, argv, wtConfigurationFile);
     \endcode
    *
    * \throws Exception : indicates a configuration problem.
    *
-   * \sa WServer(const std::string&, const std::string&)
+   * \sa WfcgiServer(const std::string&, const std::string&)
    * \sa setServerConfiguration()
    */
   WTCONNECTOR_API
-    WServer(int argc, char *argv[], const std::string& wtConfigurationFile = std::string());
+    WfcgiServer(int argc, char *argv[], const std::string& wtConfigurationFile = std::string());
 
   /*! \brief Creates a new server instance and configures it.
    *
@@ -167,9 +159,9 @@ public:
    * \sa setServerConfiguration()
    */
   WTCONNECTOR_API
-    WServer(const std::string &applicationPath,
-            const std::vector<std::string> &args,
-            const std::string& wtConfigurationFile = std::string());
+    WfcgiServer(const std::string &applicationPath,
+                const std::vector<std::string> &args,
+                const std::string& wtConfigurationFile = std::string());
 
   /*! \brief Destructor.
    *
@@ -179,7 +171,7 @@ public:
    *
    * \sa isRunning(), stop()
    */
-  WTCONNECTOR_API virtual ~WServer();
+  WTCONNECTOR_API virtual ~WfcgiServer();
 
 #ifndef WT_TARGET_JAVA
   /*! \brief Sets the I/O service.
@@ -210,7 +202,7 @@ public:
    * \note When instantiating multiple servers, this will simply return the
    *       last instance. You probably want to avoid this function then.
    */
-  static WServer *instance() { return instance_; }
+  static WfcgiServer *instance() { return instance_; }
 
 #ifndef WT_TARGET_JAVA
   /*! \brief Configures the HTTP(S) server or FastCGI process.
@@ -234,9 +226,8 @@ public:
    * \throws Exception : indicates a configuration problem.
    */
   WTCONNECTOR_API
-    void setServerConfiguration(int argc, char *argv[],
-				const std::string& serverConfigurationFile
-				= std::string());
+      void setServerConfiguration(int argc, char *argv[],
+                                  const std::string& serverConfigurationFile = std::string());
 
   /*! \brief Configures the HTTP(S) server or FastCGI process.
    *
@@ -355,7 +346,7 @@ public:
    * This is equivalent to:
    * \code
     if (start()) {
-      WServer::waitForShutdown();
+      WfcgiServer::waitForShutdown();
       stop();
     }
     \endcode
@@ -381,7 +372,7 @@ public:
    * dependent, but this is usually Ctrl-C (SIGINT) or SIGKILL.
    *
    * This method is convenient if you want to customize how the server
-   * is started (by instantiating a WServer object yourself, instead
+   * is started (by instantiating a WfcgiServer object yourself, instead
    * of using Wt::WRun()), but still want to use %Wt as a standalone
    * server that cleanly terminates on interruption.
    *
@@ -593,7 +584,7 @@ public:
 
   /*! \brief Reflects whether the current process is a dedicated session process
    *
-   * \note This will only be accurate after the WServer has been configured, either
+   * \note This will only be accurate after the WfcgiServer has been configured, either
    *       through setServerConfiguration() or one of the constructors that immediately
    *       configures the server.
    */
@@ -654,7 +645,7 @@ private:
   WT_API std::string prependDefaultPath(const std::string& path);
 
 
-  WT_API static WServer *instance_;
+  WT_API static WfcgiServer *instance_;
   std::function<std::string (std::size_t max_length, int purpose)> sslPasswordCallback_;
 #ifndef WT_TARGET_JAVA
   std::function<void ()> stopCallback_;
@@ -663,4 +654,3 @@ private:
 };
 
 }
-#endif // WSERVER_H_ 

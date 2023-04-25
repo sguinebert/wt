@@ -433,6 +433,7 @@ namespace Wt
       friend class WebSession;
       friend class WLogger;
       friend class WServer;
+      friend class WfcgiServer;
     };
 
     WT_LOGGER_API extern WLogger &logInstance();

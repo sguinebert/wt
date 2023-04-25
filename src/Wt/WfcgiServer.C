@@ -18,26 +18,26 @@
 
 #include "Wt/WIOService.h"
 #include "Wt/WResource.h"
-#include "Wt/WServer.h"
+#include "Wt/WfcgiServer.h"
 
 #include "Configuration.h"
 #include "WebController.h"
 
 namespace Wt {
 
-LOGGER("WServer");
+LOGGER("WfcgiServer");
 
   namespace {
     bool CatchSignals = true;
   }
 
-WServer *WServer::instance_ = 0;
+WfcgiServer *WfcgiServer::instance_ = 0;
 
-WServer::Exception::Exception(const std::string& what)
+WfcgiServer::Exception::Exception(const std::string& what)
   : WException(what)
 { }
 
-void WServer::init(const std::string& wtApplicationPath,
+void WfcgiServer::init(const std::string& wtApplicationPath,
 		   const std::string& configurationFile)
 {
   customLogger_ = nullptr;
@@ -60,7 +60,7 @@ void WServer::init(const std::string& wtApplicationPath,
   instance_ = this;
 }
 
-void WServer::destroy()
+void WfcgiServer::destroy()
 {
   if (ownsIOService_) {
     delete ioService_;
@@ -73,18 +73,18 @@ void WServer::destroy()
   instance_ = 0;
 }
 
-void WServer
+void WfcgiServer
 ::setLocalizedStrings(const std::shared_ptr<WLocalizedStrings>& stringResolver)
 {
   localizedStrings_ = stringResolver;
 }
 
-std::shared_ptr<WLocalizedStrings> WServer::localizedStrings() const
+std::shared_ptr<WLocalizedStrings> WfcgiServer::localizedStrings() const
 {
   return localizedStrings_;
 }
 
-void WServer::setIOService(WIOService& ioService)
+void WfcgiServer::setIOService(WIOService& ioService)
 {
   if (ioService_) {
     LOG_ERROR("setIOService(): already have an IO service");
@@ -95,7 +95,7 @@ void WServer::setIOService(WIOService& ioService)
   ownsIOService_ = false;
 }
 
-WIOService& WServer::ioService()
+WIOService& WfcgiServer::ioService()
 {
   if (!ioService_) {
     int numSessionThreads = configuration().numSessionThreads();
@@ -108,7 +108,7 @@ WIOService& WServer::ioService()
   return *ioService_;
 }
 
-void WServer::setAppRoot(const std::string& path)
+void WfcgiServer::setAppRoot(const std::string& path)
 {
   appRoot_ = path;
 
@@ -116,18 +116,18 @@ void WServer::setAppRoot(const std::string& path)
     configuration_->setAppRoot(path);
 }
 
-std::string WServer::appRoot() const
+std::string WfcgiServer::appRoot() const
 {
   // FIXME we should const-correct Configuration too
-  return const_cast<WServer *>(this)->configuration().appRoot();
+  return const_cast<WfcgiServer *>(this)->configuration().appRoot();
 }
 
-void WServer::setConfiguration(const std::string& file)
+void WfcgiServer::setConfiguration(const std::string& file)
 {
   setConfiguration(file, application_);
 }
 
-void WServer::setConfiguration(const std::string& file,
+void WfcgiServer::setConfiguration(const std::string& file,
 			       const std::string& application)
 {
   if (configuration_){
@@ -138,22 +138,22 @@ void WServer::setConfiguration(const std::string& file,
   application_ = application;
 }
 
-WLogger& WServer::logger()
+WLogger& WfcgiServer::logger()
 {
   return logger_;
 }
 
-void WServer::setCustomLogger(const WLogSink& customLogger)
+void WfcgiServer::setCustomLogger(const WLogSink& customLogger)
 {
   customLogger_ = &customLogger;
 }
 
-const WLogSink * WServer::customLogger() const
+const WLogSink * WfcgiServer::customLogger() const
 {
   return customLogger_;
 }
 
-WLogEntry WServer::log(const std::string& type) const
+WLogEntry WfcgiServer::log(const std::string& type) const
 {
   if (customLogger_) {
     return WLogEntry(*customLogger_, type);
@@ -169,11 +169,11 @@ WLogEntry WServer::log(const std::string& type) const
   return e;
 }
 
-bool WServer::dedicatedSessionProcess() const {
+bool WfcgiServer::dedicatedSessionProcess() const {
   return dedicatedProcessEnabled_;
 }
 
-void WServer::initLogger(const std::string& logFile,
+void WfcgiServer::initLogger(const std::string& logFile,
 			 const std::string& logConfig)
 {
   fmtlog::startPollingThread();
@@ -188,7 +188,7 @@ void WServer::initLogger(const std::string& logFile,
     LOG_INFO("initializing {}", description_);
 }
 
-Configuration& WServer::configuration()
+Configuration& WfcgiServer::configuration()
 {
   if (!configuration_) {
     if (appRoot_.empty())
@@ -197,103 +197,32 @@ Configuration& WServer::configuration()
       configurationFile_ = Configuration::locateConfigFile(appRoot_);
 
     configuration_ = new Configuration(application_, appRoot_,
-				       configurationFile_, this);
+                       configurationFile_, nullptr);
   }
 
   return *configuration_;
 }
 
-WebController *WServer::controller()
+WebController *WfcgiServer::controller()
 {
   return webController_;
 }
 
-//bool WServer::start()
-//{
-//  setCatchSignals(!impl_->serverConfiguration_->gdb());
-
-//  stopCallback_ = std::bind(&WServer::stop, this);
-
-//  if (isRunning()) {
-//    LOG_ERROR("start(): server already started!");
-//    return false;
-//  }
-
-//  LOG_INFO("initializing built-in wthttpd");
-
-//#ifndef WT_WIN32
-//  srand48(getpid());
-//#endif
-
-//  // Override configuration settings
-//  configuration().setRunDirectory(std::string());
-
-//  configuration().setUseSlashExceptionForInternalPaths
-//      (impl_->serverConfiguration_->defaultStatic());
-
-//  if (!impl_->serverConfiguration_->sessionIdPrefix().empty())
-//    configuration().setSessionIdPrefix(impl_->serverConfiguration_
-//                                           ->sessionIdPrefix());
-
-//  if (impl_->serverConfiguration_->threads() != -1)
-//    configuration().setNumThreads(impl_->serverConfiguration_->threads());
-
-//  if (impl_->serverConfiguration_->parentPort() != -1) {
-//    configuration().setOriginalIPHeader("X-Forwarded-For");
-//    auto trustedProxies = configuration().trustedProxies();
-//    Utils::add(trustedProxies, Configuration::Network::fromString("127.0.0.1"));
-//    Utils::add(trustedProxies, Configuration::Network::fromString("::1"));
-//    configuration().setTrustedProxies(trustedProxies);
-//    updateProcessSessionIdCallback_ = [this] (const std::string& sessionId)
-//    {
-//        impl_->server_->updateProcessSessionId(sessionId);
-//    };
-//  }
-
-//  try {
-//    //impl_->server_ = new http::server::Server(*impl_->serverConfiguration_, *this);
-
-//#ifndef WT_THREADED
-//    LOG_WARN("No thread support, running in main thread.");
-//#endif // WT_THREADED
-
-//    webController_->start();
-
-//    ioService().run();
-
-//#ifndef WT_THREADED
-//    delete impl_->server_;
-//    impl_->server_ = 0;
-
-//    ioService().stop();
-
-//    return false;
-//#else
-//    return true;
-//#endif // WT_THREADED
-
-//  } catch (Wt::AsioWrapper::system_error& e) {
-//    throw Exception(std::string("Error (asio): ") + e.what());
-//  } catch (std::exception& e) {
-//    throw Exception(std::string("Error: ") + e.what());
-//  }
-//}
-
-bool WServer::readConfigurationProperty(const std::string& name,
+bool WfcgiServer::readConfigurationProperty(const std::string& name,
 					std::string& value) const
 {
-  WServer *self = const_cast<WServer *>(this);
+  WfcgiServer *self = const_cast<WfcgiServer *>(this);
   return self->configuration().readConfigurationProperty(name, value);
 }
 
-void WServer::post(const std::string& sessionId,
+void WfcgiServer::post(const std::string& sessionId,
 		   const std::function<void ()>& function,
 		   const std::function<void ()>& fallbackFunction)
 {
   schedule(std::chrono::milliseconds{0}, sessionId, function, fallbackFunction);
 }
 
-void WServer::postAll(const std::function<void ()>& function)
+void WfcgiServer::postAll(const std::function<void ()>& function)
 {
   if(!webController_) return;
 
@@ -303,19 +232,19 @@ void WServer::postAll(const std::function<void ()>& function)
   }
 }
 
-void WServer::schedule(std::chrono::steady_clock::duration duration,
+void WfcgiServer::schedule(std::chrono::steady_clock::duration duration,
                        const std::string& sessionId,
                        const std::function<void ()>& function,
                        const std::function<void ()>& fallbackFunction)
 {
   auto event = std::make_shared<ApplicationEvent>(sessionId, function, fallbackFunction);
 
-  ioService().schedule(duration, [this, event] () {
-          webController_->handleApplicationEvent(event);
-  });
+//  ioService().schedule(duration, [this, event] () {
+//          webController_->handleApplicationEvent(event);
+//  });
 }
 
-std::string WServer::prependDefaultPath(const std::string& path)
+std::string WfcgiServer::prependDefaultPath(const std::string& path)
 {
   assert(!configuration().defaultEntryPoint().empty() &&
          configuration().defaultEntryPoint()[0] == '/');
@@ -331,31 +260,31 @@ std::string WServer::prependDefaultPath(const std::string& path)
     return path;
 }
 
-void WServer::addEntryPoint(EntryPointType type, ApplicationCreator callback,
+void WfcgiServer::addEntryPoint(EntryPointType type, ApplicationCreator callback,
 			    const std::string& path, const std::string& favicon)
 {
   configuration().addEntryPoint(
         EntryPoint(type, callback, prependDefaultPath(path), favicon));
 }
 
-void WServer::addResource(WResource *resource, const std::string& path)
+void WfcgiServer::addResource(WResource *resource, const std::string& path)
 {
   bool success = configuration().tryAddResource(
         EntryPoint(resource, prependDefaultPath(path)));
   if (success)
     resource->setInternalPath(path);
   else {
-    WString error(Wt::utf8("WServer::addResource() error: "
+    WString error(Wt::utf8("WfcgiServer::addResource() error: "
 	                   "a static resource was already deployed on path '{0}'"));
-    throw WServer::Exception(error.arg(path).toUTF8());
+    throw WfcgiServer::Exception(error.arg(path).toUTF8());
   }
 }
 
-void WServer::removeEntryPoint(const std::string& path){
+void WfcgiServer::removeEntryPoint(const std::string& path){
   configuration().removeEntryPoint(path);
 }
 
-void WServer::restart(int argc, char **argv, char **envp)
+void WfcgiServer::restart(int argc, char **argv, char **envp)
 {
 #ifndef WT_WIN32
   char *path = realpath(argv[0], 0);
@@ -372,7 +301,7 @@ void WServer::restart(int argc, char **argv, char **envp)
 #endif
 }
 
-void WServer::restart(const std::string &applicationPath,
+void WfcgiServer::restart(const std::string &applicationPath,
                       const std::vector<std::string> &args)
 {
 #ifndef WT_WIN32
@@ -386,7 +315,7 @@ void WServer::restart(const std::string &applicationPath,
 #endif
 }
 
-void WServer::setCatchSignals(bool catchSignals)
+void WfcgiServer::setCatchSignals(bool catchSignals)
 {
   CatchSignals = catchSignals;
 }
@@ -397,7 +326,7 @@ std::mutex terminationMutex;
 bool terminationRequested = false;
 std::condition_variable terminationCondition;
 
-void WServer::terminate()
+void WfcgiServer::terminate()
 {
   std::unique_lock<std::mutex> terminationLock(terminationMutex);
   terminationRequested = true;
@@ -413,7 +342,7 @@ BOOL WINAPI console_ctrl_handler(DWORD ctrl_type)
   case CTRL_CLOSE_EVENT:
   case CTRL_SHUTDOWN_EVENT:
     {
-      WServer::terminate();
+      WfcgiServer::terminate();
       return TRUE;
     }
   default:
@@ -423,7 +352,7 @@ BOOL WINAPI console_ctrl_handler(DWORD ctrl_type)
 
 #endif
 
-int WServer::waitForShutdown()
+int WfcgiServer::waitForShutdown()
 {
 #if !defined(WT_WIN32)
   if (!CatchSignals) {
@@ -474,7 +403,7 @@ int WServer::waitForShutdown()
         break;
       default:
 	// report the error and return an obviously illegitimate signal value.
-        throw WServer::Exception(std::string("sigwait() error: ")
+        throw WfcgiServer::Exception(std::string("sigwait() error: ")
 				 + strerror(rc));
         return -1;
     }
@@ -495,12 +424,12 @@ int WServer::waitForShutdown()
 #endif // WT_THREADED
 }
 
-bool WServer::expireSessions()
+bool WfcgiServer::expireSessions()
 {
   return webController_->expireSessions();
 }
 
-void WServer::scheduleStop()
+void WfcgiServer::scheduleStop()
 {
 #ifdef WT_THREADED
   #ifndef WT_WIN32
@@ -514,7 +443,7 @@ void WServer::scheduleStop()
 #endif // WT_THREADED
 }
 
-void WServer::updateProcessSessionId(const std::string& sessionId) {
+void WfcgiServer::updateProcessSessionId(const std::string& sessionId) {
   if (updateProcessSessionIdCallback_)
     updateProcessSessionIdCallback_(sessionId);
 }
