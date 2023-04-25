@@ -567,116 +567,116 @@ void WTemplate::renderTemplate(std::ostream& result)
 
 bool WTemplate::renderTemplateText(std::ostream& result, const WString& templateText)
 {
-  errorText_ = "";
+    errorText_ = "";
 
-  std::string text;
+    std::string text;
 #ifndef WT_TARGET_JAVA
-  if (encodeTemplateText_)
-    text = encode(templateText.toXhtmlUTF8());
-  else
-    text = templateText.toXhtmlUTF8();
+    if (encodeTemplateText_)
+        text = encode(templateText.toXhtmlUTF8());
+    else
+        text = templateText.toXhtmlUTF8();
 #else // WT_TARGET_JAVA
-  if (encodeTemplateText_)
-    text = encode(WString(templateText).toXhtmlUTF8());
-  else
-    text = WString(templateText).toXhtmlUTF8();
+    if (encodeTemplateText_)
+        text = encode(WString(templateText).toXhtmlUTF8());
+    else
+        text = WString(templateText).toXhtmlUTF8();
 #endif
 
-  std::size_t lastPos = 0;
-  std::vector<WString> args;
-  std::vector<std::string> conditions;
-  int suppressing = 0;
+    std::size_t lastPos = 0;
+    std::vector<WString> args;
+    std::vector<std::string> conditions;
+    int suppressing = 0;
 
-  for (std::size_t pos = text.find('$'); pos != std::string::npos;
-       pos = text.find('$', pos)) {
+    for (std::size_t pos = text.find('$'); pos != std::string::npos;
+         pos = text.find('$', pos)) {
 
-    if (!suppressing)
-      result << text.substr(lastPos, pos - lastPos);
+        if (!suppressing)
+            result << text.substr(lastPos, pos - lastPos);
 
-    lastPos = pos;
+        lastPos = pos;
 
-    if (pos + 1 < text.length()) {
-      if (text[pos + 1] == '$') { // $$ -> $
-	if (!suppressing)
-	  result << '$';
+        if (pos + 1 < text.length()) {
+            if (text[pos + 1] == '$') { // $$ -> $
+                if (!suppressing)
+                    result << '$';
 
-	lastPos += 2;
-      } else if (text[pos + 1] == '{') {
-	std::size_t startName = pos + 2;
-	std::size_t endName = text.find_first_of(" \r\n\t}", startName);
+                lastPos += 2;
+            } else if (text[pos + 1] == '{') {
+                std::size_t startName = pos + 2;
+                std::size_t endName = text.find_first_of(" \r\n\t}", startName);
 
-        args.clear();
-        std::size_t endVar = parseArgs(text, endName, args);
+                args.clear();
+                std::size_t endVar = parseArgs(text, endName, args);
 
-        if (endVar == std::string::npos) {
-          std::stringstream errorStream;
-          errorStream << "variable syntax error near \"" << text.substr(pos)
-                      << "\"";
-          errorText_ = errorStream.str();
-          LOG_ERROR(fmt::runtime(errorText_));
-          return false;
+                if (endVar == std::string::npos) {
+                    std::stringstream errorStream;
+                    errorStream << "variable syntax error near \"" << text.substr(pos)
+                                << "\"";
+                    errorText_ = errorStream.str();
+                    LOG_ERROR(fmt::runtime(errorText_));
+                    return false;
+                }
+
+                std::string name = text.substr(startName, endName - startName);
+                std::size_t nl = name.length();
+
+                if (nl > 2 && name[0] == '<' && name[nl - 1] == '>') {
+                    if (name[1] != '/') {
+                        std::string cond = name.substr(1, nl - 2);
+                        conditions.push_back(cond);
+                        if (suppressing || !conditionValue(cond))
+                            ++suppressing;
+                    } else {
+                        std::string cond = name.substr(2, nl - 3);
+                        if (conditions.empty() || conditions.back() != cond) {
+                            std::stringstream errorStream;
+                            errorStream << "mismatching condition block end: " << cond;
+                            errorText_ = errorStream.str();
+                            LOG_ERROR(fmt::runtime(errorText_));
+                            return false;
+                        }
+                        conditions.pop_back();
+
+                        if (suppressing)
+                            --suppressing;
+                    }
+                } else {
+                    if (!suppressing) {
+                        std::size_t colonPos = name.find(':');
+
+                        bool handled = false;
+                        if (colonPos != std::string::npos) {
+                            std::string fname = name.substr(0, colonPos);
+                            std::string arg0 = name.substr(colonPos + 1);
+                            args.insert(args.begin(), WString::fromUTF8(arg0));
+                            if (resolveFunction(fname, args, result))
+                                handled = true;
+                            else
+                                args.erase(args.begin());
+                        }
+
+                        if (!handled)
+                            resolveString(name, args, result);
+                    }
+                }
+
+                lastPos = endVar + 1;
+            } else {
+                if (!suppressing)
+                    result << '$'; // $. -> $.
+                lastPos += 1;
+            }
+        } else {
+            if (!suppressing)
+                result << '$'; // $ at end of template -> $
+            lastPos += 1;
         }
 
-        std::string name = text.substr(startName, endName - startName);
-	std::size_t nl = name.length();
-
-	if (nl > 2 && name[0] == '<' && name[nl - 1] == '>') {
-	  if (name[1] != '/') {
-	    std::string cond = name.substr(1, nl - 2);
-	    conditions.push_back(cond);
-	    if (suppressing || !conditionValue(cond))
-	      ++suppressing;
-	  } else {
-	    std::string cond = name.substr(2, nl - 3);
-	    if (conditions.empty() || conditions.back() != cond) {
-              std::stringstream errorStream;
-              errorStream << "mismatching condition block end: " << cond;
-              errorText_ = errorStream.str();
-              LOG_ERROR(fmt::runtime(errorText_));
-              return false;
-	    }
-	    conditions.pop_back();
-
-	    if (suppressing)
-	      --suppressing;
-	  }
-	} else {
-	  if (!suppressing) {
-	    std::size_t colonPos = name.find(':');
-
-	    bool handled = false;
-	    if (colonPos != std::string::npos) {
-	      std::string fname = name.substr(0, colonPos);
-	      std::string arg0 = name.substr(colonPos + 1);
-	      args.insert(args.begin(), WString::fromUTF8(arg0));
-	      if (resolveFunction(fname, args, result))
-		handled = true;
-	      else
-		args.erase(args.begin());
-	    }
-
-	    if (!handled)
-	      resolveString(name, args, result);
-	  }
-	}
-
-	lastPos = endVar + 1;
-      } else {
-	if (!suppressing)
-	  result << '$'; // $. -> $.
-	lastPos += 1;
-      }
-    } else {
-      if (!suppressing)
-	result << '$'; // $ at end of template -> $
-      lastPos += 1;
+        pos = lastPos;
     }
 
-    pos = lastPos;
-  }
-
-  result << text.substr(lastPos);
-  return true;
+    result << text.substr(lastPos);
+    return true;
 }
 
 std::size_t WTemplate::parseArgs(const std::string& text,

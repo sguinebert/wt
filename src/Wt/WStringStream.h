@@ -79,6 +79,8 @@ public:
     friend class WStringStream;
   };
 
+  typedef char value_type;
+
   /*! \brief Default constructor.
    *
    * Creates a string stream.
