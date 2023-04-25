@@ -23,8 +23,9 @@
 #include <functional>
 #include <unordered_map>
 
-#include "cuehttp/context.hpp"
-#include "cuehttp/deps/fmt/fmt.h"
+#include "context.hpp"
+//#include "cuehttp/deps/fmt/fmt.h"
+#include <Wt/fmt/format.h>
 #include "cuehttp/detail/common.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
 

@@ -23,12 +23,15 @@
 #include <memory>
 
 #include "cookies.hpp"
-#include "deps/fmt/fmt.h"
+//#include "deps/fmt/fmt.h"
+//#include "deps/fmt/compile.h"
+#include <Wt/fmt/format.h>
+#include <Wt/fmt/compile.h>
 #include "detail/body_stream.hpp"
 #include "detail/common.hpp"
 #include "detail/noncopyable.hpp"
 
-#include "deps/fmt/compile.h"
+
 
 namespace cue {
 namespace http {

@@ -92,13 +92,13 @@ class engines final : safe_noncopyable {
   auto schedule(std::chrono::steady_clock::duration millis, Token&& handler)
   {
     auto initiator = [this, millis] (auto&& handler) {
-      if (millis.count() == 0)
-        asio::post(*thread_context, [cb = std::move(handler)] (auto ec, auto ccc) { cb(); }); // guarantees execution order
-      else {
-        std::shared_ptr<asio::steady_timer> timer = std::make_shared<asio::steady_timer>(*thread_context);
-        timer->expires_from_now(millis);
-        timer->async_wait([timer = timer, cb = std::move(handler)] (auto ec, auto time) { cb(); });
-      }
+//      if (millis.count() == 0)
+//        asio::post(*thread_context, [cb = std::move(handler)] (auto ec, auto ccc) { cb(); }); // guarantees execution order
+//      else {
+//        std::shared_ptr<asio::steady_timer> timer = std::make_shared<asio::steady_timer>(*thread_context);
+//        timer->expires_from_now(millis);
+//        timer->async_wait([timer = timer, cb = std::move(handler)] (auto ec, auto time) { cb(); });
+//      }
     };
 
     return asio::async_initiate<Token, void()>(initiator, handler);

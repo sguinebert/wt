@@ -113,6 +113,7 @@ class middlewares final : safe_noncopyable {
       } else {
         (_Ty{}.*func)(ctx, std::move(next));
       }
+      co_return;
     });
   }
 
@@ -135,6 +136,7 @@ class middlewares final : safe_noncopyable {
         (_Ty{}.*func)(ctx);
       }
       next();
+      co_return;
     });
   }
 

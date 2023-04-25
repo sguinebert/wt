@@ -31,6 +31,8 @@
 #include "noncopyable.hpp"
 
 #include <Wt/AsioWrapper/asio.hpp>
+//#include <boost/asio.hpp>
+//using namespace boost::asio;
 
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
@@ -220,9 +222,8 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
   awaitable<void> coro_ws(auto /*sft*/) {
 
     std::cerr << "start websocket coro_ws" << std::endl;
-//    co_await coro_do_read_ws_header();
-    co_await(coro_do_read_ws_header() ||
-             coro_do_send_ws_frame()); // todo watchdog
+    co_await coro_do_read_ws_header();
+//    co_await(coro_do_read_ws_header() || coro_do_send_ws_frame()); // todo watchdog
 
 
     std::cerr << "close coro_ws" << std::endl;

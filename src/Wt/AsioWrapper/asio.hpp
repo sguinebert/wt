@@ -24,7 +24,7 @@ using boost::asio::use_awaitable;
 constexpr auto use_nothrow_awaitable = boost::asio::experimental::as_tuple(use_awaitable);
 using namespace std::literals::chrono_literals;
 using std::chrono::steady_clock;
-using executor_t = boost::asio::io_context::executor_type;
+//using executor_t = boost::asio::io_context::executor_type;
 #else
 #  error Sorry, this code is only compilable with coroutine support and asio 1.21+
 #endif

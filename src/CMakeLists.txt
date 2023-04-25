@@ -349,6 +349,15 @@ Wt/Json/json.hpp
 Wt/Json/simdjson.h Wt/Json/simdjson.cpp
 Wt/Json/Parser.h Wt/Json/Parser.C
 Wt/Json/Serializer.h Wt/Json/Serializer.C
+
+Wt/cuehttp.hpp Wt/cuehttp/compress.hpp Wt/cuehttp/context.hpp Wt/cuehttp/cookies.hpp Wt/cuehttp/cuehttp.hpp
+
+Wt/cuehttp/deps/json.hpp Wt/cuehttp/deps/picohttpparser.h
+Wt/cuehttp/detail/body_stream.hpp Wt/cuehttp/detail/buffered_streambuf.hpp Wt/cuehttp/detail/common.hpp Wt/cuehttp/detail/connection.hpp Wt/cuehttp/detail/endian.hpp
+Wt/cuehttp/detail/engines.hpp Wt/cuehttp/detail/gzip.hpp Wt/cuehttp/detail/middlewares.hpp Wt/cuehttp/detail/mime.hpp Wt/cuehttp/detail/noncopyable.hpp Wt/cuehttp/detail/send.hpp Wt/cuehttp/detail/sha1.hpp Wt/cuehttp/detail/static.hpp
+Wt/cuehttp/request.hpp Wt/cuehttp/response.hpp Wt/cuehttp/router.hpp Wt/cuehttp/send.hpp Wt/cuehttp/server.hpp Wt/cuehttp/session.hpp Wt/cuehttp/static.hpp Wt/cuehttp/use_session.hpp Wt/cuehttp/websocket.hpp Wt/cuehttp/ws_server.hpp
+
+
 Wt/Http/HttpUtils.h Wt/Http/HttpUtils.C
 Wt/Http/Client.h Wt/Http/Client.C
 Wt/Http/Message.h Wt/Http/Message.C
