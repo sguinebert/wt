@@ -5,7 +5,7 @@
  */
 #include <boost/test/unit_test.hpp>
 
-#include "web/WebController.h"
+#include "Wt/WebController.h"
 
 namespace {
   std::string sessionFromCookie(const char *cookies,

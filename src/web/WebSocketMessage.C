@@ -22,12 +22,10 @@ WebSocketMessage::WebSocketMessage(WebSession *session)
   queryString_ = "wtd=" + session_->sessionId() + "&request=jsupdate";
 }
 
-void WebSocketMessage::flush(ResponseState state,
-			     const WriteCallback& callback)
+void WebSocketMessage::flush(ResponseState state, const WriteCallback& callback)
 {
   if (state != ResponseState::ResponseDone)
-    error("flush(" + std::to_string(static_cast<unsigned int>(state)) 
-	  + ") expected");
+    error("flush(" + std::to_string(static_cast<unsigned int>(state)) + ") expected");
 
   session_->pushUpdates();
 
@@ -81,8 +79,7 @@ void WebSocketMessage::setContentLength(::int64_t length)
   // We have no use for it, web socket messages are framed
 }
 
-void WebSocketMessage::addHeader(const std::string& name,
-				 const std::string& value)
+void WebSocketMessage::addHeader(const std::string& name, const std::string& value)
 {
   error("addHeader(): not supported");
 }
@@ -170,9 +167,19 @@ void WebSocketMessage::error(const std::string& msg) const
   LOG_ERROR("WebSocketMessage error: {}", msg);
 }
 
-WebRequest *WebSocketMessage::webSocket() const
+WebRequest *WebSocketMessage::webSocket() const //i.e. WtReply
 {
   return session_->webSocket_;
+}
+
+http::websocket *WebSocketMessage::websocket() const
+{
+  return session_->websocket_.get();
+}
+
+http::context *WebSocketMessage::context() const
+{
+  return session_->webSocket_ctx_;
 }
 
 }

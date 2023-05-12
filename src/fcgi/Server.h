@@ -18,7 +18,7 @@
 namespace Wt {
 
 class SessionInfo;
-class WServer;
+class WfcgiServer;
 
 /*
  * A FastCGI relay server
@@ -27,9 +27,9 @@ class Server
 {
 public:
   static bool bindUDStoStdin(const std::string& socketPath,
-			     Wt::WServer& server);
+                 Wt::WfcgiServer& server);
 
-  Server(WServer& wt,
+  Server(WfcgiServer& wt,
          const std::string &applicationName,
          const std::vector<std::string> &args);
   int run();
@@ -40,7 +40,7 @@ public:
   void handleSignal(const char *signal);
 
 private:
-  WServer& wt_;
+  WfcgiServer& wt_;
   std::string applicationName_;
   std::vector<std::string> args_;
 

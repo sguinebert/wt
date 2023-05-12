@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "Reply.h"
-#include "../web/Configuration.h"
+#include "../Wt/Configuration.h"
 #include "../web/WebRequest.h"
 
 #ifdef WTHTTP_WITH_ZLIB
@@ -97,9 +97,9 @@ protected:
 private:
   void readRestWebSocketHandshake();
 
-  void consumeRequestBody(const char *begin,
-			  const char *end,
-			  Request::State state);
+    void consumeRequestBody(const char *begin,
+                            const char *end,
+                            Request::State state);
   void formatResponse(std::vector<asio::const_buffer>& result);
 #ifdef WTHTTP_WITH_ZLIB
   int deflate(const unsigned char* in, size_t in_size, unsigned char out[], bool& hasMore);

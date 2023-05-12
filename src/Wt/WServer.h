@@ -7,11 +7,18 @@
 #ifndef WSERVER_H_
 #define WSERVER_H_
 
+//#include "WebController.h"
 #include <Wt/WApplication.h>
 #include <Wt/WException.h>
 #include <Wt/WLogger.h>
 #include <Wt/WIOService.h>
-#include <Wt/cuehttp/cuehttp.hpp>
+#include <Wt/cuehttp.hpp>
+#include <Wt/cuehttp/compress.hpp>
+
+#include <Wt/Http/Configuration.h>
+#include <Wt/Configuration.h>
+#include <Wt/WebController.h>
+#include <Wt/WResource.h>
 
 #include <chrono>
 
@@ -22,8 +29,8 @@ namespace http {
 }
 namespace Wt {
 
-class Configuration;
-class WebController;
+//class Configuration;
+//class WebController;
 //class WIOService;
 /*! \class WServer Wt/WServer.h Wt/WServer.h
  *  \brief A class encapsulating a web application server.
@@ -127,7 +134,10 @@ public:
    */
   WTCONNECTOR_API
   WServer(const std::string& wtApplicationPath = std::string(),
-          const std::string& wtConfigurationFile = std::string());
+          const std::string& wtConfigurationFile = std::string())
+  {
+    init(wtApplicationPath, wtConfigurationFile);
+  }
 
   WServer(const WServer &) = delete;
 
@@ -145,7 +155,12 @@ public:
    * \sa setServerConfiguration()
    */
   WTCONNECTOR_API
-    WServer(int argc, char *argv[], const std::string& wtConfigurationFile = std::string());
+    WServer(int argc, char *argv[], const std::string& wtConfigurationFile = std::string())
+  {
+    init(argv[0], "");
+
+    setServerConfiguration(argc, argv, wtConfigurationFile);
+  }
 
   /*! \brief Creates a new server instance and configures it.
    *
@@ -169,7 +184,12 @@ public:
   WTCONNECTOR_API
     WServer(const std::string &applicationPath,
             const std::vector<std::string> &args,
-            const std::string& wtConfigurationFile = std::string());
+            const std::string& wtConfigurationFile = std::string())
+  {
+    init(applicationPath, "");
+
+    setServerConfiguration(applicationPath, args, wtConfigurationFile);
+  }
 
   /*! \brief Destructor.
    *
@@ -179,7 +199,20 @@ public:
    *
    * \sa isRunning(), stop()
    */
-  WTCONNECTOR_API virtual ~WServer();
+  WTCONNECTOR_API virtual ~WServer()
+  {
+    if (server_) {
+        try {
+            stop();
+        } catch (...) {
+            //LOG_ERROR("~WServer: oops, stop() threw exception!");
+        }
+    }
+
+    //delete impl_;
+
+    destroy();
+  }
 
 #ifndef WT_TARGET_JAVA
   /*! \brief Sets the I/O service.
@@ -234,9 +267,13 @@ public:
    * \throws Exception : indicates a configuration problem.
    */
   WTCONNECTOR_API
-    void setServerConfiguration(int argc, char *argv[],
-				const std::string& serverConfigurationFile
-				= std::string());
+    void setServerConfiguration(int argc, char *argv[], const std::string& serverConfigurationFile = std::string())
+  {
+    std::string applicationPath = argv[0];
+    std::vector<std::string> args(argv + 1, argv + argc);
+
+    setServerConfiguration(applicationPath, args, serverConfigurationFile);
+  }
 
   /*! \brief Configures the HTTP(S) server or FastCGI process.
    *
@@ -264,10 +301,10 @@ public:
    *
    * \throws Exception : indicates a configuration problem.
    */
-  WTCONNECTOR_API
+  WT_API
     void setServerConfiguration(const std::string &applicationPath,
                                 const std::vector<std::string> &args,
-                                const std::string &serverConfigurationFile = std::string());
+                              const std::string &serverConfigurationFile = std::string());
 
   /*! \brief Binds an entry-point to a callback function to create
    *         a new application.
@@ -328,7 +365,245 @@ public:
    * \sa isRunning(), stop()
    */
   //WTCONNECTOR_API bool start();
-  WTCONNECTOR_API bool start();
+  bool start()
+  {
+    setCatchSignals(!serverConfiguration_->gdb());
+
+    stopCallback_ = std::bind(&WServer::stop, this);
+
+    if (isRunning()) {
+        //LOG_ERROR("start(): server already started!");
+        return false;
+    }
+
+    //LOG_INFO("initializing built-in wthttpd");
+
+#ifndef WT_WIN32
+    srand48(getpid());
+#endif
+
+    // Override configuration settings
+    configuration().setRunDirectory(std::string());
+
+    configuration().setUseSlashExceptionForInternalPaths
+        (serverConfiguration_->defaultStatic());
+
+    if (!serverConfiguration_->sessionIdPrefix().empty())
+        configuration().setSessionIdPrefix(serverConfiguration_
+                                               ->sessionIdPrefix());
+
+    if (serverConfiguration_->threads() != -1)
+        configuration().setNumThreads(serverConfiguration_->threads());
+
+    if (serverConfiguration_->parentPort() != -1) {
+        configuration().setOriginalIPHeader("X-Forwarded-For");
+        auto trustedProxies = configuration().trustedProxies();
+//        Utils::add(trustedProxies, Configuration::Network::fromString("127.0.0.1"));
+//        Utils::add(trustedProxies, Configuration::Network::fromString("::1"));
+        configuration().setTrustedProxies(trustedProxies);
+        updateProcessSessionIdCallback_ = [this] (const std::string& sessionId)
+        {
+            //server_->updateProcessSessionId(sessionId);
+        };
+    }
+
+    try {
+        //impl_->server_ = new http::server::Server(*impl_->serverConfiguration_, *this);
+        server_ = new Wt::http::cuehttp();
+
+#ifndef WT_THREADED
+        LOG_WARN("No thread support, running in main thread.");
+#endif // WT_THREADED
+
+        webController_->start();
+
+        //cue::http::router router;
+
+        //    router.get("/", [&](cue::http::context& ctx) ->awaitable<void>  {
+        //        webController_->configuration();
+        //        co_return;
+        //    });
+
+        auto entrypoints = configuration().entryPoints();
+        auto config = serverConfiguration_;
+
+        for (auto &ep : entrypoints)
+        {
+            //std::cerr << "entry point :" << ep.path().data() << std::endl;
+            router_.get(ep.path(), [this, config, &ep] (Wt::http::context& ctx) -> awaitable<void>
+                       {
+                           // std::cerr << "entry get :" << req->getMethod() << std::endl;
+
+                           // std::cerr << "entry get getParameter :" << req->getParameter(0) << std::endl;
+                           //http::server::uWSRequest *wtreq = new http::server::uWSRequest(res, req, config, &ep);
+
+                           //std::cerr << "entry get getQuery :" << wtreq << std::endl;
+
+                           //ctx.type("text/plain");
+                           //ctx.status(200);
+
+//                           if(ep.type() == EntryPointType::StaticResource) {
+//                               co_await ep.resource()->handle(&ctx);
+//                               ctx.flush();
+//                               co_return;
+//                           }
+                           //ctx.body("http");
+//                           ctx.type("text/html");
+//                           ctx.body() << "<html>"
+//                                         "<head><title>Not Found</title></head>"
+//                                         "<body><h1>404 Not Found</h1>"
+//                                         "";
+//                           ctx.flush();
+//                           co_return;
+
+                           co_await this->webController_->handleRequest(&ctx, &ep);
+
+
+
+                           //streply->send(res, http::server::Reply::status_type::not_found);
+                           co_return;
+                       });
+            router_.post(ep.path(), [this, config, &ep] (Wt::http::context& ctx) -> awaitable<void>
+                        {
+
+                            //std::cerr << "---------rest post------- " << std::endl << std::endl;
+                            //streply->send(res, http::server::Reply::status_type::not_found);
+                            co_return;
+                        });
+
+            if(ep.type() != EntryPointType::StaticResource) {
+                ws_router_.all(ep.path(), [this, &ep](http::context& ctx) -> awaitable<void> {
+
+                            co_await this->webController_->handleRequest(&ctx, &ep);
+
+                            ctx.websocket().on_open([]() {
+                                std::cout << "websocket on_open" << std::endl;
+                            });
+                            ctx.websocket().on_close([]() {
+                                std::cout << "websocket on_close" << std::endl;
+                            });
+                            ctx.websocket().on_message([this, &ctx](std::string&& msg) -> awaitable<void>  {
+                                std::cout << "websocket msg: " << msg << std::endl;
+                                //ctx.websocket().send(std::move(msg));
+
+                                co_await webController_->handleWebSocketMessage(msg);
+
+                                co_return;
+                            });
+                            co_return;
+                });
+            }
+
+        }
+
+        //    app.get("/*", [this, config, streply](auto *res, auto *req)
+        //            {
+        //                //auto streponse = streply->get(http::server::Reply::status_type::not_found);
+        //                // req->lastStaticReply_.reset(new http::server::StaticReply(req, *this->impl_->serverConfiguration_));
+        //                // std::cerr << "test cdc " << req->lastWtReply_ << std::endl;
+
+        //                // boost::asio::buffer dc;
+        //                streply->send(res, http::server::Reply::status_type::not_found);
+        //                //  res->writeHeader("Content-Type", "text")
+        //                //      ->writeHeader("Server", "Wt")
+        //                //      ->end(streponse);
+        //                //this->impl_->server_->request_handler_.handleRequest(req, )
+        //                //res->end("");
+        //            });
+
+        server_->use(router_);
+        server_->ws().use(ws_router_);
+        //server_->use(cue::http::use_compress());
+
+        server_->listen(std::stoi(serverConfiguration_->httpPort()), serverConfiguration_->httpAddress());
+
+        server_->run();
+
+#ifndef WT_THREADED
+        delete impl_->server_;
+        impl_->server_ = 0;
+
+        ioService().stop();
+
+        return false;
+#else
+        return true;
+#endif // WT_THREADED
+
+    } catch (Wt::AsioWrapper::system_error& e) {
+        throw Exception(std::string("Error (asio): ") + e.what());
+    } catch (std::exception& e) {
+        throw Exception(std::string("Error: ") + e.what());
+    }
+  }
+//  {
+//    setCatchSignals(!serverConfiguration_->gdb());
+
+//    stopCallback_ = std::bind(&WServer::stop, this);
+
+//    if (isRunning()) {
+//        LOG_ERROR("start(): server already started!");
+//        return false;
+//    }
+
+//    LOG_INFO("initializing built-in wthttpd");
+
+//#ifndef WT_WIN32
+//    srand48(getpid());
+//#endif
+
+//    // Override configuration settings
+//    configuration().setRunDirectory(std::string());
+
+//    configuration().setUseSlashExceptionForInternalPaths
+//        (serverConfiguration_->defaultStatic());
+
+//    if (!serverConfiguration_->sessionIdPrefix().empty())
+//        configuration().setSessionIdPrefix(serverConfiguration_->sessionIdPrefix());
+
+//    if (serverConfiguration_->threads() != -1)
+//        configuration().setNumThreads(serverConfiguration_->threads());
+
+//    if (serverConfiguration_->parentPort() != -1) {
+//        configuration().setOriginalIPHeader("X-Forwarded-For");
+//        auto trustedProxies = configuration().trustedProxies();
+//        Utils::add(trustedProxies, Configuration::Network::fromString("127.0.0.1"));
+//        Utils::add(trustedProxies, Configuration::Network::fromString("::1"));
+//        configuration().setTrustedProxies(trustedProxies);
+//        updateProcessSessionIdCallback_ = [this] (const std::string& sessionId)
+//        {
+//            //server_->updateProcessSessionId(sessionId);
+//        };
+//    }
+
+//    try {
+//        server_ = new cue::http::server<>();//new http::server::Server(*impl_->serverConfiguration_, *this);
+
+//#ifndef WT_THREADED
+//        LOG_WARN("No thread support, running in main thread.");
+//#endif // WT_THREADED
+
+//        webController_->start();
+
+//        ioService().run();
+
+//#ifndef WT_THREADED
+//        delete impl_->server_;
+//        impl_->server_ = 0;
+
+//        ioService().stop();
+
+//        return false;
+//#else
+//        return true;
+//#endif // WT_THREADED
+
+//    } catch (Wt::AsioWrapper::system_error& e) {
+//        throw Exception(std::string("Error (asio): ") + e.what());
+//    } catch (std::exception& e) {
+//        throw Exception(std::string("Error: ") + e.what());
+//    }
+//  }
 
   /*! \brief Stops the server.
    *
@@ -343,12 +618,47 @@ public:
    * \sa isRunning(), start()
    */
   WTCONNECTOR_API void stop();
+//  {
+//    if (!isRunning()) {
+//        LOG_ERROR("stop(): server not yet started!");
+//        return;
+//    }
+
+//#ifdef WT_THREADED
+//    try {
+//         //Stop the Wt application server (cleaning up all sessions).
+//        webController_->shutdown();
+
+//        LOG_INFO("Shutdown: stopping web server.");
+
+//        // Stop the server.
+//        server_->stop();
+
+//        ioService().stop();
+
+//        delete server_;
+//        server_ = 0;
+//    } catch (Wt::AsioWrapper::system_error& e) {
+//        throw Exception(std::string("Error (asio): ") + e.what());
+//    } catch (std::exception& e) {
+//        throw Exception(std::string("Error: ") + e.what());
+//    }
+
+//#else // WT_THREADED
+//    webController_->shutdown();
+//    impl_->server_->stop();
+//    ioService().stop();
+//#endif // WT_THREADED
+//  }
 
   /*! \brief Returns whether the server is running.
    *
    * \sa start(), stop()
    */
-  WTCONNECTOR_API bool isRunning() const;
+  WTCONNECTOR_API bool isRunning() const
+  {
+    return server_;
+  }
 
   /*! \brief Starts the server, waits for shutdown, then stops the server.
    *
@@ -363,7 +673,13 @@ public:
    * \sa stop()
    * \sa waitForShutdown()
    */
-  WTCONNECTOR_API void run();
+  WTCONNECTOR_API void run()
+  {
+    if (start()) {
+        waitForShutdown();
+        stop();
+    }
+  }
 
   /*! \brief Resumes the server.
    *
@@ -372,8 +688,18 @@ public:
    * IPhoneOS) has closed the sockets while suspending the
    * application.
    */
-  WTCONNECTOR_API void resume();
+  WTCONNECTOR_API void resume()
+  {
+    if (!isRunning()) {
+        //LOG_ERROR("resume(): server not yet started!");
+        return;
+    } else {
+        //server_->resume();
+    }
+  }
 
+  http::router& router() { return router_; }
+  http::router& ws_router() { return ws_router_; }
   /*! \brief Waits for a shutdown signal.
    *
    * This static method blocks the current thread, waiting for a
@@ -418,7 +744,11 @@ public:
    * \note If the server listens on multiple ports, only the first
    *       port is returned.
    */
-  WTCONNECTOR_API int httpPort() const;
+  WTCONNECTOR_API int httpPort() const
+  {
+    return 0;
+    //return impl_->server_->httpPort();
+  }
 
   WT_API void setAppRoot(const std::string& path);
 
@@ -436,7 +766,14 @@ public:
    *
    * If you're using any other connector, this returns the empty string.
    */
-   WTCONNECTOR_API std::string docRoot() const;
+   WTCONNECTOR_API std::string docRoot() const
+  {
+    if (serverConfiguration_) {
+        return serverConfiguration_->docRoot();
+    } else {
+        return "";
+    }
+  }
 
   /*! \brief Posts a function to a session.
    *
@@ -505,7 +842,13 @@ public:
    * The max_length parameter is informational and indicates that the
    * underlying implementation will truncate the password to this length.
    */
-  WTCONNECTOR_API void setSslPasswordCallback(const SslPasswordCallback& cb);
+  WTCONNECTOR_API void setSslPasswordCallback(const SslPasswordCallback& cb)
+  {
+    sslPasswordCallback_ = cb;
+
+    if (serverConfiguration_)
+        serverConfiguration_->setSslPasswordCallback(sslPasswordCallback_);
+  }
 
 #endif // WT_TARGET_JAVA
 
@@ -542,8 +885,7 @@ public:
    *
    * The default value is 0.
    */
-  WT_API void setLocalizedStrings(const std::shared_ptr<WLocalizedStrings>&
-				  stringResolver);
+  WT_API void setLocalizedStrings(const std::shared_ptr<WLocalizedStrings>& stringResolver);
   
   /*! \brief Sets the resource object that provides localized strings.
    *
@@ -563,6 +905,7 @@ public:
    * so they can access this list.
    */
   WTCONNECTOR_API std::vector<SessionInfo> sessions() const;
+
 
   void updateProcessSessionId(const std::string& sessionId);
 
@@ -621,6 +964,8 @@ public:
 
 private:
   WebController *webController_;
+  Wt::http::router router_;
+  Wt::http::router ws_router_;
 
 #ifndef WT_TARGET_JAVA
   WLogger logger_;
@@ -639,8 +984,10 @@ private:
   struct Impl;
   Impl *impl_;
 
-  WT_API void setConfiguration(const std::string& file,
-			       const std::string& application);
+  http::server::Configuration *serverConfiguration_ = nullptr;
+  Wt::http::cuehttp *server_ = nullptr;
+
+  WT_API void setConfiguration(const std::string& file, const std::string& application);
 
   WT_API void setConfiguration(const std::string& file);
   const std::string& configurationFile() const {
@@ -648,7 +995,7 @@ private:
   }
 
   WT_API void init(const std::string& wtApplicationPath,
-	           const std::string& configurationFile);
+                   const std::string& configurationFile);
   WT_API void destroy();
   WT_API void setCatchSignals(bool catchSignals);
   WT_API std::string prependDefaultPath(const std::string& path);

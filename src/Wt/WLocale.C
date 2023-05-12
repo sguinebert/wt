@@ -41,6 +41,17 @@ WLocale::WLocale(const std::string& name)
     timeZone_(systemLocale.timeZone())
 { }
 
+WLocale::WLocale(std::string_view name)
+    : name_(name),
+    decimalPoint_(systemLocale.decimalPoint()),
+    groupSeparator_(systemLocale.groupSeparator()),
+    dateFormat_(systemLocale.dateFormat()),
+    timeFormat_(systemLocale.timeFormat()),
+    dateTimeFormat_(systemLocale.dateTimeFormat()),
+    timeZone_(systemLocale.timeZone())
+{
+}
+
 WLocale& WLocale::operator=(const WLocale& other)
 {
   name_ = other.name_;

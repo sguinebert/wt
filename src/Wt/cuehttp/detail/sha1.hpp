@@ -23,7 +23,7 @@
 #ifndef CUEHTTP_SHA1_HPP_
 #define CUEHTTP_SHA1_HPP_
 
-namespace cue {
+namespace Wt {
 namespace http {
 namespace detail {
 namespace sha1 {

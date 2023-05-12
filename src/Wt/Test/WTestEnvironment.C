@@ -9,7 +9,7 @@
 #endif // WT_TARGET_JAVA
 
 #include "Configuration.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebSession.h"
 
 #include "Wt/WServer.h"

@@ -24,7 +24,7 @@
 #include "Configuration.h"
 #include "SessionProcessManager.h"
 #include "WtReply.h"
-#include "../web/Configuration.h"
+#include "../Wt/Configuration.h"
 
 namespace http {
 namespace server {

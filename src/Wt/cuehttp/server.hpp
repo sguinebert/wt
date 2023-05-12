@@ -34,7 +34,7 @@
 #include "detail/noncopyable.hpp"
 #include "detail/engines.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 template <typename _Socket, typename _Ty>
@@ -124,6 +124,8 @@ public:
         return *this;
     }
 
+    void stop() {}
+
     void swap(server& rhs) noexcept {
         if (this != std::addressof(rhs)) {
             base_server<_Socket, server<_Socket>>::swap(rhs);
@@ -188,6 +190,9 @@ private:
     asio::ssl::context ssl_context_;
 };
 #endif // ENABLE_HTTPS
+
+
+//template<bool SSL = false> http_servercc;
 
 using http_t = server<detail::http_socket>;
 

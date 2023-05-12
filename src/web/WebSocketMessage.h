@@ -8,6 +8,7 @@
 #define WEB_SOCKET_MESSAGE_H_
 
 #include "WebRequest.h"
+#include <Wt/cuehttp/context.hpp>
 
 namespace Wt {
 
@@ -65,6 +66,8 @@ private:
   std::string queryString_;
 
   WebRequest *webSocket() const;
+  http::websocket *websocket() const;
+  http::context *context() const;
   void error(const std::string& msg) const;
 };
 

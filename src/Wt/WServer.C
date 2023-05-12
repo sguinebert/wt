@@ -21,7 +21,8 @@
 #include "Wt/WServer.h"
 
 #include "Configuration.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
+#include "../web/WebUtils.h"
 
 namespace Wt {
 
@@ -138,6 +139,31 @@ void WServer::setConfiguration(const std::string& file,
   application_ = application;
 }
 
+void WServer::setServerConfiguration(const std::string &applicationPath,
+                            const std::vector<std::string> &args,
+                            const std::string &serverConfigurationFile)
+{
+//  auto result = parseArgsPartially(applicationPath, args, serverConfigurationFile);
+
+//  if (!result.appRoot.empty())
+//    setAppRoot(result.appRoot);
+
+//  if (configurationFile().empty())
+//    setConfiguration(result.wtConfigXml);
+
+  webController_ = new Wt::WebController(*this);
+
+  serverConfiguration_ = new http::server::Configuration(logger());
+
+  serverConfiguration_->setSslPasswordCallback(sslPasswordCallback_);
+
+  serverConfiguration_->setOptions(applicationPath, args, serverConfigurationFile);
+
+  dedicatedProcessEnabled_ = serverConfiguration_->parentPort() != -1;
+
+  configuration().setDefaultEntryPoint(serverConfiguration_->deployPath());
+}
+
 WLogger& WServer::logger()
 {
   return logger_;
@@ -196,8 +222,7 @@ Configuration& WServer::configuration()
     if (configurationFile_.empty())
       configurationFile_ = Configuration::locateConfigFile(appRoot_);
 
-    configuration_ = new Configuration(application_, appRoot_,
-				       configurationFile_, this);
+    configuration_ = new Configuration(application_, appRoot_, configurationFile_, this);
   }
 
   return *configuration_;
@@ -208,76 +233,41 @@ WebController *WServer::controller()
   return webController_;
 }
 
-//bool WServer::start()
-//{
-//  setCatchSignals(!impl_->serverConfiguration_->gdb());
 
-//  stopCallback_ = std::bind(&WServer::stop, this);
 
-//  if (isRunning()) {
-//    LOG_ERROR("start(): server already started!");
-//    return false;
-//  }
+WTCONNECTOR_API void WServer::stop()
+{
+  if (!isRunning()) {
+    LOG_ERROR("stop(): server not yet started!");
+    return;
+  }
 
-//  LOG_INFO("initializing built-in wthttpd");
+#ifdef WT_THREADED
+  try {
+      //Stop the Wt application server (cleaning up all sessions).
+    webController_->shutdown();
 
-//#ifndef WT_WIN32
-//  srand48(getpid());
-//#endif
+    LOG_INFO("Shutdown: stopping web server.");
 
-//  // Override configuration settings
-//  configuration().setRunDirectory(std::string());
+    // Stop the server.
+    server_->stop();
 
-//  configuration().setUseSlashExceptionForInternalPaths
-//      (impl_->serverConfiguration_->defaultStatic());
+    //ioService().stop();
 
-//  if (!impl_->serverConfiguration_->sessionIdPrefix().empty())
-//    configuration().setSessionIdPrefix(impl_->serverConfiguration_
-//                                           ->sessionIdPrefix());
+    delete server_;
+    server_ = 0;
+  } catch (Wt::AsioWrapper::system_error& e) {
+    throw Exception(std::string("Error (asio): ") + e.what());
+  } catch (std::exception& e) {
+    throw Exception(std::string("Error: ") + e.what());
+  }
 
-//  if (impl_->serverConfiguration_->threads() != -1)
-//    configuration().setNumThreads(impl_->serverConfiguration_->threads());
-
-//  if (impl_->serverConfiguration_->parentPort() != -1) {
-//    configuration().setOriginalIPHeader("X-Forwarded-For");
-//    auto trustedProxies = configuration().trustedProxies();
-//    Utils::add(trustedProxies, Configuration::Network::fromString("127.0.0.1"));
-//    Utils::add(trustedProxies, Configuration::Network::fromString("::1"));
-//    configuration().setTrustedProxies(trustedProxies);
-//    updateProcessSessionIdCallback_ = [this] (const std::string& sessionId)
-//    {
-//        impl_->server_->updateProcessSessionId(sessionId);
-//    };
-//  }
-
-//  try {
-//    //impl_->server_ = new http::server::Server(*impl_->serverConfiguration_, *this);
-
-//#ifndef WT_THREADED
-//    LOG_WARN("No thread support, running in main thread.");
-//#endif // WT_THREADED
-
-//    webController_->start();
-
-//    ioService().run();
-
-//#ifndef WT_THREADED
-//    delete impl_->server_;
-//    impl_->server_ = 0;
-
-//    ioService().stop();
-
-//    return false;
-//#else
-//    return true;
-//#endif // WT_THREADED
-
-//  } catch (Wt::AsioWrapper::system_error& e) {
-//    throw Exception(std::string("Error (asio): ") + e.what());
-//  } catch (std::exception& e) {
-//    throw Exception(std::string("Error: ") + e.what());
-//  }
-//}
+#else // WT_THREADED
+  webController_->shutdown();
+  impl_->server_->stop();
+  ioService().stop();
+#endif // WT_THREADED
+}
 
 bool WServer::readConfigurationProperty(const std::string& name,
 					std::string& value) const
@@ -311,7 +301,7 @@ void WServer::schedule(std::chrono::steady_clock::duration duration,
   auto event = std::make_shared<ApplicationEvent>(sessionId, function, fallbackFunction);
 
   ioService().schedule(duration, [this, event] () {
-          webController_->handleApplicationEvent(event);
+        webController_->handleApplicationEvent(event);
   });
 }
 
@@ -332,21 +322,18 @@ std::string WServer::prependDefaultPath(const std::string& path)
 }
 
 void WServer::addEntryPoint(EntryPointType type, ApplicationCreator callback,
-			    const std::string& path, const std::string& favicon)
+                            const std::string& path, const std::string& favicon)
 {
-  configuration().addEntryPoint(
-        EntryPoint(type, callback, prependDefaultPath(path), favicon));
+  configuration().addEntryPoint(EntryPoint(type, callback, prependDefaultPath(path), favicon));
 }
 
 void WServer::addResource(WResource *resource, const std::string& path)
 {
-  bool success = configuration().tryAddResource(
-        EntryPoint(resource, prependDefaultPath(path)));
+  bool success = configuration().tryAddResource(EntryPoint(resource, prependDefaultPath(path)));
   if (success)
     resource->setInternalPath(path);
   else {
-    WString error(Wt::utf8("WServer::addResource() error: "
-	                   "a static resource was already deployed on path '{0}'"));
+    WString error(Wt::utf8("WServer::addResource() error: a static resource was already deployed on path '{0}'"));
     throw WServer::Exception(error.arg(path).toUTF8());
   }
 }
@@ -512,6 +499,29 @@ void WServer::scheduleStop()
   if (stopCallback_)
     stopCallback_();
 #endif // WT_THREADED
+}
+
+std::vector<WServer::SessionInfo> WServer::sessions() const
+{
+    if (configuration_->sessionPolicy() == Wt::Configuration::DedicatedProcess &&
+        serverConfiguration_->parentPort() == -1) {
+    return std::vector<SessionInfo>();// server_->sessionManager()->sessions();
+    } else {
+#ifndef WT_WIN32
+    int64_t pid = getpid();
+#else // WT_WIN32
+    int64_t pid = _getpid();
+#endif // WT_WIN32
+    std::vector<std::string> sessionIds = webController_->sessions();
+    std::vector<WServer::SessionInfo> result;
+    for (std::size_t i = 0; i < sessionIds.size(); ++i) {
+        SessionInfo sessionInfo;
+        sessionInfo.processId = pid;
+        sessionInfo.sessionId = sessionIds[i];
+        result.push_back(sessionInfo);
+    }
+    return result;
+    }
 }
 
 void WServer::updateProcessSessionId(const std::string& sessionId) {

@@ -26,12 +26,10 @@
 #include "context.hpp"
 //#include "cuehttp/deps/fmt/fmt.h"
 #include <Wt/fmt/format.h>
-#include "cuehttp/detail/common.hpp"
-#include "cuehttp/detail/noncopyable.hpp"
+#include "detail/common.hpp"
+#include "detail/noncopyable.hpp"
 
-#include "HttpBinder.h"
-
-namespace cue {
+namespace Wt {
 namespace http {
 
 using namespace std::string_view_literals;
@@ -43,7 +41,7 @@ class router final : safe_noncopyable {
   template <typename _Prefix, typename = std::enable_if_t<!std::is_same_v<std::decay_t<_Prefix>, router>>>
   explicit router(_Prefix&& prefix) noexcept : prefix_{std::forward<_Prefix>(prefix)} {}
 
-  std::function<asio::awaitable<void>(context&)> routes() const noexcept { return make_routes(); }
+  std::function<awaitable<void>(context&)> routes() const noexcept { return make_routes(); }
 
   template <typename _Prefix>
   router& prefix(_Prefix&& prefix) {
@@ -308,7 +306,7 @@ class router final : safe_noncopyable {
    */
   template <typename _Func>
   void register_with_next(std::string_view method, std::string_view path, _Func&& func) {
-    handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func = std::forward<_Func>(func)](context& ctx) -> asio::awaitable<void> {
+    handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func = std::forward<_Func>(func)](context& ctx) -> awaitable<void> {
       const auto next = []() {};
       co_await func(ctx, std::move(next));
     });
@@ -316,13 +314,14 @@ class router final : safe_noncopyable {
 
   template <typename _Ty, typename _Func, typename _Self>
   void register_with_next(std::string_view method, std::string_view path, _Func _Ty::*func, _Self self) {
-    handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func, self](context& ctx) -> asio::awaitable<void> {
+    handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func, self](context& ctx) -> awaitable<void> {
       const auto next = []() {};
       if (self) {
         (self->*func)(ctx, std::move(next));
       } else {
         (_Ty{}.*func)(ctx, std::move(next));
       }
+      co_return;
     });
   }
 
@@ -336,12 +335,13 @@ class router final : safe_noncopyable {
 
   template <typename _Ty, typename _Func, typename _Self>
   void register_without_next(std::string_view method, std::string_view path, _Func _Ty::*func, _Self self) {
-    handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func, self](context& ctx) -> asio::awaitable<void> {
+    handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func, self](context& ctx) -> awaitable<void> {
       if (self) {
         (self->*func)(ctx);
       } else {
         (_Ty{}.*func)(ctx);
       }
+      co_return;
     });
   }
 
@@ -350,7 +350,7 @@ class router final : safe_noncopyable {
    */
   template <typename _Func>
   void register_classic_without_next(std::string_view method, std::string_view path, _Func&& func) {
-      handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func = std::move(func)](context& ctx) -> asio::awaitable<void> {
+      handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func = std::move(func)](context& ctx) -> awaitable<void> {
         func(ctx);
         co_return;
       });
@@ -374,7 +374,7 @@ class router final : safe_noncopyable {
 
   void compose(std::string_view method, std::string_view path,
                std::vector<std::function<void(context&, std::function<void()>)>>&& handlers) {
-    const auto handler = [handlers = std::move(handlers)](context& ctx) -> asio::awaitable<void> {
+    const auto handler = [handlers = std::move(handlers)](context& ctx) -> awaitable<void> {
       if (handlers.empty()) {
         co_return;
       }
@@ -398,7 +398,7 @@ class router final : safe_noncopyable {
   }
 
 //  std::function<void(context&)> make_routes() const noexcept {
-//    return [this](context& ctx)  { //-> asio::awaitable<void>
+//    return [this](context& ctx)  { //-> awaitable<void>
 //      if (ctx.status() != 404) {
 //        return;
 //      }
@@ -411,8 +411,8 @@ class router final : safe_noncopyable {
 //    };
 //  }
 
-  std::function<asio::awaitable<void>(context&)> make_routes() const noexcept {
-    return [this](context& ctx) -> asio::awaitable<void>  {
+  std::function<awaitable<void>(context&)> make_routes() const noexcept {
+    return [this](context& ctx) -> awaitable<void>  {
       if (ctx.status() != 404) {
         co_return;
       }
@@ -428,7 +428,7 @@ class router final : safe_noncopyable {
 
   std::string prefix_;
   //std::unordered_map<std::string, std::function<void(context&)>> handlers_;
-  std::unordered_map<std::string, std::function<asio::awaitable<void>(context&)>> handlers_;
+  std::unordered_map<std::string, std::function<awaitable<void>(context&)>> handlers_;
 };
 
 }  // namespace http

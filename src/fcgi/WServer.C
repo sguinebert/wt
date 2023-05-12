@@ -5,16 +5,16 @@
  * See the LICENSE file for terms of use.
  */
 #include "Wt/WIOService.h"
-#include "Wt/WServer.h"
+#include "Wt/WfcgiServer.h"
 
 #include <iostream>
 #include <string>
 #include <signal.h>
 
-#include "Configuration.h"
+#include "Wt/Configuration.h"
 #include "FCGIStream.h"
 #include "Server.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebMain.h"
 
 namespace {
@@ -23,11 +23,11 @@ namespace {
 
 namespace Wt {
 
-LOGGER("WServer/wtfcgi");
+LOGGER("WfcgiServer/wtfcgi");
 
-struct WServer::Impl
+struct WfcgiServer::Impl
 {
-  Impl(WServer& server)
+  Impl(WfcgiServer& server)
     : server_(server),
       running_(false),
       webMain_(nullptr)
@@ -100,7 +100,7 @@ struct WServer::Impl
     }
   }
 
-  WServer& server_;
+  WfcgiServer& server_;
   bool running_;
   std::string sessionId_;
   WebMain *webMain_;
@@ -133,14 +133,14 @@ void handleSigHup(int)
 
 }
 
-WServer::WServer(const std::string& applicationPath,
+WfcgiServer::WfcgiServer(const std::string& applicationPath,
 		 const std::string& wtConfigurationFile)
   : impl_(new Impl(*this))
 { 
   init(applicationPath, wtConfigurationFile);
 }
 
-WServer::WServer(int argc, char *argv[], const std::string& wtConfigurationFile)
+WfcgiServer::WfcgiServer(int argc, char *argv[], const std::string& wtConfigurationFile)
   : impl_(new Impl(*this))
 {
   init(argv[0], "");
@@ -148,7 +148,7 @@ WServer::WServer(int argc, char *argv[], const std::string& wtConfigurationFile)
   setServerConfiguration(argc, argv, wtConfigurationFile);
 }
 
-WServer::WServer(const std::string &applicationPath,
+WfcgiServer::WfcgiServer(const std::string &applicationPath,
                  const std::vector<std::string> &args,
                  const std::string &wtConfigurationFile)
   : impl_(new Impl(*this))
@@ -158,18 +158,18 @@ WServer::WServer(const std::string &applicationPath,
   setServerConfiguration(applicationPath, args, wtConfigurationFile);
 }
 
-WServer::~WServer()
+WfcgiServer::~WfcgiServer()
 {
   delete impl_;
   destroy();
 }
 
-std::vector<WServer::SessionInfo> WServer::sessions() const
+std::vector<WfcgiServer::SessionInfo> WfcgiServer::sessions() const
 {
-  return std::vector<WServer::SessionInfo>();
+  return std::vector<WfcgiServer::SessionInfo>();
 }
 
-void WServer::setServerConfiguration(int argc, char *argv[], const std::string&)
+void WfcgiServer::setServerConfiguration(int argc, char *argv[], const std::string&)
 {
   std::string applicationPath = argv[0];
   std::vector<std::string> args(argv + 1, argv + argc);
@@ -177,7 +177,7 @@ void WServer::setServerConfiguration(int argc, char *argv[], const std::string&)
   setServerConfiguration(applicationPath, args);
 }
 
-void WServer::setServerConfiguration(const std::string &applicationPath,
+void WfcgiServer::setServerConfiguration(const std::string &applicationPath,
                                      const std::vector<std::string> &args,
                                      const std::string &wtConfigurationFile)
 {
@@ -193,7 +193,7 @@ void WServer::setServerConfiguration(const std::string &applicationPath,
   }
 }
 
-bool WServer::start()
+bool WfcgiServer::start()
 {
   if (isRunning()) {
     LOG_ERROR_S(this, "start(): server already started!");
@@ -223,23 +223,23 @@ bool WServer::start()
   return false;
 }
 
-bool WServer::isRunning() const
+bool WfcgiServer::isRunning() const
 {
   return impl_->running_;
 }
 
-int WServer::httpPort() const
+int WfcgiServer::httpPort() const
 {
   // FIXME, we could get this from the CGI environment.
   return -1;
 }
 
-std::string WServer::docRoot() const
+std::string WfcgiServer::docRoot() const
 {
   return "";
 }
 
-void WServer::stop()
+void WfcgiServer::stop()
 {
   if (!isRunning()) {
     LOG_ERROR_S(this, "stop(): server not yet started!");
@@ -247,7 +247,7 @@ void WServer::stop()
   }
 }
 
-void WServer::run()
+void WfcgiServer::run()
 {
   if (start()) {
     waitForShutdown();
@@ -255,7 +255,7 @@ void WServer::run()
   }
 }
 
-void WServer::resume()
+void WfcgiServer::resume()
 {
   if (!isRunning()) {
     LOG_ERROR_S(this, "resume(): server not yet started!");
@@ -263,7 +263,7 @@ void WServer::resume()
   }
 }
 
-void WServer::setSslPasswordCallback(const std::function<std::string 
+void WfcgiServer::setSslPasswordCallback(const std::function<std::string
 			 (std::size_t max_length, int purpose)>& cb)
 {
   LOG_INFO_S(this, "setSslPasswordCallback(): has no effect in fcgi connector");
@@ -282,7 +282,7 @@ int WRun(const std::string &applicationName,
          ApplicationCreator createApplication)
 {
   try {
-    WServer server(applicationName, "");
+    WfcgiServer server(applicationName, "");
 
     try {
       server.setServerConfiguration(applicationName, args);
@@ -294,7 +294,7 @@ int WRun(const std::string &applicationName,
       LOG_ERROR_S(&server, "fatal: {}", e.what());
       return 1;
     }
-  } catch (Wt::WServer::Exception& e) {
+  } catch (Wt::WfcgiServer::Exception& e) {
     LOG_ERROR("fatal: {}", e.what());
     return 1;
   } catch (std::exception& e) {

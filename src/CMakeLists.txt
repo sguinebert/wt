@@ -339,6 +339,7 @@ Wt/Chart/WGridData.h Wt/Chart/WGridData.C
 Wt/Chart/WEquidistantGridData.h Wt/Chart/WEquidistantGridData.C
 Wt/Chart/WScatterData.h Wt/Chart/WScatterData.C
 Wt/Chart/WSelection.h Wt/Chart/WSelection.C
+Wt/Configuration.h Wt/Configuration.C
 Wt/Core/observable.hpp Wt/Core/observable.cpp
 Wt/Core/observing_ptr.hpp Wt/Core/observing_ptr.cpp
 Wt/cpp17/any.hpp Wt/cpp17/any/any.hpp
@@ -352,12 +353,15 @@ Wt/Json/Serializer.h Wt/Json/Serializer.C
 
 Wt/cuehttp.hpp Wt/cuehttp/compress.hpp Wt/cuehttp/context.hpp Wt/cuehttp/cookies.hpp Wt/cuehttp/cuehttp.hpp
 
+
+Wt/WebController.h Wt/WebController.C
+
 Wt/cuehttp/deps/json.hpp Wt/cuehttp/deps/picohttpparser.h
-Wt/cuehttp/detail/body_stream.hpp Wt/cuehttp/detail/buffered_streambuf.hpp Wt/cuehttp/detail/common.hpp Wt/cuehttp/detail/connection.hpp Wt/cuehttp/detail/endian.hpp
+Wt/cuehttp/detail/body_stream.hpp Wt/cuehttp/detail/buffered_streambuf.hpp Wt/cuehttp/detail/common.hpp Wt/cuehttp/detail/connection.hpp Wt/cuehttp/detail/endian.hpp Wt/cuehttp/detail/MoveOnlyFunction.hpp
 Wt/cuehttp/detail/engines.hpp Wt/cuehttp/detail/gzip.hpp Wt/cuehttp/detail/middlewares.hpp Wt/cuehttp/detail/mime.hpp Wt/cuehttp/detail/noncopyable.hpp Wt/cuehttp/detail/send.hpp Wt/cuehttp/detail/sha1.hpp Wt/cuehttp/detail/static.hpp
 Wt/cuehttp/request.hpp Wt/cuehttp/response.hpp Wt/cuehttp/router.hpp Wt/cuehttp/send.hpp Wt/cuehttp/server.hpp Wt/cuehttp/session.hpp Wt/cuehttp/static.hpp Wt/cuehttp/use_session.hpp Wt/cuehttp/websocket.hpp Wt/cuehttp/ws_server.hpp
 
-
+Wt/Http/Configuration.h Wt/Http/Configuration.C
 Wt/Http/HttpUtils.h Wt/Http/HttpUtils.C
 Wt/Http/Client.h Wt/Http/Client.C
 Wt/Http/Message.h Wt/Http/Message.C
@@ -390,7 +394,7 @@ web/fasthex/hex.h web/fasthex/hex.cc
 web/md5.h web/md5.c
 web/sha1.h web/sha1.c
 web/CgiParser.h web/CgiParser.C
-web/Configuration.h web/Configuration.C
+#web/Configuration.h web/Configuration.C
 web/DomElement.h web/DomElement.C
 web/EntryPoint.h web/EntryPoint.C
 web/EscapeOStream.h web/EscapeOStream.C
@@ -399,7 +403,6 @@ web/ColorUtils.h web/ColorUtils.C
 web/ImageUtils.h web/ImageUtils.C
 web/RefEncoder.h web/RefEncoder.C
 web/SoundManager.h web/SoundManager.C
-web/WebController.h web/WebController.C
 web/WebMain.h web/WebMain.C
 web/WebRequest.h web/WebRequest.C
 web/WebStream.h web/WebStream.C

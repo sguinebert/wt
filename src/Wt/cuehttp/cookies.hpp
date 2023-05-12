@@ -27,7 +27,7 @@
 #include "detail/common.hpp"
 #include "detail/noncopyable.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 // RFC6265

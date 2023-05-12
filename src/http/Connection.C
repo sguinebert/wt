@@ -22,7 +22,7 @@
 #include "RequestHandler.h"
 #include "StockReply.h"
 #include "Server.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 
 namespace Wt {
   LOGGER("wthttp/async");

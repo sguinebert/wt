@@ -134,6 +134,8 @@ WT_API extern WString htmlEncode(const WString& text,
  */
 WT_API extern std::string urlEncode(const std::string& text);
 
+WT_API extern std::string urlEncode(std::string_view text);
+
 /*! \brief Performs Url decoding.
  *
  * This utility function percent encodes a \p text so that it can be

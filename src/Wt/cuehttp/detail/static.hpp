@@ -20,10 +20,10 @@
 #ifndef CUEHTTP_DETAIL_STATIC_HPP_
 #define CUEHTTP_DETAIL_STATIC_HPP_
 
-#include "cuehttp/context.hpp"
-#include "cuehttp/send.hpp"
+#include "../context.hpp"
+#include "../send.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 namespace static_file {

@@ -17,12 +17,13 @@
 #include "Wt/WStringStream.h"
 #include "Wt/WTheme.h"
 #include "Wt/Utils.h"
+#include "Wt/WServer.h"
 
-#include "Configuration.h"
+#include "Wt/Configuration.h"
 #include "DomElement.h"
 #include "EscapeOStream.h"
 #include "FileServe.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebRenderer.h"
 #include "WebRequest.h"
 #include "WebSession.h"
@@ -234,8 +235,7 @@ WebRenderer::AckState WebRenderer::ackUpdate(unsigned int updateId)
     return BadAck;
 }
 
-void WebRenderer::letReloadJS(WebResponse& response, bool newSession,
-			      bool embedded)
+void WebRenderer::letReloadJS(WebResponse& response, bool newSession, bool embedded)
 {
   if (!embedded) {
     setCaching(response, false);
@@ -244,7 +244,18 @@ void WebRenderer::letReloadJS(WebResponse& response, bool newSession,
 
   // FIXME: we should foresee something independent of app->javaScriptClass()
   response.out() <<
-    "if (window.Wt) window.Wt._p_.quit(null); window.location.reload(true);";
+      "if (window.Wt) window.Wt._p_.quit(null); window.location.reload(true);";
+}
+
+void WebRenderer::letReloadJS(http::context *context, bool newSession, bool embedded)
+{
+  if (!embedded) {
+    setCaching(context->res(), false);
+    setHeaders(context->res(), "text/javascript; charset=UTF-8");
+  }
+
+  // FIXME: we should foresee something independent of app->javaScriptClass()
+  context->out() << "if (window.Wt) window.Wt._p_.quit(null); window.location.reload(true);";
 }
 
 void WebRenderer::letReloadHTML(WebResponse& response, bool newSession)
@@ -255,6 +266,16 @@ void WebRenderer::letReloadHTML(WebResponse& response, bool newSession)
   response.out() << "<html><script type=\"text/javascript\">";
   letReloadJS(response, newSession, true);
   response.out() << "</script><body></body></html>";
+}
+
+void WebRenderer::letReloadHTML(http::context *context, bool newSession)
+{
+  setCaching(context->res(), false);
+  setHeaders(context->res(), "text/html; charset=UTF-8");
+
+  context->out() << "<html><script type=\"text/javascript\">";
+  letReloadJS(context, newSession, true);
+  context->out() << "</script><body></body></html>";
 }
 
 void WebRenderer::streamRedirectJS(WStringStream& out,
@@ -334,8 +355,7 @@ void WebRenderer::setPageVars(FileServe& page)
   page.setCondition("BOOT_STYLE", true);
 }
 
-void WebRenderer::streamBootContent(WebResponse& response, 
-				    FileServe& boot, bool hybrid)
+void WebRenderer::streamBootContent(WebResponse& response,  FileServe& boot, bool hybrid)
 {
   Configuration& conf = session_.controller()->configuration();
 
@@ -391,6 +411,63 @@ void WebRenderer::streamBootContent(WebResponse& response,
   out.spool(response.out());
 }
 
+void WebRenderer::streamBootContent(http::context *context, FileServe &boot, bool hybrid)
+{
+  auto& response = context->res();
+  Configuration& conf = session_.controller()->configuration();
+
+  WStringStream out(response.out());
+
+  boot.setVar("BLANK_HTML",
+              session_.bootstrapUrl(context,
+                                    WebSession::BootstrapOption::ClearInternalPath)
+                  + "&amp;request=resource&amp;resource=blank");
+  boot.setVar("SESSION_ID", session_.sessionId());
+  //TODO remove APP_CLASS, will later only be used in the javascript
+  boot.setVar("APP_CLASS", "Wt");
+
+  boot.streamUntil(out, "BOOT_JS");
+
+  if (!(hybrid && session_.app()->hasQuit())) {
+    FileServe bootJs(skeletons::Boot_js1);
+
+    bootJs.setVar("SELF_URL",
+                  safeJsStringLiteral
+                  (session_.bootstrapUrl
+                   (context, WebSession::BootstrapOption::ClearInternalPath)));
+    bootJs.setVar("SESSION_ID", session_.sessionId());
+
+    expectedAckId_ = scriptId_ = WRandom::get();
+    ackErrs_ = 0;
+
+    bootJs.setVar("SCRIPT_ID", scriptId_);
+    bootJs.setVar("RANDOMSEED", WRandom::get());
+    bootJs.setVar("RELOAD_IS_NEWSESSION", conf.reloadIsNewSession());
+    bootJs.setVar("USE_COOKIES",
+                  conf.sessionTracking() == Configuration::CookiesURL);
+    bootJs.setVar("AJAX_CANONICAL_URL",
+                  safeJsStringLiteral(session_.ajaxCanonicalUrl(context)));
+    bootJs.setVar("APP_CLASS", "Wt");
+    bootJs.setVar("PATH_INFO", safeJsStringLiteral
+                  (session_.pagePathInfo_));
+
+    bootJs.setCondition("COOKIE_CHECKS", conf.cookieChecks());
+    bootJs.setCondition("SPLIT_SCRIPT", conf.splitScript());
+    bootJs.setCondition("HYBRID", hybrid);
+    bootJs.setCondition("PROGRESS", hybrid && !session_.env().ajax());
+    bootJs.setCondition("DEFER_SCRIPT", true);
+    bootJs.setCondition("WEBGL_DETECT", conf.webglDetect());
+
+    std::string internalPath
+        = hybrid ? session_.app()->internalPath() : session_.env().internalPath();
+    bootJs.setVar("INTERNAL_PATH", safeJsStringLiteral(internalPath));
+
+    bootJs.stream(out);
+  }
+
+  out.spool(response.out());
+}
+
 void WebRenderer::serveLinkedCss(WebResponse& response)
 {
   response.setContentType("text/css");
@@ -431,6 +508,31 @@ void WebRenderer::serveLinkedCss(WebResponse& response)
       app->styleSheets_[i].cssText(out);
 
     out.spool(response.out());
+  }
+}
+
+void WebRenderer::serveResponse(Wt::http::context *context)
+{
+  session_.setTriggerUpdate(false);
+
+  switch (context->responseType()) {
+  case Wt::http::response::ResponseType::Update:
+    serveJavaScriptUpdate(context);
+    break;
+  case Wt::http::response::ResponseType::Page:
+    initialStyleRendered_ = false;
+    ++pageId_;
+    if (session_.app())
+      serveMainpage(context);
+    else
+      serveBootstrap(context);
+    break;
+  case Wt::http::response::ResponseType::Script:
+    bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
+    if (!hybridPage)
+      setRendered(false);
+    serveMainscript(context);
+    break;
   }
 }
 
@@ -478,8 +580,179 @@ void WebRenderer::serveBootstrap(WebResponse& response)
   out.spool(response.out());
 }
 
-void WebRenderer::serveError(int status, WebResponse& response,
-			     const std::string& message)
+void WebRenderer::serveMainpage(http::context *context)
+{
+  auto& response = context->res();
+  ++expectedAckId_;
+  session_.sessionIdChanged_ = false;
+
+  Configuration& conf = session_.controller()->configuration();
+
+  WApplication *app = session_.app();
+
+  /*
+   * This implements the redirect for Post-Redirect-Get, or when the
+   * internal path changed.
+   *
+   * Post-Redirect-Get does not work properly though: refresh() may misbehave
+   * and have unintended side effects ?
+   */
+  if (!app->environment().ajax()
+      && (/*response.requestMethod() == "POST"
+      || */(app->internalPathIsChanged_
+           && app->renderedInternalPath_ != app->newInternalPath_))) {
+    app->renderedInternalPath_ = app->newInternalPath_;
+
+    if (session_.state() == WebSession::State::JustCreated &&
+        conf.progressiveBoot(app->environment().internalPath())) {
+      session_.redirect
+          (session_.fixRelativeUrl
+           (session_.bookmarkUrl(app->newInternalPath_)));
+      session_.kill();
+    } else {
+      session_.redirect
+          (session_.fixRelativeUrl
+           (session_.mostRelativeUrl(app->newInternalPath_)));
+    }
+  }
+
+  std::string redirect = session_.getRedirect();
+
+  if (!redirect.empty()) {
+    response.status(302); // Should be 303 in fact ?
+    response.redirect(redirect);
+    setHeaders(response, "text/html; charset=UTF-8");
+    return;
+  }
+
+  WWebWidget *mainWebWidget = app->domRoot_.get();
+
+  visibleOnly_ = true;
+
+  /*
+   * The element to render. This automatically creates loading stubs
+   * for invisible widgets, which is also what we want for
+   * non-JavaScript versions.
+   */
+  DomElement *mainElement = mainWebWidget->createSDomElement(app);
+  setRendered(true);
+  setJSSynced(true);
+
+  WStringStream styleSheets;
+
+  if (app->theme()) {
+    std::vector<WLinkedCssStyleSheet> sheets = app->theme()->styleSheets();
+
+    for (unsigned i = 0; i < sheets.size(); ++i)
+      renderStyleSheet(styleSheets, sheets[i], app);
+  }
+
+  for (unsigned i = 0; i < app->styleSheets_.size(); ++i)
+    renderStyleSheet(styleSheets, app->styleSheets_[i], app);
+
+  app->styleSheetsAdded_ = 0;
+  initialStyleRendered_ = true;
+
+  beforeLoadJS_.clear();
+  for (unsigned i = 0; i < app->scriptLibraries_.size(); ++i) {
+    std::string url = app->scriptLibraries_[i].uri;
+    styleSheets << "<script src=";
+    DomElement::htmlAttributeValue(styleSheets, session_.fixRelativeUrl(url));
+    styleSheets << "></script>\n";
+
+    beforeLoadJS_ << app->scriptLibraries_[i].beforeLoadJS;
+  }
+  app->scriptLibrariesAdded_ = 0;
+
+  app->newBeforeLoadJavaScript_ = app->beforeLoadJavaScript_.length();
+
+  bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
+  FileServe page(hybridPage ? skeletons::Hybrid_html1 : skeletons::Plain_html1);
+
+  setPageVars(page);
+  page.setVar("SESSION_ID", session_.sessionId());
+
+  std::string url
+      = (app->environment().agentIsSpiderBot() || !session_.useUrlRewriting())
+            ? session_.bookmarkUrl(app->newInternalPath_)
+            : session_.mostRelativeUrl(app->newInternalPath_);
+
+  url = session_.fixRelativeUrl(url);
+
+  url = Wt::Utils::replace(url, '&', "&amp;");
+  page.setVar("RELATIVE_URL", url);
+
+  if (conf.inlineCss()) {
+    WStringStream css;
+    app->styleSheet().cssText(css, true);
+    page.setVar("STYLESHEET", css.str());
+  } else
+    page.setVar("STYLESHEET", "");
+
+  page.setVar("STYLESHEETS", styleSheets.str());
+
+  page.setVar("TITLE", WWebWidget::escapeText(app->title()).toUTF8());
+
+  app->titleChanged_ = false;
+
+  std::string contentType = "text/html; charset=UTF-8";
+
+  setCaching(response, false);
+  response.addHeader("X-Frame-Options", "SAMEORIGIN");
+  setHeaders(response, contentType);
+
+  currentFormObjectsList_ = createFormObjectsList(app);
+
+  if (hybridPage)
+    streamBootContent(context, page, true);
+
+  WStringStream out(response.out());
+  page.streamUntil(out, "HTML");
+
+  DomElement::TimeoutList timeouts;
+  {
+    EscapeOStream js;
+    EscapeOStream eout(out);
+    mainElement->asHTML(eout, js, timeouts);
+
+    /*
+     * invisibleJS_ is being streamed as the first JavaScript inside
+     * collectJavaScript(). This is where this belongs since between
+     * the HTML and the script there may already be changes (because
+     * of server push) that delete elements that were rendered.
+     */
+    invisibleJS_ << js.str();
+    delete mainElement;
+
+    app->domRoot_->doneRerender();
+  }
+
+  int refresh;
+  if (app->environment().ajax()) {
+    WStringStream str;
+    DomElement::createTimeoutJs(str, timeouts, app);
+    app->doJavaScript(str.str());
+
+    refresh = 1000000;
+  } else {
+    if (app->hasQuit() || conf.sessionTimeout() == -1)
+      refresh = 1000000;
+    else {
+      refresh = conf.sessionTimeout() / 3;
+      for (unsigned i = 0; i < timeouts.size(); ++i)
+          refresh = std::min(refresh, 1 + timeouts[i].msec/1000);
+    }
+  }
+  page.setVar("REFRESH", std::to_string(refresh));
+
+  page.stream(out);
+
+  app->internalPathIsChanged_ = false;
+
+  out.spool(response.out());
+}
+
+void WebRenderer::serveError(int status, WebResponse& response, const std::string& message)
 {
   bool js = response.responseType() != WebResponse::ResponseType::Page;
 
@@ -499,6 +772,73 @@ void WebRenderer::serveError(int status, WebResponse& response,
 		   << "document.body.innerHtml='<h2>Error occurred.</h2>' +"
 		   <<  WWebWidget::jsStringLiteral(message)
 		   << ';';
+  }
+}
+
+void WebRenderer::serveError(int status, Wt::http::context *context, const std::string &message)
+{
+  bool js = context->responseType() != Wt::http::response::ResponseType::Page;
+
+  WApplication *app = session_.app();
+  if (!js || !app) {
+    context->status(status);
+    context->type("text/html");
+    context->body()
+        << "<title>Error occurred.</title>"
+        << "<h2>Error occurred.</h2>"
+        << WWebWidget::escapeText(WString(message), true).toUTF8()
+        << '\n';
+  } else {
+    context->body() << app->javaScriptClass()
+                   << "._p_.quit(null);"
+                   << "document.title = 'Error occurred.';"
+                   << "document.body.innerHtml='<h2>Error occurred.</h2>' +"
+                   <<  WWebWidget::jsStringLiteral(message)
+                   << ';';
+  }
+}
+
+void WebRenderer::serveLinkedCss(http::context *context)
+{
+  auto& response = context->res();
+  response.setContentType("text/css");
+
+  if (!initialStyleRendered_)
+  {
+    WApplication *app = session_.app();
+
+    WStringStream out(response.out());
+
+    if (app->theme())
+      app->theme()->serveCss(out);
+
+    for (unsigned i = 0; i < app->styleSheets_.size(); ++i)
+      app->styleSheets_[i].cssText(out);
+
+    app->styleSheetsAdded_ = 0;
+
+    initialStyleRendered_ = true;
+    linkedCssCount_ = app->styleSheets_.size();
+
+    out.spool(response.out());
+  } else if (linkedCssCount_ > -1) {
+    /*
+     * Make sure we serve the same response again, since a 'GET' must be
+     *idempotent. This is used by e.g. browser-side tools like 'usersnap'
+     */
+    WApplication *app = session_.app();
+
+    WStringStream out(response.out());
+
+    if (app->theme())
+      app->theme()->serveCss(out);
+
+    unsigned count = std::min((std::size_t)linkedCssCount_, app->styleSheets_.size());
+
+    for (unsigned i = 0; i < count; ++i)
+      app->styleSheets_[i].cssText(out);
+
+    out.spool(response.out());
   }
 }
 
@@ -664,6 +1004,16 @@ void WebRenderer::updateMultiSessionCookie(const WebRequest &request)
             session_.env().urlScheme() == "https");
 }
 
+void WebRenderer::updateMultiSessionCookie(Wt::http::context *context)
+{
+  Configuration &conf = session_.controller()->configuration();
+  setCookie("ms" + std::string(context->path()),
+            session_.multiSessionId(),
+            WDateTime::currentDateTime().addSecs(conf.multiSessionCookieTimeout()),
+            "", "",
+            session_.env().urlScheme() == "https");
+}
+
 void WebRenderer::renderCookieUpdate(WStringStream &out)
 {
   if (cookieUpdateNeeded_) {
@@ -794,6 +1144,59 @@ bool WebRenderer::checkResponsePuzzle(const WebRequest& request)
     if (j < answer.size() - 1)
       fail = true;
    
+    if (fail) {
+      LOG_SECURE("Ajax puzzle fail: '{}' vs '{}'", ackPuzzle, solution_);
+
+      solution_.clear();
+
+      return false;
+    } else {
+      solution_.clear();
+      return true;
+    }
+  } else
+    return true;
+}
+
+bool WebRenderer::checkResponsePuzzle(http::context *context)
+{
+  if (!solution_.empty()) {
+    auto ackPuzzleE = context->getParameter("ackPuzzle");
+
+    if (ackPuzzleE.empty()) {
+      LOG_SECURE("Ajax puzzle fail: solution missing");
+      return false;
+    }
+
+    std::string ackPuzzle { ackPuzzleE };
+
+    Utils::SplitVector answer, solution;
+
+    boost::split(solution, solution_, boost::is_any_of(","));
+    boost::split(answer, ackPuzzle, boost::is_any_of(","));
+
+    unsigned j = 0;
+    bool fail = false;
+
+    for (unsigned i = 0; i < solution.size(); ++i) {
+      for (; j < answer.size(); ++j) {
+    if (solution[i] == answer[j])
+
+    break;
+    else {
+      /* Verify that answer[j] is not a valid widget id */
+    }
+      }
+
+      if (j == answer.size()) {
+    fail = true;
+    break;
+      }
+    }
+
+    if (j < answer.size() - 1)
+      fail = true;
+
     if (fail) {
       LOG_SECURE("Ajax puzzle fail: '{}' vs '{}'", ackPuzzle, solution_);
 
@@ -1319,6 +1722,407 @@ void WebRenderer::setJSSynced(bool invisibleToo)
     collectedJS1_ << invisibleJS_.str();
 
   invisibleJS_.clear();
+}
+
+void WebRenderer::setHeaders(http::response &response, const std::string mimeType)
+{
+  for (auto &[key, cookie] : cookiesToSet_) {
+    //const CookieValue& cookie = i->second;
+
+    WStringStream header;
+
+    std::string value = cookie.value;
+    if (value.empty())
+      value = "deleted";
+
+    header << Utils::urlEncode(key) << '=' << Utils::urlEncode(value)
+           << "; Version=1;";
+
+    if (!cookie.expires.isNull()) {
+#ifndef WT_TARGET_JAVA
+      std::string formatString = "ddd, dd-MMM-yyyy hh:mm:ss 'GMT'";
+#else
+      std::string formatString = "EEE, dd-MMM-yyyy HH:mm:ss 'GMT'";
+#endif
+
+      std::string d = cookie.expires.toString(WString::fromUTF8(formatString), false).toUTF8();
+
+      header << "Expires=" << d << ';';
+    }
+
+    if (!cookie.domain.empty())
+      header << " Domain=" << cookie.domain << ';';
+
+    if (cookie.path.empty())
+      if (!session_.env().publicDeploymentPath_.empty())
+    header << " Path=" << session_.env().publicDeploymentPath_ << ';';
+      else
+    header << " Path=" << session_.env().deploymentPath() << ';';
+    else
+      header << " Path=" << cookie.path << ';';
+
+    header << " httponly;";
+
+    if (cookie.secure)
+      header << " secure;";
+
+    response.addHeader("Set-Cookie", header.str());
+  }
+  cookiesToSet_.clear();
+  cookieUpdateNeeded_ = false;
+
+  response.setContentType(mimeType);
+}
+
+void WebRenderer::setCaching(http::response &response, bool allowCache)
+{
+  if (allowCache)
+    response.addHeader("Cache-Control", "max-age=2592000,private");
+  else {
+    response.addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    response.addHeader("Pragma", "no-cache");
+    response.addHeader("Expires", "0");
+  }
+}
+
+void WebRenderer::serveJavaScriptUpdate(http::context *context)
+{
+  if (!context->isWebSocketMessage()) {
+    setCaching(context->res(), false);
+    setHeaders(context->res(), "text/javascript; charset=UTF-8");
+  }
+
+  if (session_.sessionIdChanged_) {
+    collectedJS1_ << session_.app()->javaScriptClass()
+                  << "._p_.setSessionUrl("
+                  << WWebWidget::jsStringLiteral(sessionUrl())
+                  << ");";
+  }
+
+  WStringStream out(context->out());
+
+  if (!rendered_) {
+    serveMainAjax(out);
+  } else {
+    collectJavaScript();
+
+    addResponseAckPuzzle(out);
+    renderSetServerPush(out);
+
+    LOG_DEBUG("js: {}{}", collectedJS1_.str(), collectedJS2_.str());
+
+    out << collectedJS1_.str() << collectedJS2_.str();
+
+    if (context->isWebSocketMessage()) {
+      renderCookieUpdate(out);
+      renderWsRequestsDone(out);
+
+      LOG_DEBUG("jsSynced(false) after rendering websocket message");
+      setJSSynced(false);
+    }
+  }
+
+  out.spool(context->out());
+}
+
+void WebRenderer::serveMainscript(http::context *context)
+{
+  /*
+   * Serving a script is using a GET request, which can be replayed.
+   * Therefore we need to either be able to reconstruct the response
+   * (possible if !rendered_), or we need to save the response in
+   * collectedJS variables.
+   */
+
+  auto& response = context->res();
+  Configuration& conf = session_.controller()->configuration();
+  bool widgetset = session_.type() == EntryPointType::WidgetSet;
+
+  bool serveSkeletons = !conf.splitScript() || !context->getParameter("skeleton").empty();
+  bool serveRest = !conf.splitScript() || !serveSkeletons;
+
+  session_.sessionIdChanged_ = false;
+
+  setCaching(response, conf.splitScript() && serveSkeletons);
+  setHeaders(response, "text/javascript; charset=UTF-8");
+
+  WStringStream out(response.out());
+
+  if (!widgetset) {
+    // FIXME: this cannot be replayed
+    std::string redirect = session_.getRedirect();
+
+    if (!redirect.empty()) {
+      streamRedirectJS(out, redirect);
+      out.spool(response.out());
+      return;
+    }
+  } else {
+    expectedAckId_ = scriptId_ = WRandom::get();
+    ackErrs_ = 0;
+  }
+
+  WApplication *app = session_.app();
+
+  const bool innerHtml = true;
+
+  if (serveSkeletons) {
+    bool haveJQuery = app->customJQuery();
+
+    if (!haveJQuery) {
+      out << "if (typeof window.$ === 'undefined') {";
+#ifndef WT_TARGET_JAVA
+      std::vector<const char *> parts = skeletons::JQuery_js();
+      for (std::size_t i = 0; i < parts.size(); ++i)
+    out << const_cast<char *>(parts[i]);
+#else
+      out << const_cast<char *>(skeletons::JQuery_js1);
+#endif
+      out << '}';
+    }
+
+#ifndef WT_TARGET_JAVA
+    std::vector<const char *> parts = skeletons::Wt_js();
+#else
+    std::vector<const char *> parts = std::vector<const char *>();
+#endif
+    std::string Wt_js_combined;
+    if (parts.size() > 1)
+      for (std::size_t i = 0; i < parts.size(); ++i)
+    Wt_js_combined += parts[i];
+
+    FileServe script(parts.size() > 1
+                         ? Wt_js_combined.c_str() : skeletons::Wt_js1);
+
+    script.setCondition
+        ("CATCH_ERROR", conf.errorReporting() != Configuration::NoErrors);
+    script.setCondition
+        ("SHOW_ERROR", conf.errorReporting() == Configuration::ErrorMessage);
+    script.setCondition
+        ("UGLY_INTERNAL_PATHS", session_.useUglyInternalPaths());
+
+#ifdef WT_DEBUG_JS
+    script.setCondition("DYNAMIC_JS", true);
+#else
+    script.setCondition("DYNAMIC_JS", false);
+#endif // WT_DEBUG_JS
+
+    script.setVar("WT_CLASS", WT_CLASS);
+    script.setVar("APP_CLASS", app->javaScriptClass());
+    script.setCondition("STRICTLY_SERIALIZED_EVENTS", conf.serializedEvents());
+    script.setCondition("WEB_SOCKETS", conf.webSockets());
+    script.setVar("INNER_HTML", innerHtml);
+    script.setVar("ACK_UPDATE_ID", expectedAckId_);
+    script.setVar("SESSION_URL", WWebWidget::jsStringLiteral(sessionUrl()));
+    script.setVar("QUITTED_STR",
+                  WString::tr("Wt.QuittedMessage").jsStringLiteral());
+    script.setVar("MAX_FORMDATA_SIZE", conf.maxFormDataSize());
+    script.setVar("MAX_PENDING_EVENTS", conf.maxPendingEvents());
+
+    std::string deployPath = session_.env().publicDeploymentPath_;
+    if (deployPath.empty())
+      deployPath = session_.deploymentPath();
+
+    script.setVar("DEPLOY_PATH", WWebWidget::jsStringLiteral(deployPath));
+
+// WS_PATH = DEPLOY_PATH for C++, = CONTEXT_PATH for Java = request.contextPath()
+// WS_ID = empty for C++, servlet ID for Java
+#ifdef WT_TARGET_JAVA
+    script.setVar("WS_PATH", WWebWidget::jsStringLiteral(session_.controller()->getContextPath() + "/ws"));
+    script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::to_string(session_.controller()->getIdForWebSocket())));
+#else
+    script.setVar("WS_PATH", WWebWidget::jsStringLiteral(deployPath));
+    script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::string("")));
+#endif
+
+    script.setVar("KEEP_ALIVE", std::to_string(conf.keepAlive()));
+
+    script.setVar("IDLE_TIMEOUT", conf.idleTimeout() != -1 ?
+                                      std::to_string(conf.idleTimeout()) : std::string("null"));
+
+    script.setVar("INDICATOR_TIMEOUT", conf.indicatorTimeout());
+    script.setVar("SERVER_PUSH_TIMEOUT", conf.serverPushTimeout() * 1000);
+
+    /*
+     * Was in honor of Mozilla Bugzilla #246651
+     */
+    script.setVar("CLOSE_CONNECTION", false);
+
+    /*
+     * Set the original script params for a widgetset session, so that any
+     * Ajax update request has all the information to reload the session.
+     */
+    std::string params;
+    if (session_.type() == EntryPointType::WidgetSet) {
+      const Http::ParameterMap *m = &session_.env().getParameterMap();
+      Http::ParameterMap::const_iterator it = m->find("Wt-params");
+      Http::ParameterMap wtParams;
+      if (it != m->end()) {
+    // Parse and reencode Wt-params, so it's definitely safe
+    Http::Request::parseFormUrlEncoded(it->second[0], wtParams);
+    m = &wtParams;
+      }
+      for (Http::ParameterMap::const_iterator i = m->begin();
+           i != m->end(); ++i) {
+    if (!params.empty())
+      params += '&';
+    params
+        += Utils::urlEncode(i->first) + '=' + Utils::urlEncode(i->second[0]);
+      }
+    }
+    script.setVar("PARAMS", params);
+
+    script.stream(out);
+  }
+
+  if (!serveRest) {
+    out.spool(response.out());
+    return;
+  }
+
+  out << app->javaScriptClass() << "._p_.setPage(" << pageId_ << ");";
+
+  formObjectsChanged_ = true;
+  app->autoJavaScriptChanged_ = true;
+
+  if (session_.type() == EntryPointType::WidgetSet) {
+    out << app->javaScriptClass() << "._p_.update(null, 'load', null, false);";
+  } else if (!rendered_) {
+    serveMainAjax(out);
+  } else {
+    bool enabledAjax = app->enableAjax_;
+
+    if (app->enableAjax_) {
+      // Before-load JavaScript of libraries that were loaded directly
+      // in HTML
+      collectedJS1_ << "var form = " WT_CLASS ".getElement('Wt-form'); "
+                       "if (form) {" << beforeLoadJS_.str();
+
+      beforeLoadJS_.clear();
+
+      collectedJS1_
+          << "var domRoot=" << app->domRoot_->jsRef() << ';'
+          << WT_CLASS ".progressed(domRoot);";
+
+      // Load JavaScript libraries that were added during enableAjax()
+      int librariesLoaded = loadScriptLibraries(collectedJS1_, app);
+
+      app->streamBeforeLoadJavaScript(collectedJS1_, false);
+
+      collectedJS2_
+          << WT_CLASS ".resolveRelativeAnchors();"
+          << "domRoot.style.visibility = 'visible';"
+          << app->javaScriptClass() << "._p_.doAutoJavaScript();";
+
+      loadScriptLibraries(collectedJS2_, app, librariesLoaded);
+
+      collectedJS2_ << '}';
+
+      app->enableAjax_ = false;
+    } else
+      app->streamBeforeLoadJavaScript(out, true);
+
+    out << "window." << app->javaScriptClass()
+        << "LoadWidgetTree = function(){\n";
+
+    if (app->internalPathsEnabled_)
+      out << app->javaScriptClass() << "._p_.enableInternalPaths("
+          << WWebWidget::jsStringLiteral(app->renderedInternalPath_)
+          << ");\n";
+
+    visibleOnly_ = false;
+
+    formObjectsChanged_ = true;
+    currentFormObjectsList_.clear();
+    collectJavaScript();
+    updateLoadIndicator(collectedJS1_, app, true);
+
+    LOG_DEBUG("js: {}{}", collectedJS1_.str(), collectedJS2_.str());
+
+    out << collectedJS1_.str();
+
+    addResponseAckPuzzle(out);
+
+    out << app->javaScriptClass()
+        << "._p_.setHash("
+        << WWebWidget::jsStringLiteral(app->newInternalPath_)
+        << ", false);\n";
+
+    if (!app->environment().internalPathUsingFragments())
+      session_.setPagePathInfo(app->newInternalPath_);
+
+    out << app->javaScriptClass()
+        << "._p_.update(null, 'load', null, false);"
+        << collectedJS2_.str()
+        << "};"; // LoadWidgetTree = function() { ... }
+
+    session_.app()->serverPushChanged_ = true;
+    renderSetServerPush(out);
+
+    if (enabledAjax)
+    {
+      out
+          /*
+         * Firefox < 3.5 doesn't have this and in that case it could be
+         * that we are already ready and jqeury doesn't fire the callback.
+         */
+          << "\nif (typeof document.readyState === 'undefined')"
+          << " setTimeout(function() { "
+          <<              app->javaScriptClass() << "._p_.load(true);"
+          <<   "}, 400);"
+          << "else ";
+    }
+
+    out << "$(document).ready(function() { "
+        << app->javaScriptClass() << "._p_.load(true);});\n";
+  }
+
+  out.spool(response.out());
+}
+
+void WebRenderer::serveBootstrap(http::context *context)
+{
+  auto& response = context->res();
+  Configuration& conf = session_.controller()->configuration();
+
+  FileServe boot(skeletons::Boot_html1);
+  setPageVars(boot);
+
+  WStringStream noJsRedirectUrl;
+  DomElement::htmlAttributeValue
+      (noJsRedirectUrl,
+       session_.bootstrapUrl(context,
+                             WebSession::BootstrapOption::KeepInternalPath) + "&js=no");
+
+  boot.setVar("REDIRECT_URL", noJsRedirectUrl.str());
+  boot.setVar("AUTO_REDIRECT",
+              "<noscript><meta http-equiv=\"refresh\" content=\"0; url="
+                  + noJsRedirectUrl.str() + "\"></noscript>");
+  boot.setVar("NOSCRIPT_TEXT", conf.redirectMessage());
+
+  WStringStream bootStyleUrl;
+  DomElement::htmlAttributeValue
+      (bootStyleUrl,
+       session_.bootstrapUrl(context,
+                             WebSession::BootstrapOption::ClearInternalPath)
+           + "&request=style&page=" + std::to_string(pageId_));
+
+  boot.setVar("BOOT_STYLE_URL", bootStyleUrl.str());
+
+  setCaching(response, false);
+  response.addHeader("X-Frame-Options", "SAMEORIGIN");
+
+  std::string contentType = "text/html; charset=UTF-8";
+
+  setHeaders(response, contentType);
+
+  WStringStream out(response.out());
+  streamBootContent(context, boot, false);
+  boot.stream(out);
+
+  setRendered(false);
+
+  out.spool(response.out());
 }
 
 std::string WebRenderer::safeJsStringLiteral(const std::string& value)

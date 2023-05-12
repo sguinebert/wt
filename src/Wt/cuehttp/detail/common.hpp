@@ -36,8 +36,11 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <fmt/format.h>
+#include <fmt/compile.h>
+#include <fmt/chrono.h>
 
-#include <boost/asio.hpp>
+#include <Wt/AsioWrapper/asio.hpp>
 using namespace boost;
 
 #ifdef ENABLE_HTTPS
@@ -45,7 +48,7 @@ using namespace boost;
 #endif  // ENABLE_HTTPS
 #include "noncopyable.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 class context;
@@ -57,7 +60,7 @@ class http_parser;
 struct ws_frame;
 
 // types
-using reply_handler = std::function<bool(const std::string&)>;
+using reply_handler = std::function<awaitable<bool>(std::string_view)>;
 using http_socket = asio::ip::tcp::socket; //asio::basic_stream_socket<asio::ip::tcp, asio::io_context::executor_type>; //asio::ip::tcp::socket;
 #ifdef ENABLE_HTTPS
 using https_socket = asio::ssl::stream<asio::ip::tcp::socket>;
@@ -81,6 +84,7 @@ struct ws_reader final {
 struct ws_frame final {
   bool fin{true};
   ws_opcode opcode;
+  bool zip{false};
   bool mask{true};
   std::string payload;
 };
@@ -92,13 +96,13 @@ static constexpr std::string_view g_methods[] = {"DELETE", "GET", "HEAD", "POST"
 
 // meta utilities
 template <typename _Ty>
-using is_middleware = std::is_convertible<std::decay_t<_Ty>, std::function<void(context&, std::function<asio::awaitable<void>()>)>>;
+using is_middleware = std::is_convertible<std::decay_t<_Ty>, std::function<void(context&, std::function<awaitable<void>()>)>>;
 
 template <typename _Ty>
 inline constexpr bool is_middleware_v = is_middleware<_Ty>::value;
 
 template <typename _Ty>
-using is_middleware_without_next = std::is_convertible<std::decay_t<_Ty>, std::function<asio::awaitable<void>(context&)>>;
+using is_middleware_without_next = std::is_convertible<std::decay_t<_Ty>, std::function<awaitable<void>(context&)>>;
 
 template <typename _Ty>
 inline constexpr bool is_middleware_without_next_v = is_middleware_without_next<_Ty>::value;
@@ -111,14 +115,14 @@ inline constexpr bool is_middleware_classic_without_next_v = is_middleware_class
 
 template <typename _Ty>
 using is_middleware_list =
-    std::is_same<std::decay_t<_Ty>, std::vector<std::function<asio::awaitable<void>(context&, std::function<void()>)>>>;
+    std::is_same<std::decay_t<_Ty>, std::vector<std::function<awaitable<void>(context&, std::function<void()>)>>>;
 
 template <typename _Ty>
 inline constexpr bool is_middleware_list_v = is_middleware_list<_Ty>::value;
 
 
 template <typename _Ty, typename... _Args>
-using is_awaitable_lambda = std::is_convertible<std::decay_t<_Ty>, std::function<asio::awaitable<void>(_Args...)>>;
+using is_awaitable_lambda = std::is_convertible<std::decay_t<_Ty>, std::function<awaitable<void>(_Args...)>>;
 
 template <typename F>
 struct function_traits : public function_traits<decltype(&std::decay_t<F>::operator())> {};
@@ -138,19 +142,19 @@ using function_type_t = typename function_traits<F>::function_type;
 
 
 //template <typename _Ty>
-//using is_awaitable_lambda = std::is_convertible<std::decay_t<_Ty>, std::function<asio::awaitable<void>(std::string&&)>>;
+//using is_awaitable_lambda = std::is_convertible<std::decay_t<_Ty>, std::function<awaitable<void>(std::string&&)>>;
 
 //template <typename _Ty>
 //inline constexpr bool is_awaitable_lambda_v = is_awaitable_lambda<_Ty>::value;
 
 //template <typename _Ty, typename... _Args>
-//using is_awaitable_lambda = std::is_convertible<std::decay_t<_Ty>, std::function<asio::awaitable<void>(_Args...)>>;
+//using is_awaitable_lambda = std::is_convertible<std::decay_t<_Ty>, std::function<awaitable<void>(_Args...)>>;
 
 //template <typename _Ty>
 //inline constexpr bool is_awaitable_lambda_v = is_awaitable_lambda<_Ty>::value;
 
 //template <typename _Ty, typename... _Args>
-//using is_awaitable_lambda = std::is_convertible<std::result_of<_Ty>, asio::awaitable<void>>;
+//using is_awaitable_lambda = std::is_convertible<std::result_of<_Ty>, awaitable<void>>;
 
 //template <typename _Ty>
 //inline constexpr bool is_awaitable_lambda_v = is_awaitable_lambda<_Ty>::value;
@@ -160,7 +164,7 @@ using function_type_t = typename function_traits<F>::function_type;
 //struct is_awaitable_lambda : std::false_type {};
 
 //template <typename _Ret, typename... _Args>
-//struct is_awaitable_lambda<std::function<asio::awaitable<_Ret>(_Args...)>> : std::true_type {};
+//struct is_awaitable_lambda<std::function<awaitable<_Ret>(_Args...)>> : std::true_type {};
 
 //template <typename _Func>
 //constexpr bool is_awaitable_lambda_v = is_awaitable_lambda<_Func>::value;
@@ -462,6 +466,7 @@ struct utils final : safe_noncopyable {
   }
 
   static std::string to_gmt_string(std::time_t time) noexcept {
+    //fmt::format(FMT_COMPILE("{:%a, %d %b %Y %T} GMT"), fmt::gmtime(time));
     struct tm* gmt;
 #ifdef __linux__
     struct tm now;
@@ -475,6 +480,11 @@ struct utils final : safe_noncopyable {
   }
 
   static std::string to_gmt_date_string(std::time_t time) noexcept {
+//    fmt::format(FMT_COMPILE("{:%a, %d %b %Y %T} GMT\r\n"),  std::chrono::system_clock::now());
+//    fmt::format(FMT_COMPILE("{:%a, %d %b %Y %T} GMT\r\n"), fmt::gmtime(time));
+//    std::tm tm = *std::gmtime(&time);
+//    fmt::print("{:%a, %d %b %Y %T} GMT\r\n", tm);
+//    fmt::print("{:%a, %d %b %Y %T} GMT\r\n", std::chrono::system_clock::from_time_t(time));
     struct tm* gmt;
 #ifdef __linux__
     struct tm now;

@@ -10,7 +10,7 @@
 #include "Wt/Http/Request.h"
 #include "Wt/Http/Response.h"
 
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebRequest.h"
 #include "WebSession.h"
 #include "WebUtils.h"
@@ -265,6 +265,89 @@ namespace Wt
                                    response.continuation_,
                                    std::placeholders::_1));
     }
+  }
+
+  awaitable<void> WResource::handle(Wt::http::context *ctx, Http::ResponseContinuationPtr continuation)
+  {
+  /*
+   * If we are a new request for a dynamic resource, then we will have
+   * the session lock at this point and thus the resource is protected
+   * against deletion.
+   *
+   * If we come from a continuation, then the continuation increased the
+   * use count and we are thus protected against deletion.
+   */
+    WebSession::Handler *handler = WebSession::Handler::instance();
+    UseLock useLock;
+
+#ifdef WT_THREADED
+    std::unique_ptr<Wt::WApplication::UpdateLock> updateLock;
+    if (takesUpdateLock() && continuation && app_)
+    {
+      updateLock.reset(new Wt::WApplication::UpdateLock(app_));
+      if (!*updateLock)
+      {
+        co_return;
+      }
+    }
+
+    if (handler && !continuation)
+    {
+      std::unique_lock<std::recursive_mutex> lock(*mutex_);
+
+      if (!useLock.use(this))
+        co_return;
+
+      if (!takesUpdateLock() &&
+          handler->haveLock() &&
+          handler->lockOwner() == std::this_thread::get_id())
+      {
+        handler->unlock();
+      }
+    }
+#endif // WT_THREADED
+
+    // if (!handler) {
+    //   WLocale locale = webRequest->parseLocale();
+    //   WLocale::setCurrentLocale(locale);
+    // }
+
+    if (!continuation)
+      ctx->status(200);
+
+//    co_await handleRequest(*ctx);
+
+    co_await handleRequest(ctx->req(), ctx->res());
+
+#ifdef WT_THREADED
+    updateLock.reset();
+#endif // WT_THREADED
+
+//    if (!ctx->continuation_ || !ctx->continuation_->resource_)
+//    {
+//      if (ctx->continuation_)
+//        removeContinuation(ctx->continuation_);
+
+      //response.out(); // trigger committing the headers if still necessary
+
+      //webResponse->flush(WebResponse::ResponseState::ResponseDone);
+      ctx->flush();
+//    }
+//    else
+//    {
+      //ctx->flush();
+//      webResponse->flush(WebResponse::ResponseState::ResponseFlush,
+//                         std::bind(&Http::ResponseContinuation::readyToContinue,
+//                                   response.continuation_,
+//                                   std::placeholders::_1));
+//    }
+    co_return;
+  }
+
+  void WResource::setLocale(Wt::http::request &request)
+  {
+//     WLocale locale = request.parseLocale();
+//     WLocale::setCurrentLocale(locale);
   }
 
   void WResource::handleAbort(const Http::Request &request)

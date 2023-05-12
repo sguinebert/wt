@@ -7,7 +7,7 @@
 #include "Wt/WSocketNotifier.h"
 #include "Wt/WApplication.h"
 
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebSession.h"
 
 namespace Wt {

@@ -467,6 +467,46 @@ namespace Wt
       }
     }
 
+    void Request::parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
+    {
+      for (std::size_t pos = 0; pos < s.length();)
+      {
+        std::size_t next = s.find_first_of("&=", pos);
+
+        if (next == pos && s[next] == '&')
+        {
+          // skip empty
+          pos = next + 1;
+          continue;
+        }
+
+        if (next == std::string::npos || s[next] == '&')
+        {
+          if (next == std::string::npos)
+            next = s.length();
+          std::string key { s.substr(pos, next - pos) };
+          Utils::inplaceUrlDecode(key);
+          parameters[key].push_back(std::string());
+          pos = next + 1;
+        }
+        else
+        {
+          std::size_t amp = s.find('&', next + 1);
+          if (amp == std::string::npos)
+            amp = s.length();
+
+          std::string key { s.substr(pos, next - pos) };
+          Utils::inplaceUrlDecode(key);
+
+          std::string value { s.substr(next + 1, amp - (next + 1)) };
+          Utils::inplaceUrlDecode(value);
+
+          parameters[key].push_back(value);
+          pos = amp + 1;
+        }
+      }
+    }
+
 #endif // WT_TARGET_JAVA
 
     void Request::parseCookies(const std::string &cookie,

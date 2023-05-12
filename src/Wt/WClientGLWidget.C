@@ -1136,7 +1136,7 @@ void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
     << "img.crossOrigin = 'http://localhost';"
     << "img.src =  '" + image->imageLink().url() + "';";//'https://upload.wikimedia.org/wikipedia/commons/0/0b/RGBA_comp.png';";
  
-  image->imageLoaded().connect([=] {
+  image->imageLoaded().connect([=, this] {
     js_ << "img.addEventListener('load', () => {ctx.texImage2D(" << toString(target) << "," << level << ","
       << toString(internalformat) << "," << toString(format) << "," << toString(type)
       << ",img" << ");});";

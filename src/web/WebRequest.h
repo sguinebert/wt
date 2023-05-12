@@ -17,6 +17,8 @@
 #include <cstdint>
 #include <functional>
 
+//#include <Wt/cuehttp/context.hpp>
+
 namespace Wt {
 
 class Configuration;
@@ -179,8 +181,7 @@ public:
 #endif // WT_TARGET_JAVA
 
   const std::string *getParameter(const std::string& name) const;
-  const Http::ParameterValues& getParameterValues(const std::string& name)
-    const;
+  const Http::ParameterValues& getParameterValues(const std::string& name) const;
   const Http::ParameterMap& getParameterMap() const { return parameters_; }
   const Http::UploadedFileMap& uploadedFiles() const { return files_; }
   ::int64_t postDataExceeded() const { return postDataExceeded_; }
@@ -241,6 +242,8 @@ private:
   friend class WEnvironment;
   friend class WebController;
 };
+
+
 
 class WebResponse : public WebRequest
 {

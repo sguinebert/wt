@@ -15,6 +15,8 @@
 #include "Wt/WEnvironment.h"
 #include "Wt/WStatelessSlot.h"
 
+#include "Wt/cuehttp/context.hpp"
+
 namespace Wt {
 
 class WebRequest;
@@ -56,22 +58,26 @@ public:
 
   void saveChanges();
   void discardChanges();
-  void letReloadJS(WebResponse& request, bool newSession,
-		   bool embedded = false);
+  void letReloadJS(WebResponse& request, bool newSession, bool embedded = false);
+  void letReloadJS(http::context *context, bool newSession, bool embedded = false);
   void letReloadHTML(WebResponse& request, bool newSession);
+  void letReloadHTML(http::context *context, bool newSession);
 
   bool isDirty() const;
   unsigned int scriptId() const { return scriptId_; }
   int pageId() const { return pageId_; }
 
   void serveResponse(WebResponse& request);
-  void serveError(int status, WebResponse& request, 
-		  const std::string& message);
+  void serveError(int status, WebResponse& request,  const std::string& message);
   void serveLinkedCss(WebResponse& request);
 
+  void serveResponse(Wt::http::context *context);
+  void serveError(int status, Wt::http::context *context,  const std::string& message);
+  void serveLinkedCss(Wt::http::context *context);
+
   void setCookie(const std::string name, const std::string value,
-		 const WDateTime& expires, const std::string domain,
-		 const std::string path, bool secure);
+                 const WDateTime& expires, const std::string domain,
+                 const std::string path, bool secure);
 
   bool preLearning() const { return learning_; }
   void learningIncomplete();
@@ -89,6 +95,7 @@ public:
   void streamRedirectJS(WStringStream& out, const std::string& redirect);
 
   bool checkResponsePuzzle(const WebRequest& request);
+  bool checkResponsePuzzle(http::context *context);
 
   bool jsSynced() const;
 
@@ -129,6 +136,15 @@ private:
   std::vector<int> wsRequestsToHandle_;
   bool cookieUpdateNeeded_;
 
+  void setHeaders(http::response& response, const std::string mimeType);
+  void setCaching(http::response& response, bool allowCache);
+
+  void serveJavaScriptUpdate(http::context *context);
+  void serveMainscript(http::context *context);
+  void serveBootstrap(http::context *context);
+  void serveMainpage(http::context *context);
+  //void serveWidgetSet(http::response& request);
+
   void setHeaders(WebResponse& request, const std::string mimeType);
   void setCaching(WebResponse& response, bool allowCache);
 
@@ -143,30 +159,25 @@ private:
   void collectChanges(std::vector<DomElement *>& changes);
 
   void collectJavaScriptUpdate(WStringStream& out);
-  void loadStyleSheet(WStringStream& out, WApplication *app,
-		      const WLinkedCssStyleSheet& sheet);
+  void loadStyleSheet(WStringStream& out, WApplication *app, const WLinkedCssStyleSheet& sheet);
   void loadStyleSheets(WStringStream& out, WApplication *app);
   void removeStyleSheets(WStringStream& out, WApplication *app);
-  int loadScriptLibraries(WStringStream& out, WApplication *app,
-			  int count = -1);
+  int loadScriptLibraries(WStringStream& out, WApplication *app, int count = -1);
   void updateLoadIndicator(WStringStream& out, WApplication *app, bool all);
   void renderSetServerPush(WStringStream& out);
-  void renderStyleSheet(WStringStream& out, const WLinkedCssStyleSheet& sheet,
-			WApplication *app);
+  void renderStyleSheet(WStringStream& out, const WLinkedCssStyleSheet& sheet, WApplication *app);
 
   std::string createFormObjectsList(WApplication *app);
 
   void preLearnStateless(WApplication *app, WStringStream& out);
-  WStringStream collectedJS1_, collectedJS2_, invisibleJS_, statelessJS_,
-    beforeLoadJS_;
+  WStringStream collectedJS1_, collectedJS2_, invisibleJS_, statelessJS_, beforeLoadJS_;
   void collectJS(WStringStream *js);
 
   void setPageVars(FileServe& page);
-  void streamBootContent(WebResponse& response, 
-			 FileServe& boot, bool hybrid);
+  void streamBootContent(WebResponse& response, FileServe& boot, bool hybrid);
+  void streamBootContent(http::context *context, FileServe& boot, bool hybrid);
   void addResponseAckPuzzle(WStringStream& out);
-  void addContainerWidgets(WWebWidget *w,
-			   std::vector<WContainerWidget *>& v);
+  void addContainerWidgets(WWebWidget *w, std::vector<WContainerWidget *>& v);
 
   std::string headDeclarations() const;
   std::string bodyClassRtl() const;
@@ -182,6 +193,8 @@ private:
   void renderWsRequestsDone(WStringStream &out);
 
   void updateMultiSessionCookie(const WebRequest &request);
+  void updateMultiSessionCookie(Wt::http::context *context);
+
   void renderCookieUpdate(WStringStream &out);
 
 public:
@@ -189,6 +202,7 @@ public:
 
   friend class WApplication;
   friend class WebSession;
+  friend class WebController;
 };
 
 }

@@ -88,6 +88,19 @@ namespace Wt
       return std::string((const char *)buf, 16);
     }
 
+//    std::string_view md5(std::string_view text)
+//    {
+//      md5_state_t c;
+//      wt_md5_init(&c);
+
+//      wt_md5_append(&c, (const md5_byte_t *)text.data(), text.length());
+
+//      unsigned char buf[16];
+//      wt_md5_finish(&c, buf);
+
+//      return std::string_view((const char *)buf, 16);
+//    }
+
     std::string sha1(const std::string &text)
     {
       SHA1Context sha;
@@ -211,6 +224,12 @@ namespace Wt
     {
       return DomElement::urlEncodeS(text);
     }
+
+    std::string urlEncode(std::string_view text)
+    {
+      return DomElement::urlEncodeS(text);
+    }
+
 
     std::string urlDecode(const std::string &text)
     {

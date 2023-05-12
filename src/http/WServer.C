@@ -13,8 +13,8 @@
 #include "Connection.h"
 #include "Server.h"
 #include "Configuration.h"
-#include "../web/Configuration.h"
-#include "WebController.h"
+#include "../Wt/Configuration.h"
+#include "Wt/WebController.h"
 #include "../web/WebUtils.h"
 
 #if !defined(WT_WIN32)
@@ -77,254 +77,246 @@ struct WServer::Impl
   http::server::Server        *server_;
 };
 
-WServer::WServer(const std::string& applicationPath,
-		 const std::string& wtConfigurationFile)
-  : impl_(new Impl())
-{ 
-  init(applicationPath, wtConfigurationFile);
-}
+//WServer::WServer(const std::string& applicationPath,
+//		 const std::string& wtConfigurationFile)
+//  : impl_(new Impl())
+//{
+//  init(applicationPath, wtConfigurationFile);
+//}
 
-WServer::WServer(int argc, char *argv[], const std::string& wtConfigurationFile)
-  : impl_(new Impl())
-{
-  init(argv[0], "");
+//WServer::WServer(int argc, char *argv[], const std::string& wtConfigurationFile)
+//  : impl_(new Impl())
+//{
+//  init(argv[0], "");
 
-  setServerConfiguration(argc, argv, wtConfigurationFile);
-}
+//  setServerConfiguration(argc, argv, wtConfigurationFile);
+//}
 
-WServer::WServer(const std::string &applicationPath,
-                 const std::vector<std::string> &args,
-                 const std::string &wtConfigurationFile)
-  : impl_(new Impl())
-{
-  init(applicationPath, "");
+//WServer::WServer(const std::string &applicationPath,
+//                 const std::vector<std::string> &args,
+//                 const std::string &wtConfigurationFile)
+//  : impl_(new Impl())
+//{
+//  init(applicationPath, "");
 
-  setServerConfiguration(applicationPath, args, wtConfigurationFile);
-}
+//  setServerConfiguration(applicationPath, args, wtConfigurationFile);
+//}
 
-WServer::~WServer()
-{
-  if (impl_->server_) {
-    try {
-      stop();
-    } catch (...) {
-      LOG_ERROR("~WServer: oops, stop() threw exception!");
-    }
-  }
+//WServer::~WServer()
+//{
+//  if (impl_->server_) {
+//    try {
+//      stop();
+//    } catch (...) {
+//      LOG_ERROR("~WServer: oops, stop() threw exception!");
+//    }
+//  }
 
-  delete impl_;
+//  delete impl_;
 
-  destroy();
-}
+//  destroy();
+//}
 
-void WServer::setServerConfiguration(int argc, char *argv[],
-				     const std::string& serverConfigurationFile)
-{
-  std::string applicationPath = argv[0];
-  std::vector<std::string> args(argv + 1, argv + argc);
+//void WServer::setServerConfiguration(int argc, char *argv[], const std::string& serverConfigurationFile)
+//{
+//  std::string applicationPath = argv[0];
+//  std::vector<std::string> args(argv + 1, argv + argc);
 
-  setServerConfiguration(applicationPath, args, serverConfigurationFile);
-}
+//  setServerConfiguration(applicationPath, args, serverConfigurationFile);
+//}
 
-void WServer::setServerConfiguration(const std::string &applicationPath,
-                                     const std::vector<std::string> &args,
-                                     const std::string &serverConfigurationFile)
-{
-  auto result = parseArgsPartially(applicationPath, args, serverConfigurationFile);
+//void WServer::setServerConfiguration(const std::string &applicationPath,
+//                                     const std::vector<std::string> &args,
+//                                     const std::string &serverConfigurationFile)
+//{
+//  auto result = parseArgsPartially(applicationPath, args, serverConfigurationFile);
 
-  if (!result.appRoot.empty())
-    setAppRoot(result.appRoot);
+//  if (!result.appRoot.empty())
+//    setAppRoot(result.appRoot);
 
-  if (configurationFile().empty())
-    setConfiguration(result.wtConfigXml);
+//  if (configurationFile().empty())
+//    setConfiguration(result.wtConfigXml);
 
-  webController_ = new Wt::WebController(*this);
+//  webController_ = new Wt::WebController(*this);
 
-  impl_->serverConfiguration_ = new http::server::Configuration(logger());
+//  impl_->serverConfiguration_ = new http::server::Configuration(logger());
 
-  impl_->serverConfiguration_->setSslPasswordCallback(sslPasswordCallback_);
+//  impl_->serverConfiguration_->setSslPasswordCallback(sslPasswordCallback_);
 
-  impl_->serverConfiguration_->setOptions(applicationPath, args, serverConfigurationFile);
+//  impl_->serverConfiguration_->setOptions(applicationPath, args, serverConfigurationFile);
 
-  dedicatedProcessEnabled_ = impl_->serverConfiguration_->parentPort() != -1;
+//  dedicatedProcessEnabled_ = impl_->serverConfiguration_->parentPort() != -1;
 
-  configuration().setDefaultEntryPoint(impl_->serverConfiguration_
-                                       ->deployPath());
-}
+//  configuration().setDefaultEntryPoint(impl_->serverConfiguration_
+//                                       ->deployPath());
+//}
 
-bool WServer::start()
-{
-  setCatchSignals(!impl_->serverConfiguration_->gdb());
+//bool WServer::start()
+//{
+//  setCatchSignals(!impl_->serverConfiguration_->gdb());
 
-  stopCallback_ = std::bind(&WServer::stop, this);
+//  stopCallback_ = std::bind(&WServer::stop, this);
 
-  if (isRunning()) {
-    LOG_ERROR("start(): server already started!");
-    return false;
-  }
+//  if (isRunning()) {
+//    LOG_ERROR("start(): server already started!");
+//    return false;
+//  }
 
-  LOG_INFO("initializing built-in wthttpd");
+//  LOG_INFO("initializing built-in wthttpd");
 
-#ifndef WT_WIN32
-  srand48(getpid());
-#endif
+//#ifndef WT_WIN32
+//  srand48(getpid());
+//#endif
 
-  // Override configuration settings
-  configuration().setRunDirectory(std::string());
+//  // Override configuration settings
+//  configuration().setRunDirectory(std::string());
 
-  configuration().setUseSlashExceptionForInternalPaths
-    (impl_->serverConfiguration_->defaultStatic());
+//  configuration().setUseSlashExceptionForInternalPaths
+//    (impl_->serverConfiguration_->defaultStatic());
   
-  if (!impl_->serverConfiguration_->sessionIdPrefix().empty())
-    configuration().setSessionIdPrefix(impl_->serverConfiguration_
-				       ->sessionIdPrefix());
+//  if (!impl_->serverConfiguration_->sessionIdPrefix().empty())
+//    configuration().setSessionIdPrefix(impl_->serverConfiguration_
+//				       ->sessionIdPrefix());
 
-  if (impl_->serverConfiguration_->threads() != -1)
-    configuration().setNumThreads(impl_->serverConfiguration_->threads());
+//  if (impl_->serverConfiguration_->threads() != -1)
+//    configuration().setNumThreads(impl_->serverConfiguration_->threads());
 
-  if (impl_->serverConfiguration_->parentPort() != -1) {
-    configuration().setOriginalIPHeader("X-Forwarded-For");
-    auto trustedProxies = configuration().trustedProxies();
-    Utils::add(trustedProxies, Configuration::Network::fromString("127.0.0.1"));
-    Utils::add(trustedProxies, Configuration::Network::fromString("::1"));
-    configuration().setTrustedProxies(trustedProxies);
-    updateProcessSessionIdCallback_ = [this] (const std::string& sessionId)
-    {
-      impl_->server_->updateProcessSessionId(sessionId);
-    };
-  }
+//  if (impl_->serverConfiguration_->parentPort() != -1) {
+//    configuration().setOriginalIPHeader("X-Forwarded-For");
+//    auto trustedProxies = configuration().trustedProxies();
+//    Utils::add(trustedProxies, Configuration::Network::fromString("127.0.0.1"));
+//    Utils::add(trustedProxies, Configuration::Network::fromString("::1"));
+//    configuration().setTrustedProxies(trustedProxies);
+//    updateProcessSessionIdCallback_ = [this] (const std::string& sessionId)
+//    {
+//      impl_->server_->updateProcessSessionId(sessionId);
+//    };
+//  }
 
-  try {
-    impl_->server_ = new http::server::Server(*impl_->serverConfiguration_, *this);
+//  try {
+//    impl_->server_ = new http::server::Server(*impl_->serverConfiguration_, *this);
 
-#ifndef WT_THREADED
-    LOG_WARN("No thread support, running in main thread.");
-#endif // WT_THREADED
+//#ifndef WT_THREADED
+//    LOG_WARN("No thread support, running in main thread.");
+//#endif // WT_THREADED
 
-    webController_->start();
+//    webController_->start();
 
-    ioService().run();
+//    ioService().run();
 
-#ifndef WT_THREADED
-    delete impl_->server_;
-    impl_->server_ = 0;
+//#ifndef WT_THREADED
+//    delete impl_->server_;
+//    impl_->server_ = 0;
 
-    ioService().stop();
+//    ioService().stop();
 
-    return false;
-#else
-    return true;
-#endif // WT_THREADED
+//    return false;
+//#else
+//    return true;
+//#endif // WT_THREADED
 
-  } catch (Wt::AsioWrapper::system_error& e) {
-    throw Exception(std::string("Error (asio): ") + e.what());
-  } catch (std::exception& e) {
-    throw Exception(std::string("Error: ") + e.what());
-  }
-}
+//  } catch (Wt::AsioWrapper::system_error& e) {
+//    throw Exception(std::string("Error (asio): ") + e.what());
+//  } catch (std::exception& e) {
+//    throw Exception(std::string("Error: ") + e.what());
+//  }
+//}
 
-bool WServer::isRunning() const
-{
-  return impl_->server_;
-}
+//bool WServer::isRunning() const
+//{
+//  return impl_->server_;
+//}
 
-void WServer::resume()
-{
-  if (!isRunning()) {
-    LOG_ERROR("resume(): server not yet started!");
-    return;
-  } else {
-    impl_->server_->resume();    
-  }
-}
+//void WServer::resume()
+//{
+//  if (!isRunning()) {
+//    LOG_ERROR("resume(): server not yet started!");
+//    return;
+//  } else {
+//    impl_->server_->resume();
+//  }
+//}
 
-void WServer::stop()
-{
-  if (!isRunning()) {
-    LOG_ERROR("stop(): server not yet started!");
-    return;
-  }
+//void WServer::stop()
+//{
+//  if (!isRunning()) {
+//    LOG_ERROR("stop(): server not yet started!");
+//    return;
+//  }
 
-#ifdef WT_THREADED
-  try {
-    // Stop the Wt application server (cleaning up all sessions).
-    webController_->shutdown();
+//#ifdef WT_THREADED
+//  try {
+//    // Stop the Wt application server (cleaning up all sessions).
+//    webController_->shutdown();
 
-    LOG_INFO("Shutdown: stopping web server.");
+//    LOG_INFO("Shutdown: stopping web server.");
 
-    // Stop the server.
-    impl_->server_->stop();
+//    // Stop the server.
+//    impl_->server_->stop();
 
-    ioService().stop();
+//    ioService().stop();
 
-    delete impl_->server_;
-    impl_->server_ = 0;
-  } catch (Wt::AsioWrapper::system_error& e) {
-    throw Exception(std::string("Error (asio): ") + e.what());
-  } catch (std::exception& e) {
-    throw Exception(std::string("Error: ") + e.what());
-  }
+//    delete impl_->server_;
+//    impl_->server_ = 0;
+//  } catch (Wt::AsioWrapper::system_error& e) {
+//    throw Exception(std::string("Error (asio): ") + e.what());
+//  } catch (std::exception& e) {
+//    throw Exception(std::string("Error: ") + e.what());
+//  }
 
-#else // WT_THREADED
-  webController_->shutdown();
-  impl_->server_->stop();
-  ioService().stop();
-#endif // WT_THREADED
-}
+//#else // WT_THREADED
+//  webController_->shutdown();
+//  impl_->server_->stop();
+//  ioService().stop();
+//#endif // WT_THREADED
+//}
 
-void WServer::run()
-{
-  if (start()) {
-    waitForShutdown();
-    stop();
-  }
-}
 
-int WServer::httpPort() const
-{
-  return impl_->server_->httpPort();
-}
+//int WServer::httpPort() const
+//{
+//  return impl_->server_->httpPort();
+//}
 
-std::string WServer::docRoot() const
-{
-  auto config = impl_->serverConfiguration_;
-  if (config) {
-    return config->docRoot();
-  } else {
-    return "";
-  }
-}
+//std::string WServer::docRoot() const
+//{
+//  auto config = impl_->serverConfiguration_;
+//  if (config) {
+//    return config->docRoot();
+//  } else {
+//    return "";
+//  }
+//}
 
-std::vector<WServer::SessionInfo> WServer::sessions() const
-{
-  if (configuration_->sessionPolicy() == Wt::Configuration::DedicatedProcess &&
-      impl_->serverConfiguration_->parentPort() == -1) {
-    return impl_->server_->sessionManager()->sessions();
-  } else {
-#ifndef WT_WIN32
-    int64_t pid = getpid();
-#else // WT_WIN32
-    int64_t pid = _getpid();
-#endif // WT_WIN32
-    std::vector<std::string> sessionIds = webController_->sessions();
-    std::vector<WServer::SessionInfo> result;
-    for (std::size_t i = 0; i < sessionIds.size(); ++i) {
-      SessionInfo sessionInfo;
-      sessionInfo.processId = pid;
-      sessionInfo.sessionId = sessionIds[i];
-      result.push_back(sessionInfo);
-    }
-    return result;
-  }
-}
+//std::vector<WServer::SessionInfo> WServer::sessions() const
+//{
+//  if (configuration_->sessionPolicy() == Wt::Configuration::DedicatedProcess &&
+//      impl_->serverConfiguration_->parentPort() == -1) {
+//    return impl_->server_->sessionManager()->sessions();
+//  } else {
+//#ifndef WT_WIN32
+//    int64_t pid = getpid();
+//#else // WT_WIN32
+//    int64_t pid = _getpid();
+//#endif // WT_WIN32
+//    std::vector<std::string> sessionIds = webController_->sessions();
+//    std::vector<WServer::SessionInfo> result;
+//    for (std::size_t i = 0; i < sessionIds.size(); ++i) {
+//      SessionInfo sessionInfo;
+//      sessionInfo.processId = pid;
+//      sessionInfo.sessionId = sessionIds[i];
+//      result.push_back(sessionInfo);
+//    }
+//    return result;
+//  }
+//}
 
-void WServer::setSslPasswordCallback(const SslPasswordCallback& cb)
-{
-  sslPasswordCallback_ = cb;
+//void WServer::setSslPasswordCallback(const SslPasswordCallback& cb)
+//{
+//  sslPasswordCallback_ = cb;
 
-  if (impl_ && impl_->serverConfiguration_)
-    impl_->serverConfiguration_->setSslPasswordCallback(sslPasswordCallback_);
-}
+//  if (impl_ && impl_->serverConfiguration_)
+//    impl_->serverConfiguration_->setSslPasswordCallback(sslPasswordCallback_);
+//}
 
 int WRun(int argc, char *argv[], ApplicationCreator createApplication)
 {

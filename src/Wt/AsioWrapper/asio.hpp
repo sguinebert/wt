@@ -15,13 +15,20 @@
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/as_tuple.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
+#ifdef TWEAKS
+template <typename T>
+using awaitable = boost::asio::awaitable<T, boost::asio::io_context::executor_type>;
+inline constexpr auto use_awaitable = boost::asio:: use_awaitable_t<boost::asio::io_context::executor_type>(0, 0, 0);
+#else
 using boost::asio::awaitable;
+using boost::asio::use_awaitable;
+#endif
 using boost::asio::buffer;
 using boost::asio::co_spawn;
 using boost::asio::detached;
 using boost::asio::ip::tcp;
-using boost::asio::use_awaitable;
 constexpr auto use_nothrow_awaitable = boost::asio::experimental::as_tuple(use_awaitable);
+using namespace boost::asio::experimental::awaitable_operators;
 using namespace std::literals::chrono_literals;
 using std::chrono::steady_clock;
 //using executor_t = boost::asio::io_context::executor_type;
@@ -43,6 +50,7 @@ using asio::detached;
 using asio::ip::tcp;
 using asio::use_awaitable;
 constexpr auto use_nothrow_awaitable = asio::experimental::as_tuple(use_awaitable);
+using namespace asio::experimental::awaitable_operators;
 using namespace std::literals::chrono_literals;
 using std::chrono::steady_clock;
 #else

@@ -10,6 +10,7 @@
 #include <Wt/WGlobal.h>
 #include <string>
 #include <vector>
+#include <Wt/cuehttp/context.hpp>
 
 namespace Wt {
 
@@ -112,6 +113,7 @@ public:
   std::vector<std::string> userEventArgs;
 
   void get(const WebRequest& request, const std::string& se);
+  void get(http::context *context, const std::string& se);
 
   JavaScriptEvent();
 };

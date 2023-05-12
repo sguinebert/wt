@@ -31,7 +31,7 @@
 
 #include "Wt/WStringStream.h"
 #include "Wt/WLogger.h"
-#include "../web/Configuration.h"
+#include "../Wt/Configuration.h"
 
 #include "Buffer.h"
 #include "WHttpDllDefs.h"
@@ -106,8 +106,8 @@ public:
    * Returns true if ready to read more.
    */
   virtual bool consumeData(const char *begin,
-			   const char *end,
-			   Request::State state) = 0;
+                           const char *end,
+                           Request::State state) = 0;
 
   /*
    * Returns false on failure (should abort reading more)
@@ -148,8 +148,7 @@ protected:
    * Provides next data to send. Will be called after send() has been called.
    * Returns whether this is the last data for this request.
    */
-  virtual bool nextContentBuffers(std::vector<asio::const_buffer>& result)
-    = 0;
+  virtual bool nextContentBuffers(std::vector<asio::const_buffer>& result) = 0;
 
   void setRelay(ReplyPtr reply);
   ReplyPtr relay() const { return relay_; }
@@ -185,7 +184,7 @@ private:
 
 
   bool encodeNextContentBuffer(std::vector<asio::const_buffer>& result,
-			       int& originalSize, int& encodedSize);
+                               int& originalSize, int& encodedSize);
 #ifdef WTHTTP_WITH_ZLIB
   void initGzip();
   bool gzipBusy_;

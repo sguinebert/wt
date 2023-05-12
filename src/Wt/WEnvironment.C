@@ -14,7 +14,7 @@
 #include "Wt/Json/json.hpp"
 #include "Wt/WString.h"
 
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebRequest.h"
 #include "WebSession.h"
 #include "WebUtils.h"
@@ -111,6 +111,12 @@ void WEnvironment::updateUrlScheme(const WebRequest& request)
   urlScheme_ = request.urlScheme(conf);
 }
 
+void WEnvironment::updateUrlScheme(http::context *context)
+{
+  Configuration& conf = session_->controller()->configuration();
+
+  urlScheme_ = context->urlScheme(conf);
+}
 
 void WEnvironment::init(const WebRequest& request)
 {
@@ -175,6 +181,92 @@ void WEnvironment::init(const WebRequest& request)
     parseCookies(cookie, cookies_);
 
   locale_ = request.parseLocale();
+}
+
+void WEnvironment::updateHostName(http::context *context)
+{
+  Configuration& conf = session_->controller()->configuration();
+  std::string oldHost = host_;
+  host_ = context->getHeader("Host");
+
+  if (conf.behindReverseProxy() ||
+      conf.isTrustedProxy(context->host())) {
+    auto forwardedHost = context->getHeader("X-Forwarded-Host");
+
+    if (!forwardedHost.empty()) {
+      auto i = forwardedHost.rfind(',');
+      if (i == std::string_view::npos)
+        host_ = forwardedHost;
+      else
+        host_ = forwardedHost.substr(i+1);
+    }
+
+  }
+  if(host_.size() == 0) host_ = oldHost;
+}
+
+void WEnvironment::enableAjax(Wt::http::context *context)
+{
+  doesAjax_ = true;
+  session_->controller()->newAjaxSession();
+
+  doesCookies_ = !context->getHeader("Cookie").empty();
+
+  if (context->getParameter("htmlHistory").empty())
+    internalPathUsingFragments_ = true;
+
+  auto scaleE = context->getParameter("scale");
+
+  try {
+    dpiScale_ = !scaleE.empty() ? Utils::stod(scaleE) : 1;
+  } catch (std::exception& e) {
+    dpiScale_ = 1;
+  }
+
+  auto webGLE = context->getParameter("webGL");
+
+  webGLsupported_ = webGLE == "true";
+
+  auto tzE = context->getParameter("tz");
+
+  try {
+    timeZoneOffset_ = std::chrono::minutes(!tzE.empty() ? Utils::stoi(tzE) : 0);
+  } catch (std::exception& e) {
+  }
+
+  auto tzSE = context->getParameter("tzS");
+
+  timeZoneName_ = tzSE;
+
+  auto hashE = context->getParameter("_");
+
+  // the internal path, when present as an anchor (#), is only
+  // conveyed in the second request
+  if (!hashE.empty())
+    setInternalPath(std::string(hashE));
+
+  auto deployPathE = context->getParameter("deployPath");
+  if (!deployPathE.empty()) {
+    publicDeploymentPath_ = deployPathE;
+    std::size_t s = publicDeploymentPath_.find('/');
+    if (s != 0)
+      publicDeploymentPath_.clear(); // looks invalid
+  }
+
+  auto scrWE = context->getParameter("scrW");
+  if (!scrWE.empty()) {
+    try {
+      screenWidth_ = Utils::stoi(scrWE);
+    } catch (std::exception &e) {
+    }
+  }
+  auto scrHE = context->getParameter("scrH");
+  if (!scrHE.empty()) {
+    try {
+      screenHeight_ = Utils::stoi(scrHE);
+    } catch (std::exception &e) {
+    }
+  }
 }
 
 

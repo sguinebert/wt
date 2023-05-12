@@ -22,7 +22,7 @@
 #include "Request.h"
 #include "Reply.h"
 #include "Server.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebUtils.h"
 
 #undef min
@@ -194,8 +194,7 @@ RequestParser::ParseResult RequestParser::parseBody(Request& req, ReplyPtr reply
 
     begin = thisEnd;
 
-    bool canReadMore = reply->consumeData(thisBegin, thisEnd,
-	Request::Partial);
+    bool canReadMore = reply->consumeData(thisBegin, thisEnd, Request::Partial);
 
     if (reply->status() == Reply::request_entity_too_large)
       return Done;
@@ -530,20 +529,19 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 
   const ::int64_t maxFrameLength = server_->configuration().maxMemoryRequestSize();
 
-  while (begin < end &&
-         state == Request::Partial &&
-         !endOfPartialFrame) {
+  while (begin < end && state == Request::Partial && !endOfPartialFrame)
+  {
     switch (wsState_) {
     case ws00_frame_start:
       wsFrameType_ = *begin;
 
       if (wsFrameType_ & 0x80) {
-	wsState_ = ws00_binary_length;
-	remainder_ = 0;
+        wsState_ = ws00_binary_length;
+        remainder_ = 0;
       } else {
-	wsState_ = ws00_text_data;
-	dataBegin = begin + 1;
-	remainder_ = 0;
+        wsState_ = ws00_text_data;
+        dataBegin = begin + 1;
+        remainder_ = 0;
       }
 
       ++begin;
@@ -556,28 +554,29 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
       }
       remainder_ = remainder_ << 7 | (*begin & 0x7F);
       if ((*begin & 0x80) == 0) {
-	if (remainder_ == 0 || remainder_ >= maxFrameLength) {
-	  LOG_ERROR("ws: oversized binary frame of length {}", remainder_);
-	  return Request::Error;
-	}
-	wsState_ = ws00_binary_data;
+        if (remainder_ == 0 || remainder_ >= maxFrameLength) {
+          LOG_ERROR("ws: oversized binary frame of length {}", remainder_);
+          return Request::Error;
+        }
+        wsState_ = ws00_binary_data;
       }
 
       ++begin;
 
       break;
     case ws00_text_data:
-      if (static_cast<unsigned char>(*begin) == 0xFF) {
-	state = Request::Complete;
-	wsState_ = ws00_frame_start;
-	dataEnd = begin;
+      if (static_cast<unsigned char>(*begin) == 0xFF)
+      {
+        state = Request::Complete;
+        wsState_ = ws00_frame_start;
+        dataEnd = begin;
       } else {
-	++remainder_;
+        ++remainder_;
 
-	if (remainder_ >= maxFrameLength) {
-	  LOG_ERROR("ws: oversized text frame of length {}", remainder_);
-	  return Request::Error;
-	}
+        if (remainder_ >= maxFrameLength) {
+          LOG_ERROR("ws: oversized text frame of length {}", remainder_);
+          return Request::Error;
+        }
       }
 
       ++begin;
@@ -585,88 +584,88 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
       break;
     case ws00_binary_data:
       {
-	::int64_t thisSize = std::min((::int64_t)(end - begin), remainder_);
+        ::int64_t thisSize = std::min((::int64_t)(end - begin), remainder_);
 
-	dataBegin = begin;
-	begin = begin + thisSize;
-	dataEnd = begin;
-	remainder_ -= thisSize;
+        dataBegin = begin;
+        begin = begin + thisSize;
+        dataEnd = begin;
+        remainder_ -= thisSize;
 
-	if (remainder_ == 0) {
-	  state = Request::Complete;
-	  wsState_ = ws00_frame_start;
-	}
+        if (remainder_ == 0) {
+          state = Request::Complete;
+          wsState_ = ws00_frame_start;
+        }
 
-	break;
+        break;
       }
     case ws13_frame_start:
       {
-	unsigned char frameType = *begin;
+        unsigned char frameType = *begin;
 
-	LOG_DEBUG("ws: new frame, opcode byte={}", (int)frameType);
+        LOG_DEBUG("ws: new frame, opcode byte={}", (int)frameType);
 
 #ifdef WTHTTP_WITH_ZLIB
-	/* RSV1-3 must be 0 */
-	if (frameType & 0x70 && (!req.pmdState_.enabled && frameType & 0x30)) 
-	  return Request::Error;
-	
+        /* RSV1-3 must be 0 */
+        if (frameType & 0x70 && (!req.pmdState_.enabled && frameType & 0x30))
+          return Request::Error;
+
 #else
-	if(frameType & 0x70)
-	  return Request::Error;
+        if(frameType & 0x70)
+          return Request::Error;
 #endif
 
 
-	switch (frameType & 0x0F) {
-	case 0x0: // Continuation frame of a fragmented message
-	  if (frameType & 0x80)
-	    wsFrameType_ |= 0x80; // mark the end-of-frame
+        switch (frameType & 0x0F) {
+        case 0x0: // Continuation frame of a fragmented message
+          if (frameType & 0x80)
+            wsFrameType_ |= 0x80; // mark the end-of-frame
 
-	  break;
-	case 0x1: // Text frame
-	case 0x2: // Binary frame
-	case 0x8: // Close
-	case 0x9: // Ping
-	case 0xA: // Pong
-	  wsFrameType_ = frameType;
+          break;
+        case 0x1: // Text frame
+        case 0x2: // Binary frame
+        case 0x8: // Close
+        case 0x9: // Ping
+        case 0xA: // Pong
+          wsFrameType_ = frameType;
 #ifdef WTHTTP_WITH_ZLIB
-	  frameCompressed_ = frameType & 0x40;
+          frameCompressed_ = frameType & 0x40;
 #endif // WTHTTP_WITH_ZLIB
 
-	  break;
-	default:
-	  LOG_ERROR("ws: unknown opcode");
-	  return Request::Error;
-	}
+          break;
+        default:
+          LOG_ERROR("ws: unknown opcode");
+          return Request::Error;
+        }
 
-	wsState_ = ws13_payload_length;
-	wsCount_ = 0;
+        wsState_ = ws13_payload_length;
+        wsCount_ = 0;
 
-	++begin;
+        ++begin;
 
-	break;
+        break;
       }
     case ws13_payload_length:
       /* Client frame must be masked */
       if ((*begin & 0x80) == 0) {
-	LOG_ERROR("ws: client frame not masked");
-	return Request::Error;
+        LOG_ERROR("ws: client frame not masked");
+        return Request::Error;
       }
 
       remainder_ = *begin & 0x7F;
 
       if (remainder_ < 126) {
-	LOG_DEBUG("ws: new frame length {}", remainder_);
-	wsMask_ = 0;
-	wsState_ = ws13_mask;
-	wsCount_ = 4;
+        LOG_DEBUG("ws: new frame length {}", remainder_);
+        wsMask_ = 0;
+        wsState_ = ws13_mask;
+        wsCount_ = 4;
       } else if (remainder_ == 126) {
-	wsState_ = ws13_extended_payload_length;
-	wsCount_ = 2;
-	remainder_ = 0;
+        wsState_ = ws13_extended_payload_length;
+        wsCount_ = 2;
+        remainder_ = 0;
       } else if (remainder_ == 127) {
-	wsState_ = ws13_extended_payload_length;
-	wsCount_ = 8;
-	remainder_ = 0;
+        wsState_ = ws13_extended_payload_length;
+        wsCount_ = 8;
+        remainder_ = 0;
       }
 
       ++begin;
@@ -683,14 +682,14 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
       --wsCount_;
 
       if (wsCount_ == 0) {
-	LOG_DEBUG("ws: new frame length {}", remainder_);
-	if (remainder_ >= maxFrameLength) {
-          LOG_ERROR("ws: oversized frame of length {} exceeds --max-memory-request-size (= {} bytes)", remainder_ , maxFrameLength);
-	  return Request::Error;
-	}
-	wsMask_ = 0;
-	wsState_ = ws13_mask;
-	wsCount_ = 4;
+        LOG_DEBUG("ws: new frame length {}", remainder_);
+        if (remainder_ >= maxFrameLength) {
+              LOG_ERROR("ws: oversized frame of length {} exceeds --max-memory-request-size (= {} bytes)", remainder_ , maxFrameLength);
+          return Request::Error;
+        }
+        wsMask_ = 0;
+        wsState_ = ws13_mask;
+        wsCount_ = 4;
       }
 
       ++begin;
@@ -702,15 +701,15 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
       --wsCount_;
 
       if (wsCount_ == 0) {
-	LOG_DEBUG("ws: new frame read mask");
-	if (remainder_ != 0) {
-	  wsState_ = ws13_payload;
-	} else {
-	  // Frame without data (like pong)
-	  if (wsFrameType_ & 0x80)
-            state = Request::Complete;
-	  wsState_ = ws13_frame_start;
-	}
+        LOG_DEBUG("ws: new frame read mask");
+        if (remainder_ != 0) {
+          wsState_ = ws13_payload;
+        } else {
+          // Frame without data (like pong)
+          if (wsFrameType_ & 0x80)
+                state = Request::Complete;
+          wsState_ = ws13_frame_start;
+        }
       }
       
       ++begin;
@@ -718,35 +717,35 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
       break;
     case ws13_payload:
       {
-	::int64_t thisSize = std::min((::int64_t)(end - begin), remainder_);
+        ::int64_t thisSize = std::min((::int64_t)(end - begin), remainder_);
 
-	dataBegin = begin;
-	begin = begin + thisSize;
-	dataEnd = begin;
-	remainder_ -= thisSize;
+        dataBegin = begin;
+        begin = begin + thisSize;
+        dataEnd = begin;
+        remainder_ -= thisSize;
 
-	/* Unmask dataBegin to dataEnd, mask offset in wsCount_ */
-	for (char *i = dataBegin; i != dataEnd; ++i) {
-	  unsigned char d = *i;
-	  unsigned char m = (unsigned char)(wsMask_ >> ((3 - wsCount_) * 8));
-	  d = d ^ m;
-	  *i = d;
-	  wsCount_ = (wsCount_ + 1) % 4;
-	}
+        /* Unmask dataBegin to dataEnd, mask offset in wsCount_ */
+        for (char *i = dataBegin; i != dataEnd; ++i) {
+          unsigned char d = *i;
+          unsigned char m = (unsigned char)(wsMask_ >> ((3 - wsCount_) * 8));
+          d = d ^ m;
+          *i = d;
+          wsCount_ = (wsCount_ + 1) % 4;
+        }
 
-	LOG_DEBUG("ws: reading payload, remains = {}", remainder_);
+        LOG_DEBUG("ws: reading payload, remains = {}", remainder_);
 
-	if (remainder_ == 0) {
-          if (wsFrameType_ & 0x80) {
-            state = Request::Complete;
-          } else {
-            endOfPartialFrame = true;
-          }
+        if (remainder_ == 0) {
+              if (wsFrameType_ & 0x80) {
+                state = Request::Complete;
+              } else {
+                endOfPartialFrame = true;
+              }
 
-	  wsState_ = ws13_frame_start;
-	}
+          wsState_ = ws13_frame_start;
+        }
 
-	break;
+        break;
       }
     default:
       assert(false);
@@ -755,7 +754,8 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 
   LOG_DEBUG("ws: {}, {}", (dataEnd - dataBegin), state);
 
-  if (dataBegin < dataEnd || state == Request::Complete) {
+  if (dataBegin < dataEnd || state == Request::Complete)
+  {
 	char* beg = &*dataBegin;
 	char* end = &*dataEnd;
 #ifdef WTHTTP_WITH_ZLIB
@@ -769,17 +769,17 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 	  bool hasMore = false;
 	  char buffer[16 * 1024];
 	  do {
-		read_ = 0;
-		bool ret1 =  inflate(reinterpret_cast<unsigned char*>(&*beg), 
-			end - beg, reinterpret_cast<unsigned char*>(buffer), hasMore);
+        read_ = 0;
+        bool ret1 =  inflate(reinterpret_cast<unsigned char*>(&*beg),
+                             end - beg, reinterpret_cast<unsigned char*>(buffer), hasMore);
 
-                if (!ret1)
-                  return Request::Error;
-		
-                bool ret2 = reply->consumeWebSocketMessage(opcode, &buffer[0], &buffer[read_], hasMore ? Request::Partial : state);
+        if (!ret1)
+          return Request::Error;
 
-                if (!ret2)
-                  return Request::Error;
+        bool ret2 = reply->consumeWebSocketMessage(opcode, &buffer[0], &buffer[read_], hasMore ? Request::Partial : state);
+
+        if (!ret2)
+          return Request::Error;
 	  } while (hasMore);
 
 	  if (state == Request::Complete) 
@@ -792,17 +792,16 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 
 	// handle uncompressed frame
 	if (wsState_ < ws13_frame_start) {
-          if (wsFrameType_ == 0x00) {
-            bool ret = reply->consumeWebSocketMessage(Reply::text_frame,
-                         beg, end, state);
-            if (!ret)
-              return Request::Error;
-          }
+      if (wsFrameType_ == 0x00) {
+        bool ret = reply->consumeWebSocketMessage(Reply::text_frame, beg, end, state);
+        if (!ret)
+          return Request::Error;
+      }
 	} else {
 	  Reply::ws_opcode opcode = (Reply::ws_opcode)(wsFrameType_ & 0x0F);
-          bool ret = reply->consumeWebSocketMessage(opcode, beg, end, state);
-          if (!ret)
-            return Request::Error;
+      bool ret = reply->consumeWebSocketMessage(opcode, beg, end, state);
+      if (!ret)
+        return Request::Error;
 	}
   }
 
@@ -845,7 +844,7 @@ bool RequestParser::inflate(unsigned char* in, size_t size, unsigned char out[],
     hasMore = false;
 
   return true;
-  }
+}
 
 #endif
 

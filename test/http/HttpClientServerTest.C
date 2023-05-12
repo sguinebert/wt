@@ -17,7 +17,7 @@
 #include <Wt/Http/ResponseContinuation.h>
 #include <Wt/Http/Request.h>
 
-#include <web/Configuration.h>
+#include <Wt/Configuration.h>
 
 #include <chrono>
 #include <condition_variable>

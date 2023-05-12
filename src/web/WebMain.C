@@ -10,16 +10,15 @@
 
 #include <Wt/AsioWrapper/asio.hpp>
 
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebStream.h"
 
 namespace Wt {
 
 LOGGER("WebMain");
 
-WebMain::WebMain(WServer *server, WebStream *stream,
-		 std::string singleSessionId)
-  : server_(server),
+WebMain::WebMain(WServer *server, WebStream *stream, std::string singleSessionId)
+    : server_(server),
     stream_(stream),
     singleSessionId_(singleSessionId),
     shutdown_(false)
@@ -36,7 +35,7 @@ void WebMain::shutdown()
 
 void WebMain::run()
 {
-  server_->ioService().start();
+  //server_->ioService().start();
 
   WebRequest *request = stream_->getNextRequest(10);
 
@@ -66,9 +65,11 @@ void WebMain::run()
       // simultaneously. Additionally, this breaks recursive event loops.
       // Asio's io_service::post does no such thing, so calling the function
       // of the superclass if fine.
-      static_cast<Wt::AsioWrapper::asio::io_service&>(server_->ioService())
-	.post(std::bind(&WebController::handleRequest,
-	      &controller(), request));
+//      static_cast<Wt::AsioWrapper::asio::io_service&>(server_->ioService())
+//	.post(std::bind(&WebController::handleRequest,
+//	      &controller(), request));
+
+      asio::post(*thread_context, [request, controller = &controller()] () {  controller->handleRequest(request); });
     }
   }
 

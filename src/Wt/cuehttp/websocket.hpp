@@ -30,7 +30,7 @@
 #include <boost/asio.hpp>
 using namespace boost;
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 namespace detail {
@@ -86,7 +86,7 @@ class websocket final : public std::enable_shared_from_this<websocket>, safe_non
     send_handler_(std::move(frame));
   }
 
-  asio::awaitable<void> emit(detail::ws_event event, std::string&& msg = "") {
+  awaitable<void> emit(detail::ws_event event, std::string&& msg = "") {
     switch (event) {
       case detail::ws_event::open:
         for (const auto& handler : open_handlers_) {
@@ -125,7 +125,7 @@ private:
   std::enable_if_t<!detail::is_awaitable_lambda_v<_Func>, std::true_type>
   impl_on_message(_Func&& func) {
       msg_handlers_.emplace_back(
-                  [func = std::move(func)] (std::string&& msg) -> asio::awaitable<void> {
+                  [func = std::move(func)] (std::string&& msg) -> awaitable<void> {
                       func(std::forward<std::string>(msg));
                       co_return;
                   });
@@ -143,7 +143,7 @@ private:
   std::enable_if_t<!detail::is_awaitable_lambda_v<_Func>, std::true_type>
   impl_on_close(_Func&& func) {
       close_handlers_.emplace_back(
-                  [func = std::move(func)] () -> asio::awaitable<void> {
+                  [func = std::move(func)] () -> awaitable<void> {
                       func();
                       co_return;
                   });
@@ -161,7 +161,7 @@ private:
   std::enable_if_t<!detail::is_awaitable_lambda_v<_Func>, std::true_type>
   impl_on_open(_Func&& func) {
       open_handlers_.emplace_back(
-                  [func = std::move(func)] () -> asio::awaitable<void> {
+                  [func = std::move(func)] () -> awaitable<void> {
                       func();
                       co_return;
                   });
@@ -170,9 +170,9 @@ private:
 
 
 private:
-  std::vector<std::function<asio::awaitable<void>()>> open_handlers_;
-  std::vector<std::function<asio::awaitable<void>()>> close_handlers_;
-  std::vector<std::function<asio::awaitable<void>(std::string&&)>> msg_handlers_;
+  std::vector<std::function<awaitable<void>()>> open_handlers_;
+  std::vector<std::function<awaitable<void>()>> close_handlers_;
+  std::vector<std::function<awaitable<void>(std::string&&)>> msg_handlers_;
   detail::ws_send_handler send_handler_;
 };
 

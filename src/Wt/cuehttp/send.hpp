@@ -20,9 +20,9 @@
 #ifndef CUEHTTP_SEND_HPP_
 #define CUEHTTP_SEND_HPP_
 
-#include "cuehttp/detail/send.hpp"
+#include "detail/send.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 template <typename... _Args>

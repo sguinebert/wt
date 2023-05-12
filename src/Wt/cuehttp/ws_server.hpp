@@ -27,7 +27,7 @@
 #include "detail/noncopyable.hpp"
 #include "detail/sha1.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 static constexpr std::string_view ws_magic_key{"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"};
@@ -49,8 +49,8 @@ class ws_server final : safe_noncopyable {
     }
   }
 
-  std::function<asio::awaitable<void>(context&)> callback() noexcept {
-    return [this](context& ctx) -> asio::awaitable<void> {
+  std::function<awaitable<void>(context&)> callback() noexcept {
+    return [this](context& ctx) -> awaitable<void> {
       ctx.websocket().on_open([this, &ctx]() {
         std::unique_lock<std::mutex> lock{clients_mutex_};
         clients_.emplace(ctx.websocket().shared());
@@ -68,21 +68,21 @@ class ws_server final : safe_noncopyable {
         co_return;
       }
       // websocket handshake response
-      std::string key{ctx.get("Sec-WebSocket-Key")};
+      std::string key{ctx.getHeader("Sec-WebSocket-Key")};
       key.append(ws_magic_key.data(), ws_magic_key.size());
       unsigned char hash[20]{0};
       detail::sha1::calc(key.data(), key.size(), hash);
       std::string accept_key = detail::utils::base64_encode({reinterpret_cast<char*>(hash), 20});
-      ctx.set("Sec-WebSocket-Accept", std::move(accept_key));
-      ctx.set("Connection", "Upgrade");
-      ctx.set("Upgrade", "WebSocket");
+      ctx.addHeader("Sec-WebSocket-Accept", std::move(accept_key));
+      ctx.addHeader("Connection", "Upgrade");
+      ctx.addHeader("Upgrade", "WebSocket");
       ctx.status(101);
     };
   }
 
  private:
   detail::middlewares middlewares_;
-  std::function<asio::awaitable<void>(context&)> callback_;
+  std::function<awaitable<void>(context&)> callback_;
   std::set<std::shared_ptr<websocket>> clients_;
   std::mutex clients_mutex_;
 };

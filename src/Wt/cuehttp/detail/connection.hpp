@@ -31,12 +31,66 @@
 #include "noncopyable.hpp"
 
 #include <Wt/AsioWrapper/asio.hpp>
-//#include <boost/asio.hpp>
-//using namespace boost::asio;
 
-#include <boost/asio/experimental/awaitable_operators.hpp>
+/* https://stackoverflow.com/questions/17742741/websocket-data-unmasking-multi-byte-xor */
+//  void xorWithMaskSIMD(std::vector<char>& payload_buffer, const std::array<char, 4>& mask) {
+//    const size_t size = payload_buffer.size();
+//    const size_t simdSize = size / 16; // Process 16 bytes at a time
+//    const size_t remainingSize = size % 16;
 
-namespace cue {
+//    // Cast mask to __m128i type
+//    __m128i xmmMask = _mm_loadu_si128(reinterpret_cast<const __m128i*>(mask.data()));
+
+//    // Process SIMD blocks
+//    for (size_t i = 0; i < simdSize; ++i) {
+//      // Load 16 bytes from payload_buffer
+//      __m128i xmmPayload = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&payload_buffer[i * 16]));
+
+//      // XOR with the mask
+//      __m128i xmmResult = _mm_xor_si128(xmmPayload, xmmMask);
+
+//      // Store the result back to payload_buffer
+//      _mm_storeu_si128(reinterpret_cast<__m128i*>(&payload_buffer[i * 16]), xmmResult);
+//    }
+
+//    // Process remaining bytes
+//    for (size_t i = simdSize - remainingSize; i < size; ++i) {
+//      payload_buffer[i] ^= mask[i % 4];
+//    }
+//  }
+
+//  void xorWithMaskAVX(std::vector<char>& payload_buffer, const std::array<char, 4>& mask) {
+//    const size_t size = payload_buffer.size();
+//    const size_t avxSize = size / 32; // Process 32 bytes at a time
+//    const size_t remainingSize = size % 32;
+
+//    // Repeat the 4-byte mask to match the payload length
+//    //__m256i ymmMask = _mm256_set1_epi32(*reinterpret_cast<const int32_t*>(mask.data()));
+
+//    // Cast mask to __m128i type
+//    __m128i xmmMask = _mm_loadu_si128(reinterpret_cast<const __m128i*>(mask.data()));
+
+//    // Process AVX blocks
+//    for (size_t i = 0; i < avxSize; ++i) {
+//      // Load 32 bytes from payload_buffer
+//      __m256i ymmPayload = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&payload_buffer[i * 32]));
+
+//      // XOR with the mask
+//      __m256i ymmResult = _mm256_xor_si256(ymmPayload, _mm256_cvtepu8_epi32(xmmMask));
+
+//      // Store the result back to payload_buffer
+//      _mm256_storeu_si256(reinterpret_cast<__m256i*>(&payload_buffer[i * 32]), ymmResult);
+//    }
+
+//    // Process remaining bytes
+//    for (size_t i = size - remainingSize; i < size; ++i) {
+//      payload_buffer[i] ^= mask[i % 4];
+//    }
+//  }
+
+
+
+namespace Wt {
 namespace http {
 namespace detail {
 
@@ -46,7 +100,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
   template <typename Socket = _Socket, typename = std::enable_if_t<std::is_same_v<std::decay_t<Socket>, http_socket>>>
   base_connection(std::function<awaitable<void>(context&)> handler, asio::io_service& io_service) noexcept
       : socket_{io_service},
-        context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), false,
+        context_{std::bind(&base_connection::coro_reply_chunk, this, std::placeholders::_1), false,
                  std::bind(&base_connection::spawn_coro_ws_send, this, std::placeholders::_1)},
         handler_{std::move(handler)} {}
 
@@ -165,10 +219,15 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
           break;
       }
 
+      if(!context_.flush_) {
+          co_await context_.wait_flush(use_awaitable);
+      }
 
+      std::vector<asio::const_buffer> buffers;
+      context_.res().to_buffers(buffers);
 
       { //reply(finished);
-          auto [code2, bytes_transferred2] = co_await asio::async_write(socket_, asio::buffer(reply_str_), use_nothrow_awaitable);
+          auto [code2, bytes_transferred2] = co_await asio::async_write(socket_, buffers, use_nothrow_awaitable);
           detail::unused(bytes_transferred2);
           if (code2) {
               //continue;
@@ -206,12 +265,43 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
       ws_helper_ = std::make_unique<ws_helper>();
       ws_helper_->websocket_ = context_.websocket_ptr();
     }
-    if (!res.is_stream()) {
-      res.to_string(reply_str_);
-    }
+//    if (!res.is_stream()) {
+//      res.to_string(reply_str_);
+//    }
     co_return;
   }
 
+  awaitable<void> flush(bool finished) {
+    { //reply(finished);
+      auto [code2, bytes_transferred2] = co_await asio::async_write(socket_, asio::buffer(reply_str_), use_nothrow_awaitable);
+      detail::unused(bytes_transferred2);
+      if (code2) {
+          //continue;
+          std::cerr << "error async_write: " << code2.what() << std::endl;
+          co_return;
+      }
+
+      reply_str_.clear();
+      if (ws_helper_) {
+          ws_handshake_ = true;
+
+          co_spawn(socket_.get_executor(), coro_ws(this->shared_from_this()), detached);
+          co_await ws_helper_->websocket_->emit(detail::ws_event::open);
+          //do_read_ws_header();
+          co_return; //end this http coro
+      } else {
+          if (finished) {
+              context_.reset();
+          }
+          //do_read(); --> go to start
+      }
+    }
+  }
+
+  awaitable<bool> coro_reply_chunk(std::string_view chunk) {
+    auto [code, bytes_transferred] = co_await asio::async_write(socket_, asio::buffer(chunk), use_nothrow_awaitable);
+    co_return !!code;
+  }
 
   bool reply_chunk(const std::string& chunk) {
     boost::system::error_code code;
@@ -222,8 +312,8 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
   awaitable<void> coro_ws(auto /*sft*/) {
 
     std::cerr << "start websocket coro_ws" << std::endl;
-    co_await coro_do_read_ws_header();
-//    co_await(coro_do_read_ws_header() || coro_do_send_ws_frame()); // todo watchdog
+    //co_await coro_do_read_ws_header();
+    co_await(coro_do_read_ws_header() || coro_do_send_ws_frame()); // todo watchdog
 
 
     std::cerr << "close coro_ws" << std::endl;
@@ -242,6 +332,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
           auto& reader = ws_helper_->ws_reader_;
           reader.fin = reader.header[0] & 0x80;
           reader.opcode = static_cast<detail::ws_opcode>(reader.header[0] & 0xf);
+          reader.zip = reader.header[0] & 0x40;
           reader.has_mask = reader.header[1] & 0x80;
           reader.length = reader.header[1] & 0x7f;
           if (reader.length == 126) {
@@ -252,7 +343,6 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
             co_await coro_do_read_ws_length_and_mask(0);
           }
       }
-
     }
     co_return;
   }
@@ -321,6 +411,39 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 
   awaitable<void> coro_handle_ws() {
     auto& reader = ws_helper_->ws_reader_;
+
+    if(reader.zip) {
+        /* RSV1-3 must be 0 */
+//        if (frameType & 0x70 && (!req.pmdState_.enabled && frameType & 0x30))
+//            return Request::Error;
+        //inflate
+        auto opcode = (detail::ws_opcode)(reader.opcode & 0x0F);
+//        if (wsState_ < ws13_frame_start) {
+//            if (wsFrameType_ == 0x00)
+//                opcode = Reply::text_frame;
+//        }
+//        unsigned char appendBlock[] = { 0x00, 0x00, 0xff, 0xff };
+//        bool hasMore = false;
+//        char buffer[16 * 1024];
+//        do {
+//            uint64_t read_ = 0;
+//            bool ret1 =  inflate(reinterpret_cast<unsigned char*>(&*beg),
+//                                end - beg, reinterpret_cast<unsigned char*>(buffer), hasMore);
+
+//            if (!ret1)
+//                return Request::Error;
+
+//            bool ret2 = reply->consumeWebSocketMessage(opcode, &buffer[0], &buffer[read_], hasMore ? Request::Partial : state);
+
+//            if (!ret2)
+//                return Request::Error;
+//        } while (hasMore);
+
+//        if (state == Request::Complete)
+//            if(!inflate(appendBlock, 4, reinterpret_cast<unsigned char*>(buffer), hasMore))
+//                return Request::Error;
+    }
+
     switch (reader.opcode) {
     case detail::ws_opcode::continuation:
         reader.last_fin = false;

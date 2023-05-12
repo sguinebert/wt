@@ -26,7 +26,7 @@
 #include "cookies.hpp"
 #include "deps/json.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 class context;

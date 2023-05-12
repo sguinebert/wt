@@ -25,10 +25,10 @@
 #include "Server.h"
 #include "SessionInfo.h"
 #include "WebUtils.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 
 #include "Wt/WIOService.h"
-#include "Wt/WServer.h"
+#include "Wt/WfcgiServer.h"
 #include "Wt/WLogger.h"
 
 #include <boost/algorithm/string.hpp>
@@ -52,7 +52,7 @@ const int FCGI_PARAMS        = 4;
 
 Server *Server::instance = 0;
 
-bool Server::bindUDStoStdin(const std::string& socketPath, Wt::WServer& server)
+bool Server::bindUDStoStdin(const std::string& socketPath, Wt::WfcgiServer& server)
 {
   int s = socket(AF_UNIX, SOCK_STREAM, 0);
   if (s == -1) {
@@ -90,7 +90,7 @@ bool Server::bindUDStoStdin(const std::string& socketPath, Wt::WServer& server)
   return true;
 }
 
-Server::Server(WServer& wt,
+Server::Server(WfcgiServer& wt,
                const std::string &applicationName,
                const std::vector<std::string> &args)
   : wt_(wt),
@@ -395,8 +395,7 @@ int Server::run()
   wt_.ioService().start();
 
   for (;;) {
-    int serverSocket = accept(STDIN_FILENO, (sockaddr *) &clientname,
-			      &socklen);
+    int serverSocket = accept(STDIN_FILENO, (sockaddr *) &clientname, &socklen);
 
     if (serverSocket < 0) {
       LOG_ERROR_S(&wt_, "fatal: accept(): {}", (const char *)strerror(errno));

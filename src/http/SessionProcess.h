@@ -37,9 +37,7 @@ public:
   // Execute the session process, and call the onReady callback
   // function when done. The bool passed on to the onReady function
   // indicates success.
-  void asyncExec(const Configuration &config,
-		 const std::function<void (bool)>& onReady 
-		   = std::function<void (bool)>());
+  void asyncExec(const Configuration &config, const std::function<void (bool)>& onReady = std::function<void (bool)>());
 
   // Check whether the process is ready to accept connections
   bool ready() const { return port_ != -1; }
@@ -74,13 +72,13 @@ private:
   std::shared_ptr<asio::ip::tcp::socket> socket_;
   std::shared_ptr<asio::ip::tcp::acceptor> acceptor_;
 
-  asio::streambuf          buf_;
+  asio::streambuf buf_;
 
-  int			   port_;
+  int port_;
 
-  std::string		   sessionId_;
+  std::string sessionId_;
 #ifndef WT_WIN32
-  pid_t			   pid_;
+  pid_t pid_;
 #else // WT_WIN32
   PROCESS_INFORMATION      processInfo_;
 #endif // WT_WIN32

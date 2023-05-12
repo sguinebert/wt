@@ -1,6 +1,6 @@
 #include "Server.h"
 #include "Configuration.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "Wt/WServer.h"
 
 #include "Android.h"

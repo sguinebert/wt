@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
@@ -30,10 +30,213 @@
 #include "detail/noncopyable.hpp"
 #include "response.hpp"
 
-namespace cue {
+#include <Wt/Http/Request.h>
+#include <Wt/Configuration.h>
+
+namespace Wt {
 namespace http {
 
+
+/*! \brief A list of parameter values.
+ *
+ * This is the type used to aggregate all values for a single parameter.
+ */
+#ifndef WT_TARGET_JAVA
+typedef std::vector<std::string_view> ParameterValues;
+#else
+typedef std::string ParameterValues[];
+#endif
+
+typedef std::unordered_map<std::string_view, ParameterValues> ParameterMap;
+
+/*! \brief A file parameter map.
+ *
+ * This is the type used aggregate file parameter values in a request.
+ */
+typedef std::unordered_multimap<std::string, Http::UploadedFile> UploadedFileMap;
+
 class request final : safe_noncopyable {
+public:
+    /*! \brief A single byte range.
+   */
+    class WT_API ByteRange
+    {
+    public:
+        /*! \brief Creates a (0,0) byteranges */
+        ByteRange() : firstByte_(0), lastByte_(0)
+        { }
+
+        /*! \brief Creates a byte range.
+     */
+        ByteRange(::uint64_t first, ::uint64_t last)
+            : firstByte_(first),
+            lastByte_(last)
+        {
+        }
+
+        /*! \brief Returns the first byte of this range.
+     */
+        ::uint64_t firstByte() const { return firstByte_; }
+
+        /*! \brief Returns the last byte of this range.
+     */
+        ::uint64_t lastByte() const { return lastByte_; }
+
+    private:
+        ::uint64_t firstByte_, lastByte_;
+    };
+
+    /*! \brief A byte range specifier.
+   *
+   * \sa getRanges()
+   */
+    class WT_API ByteRangeSpecifier : public std::vector<ByteRange>
+    {
+    public:
+        /*! \brief Creates an empty byte range specifier.
+     *
+     * The specifier is satisfiable but empty, indicating that no
+     * ranges were present.
+     */
+        ByteRangeSpecifier() : satisfiable_(true)
+        {
+        }
+
+        /*! \brief Returns whether the range is satisfiable.
+     *
+     * If the range specification is not satisfiable, RFC 2616 states you
+     * should return a response status of 416. isSatisfiable() will return
+     * true if a Range header was missing or a syntax error occured, in
+     * which case the number of ByteRanges will be zero and the client
+     * must send the entire file.
+     */
+        bool isSatisfiable() const { return satisfiable_; }
+
+        /*! \brief Sets whether the specifier is satisfiable.
+     */
+        void setSatisfiable(bool satisfiable) { satisfiable_ = satisfiable; }
+
+    private:
+        bool satisfiable_;
+    };
+
+    void inplaceUrlDecode(std::string &text)
+    {
+        // Note: there is a Java-too duplicate of this function in Wt/Utils.C
+        std::size_t j = 0;
+
+        for (std::size_t i = 0; i < text.length(); ++i)
+        {
+            char c = text[i];
+
+            if (c == '+')
+            {
+                text[j++] = ' ';
+            }
+            else if (c == '%' && i + 2 < text.length())
+            {
+                std::string h = text.substr(i + 1, 2);
+                char *e = 0;
+                int hval = std::strtol(h.c_str(), &e, 16);
+
+                if (*e == 0)
+                {
+                    text[j++] = (char)hval;
+                    i += 2;
+                }
+                else
+                {
+                    // not a proper %XX with XX hexadecimal format
+                    text[j++] = c;
+                }
+            }
+            else
+                text[j++] = c;
+        }
+
+        text.erase(j);
+    }
+
+    void parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
+    {
+        for (std::size_t pos = 0; pos < s.length();)
+        {
+            std::size_t next = s.find_first_of("&=", pos);
+
+            if (next == pos && s[next] == '&')
+            {
+                // skip empty
+                pos = next + 1;
+                continue;
+            }
+
+            if (next == std::string::npos || s[next] == '&')
+            {
+                if (next == std::string::npos)
+                    next = s.length();
+                std::string key { s.substr(pos, next - pos) };
+                inplaceUrlDecode(key);
+                parameters[key].push_back(std::string());
+                pos = next + 1;
+            }
+            else
+            {
+                std::size_t amp = s.find('&', next + 1);
+                if (amp == std::string::npos)
+                    amp = s.length();
+
+                std::string key { s.substr(pos, next - pos) };
+                inplaceUrlDecode(key);
+
+                std::string value { s.substr(next + 1, amp - (next + 1)) };
+                inplaceUrlDecode(value);
+
+                parameters[key].push_back(value);
+                pos = amp + 1;
+            }
+        }
+    }
+
+    void parseFormUrlEncoded(std::string_view s)
+    {
+        for (std::size_t pos = 0; pos < s.length();)
+        {
+            std::size_t next = s.find_first_of("&=", pos);
+
+            if (next == pos && s[next] == '&')
+            {
+                // skip empty
+                pos = next + 1;
+                continue;
+            }
+
+            if (next == std::string::npos || s[next] == '&')
+            {
+                if (next == std::string::npos)
+                    next = s.length();
+                std::string key { s.substr(pos, next - pos) };
+                inplaceUrlDecode(key);
+                query_.emplace(std::move(key), std::string());
+                pos = next + 1;
+            }
+            else
+            {
+                std::size_t amp = s.find('&', next + 1);
+                if (amp == std::string::npos)
+                    amp = s.length();
+
+                std::string key { s.substr(pos, next - pos) };
+                inplaceUrlDecode(key);
+
+                std::string value { s.substr(next + 1, amp - (next + 1)) };
+                inplaceUrlDecode(value);
+
+                query_.emplace(std::move(key), std::move(value));
+                pos = amp + 1;
+            }
+        }
+    }
+
  public:
   request(bool https, response& res, cookies& cookies) noexcept
       : https_{https}, buffer_(HTTP_REQUEST_BUFFER_SIZE), res_{res}, cookies_{cookies} {}
@@ -50,6 +253,16 @@ class request final : safe_noncopyable {
 
     using namespace std::literals;
     return ""sv;
+  }
+
+  bool has_header(std::string_view field) const noexcept {
+    for (std::size_t i{0}; i < phr_num_headers_; ++i) {
+      const auto& header = phr_headers_[i];
+      if (detail::utils::iequals({header.name, header.name_len}, field)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   std::vector<std::pair<std::string_view, std::string_view>> headers() const noexcept {
@@ -81,6 +294,10 @@ class request final : safe_noncopyable {
     return origin_;
   }
 
+  std::string_view scheme() const noexcept {
+    return https_ ? "https" : "http";;
+  }
+
   std::string_view href() const noexcept {
     if (href_.empty()) {
       href_ += origin();
@@ -91,13 +308,46 @@ class request final : safe_noncopyable {
 
   std::string_view path() const noexcept { return path_; }
 
+  std::string_view pathInfo() const noexcept { return pathInfo_; }
+
   std::string_view querystring() const noexcept { return querystring_; }
 
-  const std::multimap<std::string, std::string>& query() const noexcept {
+  UploadedFileMap& files() { return files_; }
+
+  std::multimap<std::string, std::string>& query() const noexcept {
     if (!querystring_.empty() && query_.empty()) {
       query_ = detail::utils::parse_query(querystring_);
     }
     return query_;
+  }
+
+  std::string_view getParameter(const std::string& key) const {
+    const auto& mm = query();
+    if (auto it = mm.find(key); it != mm.end()) {
+      return it->second;
+    }
+    return ""sv;
+  }
+
+  std::vector<std::string> getParameterValues(const std::string& key) const {
+    const auto& mm = query();
+    auto aRange = mm.equal_range(key);
+    std::vector<std::string> aVector;
+    std::transform(aRange.first, aRange.second,std::back_inserter(aVector), [](auto element){ return element.second;});
+    return aVector;
+  }
+
+  ParameterMap& getParameters() {
+    const auto& mm = query();
+    if (!querystring_.empty() && parameters_.empty()) {
+      for (auto it = mm.begin(); it != mm.end(); ++it) {
+        auto aRange = mm.equal_range(it->first);
+        std::vector<std::string_view> aVector;
+        std::transform(aRange.first, aRange.second,std::back_inserter(aVector), [](auto element){ return std::string_view(element.second);});
+        parameters_[it->first] = aVector;
+      }
+    }
+    return parameters_;
   }
 
   std::string_view search() const noexcept { return search_; }
@@ -127,6 +377,8 @@ class request final : safe_noncopyable {
   bool websocket() const noexcept { return websocket_; }
 
   std::string_view body() const noexcept { return body_; }
+
+  void read(char* buf, unsigned size) { std::copy(buffer_.begin(), buffer_.begin() + size, buf);  }
 
   void reset() noexcept {
     data_size_ = 0;
@@ -249,6 +501,131 @@ class request final : safe_noncopyable {
     return code;
   }
 
+//  Wt::WLocale parseLocale() const
+//  {
+//    return Wt::WLocale(parsePreferredAcceptValue(get("Accept-Language")));
+//  }
+
+  std::string_view parsePreferredAcceptValue(std::string_view sv) const
+  {
+    if (sv.empty())
+      return ""sv;
+
+//    std::vector<ValueListParser::Value> values;
+
+//    ValueListParser valueListParser(values);
+
+//    parse_info<> info = parse(str, valueListParser, space_p);
+
+//    if (info.full) {
+//      unsigned best = 0;
+//      for (unsigned i = 1; i < values.size(); ++i) {
+//        if (values[i].quality > values[best].quality)
+//          best = i;
+//      }
+
+//      if (best < values.size())
+//        return values[best].value;
+//      else
+//        return std::string();
+//    } else {
+//      //LOG_ERROR("Could not parse 'Accept-Language: {}', stopped at: '{}'", str, info.stop);
+//      return std::string();
+//    }
+  }
+  std::string_view envValue(std::string_view name) const
+  {
+    if (name == "CONTENT_TYPE") {
+      return get("Content-Type");
+    } else if (name == "CONTENT_LENGTH") {
+      return get("Content-Length");
+    } else if (name == "SERVER_SIGNATURE") {
+      return "<address>Wt httpd server</address>"sv;
+    } else if (name == "SERVER_SOFTWARE") {
+      return "Wthttpd/" WT_VERSION_STR ;
+    } else if (name == "SERVER_ADMIN") {
+      return "webmaster@localhost"sv;
+    } else if (name == "REMOTE_ADDR") {
+      return "";//remoteAddr().c_str();
+    } else if (name == "DOCUMENT_ROOT") {
+      return ""sv;// reply_->configuration().docRoot().c_str();
+    } else
+      return ""sv;
+  }
+
+  bool isPrivateIP(std::string_view address_view) const {
+    auto address = boost::asio::ip::make_address(address_view);
+
+    if (address.is_v4()) {
+      auto v4Address = address.to_v4();
+      unsigned long ip = v4Address.to_ulong();
+      return ((ip >= 0x0A000000 && ip <= 0x0AFFFFFF) ||
+              (ip >= 0xAC100000 && ip <= 0xAC1FFFFF) ||
+              (ip >= 0xC0A80000 && ip <= 0xC0A8FFFF));
+    }
+    else if (address.is_v6()) {
+      auto v6Address = address.to_v6();
+      return v6Address.is_site_local();
+    }
+
+    return false;
+  }
+
+  std::string_view clientAddress(const Wt::Configuration &conf) const
+  {
+    //std::string remoteAddr = str(envValue("REMOTE_ADDR"));
+    auto remoteAddr = envValue("REMOTE_ADDR");
+    if (conf.behindReverseProxy()) {
+      // Old, deprecated behavior
+      auto clientIp = get("Client-IP");
+
+      std::vector<std::string_view> ips;
+      if (!clientIp.empty())
+        boost::split(ips, clientIp, boost::is_any_of(","));
+
+      auto forwardedFor = get("X-Forwarded-For");
+
+      std::vector<std::string_view> forwardedIps;
+      if (!forwardedFor.empty())
+        boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
+
+      //Utils::insert(ips, forwardedIps);
+      ips.insert(ips.end(), forwardedIps.begin(), forwardedIps.end());
+
+      for (auto &ip : ips) {
+        boost::trim(ip);
+
+        if (!ip.empty() && !isPrivateIP(ip)) {
+          return ip;
+        }
+      }
+
+      return remoteAddr;
+    } else {
+      if (conf.isTrustedProxy(remoteAddr)) {
+        auto forwardedFor = get(conf.originalIPHeader());
+        boost::trim(forwardedFor);
+        std::vector<std::string_view> forwardedIps;
+        boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
+        for (auto it = forwardedIps.rbegin(); it != forwardedIps.rend(); ++it) {
+          boost::trim(*it);
+          if (!it->empty()) {
+            if (!conf.isTrustedProxy(*it)) {
+              return *it;
+            } else {
+              /*
+             * When the left-most address in a forwardedHeader is contained
+             * within a trustedProxy subnet, it should be returned as the clientAddress
+             */
+              remoteAddr = *it;
+            }
+          }
+        }
+      }
+      return remoteAddr;
+    }
+  }
+
  private:
   void parse_url() {
     const auto pos = url_.find('?');
@@ -258,6 +635,9 @@ class request final : safe_noncopyable {
       path_ = url_.substr(0, pos);
       querystring_ = url_.substr(pos + 1, url_.length() - pos - 1);
       search_ = url_.substr(pos, url_.length() - pos);
+
+      const auto pos = url_.find('#');
+      pathInfo_ = url_.substr(pos + 1);
     }
   }
 
@@ -314,7 +694,7 @@ class request final : safe_noncopyable {
   std::string_view url_;
   mutable std::string origin_;
   mutable std::string href_;
-  std::string_view path_;
+  std::string_view path_, pathInfo_;
   std::string_view querystring_;
   mutable std::multimap<std::string, std::string> query_;
   std::string_view search_;
@@ -324,6 +704,9 @@ class request final : safe_noncopyable {
   response& res_;
   cookies& cookies_;
   std::string_view body_;
+
+  ParameterMap parameters_;
+  UploadedFileMap files_;
 };
 
 }  // namespace http

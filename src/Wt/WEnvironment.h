@@ -18,6 +18,8 @@
 #include <Wt/WLocale.h>
 #include <Wt/WSignal.h>
 
+#include <Wt/cuehttp/context.hpp>
+
 namespace Wt {
 
 /*! \brief An enumeration type for specific user agent.
@@ -690,7 +692,7 @@ protected:
   std::string queryString_;
   bool        webGLsupported_;
 
-  Http::ParameterMap parameters_;
+  http::ParameterMap parameters_;
   CookieMap   cookies_;
 
   WLocale locale_;
@@ -726,6 +728,11 @@ private:
   void updateHostName(const WebRequest& request);
   void updateUrlScheme(const WebRequest& request);
   void enableAjax(const WebRequest& request);
+
+  void init(Wt::http::context* context);
+  void updateHostName(http::context* context);
+  void updateUrlScheme(http::context* context);
+  void enableAjax(Wt::http::context* context);
 
   bool agentSupportsAjax() const;
   static void parseCookies(const std::string& cookie,

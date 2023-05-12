@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <Wt/WDllDefs.h>
+#include <Wt/cuehttp/context.hpp>
 
 namespace Wt {
 
@@ -39,10 +40,15 @@ public:
    * with the parse results.
    */
   void parse(WebRequest& request, ReadOption option);
+  void parse(Wt::http::context* context, ReadOption option);
+  void parse(std::string_view message, std::string_view sessionID, Wt::http::context* context, ReadOption option);
 
 private:
-  void readMultipartData(WebRequest& request, const std::string type,
-			 ::int64_t len);
+  void readMultipartData(Wt::http::context* context, std::string_view type, ::int64_t len);
+    bool parseBody(Wt::http::context* context, const std::string boundary);
+    bool parseHead(Wt::http::context* context);
+
+  void readMultipartData(WebRequest& request, const std::string type, ::int64_t len);
   bool parseBody(WebRequest& request, const std::string boundary);
   bool parseHead(WebRequest& request);
   ::int64_t maxFormData_, maxRequestSize_, left_;
@@ -51,10 +57,15 @@ private:
 
   std::string currentKey_;
 
+  void readUntilBoundary(Wt::http::context* context, const std::string boundary,
+                         int tossAtBoundary,
+                         std::string *resultString,
+                         std::ostream *resultFile);
+
   void readUntilBoundary(WebRequest& request, const std::string boundary,
-			 int tossAtBoundary,
-			 std::string *resultString,
-			 std::ostream *resultFile);
+                         int tossAtBoundary,
+                         std::string *resultString,
+                         std::ostream *resultFile);
   void windBuffer(int offset);
   int index(const std::string search);
 
@@ -62,7 +73,7 @@ private:
   enum {MAXBOUND = 100};
 
   int buflen_;
-  char buf_[BUFSIZE + MAXBOUND];
+  char buf_[BUFSIZE + (int)MAXBOUND];
 };
 
 }

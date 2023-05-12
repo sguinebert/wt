@@ -20,7 +20,7 @@
 #ifndef CUEHTTP_NONCOPYABLE_HPP_
 #define CUEHTTP_NONCOPYABLE_HPP_
 
-namespace cue {
+namespace Wt {
 namespace http {
 namespace detail {
 

@@ -27,7 +27,7 @@
 #include "common.hpp"
 #include "noncopyable.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 namespace detail {
 
@@ -36,7 +36,7 @@ class middlewares final : safe_noncopyable {
   middlewares() noexcept { compose(); }
 
   //const std::function<void(context&)>& callback() const noexcept { return handler_; }
-  const std::function<asio::awaitable<void>(context&)>& callback() const noexcept { return handler_; }
+  const std::function<awaitable<void>(context&)>& callback() const noexcept { return handler_; }
 
   template <typename... _Args>
   void use(_Args&&... args) {
@@ -58,11 +58,11 @@ class middlewares final : safe_noncopyable {
 //                        std::make_move_iterator(handlers.end()));
 //  }
 
-  void use_append_list(const std::vector<std::function<asio::awaitable<void>(context&, std::function<asio::awaitable<void>()>)>>& handlers) {
+  void use_append_list(const std::vector<std::function<awaitable<void>(context&, std::function<awaitable<void>()>)>>& handlers) {
     middlewares_.insert(middlewares_.end(), handlers.begin(), handlers.end());
   }
 
-  void use_append_list(std::vector<std::function<asio::awaitable<void>(context&, std::function<asio::awaitable<void>()>)>>&& handlers) {
+  void use_append_list(std::vector<std::function<awaitable<void>(context&, std::function<awaitable<void>()>)>>&& handlers) {
     middlewares_.insert(middlewares_.end(), std::make_move_iterator(handlers.begin()),
                         std::make_move_iterator(handlers.end()));
   }
@@ -75,12 +75,12 @@ class middlewares final : safe_noncopyable {
   }
 
   template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>>
-  void use_impl(_Func (_Ty::*func)(context&, std::function<asio::awaitable<void>()>), _Self self) {
+  void use_impl(_Func (_Ty::*func)(context&, std::function<awaitable<void>()>), _Self self) {
     use_with_next(func, self);
   }
 
   template <typename _Ty, typename _Func>
-  void use_impl(_Func (_Ty::*func)(context&, std::function<asio::awaitable<void>()>)) noexcept {
+  void use_impl(_Func (_Ty::*func)(context&, std::function<awaitable<void>()>)) noexcept {
     use_with_next(func, (_Ty*)nullptr);
   }
 
@@ -107,7 +107,7 @@ class middlewares final : safe_noncopyable {
 
   template <typename _Ty, typename _Func, typename _Self>
   void use_with_next(_Func _Ty::*func, _Self self) {
-    middlewares_.emplace_back([func, self](context& ctx, std::function<asio::awaitable<void>()> next) -> asio::awaitable<void> {
+    middlewares_.emplace_back([func, self](context& ctx, std::function<awaitable<void>()> next) -> awaitable<void> {
       if (self) {
         (self->*func)(ctx, std::move(next));
       } else {
@@ -120,7 +120,7 @@ class middlewares final : safe_noncopyable {
   template <typename _Func>
   void use_without_next(_Func&& func) {
     middlewares_.emplace_back( //= static_cast<std::function<void(context&)>>(func)
-        [func = static_cast<std::function<asio::awaitable<void>(context&)>>(func)](context& ctx, std::function<asio::awaitable<void>()> next) -> asio::awaitable<void> {
+        [func = static_cast<std::function<awaitable<void>(context&)>>(func)](context& ctx, std::function<awaitable<void>()> next) -> awaitable<void> {
         //if constexpr (std::is_same<>)
           co_await func(ctx);
           co_await next();
@@ -129,7 +129,7 @@ class middlewares final : safe_noncopyable {
 
   template <typename _Ty, typename _Func, typename _Self>
   void use_without_next(_Func _Ty::*func, _Self self) {
-    middlewares_.emplace_back([func, self](context& ctx, std::function<void()> next) -> asio::awaitable<void> {
+    middlewares_.emplace_back([func, self](context& ctx, std::function<void()> next) -> awaitable<void> {
       if (self) {
         (self->*func)(ctx);
       } else {
@@ -141,17 +141,17 @@ class middlewares final : safe_noncopyable {
   }
 
   void compose() noexcept {
-    handler_ = [this](context& ctx) -> asio::awaitable<void> {
+    handler_ = [this](context& ctx) -> awaitable<void> {
       if (middlewares_.empty()) {
         co_return;
       }
 
       if (middlewares_.size() == 1) {
-        co_await middlewares_[0](ctx, []() -> asio::awaitable<void> { co_return; });
+        co_await middlewares_[0](ctx, []() -> awaitable<void> { co_return; });
       } else {
         std::size_t index{0};
-        std::function<asio::awaitable<void>()> next;
-        next = [this, &next, &index, &ctx]() -> asio::awaitable<void> {
+        std::function<awaitable<void>()> next;
+        next = [this, &next, &index, &ctx]() -> awaitable<void> {
           if (++index == middlewares_.size()) {
             co_return;
           }
@@ -166,8 +166,8 @@ class middlewares final : safe_noncopyable {
 //  std::function<void(context&)> handler_;
 //  std::vector<std::function<void(context&, std::function<void()>)>> middlewares_;
 
-  std::function<asio::awaitable<void>(context&)> handler_;
-  std::vector<std::function<asio::awaitable<void>(context&, std::function<asio::awaitable<void>()>)>> middlewares_;
+  std::function<awaitable<void>(context&)> handler_;
+  std::vector<std::function<awaitable<void>(context&, std::function<awaitable<void>()>)>> middlewares_;
 };
 
 }  // namespace detail

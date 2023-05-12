@@ -26,7 +26,7 @@
 #include "common.hpp"
 #include "noncopyable.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 namespace detail {
 

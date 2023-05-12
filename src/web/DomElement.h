@@ -152,6 +152,14 @@ public:
   static std::string urlEncodeS(const std::string& url,
                                 const std::string& allowed);
 
+  static std::string urlEncodeS(std::string_view url,
+                                     const std::string &allowed);
+
+  static std::string urlEncodeS(std::string_view url)
+  {
+      return urlEncodeS(url, std::string());
+  }
+
   /*! \brief Returns the mode.
    */
   Mode mode() const { return mode_; }

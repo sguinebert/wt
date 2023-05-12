@@ -2219,7 +2219,7 @@ protected:
    *
    * @param errorText the error will usually be in json format.
    */
-  virtual void handleJavaScriptError(const std::string& errorText);
+  virtual void handleJavaScriptError(std::string_view errorText);
 private:
   Signal< ::int64_t > requestTooLarge_;
   Signal<> unsuspended_;

@@ -487,8 +487,21 @@ bool Configuration::isTrustedProxy(const std::string &ipAddress) const {
   if (ec) {
     return false;
   }
-  return std::any_of(begin(trustedProxies_), end(trustedProxies_), [&address](const Network &network) {
+  return std::any_of(trustedProxies_.begin(), trustedProxies_.end(), [&address](const Network &network) {
     return network.contains(address);
+  });
+}
+
+bool Configuration::isTrustedProxy(std::string_view ipAddress) const
+{
+  READ_LOCK;
+  AsioWrapper::error_code ec;
+  const auto address = AsioWrapper::asio::ip::make_address(ipAddress, ec);
+  if (ec) {
+    return false;
+  }
+  return std::any_of(trustedProxies_.begin(), trustedProxies_.end(), [&address](const Network &network) {
+      return network.contains(address);
   });
 }
 
@@ -598,7 +611,7 @@ int Configuration::numSessionThreads() const
   return numSessionThreads_;
 }
 
-bool Configuration::isAllowedOrigin(const std::string &origin) const
+bool Configuration::isAllowedOrigin(std::string_view origin) const
 {
   READ_LOCK;
   if (allowedOrigins_.size() == 1 &&
@@ -870,14 +883,12 @@ EntryPointMatch Configuration::matchEntryPoint(const std::string &scriptName,
     result.entryPoint = match;
     // Iterate concurrently over the path (it1),
     // and the matched endpoint's path (it2)
-    spliterator it1 = spliterator(path.begin() + 1, path.end(),
-                                  boost::first_finder(FORWARD_SLASH, boost::is_equal()));
-    for (spliterator it2 = spliterator(match->path().begin() + 1, match->path().end(),
-                                       boost::first_finder(FORWARD_SLASH, boost::is_equal()));
+    spliterator it1 = spliterator(path.begin() + 1, path.end(), boost::first_finder(FORWARD_SLASH, boost::is_equal()));
+    for (spliterator it2 = spliterator(match->path().begin() + 1, match->path().end(), boost::first_finder(FORWARD_SLASH, boost::is_equal()));
          it1 != spliterator() && it2 != spliterator(); ++it1, ++it2) {
       // Check dynamic segment (e.g. "${var}")
-      if (boost::starts_with(*it2, "${") &&
-          boost::ends_with(*it2, "}")) {
+      if (boost::starts_with(*it2, "${") && boost::ends_with(*it2, "}"))
+      {
         auto range = boost::iterator_range<std::string::const_iterator>(it2->begin() + 2, it2->end() - 1);
         result.urlParams.push_back(std::make_pair(boost::copy_range<std::string>(range),
                                                   boost::copy_range<std::string>(*it1)));
@@ -1398,8 +1409,7 @@ void Configuration::readConfiguration(bool silent)
   }
 }
 
-bool Configuration::registerSessionId(const std::string& oldId,
-				      const std::string& newId)
+bool Configuration::registerSessionId(const std::string& oldId, const std::string& newId)
 {
   if (!runDirectory_.empty()) {
 
@@ -1408,23 +1418,25 @@ bool Configuration::registerSessionId(const std::string& oldId,
 
       struct stat finfo;
       if (stat(socketPath.c_str(), &finfo) != -1)
-	return false;
+        return false;
 
-      if (oldId.empty()) {
-	if (sessionPolicy_ == SharedProcess) {
-	  std::ofstream f(socketPath.c_str());
-	  f << getpid() << std::endl;
-	  f.flush();
-	}
+      if (oldId.empty())
+      {
+        if (sessionPolicy_ == SharedProcess)
+        {
+          std::ofstream f(socketPath.c_str());
+          f << getpid() << std::endl;
+          f.flush();
+        }
       }
     }
 
     if (!oldId.empty()) {
       if (newId.empty())
-	unlink(sessionSocketPath(oldId).c_str());
+        unlink(sessionSocketPath(oldId).c_str());
       else
-	std::rename(sessionSocketPath(oldId).c_str(),
-	            sessionSocketPath(newId).c_str());
+        std::rename(sessionSocketPath(oldId).c_str(),
+                    sessionSocketPath(newId).c_str());
     }
   }
 

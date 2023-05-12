@@ -28,14 +28,14 @@
 #include "server.hpp"
 #include "ws_server.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 class cuehttp final : safe_noncopyable {
  public:
   cuehttp() noexcept {
     http_handler_ = middlewares_.callback();
-    ws_handler_ = [](context& ctx) -> asio::awaitable<void> { ctx.status(503); co_return; };
+    ws_handler_ = [](context& ctx) -> awaitable<void> { ctx.status(503); co_return; };
   }
 
   static void run() { detail::engines::default_engines().run(); }
@@ -57,8 +57,8 @@ class cuehttp final : safe_noncopyable {
     return *this;
   }
 
-  std::function<asio::awaitable<void>(context&)> callback() const noexcept {
-    return [this](context& ctx) -> asio::awaitable<void> {
+  std::function<awaitable<void>(context&)> callback() const noexcept {
+    return [this](context& ctx) -> awaitable<void> {
       if (ctx.req().websocket()) {
         co_await ws_handler_(ctx);
       } else {
@@ -86,10 +86,10 @@ class cuehttp final : safe_noncopyable {
   http_t server_;
   detail::middlewares middlewares_;
   //std::function<void(context&)> http_handler_;
-  std::function<asio::awaitable<void>(context&)> http_handler_;
+  std::function<awaitable<void>(context&)> http_handler_;
   // websocket
   std::unique_ptr<ws_server> ws_;
-  std::function<asio::awaitable<void>(context&)> ws_handler_;
+  std::function<awaitable<void>(context&)> ws_handler_;
 };
 
 }  // namespace http

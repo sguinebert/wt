@@ -23,9 +23,9 @@
 #include <string>
 #include <unordered_map>
 
-#include "cuehttp/detail/common.hpp"
+#include "common.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 namespace detail {
 

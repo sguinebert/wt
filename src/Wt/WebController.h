@@ -13,16 +13,21 @@
 #include <map>
 
 #include <Wt/WDllDefs.h>
-#include <Wt/WServer.h>
+//#include <Wt/WServer.h>
 #include <Wt/WSocketNotifier.h>
+#include <Wt/AsioWrapper/asio.hpp>
+#include <Wt/cuehttp.hpp>
 
-#include "EntryPoint.h"
-#include "SocketNotifier.h"
+#include "web/EntryPoint.h"
+#include "web/SocketNotifier.h"
 
 #if defined(WT_THREADED) && !defined(WT_TARGET_JAVA)
 #include <thread>
 #include <mutex>
 #endif
+
+
+#include <Wt/WLogger.h>
 
 namespace http {
   namespace server {
@@ -52,7 +57,7 @@ typedef Runnable *Function;
 #define WT_CALL_FUNCTION(f) (f)->run();
 
 #else
-typedef std::function<void ()>  Function;
+typedef std::function<void()> Function;
 #define WT_CALL_FUNCTION(f) (f)();
 #endif
 
@@ -62,9 +67,9 @@ typedef std::function<void ()>  Function;
  */
 struct ApplicationEvent {
   ApplicationEvent(const std::string& aSessionId,
-		   const Function& aFunction,
+                   const Function& aFunction,
                    const Function& aFallbackFunction = Function())
-    : sessionId(aSessionId),
+      : sessionId(aSessionId),
       function(aFunction),
       fallbackFunction(aFallbackFunction)
   { }
@@ -106,14 +111,13 @@ public:
   WServer *server() { return &server_; }
 
   std::string computeRedirectHash(const std::string& url);
+  std::string computeRedirectHash(std::string_view url);
 
 #ifdef WT_TARGET_JAVA
   int getIdForWebSocket(); 
   std::string getContextPath();
 #else // WT_TARGET_JAVA
-  WebController(WServer& server,
-		const std::string& singleSessionId = std::string(),
-		bool autoExpire = true);
+  WebController(WServer& server, const std::string& singleSessionId = std::string(), bool autoExpire = true);
   ~WebController();
 
   int sessionCount() const;
@@ -124,6 +128,11 @@ public:
 
   void handleRequest(WebRequest *request);
 
+  awaitable<void> handleRequest(Wt::http::context *context, const EntryPoint *entryPoint = nullptr);
+
+  awaitable<void> handleWebSocketMessage(Wt::http::context *context, std::string& message);
+
+
 #ifndef WT_CNOR
   bool handleApplicationEvent(const std::shared_ptr<ApplicationEvent>& event);
 #endif // WT_CNOR
@@ -133,8 +142,8 @@ public:
   void start();
   void shutdown();
 
-  static std::string sessionFromCookie(const char * const cookies,
-				       const std::string& scriptName,
+  static std::string sessionFromCookie(std::string_view cookies,
+                                       std::string_view scriptName,
                                        const int sessionIdLength);
 
   typedef std::map<int, WSocketNotifier *> SocketNotifierMap;
@@ -166,7 +175,7 @@ private:
 #endif // WT_THREADED
   std::set<std::string> uploadProgressUrls_;
 
-  typedef std::map<std::string, std::shared_ptr<WebSession> > SessionMap;
+  typedef std::unordered_map<std::string, std::shared_ptr<WebSession> > SessionMap;
   SessionMap sessions_;
 
 #ifdef WT_THREADED
@@ -200,6 +209,7 @@ private:
   EntryPointMatch getEntryPoint(WebRequest *request);
 
   static std::string appSessionCookie(const std::string& url);
+  static std::string appSessionCookie(std::string_view url);
 
 #endif // WT_TARGET_JAVA
 

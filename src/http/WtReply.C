@@ -8,7 +8,7 @@
 #include "WtReply.h"
 #include "StockReply.h"
 #include "HTTPRequest.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "Server.h"
 #include "WebUtils.h"
 #include "FileUtils.h"
@@ -240,11 +240,13 @@ void WtReply::consumeRequestBody(const char *begin,
 	// resource
 	if (entryPoint_->resource())
 	  connection()->server()->controller()->handleRequest(httpRequest_);
-	else
-	  connection()->server()->service().post
-	    (std::bind(&Wt::WebController::handleRequest,
-		       connection()->server()->controller(),
-		       httpRequest_));
+    else
+      connection()->server()->service().post([this] () {
+            connection()->server()->controller()->handleRequest(httpRequest_);
+      });
+//	    (std::bind(&Wt::WebController::handleRequest,
+//		       connection()->server()->controller(),
+//		       httpRequest_));
       }
     }
   } else {
@@ -319,12 +321,11 @@ void WtReply::readRestWebSocketHandshake()
 }
 
 bool WtReply::consumeWebSocketMessage(ws_opcode opcode,
-				      const char* begin,
-				      const char* end,
-				      Request::State state)
+                                      const char* begin,
+                                      const char* end,
+                                      Request::State state)
 {
-  if (static_cast< ::int64_t>(in_mem_.tellp()) + static_cast< ::int64_t>(end - begin) >
-      configuration().maxMemoryRequestSize()) {
+  if (static_cast< ::int64_t>(in_mem_.tellp()) + static_cast< ::int64_t>(end - begin) > configuration().maxMemoryRequestSize()) {
     LOG_ERROR("Rejecting WebSocket message because it exceeds --max-memory-request-size (= {} bytes)", configuration().maxMemoryRequestSize());
     state = Request::Error;
   } else {
@@ -342,8 +343,7 @@ bool WtReply::consumeWebSocketMessage(ws_opcode opcode,
 
       // We need to post since in Wt we may be entering a recursive event
       // loop and we need to release the strand
-      connection()->server()->service().post
-	(std::bind(cb, Wt::WebReadEvent::Error));
+      connection()->server()->service().post(std::bind(cb, Wt::WebReadEvent::Error));
 
       return false;
     } else
@@ -361,36 +361,34 @@ bool WtReply::consumeWebSocketMessage(ws_opcode opcode,
 
     case text_frame:
       {
-	LOG_DEBUG("WtReply::consumeWebSocketMessage(): rx text_frame");
+        LOG_DEBUG("WtReply::consumeWebSocketMessage(): rx text_frame");
 
-	/*
-	 * FIXME: check that we have received the entire message.
-	 *  If yes: call the callback; else resume reading (expecting
-	 *  continuation frames in that case)
-	 */
-	Wt::WebRequest::ReadCallback cb = readMessageCallback_;
-	readMessageCallback_ = nullptr;
+        /*
+         * FIXME: check that we have received the entire message.
+         *  If yes: call the callback; else resume reading (expecting
+         *  continuation frames in that case)
+         */
+        Wt::WebRequest::ReadCallback cb = readMessageCallback_;
+        readMessageCallback_ = nullptr;
 
-	// We need to post since in Wt we may be entering a recursive event
-	// loop and we need to release the strand
-	connection()->server()->service().post
-	  (std::bind(cb, Wt::WebReadEvent::Message));
+        // We need to post since in Wt we may be entering a recursive event
+        // loop and we need to release the strand
+        connection()->server()->service().post(std::bind(cb, Wt::WebReadEvent::Message));
 
-	break;
+        break;
       }
     case ping:
       {
-	LOG_DEBUG("WtReply::consumeWebSocketMessage(): rx ping");
+        LOG_DEBUG("WtReply::consumeWebSocketMessage(): rx ping");
 
-	Wt::WebRequest::ReadCallback cb = readMessageCallback_;
-	readMessageCallback_ = nullptr;
+        Wt::WebRequest::ReadCallback cb = readMessageCallback_;
+        readMessageCallback_ = nullptr;
 
-	// We need to post since in Wt we may be entering a recursive event
-	// loop and we need to release the strand
-	connection()->server()->service().post
-	  (std::bind(cb, Wt::WebReadEvent::Ping));
+        // We need to post since in Wt we may be entering a recursive event
+        // loop and we need to release the strand
+        connection()->server()->service().post(std::bind(cb, Wt::WebReadEvent::Ping));
 
-	break;
+        break;
       }
       break;
     case binary_frame:
@@ -399,15 +397,15 @@ bool WtReply::consumeWebSocketMessage(ws_opcode opcode,
       /* fall through */
     case pong:
       {
-	LOG_DEBUG("WtReply::consumeWebSocketMessage(): rx pong");
+        LOG_DEBUG("WtReply::consumeWebSocketMessage(): rx pong");
 
-	/*
-	 * We do not need to send a response; resume reading, keeping the
-	 * same read callback
-	 */
-	Wt::WebRequest::ReadCallback cb = readMessageCallback_;
-	readMessageCallback_ = nullptr;
-	readWebSocketMessage(cb);
+        /*
+         * We do not need to send a response; resume reading, keeping the
+         * same read callback
+         */
+        Wt::WebRequest::ReadCallback cb = readMessageCallback_;
+        readMessageCallback_ = nullptr;
+        readWebSocketMessage(cb);
       }
 
       break;
@@ -452,8 +450,7 @@ void WtReply::writeDone(bool success)
   }
 }
 
-void WtReply::send(const Wt::WebRequest::WriteCallback& callBack,
-		   bool responseComplete)
+void WtReply::send(const Wt::WebRequest::WriteCallback& callBack, bool responseComplete)
 {
   LOG_DEBUG("WtReply::send(): {}", sending_);
 
@@ -510,8 +507,8 @@ void WtReply::readWebSocketMessage(const Wt::WebRequest::ReadCallback& callBack)
   in_mem_.clear();
 
   connection()->strand().post(std::bind(&Connection::handleReadBody,
-					connection(),
-					shared_from_this()));
+                                        connection(),
+                                        shared_from_this()));
 }
 
 bool WtReply::readAvailable()

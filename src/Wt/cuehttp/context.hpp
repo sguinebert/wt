@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
@@ -28,11 +28,16 @@
 #include "response.hpp"
 #include "session.hpp"
 #include "websocket.hpp"
+#include "detail/MoveOnlyFunction.hpp"
+//#include "detail/connection.hpp"
 
-namespace cue {
+#include <Wt/Http/Request.h>
+
+namespace Wt {
 namespace http {
 
 class context final : safe_noncopyable {
+    friend class CgiParser;
  public:
   context(detail::reply_handler handler, bool https, detail::ws_send_handler ws_send_handler) noexcept
       : response_{cookies_, std::move(handler)},
@@ -48,6 +53,8 @@ class context final : safe_noncopyable {
     return *websocket_;
   }
 
+  bool isWebSocketMessage() { return request_.websocket(); }
+
   std::shared_ptr<class websocket> websocket_ptr() {
     make_ws();
     return websocket_;
@@ -56,7 +63,9 @@ class context final : safe_noncopyable {
   // request
   std::vector<std::pair<std::string_view, std::string_view>> headers() const noexcept { return request_.headers(); }
 
-  std::string_view get(std::string_view field) const noexcept { return request_.get(field); }
+  std::string_view getHeader(std::string_view field) const noexcept { return request_.get(field); }
+
+  std::string_view getParameter(const std::string& field) const noexcept { return request_.getParameter(field); }
 
   std::string_view method() const noexcept { return request_.method(); }
 
@@ -72,12 +81,38 @@ class context final : safe_noncopyable {
 
   std::string_view path() const noexcept { return request_.path(); }
 
+  std::string_view pathInfo() const noexcept { return request_.pathInfo(); }
+
   std::string_view querystring() const noexcept { return request_.querystring(); }
+
+  UploadedFileMap& uploadedFiles() { return request_.files(); }
+
+  ::int64_t postDataExceeded() const { return postDataExceeded_; }
+
+  //const UploadedFileMap& uploadedFiles() const { return request_.files(); }
+
+  std::string_view urlScheme(const Configuration &conf) const
+  {
+    if (conf.behindReverseProxy() || conf.isTrustedProxy(host())) {
+        auto forwardedProto = getHeader("X-Forwarded-Proto");
+        if (!forwardedProto.empty()) {
+            if (auto i = forwardedProto.rfind(','); i == std::string::npos)
+                return forwardedProto;
+            else
+                return forwardedProto.substr(i+1);
+        }
+    }
+
+    return request_.scheme();
+  }
 
   // response
   unsigned status() const noexcept { return response_.status(); }
 
   void status(unsigned status) noexcept { response_.status(status); }
+
+  void setResponseType(response::ResponseType responseType) { response_.setResponseType(responseType); }
+  response::ResponseType responseType() const { return response_.responseType(); }
 
   template <typename _Url>
   void redirect(_Url&& url) {
@@ -85,13 +120,13 @@ class context final : safe_noncopyable {
   }
 
   template <typename _Field, typename _Value>
-  void set(_Field&& field, _Value&& value) {
-    response_.set(std::forward<_Field>(field), std::forward<_Value>(value));
+  void addHeader(_Field&& field, _Value&& value) {
+    response_.addHeader(std::forward<_Field>(field), std::forward<_Value>(value));
   }
 
   template <typename _Headers>
-  void set(_Headers&& headers) {
-    response_.set(std::forward<_Headers>(headers));
+  void set_headers(_Headers&& headers) {
+    response_.set_headers(std::forward<_Headers>(headers));
   }
 
   void remove(std::string_view field) noexcept { response_.remove(field); }
@@ -99,6 +134,10 @@ class context final : safe_noncopyable {
   template <typename _ContentType>
   void type(_ContentType&& content_type) {
     response_.type(std::forward<_ContentType>(content_type));
+  }
+
+  void setContentType(std::string_view content_type) {
+    type(content_type);
   }
 
   void length(std::uint64_t content_length) noexcept { response_.length(content_length); }
@@ -123,6 +162,10 @@ class context final : safe_noncopyable {
 
   bool has_body() const noexcept { return response_.has_body(); }
 
+  bool has_header(std::string_view field) const noexcept { return request_.has_header(field); }
+
+  bool has_parameter(const std::string& field) const noexcept { return request_.query().contains(field); }
+
   template <typename _Body>
   void body(_Body&& body) {
     response_.body(std::forward<_Body>(body));
@@ -132,15 +175,50 @@ class context final : safe_noncopyable {
 
   std::ostream& body() { return response_.body(); }
 
+  std::ostream& out() { return response_.body(); }
+
   void reset() {
     request_.reset();
     response_.reset();
     cookies_.reset();
   }
 
+  template<class Token>
+  auto wait_flush(Token&& handler)
+  {
+    auto initiator = [this] (auto &&handler) {
+        writecallback_ = [handler = std::move(handler)] () mutable {
+            handler();
+        };
+    };
+    return asio::async_initiate<Token, void()>(initiator, handler);
+  }
+
+  void flush() {
+    flush_ = true;
+
+    if(websocket_) {
+        websocket_->send(response_.dump_body());
+        response_.reset();
+        return;
+    }
+
+    if(writecallback_)
+        writecallback_();
+
+    writecallback_ = nullptr;
+  }
+
+  std::weak_ptr<Wt::WebSession> websession() { return websession_; }
+
+  //std::string ws_querystring() { return "wtd=" + websession_.lock()->sessionId() + "&request=jsupdate"; }
+
+  bool flush_ = false;
+  ::int64_t postDataExceeded_ = 0;
+
  private:
   void make_ws() {
-    //assert(request_.websocket());
+    assert(request_.websocket());
     if (!websocket_) {
       websocket_ = std::make_shared<class websocket>(ws_send_handler_);
     }
@@ -152,6 +230,10 @@ class context final : safe_noncopyable {
   std::shared_ptr<class websocket> websocket_{nullptr};
   detail::ws_send_handler ws_send_handler_;
   std::unique_ptr<class session> session_{nullptr};
+
+  std::weak_ptr<Wt::WebSession> websession_;
+
+  Wt::cpp23::move_only_function<void()> writecallback_ = nullptr;
 };
 
 }  // namespace http

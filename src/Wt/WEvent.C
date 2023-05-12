@@ -68,6 +68,25 @@ namespace
     else
       return ifMissing;
   }
+  int parseIntParameter(Wt::http::context* context, const std::string &name, int ifMissing)
+  {
+    auto p = context->getParameter(name);
+
+    if (!p.empty())
+    {
+      try
+      {
+        return Utils::stoi(p);
+      }
+      catch (const std::exception &ee)
+      {
+        LOG_ERROR("Could not cast event property '{}: {}' to int", name, p);
+        return ifMissing;
+      }
+    }
+    else
+      return ifMissing;
+  }
 
   std::string getStringParameter(const WebRequest &request,
                                  const std::string &name)
@@ -105,6 +124,38 @@ namespace
                                asInt(s[i + 3]), asInt(s[i + 4]),
                                asInt(s[i + 5]), asInt(s[i + 6]),
                                asInt(s[i + 7]), asInt(s[i + 8])));
+      }
+    }
+    catch (const std::exception &ee)
+    {
+      LOG_ERROR("Could not parse touches array '{}'", str);
+      return;
+    }
+  }
+
+  void decodeTouches(std::string_view str, std::vector<Touch> &result)
+  {
+    if (str.empty())
+      return;
+
+    std::vector<std::string_view> s;
+    boost::split(s, str, boost::is_any_of(";"));
+
+    if (s.size() % 9)
+    {
+      LOG_ERROR("Could not parse touches array '{}'", str);
+      return;
+    }
+
+    try
+    {
+      for (unsigned i = 0; i < s.size(); i += 9)
+      {
+        result.push_back(Touch(Utils::stoll(s[i + 0]),
+                               Utils::stoi(s[i + 1]), Utils::stoi(s[i + 2]),
+                               Utils::stoi(s[i + 3]), Utils::stoi(s[i + 4]),
+                               Utils::stoi(s[i + 5]), Utils::stoi(s[i + 6]),
+                               Utils::stoi(s[i + 7]), Utils::stoi(s[i + 8])));
       }
     }
     catch (const std::exception &ee)
@@ -232,6 +283,91 @@ namespace Wt
                   targetTouches);
     decodeTouches(getStringParameter(request, concat(s, seLength, "ctouches")),
                   changedTouches);
+  }
+
+  void JavaScriptEvent::get(http::context *context, const std::string &se)
+  {
+    std::string s = se;
+    int seLength = se.length();
+
+    type = context->getParameter(concat(s, seLength, "type")); //getStringParameter(request, concat(s, seLength, "type"));
+    boost::to_lower(type);
+
+    clientX = parseIntParameter(context, concat(s, seLength, "clientX"), 0);
+    clientY = parseIntParameter(context, concat(s, seLength, "clientY"), 0);
+    documentX = parseIntParameter(context, concat(s, seLength, "documentX"), 0);
+    documentY = parseIntParameter(context, concat(s, seLength, "documentY"), 0);
+    screenX = parseIntParameter(context, concat(s, seLength, "screenX"), 0);
+    screenY = parseIntParameter(context, concat(s, seLength, "screenY"), 0);
+    widgetX = parseIntParameter(context, concat(s, seLength, "widgetX"), 0);
+    widgetY = parseIntParameter(context, concat(s, seLength, "widgetY"), 0);
+    dragDX = parseIntParameter(context, concat(s, seLength, "dragdX"), 0);
+    dragDY = parseIntParameter(context, concat(s, seLength, "dragdY"), 0);
+    wheelDelta = parseIntParameter(context, concat(s, seLength, "wheel"), 0);
+
+    /*
+  if (widgetX == 0 && widgetY == 0) {
+    const int signalLength = 7 + se.length();
+    const Http::ParameterMap& entries = request.getParameterMap();
+
+    for (Http::ParameterMap::const_iterator i = entries.begin();
+     i != entries.end(); ++i) {
+      std::string name = i->first;
+
+      if (name.substr(0, signalLength) == concat(s, seLength, "signal=") {
+    std::string e = name.substr(name.length() - 2);
+    if (e == ".x") {
+      try {
+        widgetX = Utils::stoi(i->second[0]);
+      } catch (const std::exception& ee) {
+      }
+    } else if (e == ".y") {
+      try {
+        widgetY = Utils::stoi(i->second[0]);
+      } catch (const std::exception& ee) {
+      }
+    }
+      }
+    }
+  }
+  */
+
+
+    modifiers = KeyboardModifier::None;
+    if (context->has_parameter((concat(s, seLength, "altKey"))))
+      modifiers |= KeyboardModifier::Alt;
+
+    if (context->has_parameter((concat(s, seLength, "ctrlKey"))))
+      modifiers |= KeyboardModifier::Control;
+
+    if (context->has_parameter((concat(s, seLength, "shiftKey"))))
+      modifiers |= KeyboardModifier::Shift;
+
+    if (context->has_parameter((concat(s, seLength, "metaKey"))))
+      modifiers |= KeyboardModifier::Meta;
+
+    keyCode = parseIntParameter(context, concat(s, seLength, "keyCode"), 0);
+    charCode = parseIntParameter(context, concat(s, seLength, "charCode"), 0);
+
+    button = parseIntParameter(context, concat(s, seLength, "button"), 0);
+
+    scrollX = parseIntParameter(context, concat(s, seLength, "scrollX"), 0);
+    scrollY = parseIntParameter(context, concat(s, seLength, "scrollY"), 0);
+    viewportWidth = parseIntParameter(context, concat(s, seLength, "width"), 0);
+    viewportHeight = parseIntParameter(context, concat(s, seLength, "height"), 0);
+
+    response = context->getParameter(concat(s, seLength, "response"));
+
+    int uean = parseIntParameter(context, concat(s, seLength, "an"), 0);
+    userEventArgs.clear();
+    for (int i = 0; i < uean; ++i)
+    {
+      userEventArgs.push_back(std::string(context->getParameter(se + "a" + std::to_string(i))));
+    }
+
+    decodeTouches(context->getParameter(concat(s, seLength, "touches")), touches);
+    decodeTouches(context->getParameter(concat(s, seLength, "ttouches")), targetTouches);
+    decodeTouches(context->getParameter(concat(s, seLength, "ctouches")), changedTouches);
   }
 
   WMouseEvent::WMouseEvent()

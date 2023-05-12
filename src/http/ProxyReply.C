@@ -18,6 +18,7 @@
 #include "WebUtils.h"
 #include "Wt/WString.h"
 #include "Wt/Utils.h"
+#include "Wt/WebController.h"
 
 namespace Wt {
   LOGGER("wthttp/proxy");

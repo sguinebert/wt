@@ -8,7 +8,7 @@
 #ifndef HTTP_SESSION_PROCESS_MANAGER_HPP
 #define HTTP_SESSION_PROCESS_MANAGER_HPP
 
-#include "../web/Configuration.h"
+#include "../Wt/Configuration.h"
 #include "SessionProcess.h"
 #include "Wt/WServer.h"
 

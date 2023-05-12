@@ -21,27 +21,44 @@
 #define CUEHTTP_RESPONSE_HPP_
 
 #include <memory>
+#include <span>
+#include <type_traits>
+
 
 #include "cookies.hpp"
 //#include "deps/fmt/fmt.h"
 //#include "deps/fmt/compile.h"
 #include <Wt/fmt/format.h>
 #include <Wt/fmt/compile.h>
-#include "detail/body_stream.hpp"
+//#include "detail/body_stream.hpp"
 #include "detail/common.hpp"
 #include "detail/noncopyable.hpp"
+#include "detail/gzip.hpp"
 
+#include <Wt/WStringStream.h>
 
-
-namespace cue {
+namespace Wt {
 namespace http {
+
+static constexpr std::string_view chunked_end = "0\r\n\r\n";
 
 using namespace std::literals;
 
 class response final : safe_noncopyable {
  public:
+    enum class ResponseState {
+        ResponseDone,
+        ResponseFlush
+    };
+
+    enum class ResponseType {
+        Page,
+        Script,
+        Update
+    };
+
   response(cookies& cookies, detail::reply_handler handler) noexcept
-      : cookies_{cookies},
+      : cookies_{cookies}, ostream_(&buffer_),
         last_gmt_date_str_{detail::utils::to_gmt_date_string(std::time(nullptr))},
         reply_handler_{std::move(handler)} {}
 
@@ -60,6 +77,7 @@ class response final : safe_noncopyable {
     return false;
   }
 
+
   std::string_view get(std::string_view field) const noexcept {
     for (const auto& header : headers_) {
       if (detail::utils::iequals(header.first, field)) {
@@ -70,16 +88,20 @@ class response final : safe_noncopyable {
     return ""sv;
   }
 
+  inline std::string_view getParameter(std::string_view field) const noexcept {
+    return get(field);
+  }
+
   template <typename _Field, typename _Value>
-  void set(_Field&& field, _Value&& value) {
+  void addHeader(_Field&& field, _Value&& value) {
     headers_.emplace_back(std::make_pair(std::forward<_Field>(field), std::forward<_Value>(value)));
   }
 
-  void set(const std::map<std::string, std::string>& headers) {
+  void set_headers(const std::map<std::string, std::string>& headers) {
     headers_.insert(headers_.end(), headers.begin(), headers.end());
   }
 
-  void set(std::map<std::string, std::string>&& headers) {
+  void set_headers(std::map<std::string, std::string>&& headers) {
     headers_.insert(headers_.end(), std::make_move_iterator(headers.begin()), std::make_move_iterator(headers.end()));
   }
 
@@ -101,7 +123,7 @@ class response final : safe_noncopyable {
     if (status_ == 404) {
       status(302);
     }
-    set("Location", std::forward<_Url>(url));
+    addHeader("Location", std::forward<_Url>(url));
   }
 
   bool keepalive() const noexcept { return keepalive_; }
@@ -111,49 +133,58 @@ class response final : safe_noncopyable {
       keepalive_ = true;
     } else {
       keepalive_ = false;
-      set("Connection", "close");
+      addHeader("Connection", "close");
     }
   }
 
+  ResponseType responseType_;
+  void setResponseType(ResponseType responseType) { responseType_ = responseType; }
+  ResponseType responseType() const { return responseType_; }
+
   template <typename _ContentType>
   void type(_ContentType&& content_type) {
-    set("Content-Type", std::forward<_ContentType>(content_type));
+    addHeader("Content-Type", std::forward<_ContentType>(content_type));
+  }
+
+  void setContentType(std::string_view content_type) {
+    addHeader("Content-Type", content_type);
   }
 
   std::uint64_t length() const noexcept { return content_length_; }
 
   void length(std::uint64_t content_length) noexcept { content_length_ = content_length; }
 
-  bool has_body() const noexcept { return !body_.empty(); }
+  bool has_body() const noexcept { return buffer_.size() != 0; }
 
-  std::string_view dump_body() const noexcept { return body_; }
+  std::string_view dump_body() const noexcept { return std::string_view(boost::asio::buffer_cast<const char*>(buffer_.data()), buffer_.size()); }
 
   void chunked() noexcept {
     if (!is_chunked_) {
       is_chunked_ = true;
-      set("Transfer-Encoding", "chunked");
+      addHeader("Transfer-Encoding", "chunked");
     }
   }
 
   template <typename _Body>
   void body(_Body&& body) {
-    body_ = std::forward<_Body>(body);
-    length(body_.length());
+    //if constexpr(std::is_same_v<_Body, const char*>){
+    ostream_ << body;
+    //}
+
+//    body_ = std::forward<_Body>(body);
+//    length(body_.length());
   }
 
   void body(const char* buffer, std::size_t size) {
-    body_.assign(buffer, size);
-    length(body_.length());
+    ostream_.write(buffer, size);
+    length(size);
   }
 
   std::ostream& body() {
-    assert(reply_handler_);
-    if (!stream_) {
-      is_stream_ = true;
-      reply_handler_(header_to_string());
-      stream_ = std::make_shared<detail::body_ostream>(is_chunked_, reply_handler_);
-    }
-    return *stream_;
+    return ostream_;
+  }
+  std::ostream& out() {
+    return ostream_;
   }
 
   void reset() {
@@ -164,8 +195,12 @@ class response final : safe_noncopyable {
     body_.clear();
     is_chunked_ = false;
     is_stream_ = false;
+    is_gzip_ = false;
     response_str_.clear();
     stream_.reset();
+
+    buffer_.consume(buffer_.size());
+    buf_.clear();
   }
 
   bool is_stream() const noexcept { return is_stream_; }
@@ -207,11 +242,159 @@ class response final : safe_noncopyable {
     }
   }
 
+  std::string_view corrected(char* data, std::string_view sv) {
+    std::span<char> s(data, 10);
+    fmt::format_to_n(s.begin(), s.size(), FMT_COMPILE("{:>8x}\r\n"), sv.size() - 12);
+    auto blank = std::string_view(s.begin(), s.end()).find_first_not_of(' ');
+    auto corrected = sv.substr(blank, sv.size() - blank);
+    return corrected;
+  }
+
+  /* SCATTER GATHER : header buffer (WStringStream) and body buffer (asio::streambuff) */
+  void to_buffers(std::vector<asio::const_buffer>& sgbuffers) {
+
+    content_length_ = buffer_.size();
+
+
+    //auto arr = detail::pooler.malloc();
+
+    if (is_chunked_) { //close the chunked response
+
+      if(content_length_ > 10) {
+        ostream_  << "\r\n";
+        auto chunk_sv = dump_body();
+
+        if(content_length_ > detail::threshold) {
+            auto rawbody = dump_body();
+            body_.append(10, '\0');
+            detail::gzip::compress(rawbody, body_);
+            body_.append("\r\n");
+
+            auto corr = corrected(body_.data(), body_);
+            sgbuffers.push_back(asio::buffer(corr));
+            addHeader("Content-Encoding", "gzip");
+        }
+        else {
+            auto data = boost::asio::buffer_cast<const char*>(buffer_.data());
+
+            auto corr = corrected((char*)data, chunk_sv);
+            //            std::span<char> s((char*)data, 10);
+            //            fmt::format_to_n(s.begin(), s.size(), FMT_COMPILE("{:>8x}\r\n"), chunk_sv.size() - 12);
+            //            auto blank = std::string_view(s.begin(), s.end()).find_first_not_of(' ');
+            //            auto corrected = chunk_sv.substr(blank, chunk_sv.size() - blank);
+            sgbuffers.push_back(asio::buffer(corr));
+        }
+      }
+
+      sgbuffers.push_back(asio::buffer(chunked_end));
+      return;
+    }
+
+    if(content_length_ > detail::threshold) {
+      auto rawbody = dump_body();
+      detail::gzip::compress(rawbody, body_);
+      content_length_ = body_.size();
+    }
+
+    auto cc = detail::utils::get_response_line(minor_version_ * 1000 + status_);
+    buf_.append(cc.data(), cc.size());
+    // headers
+    const auto now = std::chrono::steady_clock::now();
+    if (now - last_time_ > std::chrono::seconds{1}) {
+      last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
+      last_time_ = now;
+    }
+
+    buf_.append(last_gmt_date_str_.data(), last_gmt_date_str_.size());
+    //ostream_ << last_gmt_date_str_;
+    for (const auto& header : headers_) {
+      //fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("{}: {}\r\n"), header.first, header.second);
+      buf_ << fmt::format(FMT_COMPILE("{}: {}\r\n"), header.first, header.second);
+    }
+
+    // cookies
+    const auto& cookies = cookies_.get();
+    for (const auto& cookie : cookies) {
+      if (cookie.valid()) {
+        //fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("Set-Cookie: {}\r\n"), cookie.to_string());
+        buf_ << fmt::format(FMT_COMPILE("Set-Cookie: {}\r\n"), cookie.to_string());
+      }
+    }
+
+    if (content_length_ != 0) {
+      //fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("Content-Length: {}\r\n\r\n"), content_length_);
+      buf_ << fmt::format(FMT_COMPILE("Content-Length: {}\r\n\r\n"), content_length_);
+
+      //ostream_ << body_;
+    } else {
+      buf_ << "Content-Length: 0\r\n\r\n";
+    }
+
+    buf_.asioBuffers(sgbuffers);
+    body_.empty() ? sgbuffers.push_back(buffer_.data()) : sgbuffers.push_back(asio::buffer(body_));
+    //postBuf_.asioBuffers(sgbuffers);
+  }
+  /* SINGLE BUFFER WRITE : convert header buffer (WStringStream) and body buffer (asio::streambuff) to one dynamic char array (string) */
+  void to_strbuffers(std::string& strbuffer) {
+
+    content_length_ = buffer_.size();
+
+    auto cc = detail::utils::get_response_line(minor_version_ * 1000 + status_);
+    strbuffer.append(cc.data(), cc.size());
+    // headers
+    const auto now = std::chrono::steady_clock::now();
+    if (now - last_time_ > std::chrono::seconds{1}) {
+      last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
+      last_time_ = now;
+    }
+
+    strbuffer.append(last_gmt_date_str_.data(), last_gmt_date_str_.size());
+    //ostream_ << last_gmt_date_str_;
+    for (const auto& header : headers_) {
+      fmt::format_to(std::back_inserter(strbuffer), FMT_COMPILE("{}: {}\r\n"), header.first, header.second);
+      //buf_ << fmt::format("{}: {}\r\n", header.first, header.second);
+    }
+
+    // cookies
+    const auto& cookies = cookies_.get();
+    for (const auto& cookie : cookies) {
+      if (cookie.valid()) {
+        fmt::format_to(std::back_inserter(strbuffer), FMT_COMPILE("Set-Cookie: {}\r\n"), cookie.to_string());
+      }
+    }
+
+    if (!is_chunked_) {
+      if (content_length_ != 0) {
+        fmt::format_to(std::back_inserter(strbuffer), FMT_COMPILE("Content-Length: {}\r\n\r\n"), content_length_);
+
+        //ostream_ << body_;
+      } else {
+        strbuffer += "Content-Length: 0\r\n\r\n";
+      }
+    } else {
+      // chunked
+      strbuffer += "\r\n";
+    }
+
+    const char* header=boost::asio::buffer_cast<const char*>(buffer_.data());
+    strbuffer.append(header, buffer_.size());
+  }
+
  private:
   std::string header_to_string() {
     std::string str{detail::utils::get_response_line(minor_version_ * 1000 + status_)};
     // headers
     // os << detail::utils::to_gmt_date_string(std::time(nullptr));
+
+    const auto now = std::chrono::steady_clock::now();
+    if (now - last_time_ > std::chrono::seconds{1}) {
+      //fmt::format_to(std::back_inserter(str), "{:%a, %d %b %Y %T} GMT\r\n", now);
+      //last_gmt_date_str_ = fmt::format(FMT_COMPILE("{:%a, %d %b %Y %T} GMT\r\n"),  std::chrono::system_clock::now());
+      last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
+      last_time_ = now;
+    }
+    str += last_gmt_date_str_;
+
     for (const auto& header : headers_) {
       fmt::format_to(std::back_inserter(str), FMT_COMPILE("{}: {}\r\n"), header.first, header.second);
       //str += fmt::format("{}: {}\r\n", header.first, header.second);
@@ -246,10 +429,18 @@ class response final : safe_noncopyable {
   bool keepalive_{true};
   std::uint64_t content_length_{0};
   cookies& cookies_;
+
   std::string body_;
   std::string response_str_;
+
+  Wt::WStringStream buf_;
+  Wt::WStringStream postBuf_;
+  asio::streambuf buffer_;
+  std::ostream ostream_;
+
   bool is_chunked_{false};
   bool is_stream_{false};
+  bool is_gzip_ {false};
   std::chrono::steady_clock::time_point last_time_{std::chrono::steady_clock::now()};
   std::string last_gmt_date_str_;
   detail::reply_handler reply_handler_;

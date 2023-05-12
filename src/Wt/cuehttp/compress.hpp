@@ -20,12 +20,14 @@
 #ifndef CUEHTTP_COMPRESS_HPP_
 #define CUEHTTP_COMPRESS_HPP_
 
-#ifdef ENABLE_GZIP
+//#ifdef WTHTTP_WITH_ZLIB
 
-#include "cuehttp/context.hpp"
-#include "cuehttp/detail/gzip.hpp"
+#include "context.hpp"
+#include "detail/gzip.hpp"
 
-namespace cue {
+#include <Wt/AsioWrapper/asio.hpp>
+
+namespace Wt {
 namespace http {
 
 struct compress final {
@@ -41,7 +43,7 @@ struct compress final {
 
 template <typename _Options>
 inline auto use_compress(_Options&& options) noexcept {
-  return [options = std::forward<_Options>(options)](context& ctx, std::function<asio::awaitable<void>()> next) -> asio::awaitable<void> {
+  return [options = std::forward<_Options>(options)](context& ctx, std::function<awaitable<void>()> next) -> awaitable<void> {
     // call next ---> need to get the data first via the user defined function
     co_await next();
 
@@ -59,8 +61,8 @@ inline auto use_compress(_Options&& options) noexcept {
       ctx.status(500);
       co_return;
     }
-
-    ctx.set("Content-Encoding", "gzip");
+    
+    ctx.addHeader("Content-Encoding", "gzip");
     ctx.body(std::move(dst_body));
   };
 }
@@ -70,6 +72,6 @@ inline auto use_compress() noexcept { return use_compress(compress::options{}); 
 }  // namespace http
 }  // namespace cue
 
-#endif  // ENABLE_GZIP
+//#endif  // WTHTTP_WITH_ZLIB
 
 #endif  // CUEHTTP_COMPRESS_HPP_

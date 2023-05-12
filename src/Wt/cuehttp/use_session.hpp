@@ -22,10 +22,10 @@
 
 #include <functional>
 
-#include "cuehttp/context.hpp"
-#include "cuehttp/session.hpp"
+#include "context.hpp"
+#include "session.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 template <typename _Options>

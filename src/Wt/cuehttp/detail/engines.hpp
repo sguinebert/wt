@@ -40,7 +40,7 @@ using namespace boost;
 using executor_t = boost::asio::io_context::executor_type;
 inline static thread_local asio::io_context* thread_context = nullptr;
 
-namespace cue {
+namespace Wt {
 namespace http {
 namespace detail {
 

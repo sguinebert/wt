@@ -17,7 +17,7 @@
 #include "Wt/WGlobal.h"
 
 #include "Resizable.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebUtils.h"
 
 #include <boost/algorithm/string.hpp>

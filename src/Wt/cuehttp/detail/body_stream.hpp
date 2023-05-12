@@ -24,7 +24,7 @@
 #include "common.hpp"
 #include "noncopyable.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 namespace detail {
 
@@ -40,7 +40,7 @@ class body_streambuf final : public buffered_streambuf<>, safe_noncopyable {
       sync();
       if (chunked_) {
         static const std::string chunked_end{"0\r\n\r\n"};
-        handler_(chunked_end);
+        //handler_(chunked_end);
       }
     }
   }
@@ -64,7 +64,7 @@ class body_streambuf final : public buffered_streambuf<>, safe_noncopyable {
     } else {
       buffer_.append(buffer, static_cast<std::string::size_type>(size));
     }
-    handler_(buffer_);
+    //handler_(buffer_);
     return static_cast<int>(size);
   }
 

@@ -107,8 +107,7 @@ typedef std::string ParameterValues[];
  */
 typedef std::unordered_map<std::string, ParameterValues> ParameterMap;
 
-extern const std::string *get(const ParameterMap& map,
-			      const std::string& name);
+extern const std::string *get(const ParameterMap& map, const std::string& name);
 
 /*! \brief A file parameter map.
  *
@@ -442,14 +441,13 @@ public:
   const std::vector<std::pair<std::string, std::string> > &urlParams() const;
 #endif // WT_TARGET_JAVA
 
-  static ByteRangeSpecifier getRanges(const std::string &header,
-				      ::int64_t filesize);
+  static ByteRangeSpecifier getRanges(const std::string &header, ::int64_t filesize);
 
-  static void parseFormUrlEncoded(const std::string& s,
-				  ParameterMap& parameters);
+  static void parseFormUrlEncoded(const std::string& s, ParameterMap& parameters);
 
-  static void parseCookies(const std::string& cookie,
-			   std::unordered_map<std::string, std::string>& result);
+  static void parseFormUrlEncoded(std::string_view s, ParameterMap& parameters);
+
+  static void parseCookies(const std::string& cookie, std::unordered_map<std::string, std::string>& result);
 
 private:
   const WebRequest *request_;

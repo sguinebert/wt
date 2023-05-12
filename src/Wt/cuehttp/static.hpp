@@ -20,9 +20,9 @@
 #ifndef CUEHTTP_STATIC_HPP_
 #define CUEHTTP_STATIC_HPP_
 
-#include "cuehttp/detail/static.hpp"
+#include "detail/static.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 template <typename... _Args>

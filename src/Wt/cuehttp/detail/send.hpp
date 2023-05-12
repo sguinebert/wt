@@ -25,11 +25,11 @@
 #include <sstream>
 #include <vector>
 
-#include "cuehttp/compress.hpp"
-#include "cuehttp/context.hpp"
-#include "cuehttp/detail/mime.hpp"
+#include "../compress.hpp"
+#include "../context.hpp"
+#include "mime.hpp"
 
-namespace cue {
+namespace Wt {
 namespace http {
 
 namespace send {
@@ -110,9 +110,9 @@ inline void send_file(context& ctx, _Path&& path, _Options&& options) {
     }
 #endif  // ENABLE_GZIP
     if (options.cross_domain) {
-      ctx.set("Access-Control-Allow-Origin", "*");
-      ctx.set("Access-Control-Allow-Headers", "X-Requested-With");
-      ctx.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+      ctx.addHeader("Access-Control-Allow-Origin", "*");
+      ctx.addHeader("Access-Control-Allow-Headers", "X-Requested-With");
+      ctx.addHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     }
     if (!ctx.res().has("Content-Type")) {
       const auto ext_str = real_path.extension().string();

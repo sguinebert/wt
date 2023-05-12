@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 #include "FCGIStream.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "Configuration.h"
 #include "SslUtils.h"
 
@@ -339,19 +339,19 @@ WebRequest *FCGIStream::getNextRequest(int timeoutsec)
   timeout.tv_usec = 0;
 
   for(;;) {
-    int result = select(FD_SETSIZE, &rfds, nullptr, nullptr, &timeout);
+      int result = select(FD_SETSIZE, &rfds, nullptr, nullptr, &timeout);
 
-    if (result == 0)
-      return nullptr; // timeout
-    else if (result == -1) {
-      if (errno != EINTR) {
-	perror("select");
-	exit(1); // FIXME: throw exception
-      } else {
-	// EINTR, try again
-      }
-    } else
-      break;
+      if (result == 0)
+    return nullptr; // timeout
+      else if (result == -1) {
+    if (errno != EINTR) {
+          perror("select");
+          exit(1); // FIXME: throw exception
+    } else {
+          // EINTR, try again
+    }
+      } else
+    break;
   }
 
   FCGX_Request *request = new FCGX_Request();

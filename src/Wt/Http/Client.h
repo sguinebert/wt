@@ -498,7 +498,7 @@ public:
   void setMaxRedirects(int maxRedirects);
 
 private:
-  Wt::AsioWrapper::asio::io_service *ioService_;
+  Wt::AsioWrapper::asio::io_service *io_context_;
   class Impl;
   std::weak_ptr<Impl> impl_;
   std::chrono::steady_clock::duration timeout_;

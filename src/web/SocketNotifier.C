@@ -5,7 +5,7 @@
  */
 
 #include "SocketNotifier.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "Wt/WLogger.h"
 #include "Wt/WSocketNotifier.h"
 #include <set>
@@ -62,7 +62,7 @@ public:
 #else
     int error = errno;
 #endif
-    LOG_ERROR("{}. Error code {}", msg, error);
+    //LOG_ERROR("{}. Error code {}", msg, error);
   }
 };
 
@@ -372,7 +372,7 @@ void SocketNotifier::threadEntry()
 
       lock.lock();
     } else {
-      LOG_ERROR("select() returned -1");
+      //LOG_ERROR("select() returned -1");
     }
   }
 }

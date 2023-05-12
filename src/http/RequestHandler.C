@@ -64,9 +64,9 @@ void RequestHandler::setSessionManager(SessionProcessManager *sessionManager)
  * and do it and create a Reply object which will do it.
  */
 ReplyPtr RequestHandler::handleRequest(Request& req,
-				       ReplyPtr& lastWtReply,
-				       ReplyPtr& lastProxyReply,
-				       ReplyPtr& lastStaticReply)
+                                       ReplyPtr& lastWtReply,
+                                       ReplyPtr& lastProxyReply,
+                                       ReplyPtr& lastStaticReply)
 {
   if ((req.method != "GET")
       && (req.method != "HEAD")
@@ -99,8 +99,8 @@ ReplyPtr RequestHandler::handleRequest(Request& req,
   if (!config_.defaultStatic()) {
     for (unsigned i = 0; i < config_.staticPaths().size(); ++i) {
       if (Wt::Configuration::matchesPath(req.request_path, config_.staticPaths()[i], true)) {
-	isStaticFile = true;
-	break;
+        isStaticFile = true;
+        break;
       }
     }
   }
@@ -119,21 +119,21 @@ ReplyPtr RequestHandler::handleRequest(Request& req,
       req.url_params = std::move(bestMatch.urlParams);
 
       if (wtConfig_.sessionPolicy() != Wt::Configuration::DedicatedProcess ||
-	  ep.type() == Wt::EntryPointType::StaticResource ||
-	  config_.parentPort() != -1) {
-	if (!lastWtReply)
-	  lastWtReply.reset(new WtReply(req, ep, config_));
-	else
-	  lastWtReply->reset(&ep);
+          ep.type() == Wt::EntryPointType::StaticResource ||
+          config_.parentPort() != -1) {
+        if (!lastWtReply)
+          lastWtReply.reset(new WtReply(req, ep, config_));
+        else
+          lastWtReply->reset(&ep);
 
-	return lastWtReply;
+        return lastWtReply;
       } else {
-	if (!lastProxyReply)
-	  lastProxyReply.reset(new ProxyReply(req, config_, *sessionManager_));
-	else
-	  lastProxyReply->reset(nullptr);
+        if (!lastProxyReply)
+          lastProxyReply.reset(new ProxyReply(req, config_, *sessionManager_));
+        else
+          lastProxyReply->reset(nullptr);
 
-	return lastProxyReply;
+        return lastProxyReply;
       }
 
       // return ReplyPtr(new WtReply(req, ep, config_));

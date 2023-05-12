@@ -39,7 +39,7 @@
 
 #include "Wt/WApplication.h"
 
-#include "WebSession.h"
+//#include "WebSession.h"
 #include "Wt/WRandom.h"
 
 #ifndef WT_TARGET_JAVA
@@ -47,7 +47,7 @@
 #endif // WT_TARGET_JAVA
 
 #ifndef WT_TARGET_JAVA
-#include "EntryPoint.h"
+#include "../web/EntryPoint.h"
 #endif // WT_TARGET_JAVA
 
 namespace boost {
@@ -200,8 +200,9 @@ public:
   std::string sessionIdPrefix() const;
   int fullSessionIdLength() const; // length of prefix + session id
   int numSessionThreads() const;
+  EntryPointList& entryPoints() { return entryPoints_; }
 
-  bool isAllowedOrigin(const std::string &origin) const;
+  bool isAllowedOrigin(std::string_view origin) const;
 
 #ifndef WT_TARGET_JAVA
   bool readConfigurationProperty(const std::string& name, std::string& value)
@@ -242,6 +243,7 @@ public:
   std::string originalIPHeader() const;
   std::vector<Network> trustedProxies() const;
   bool isTrustedProxy(const std::string &ipAddress) const;
+  bool isTrustedProxy(std::string_view ipAddress) const;
   std::string redirectMessage() const;
   bool serializedEvents() const;
   bool webSockets() const;

@@ -70,6 +70,8 @@ public:
    */
   WLocale(const std::string& locale);
 
+  WLocale(std::string_view locale);
+
   /*! \brief Creates a locale by name.
    *
    * The locale name is a string such as "en" (for English) or "en_GB"

@@ -18,7 +18,7 @@
 
 #include "Server.h"
 #include "Configuration.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebUtils.h"
 
 #ifndef WT_WIN32
@@ -119,7 +119,7 @@ namespace server {
 Server::Server(const Configuration& config, Wt::WServer& wtServer)
   : config_(config),
     wt_(wtServer),
-    accept_strand_(wt_.ioService()),
+    accept_strand_(wt_.ioService().get()),
     // post_strand_(ioService_),
 #ifdef HTTP_WITH_SSL
 #if (defined(WT_ASIO_IS_BOOST_ASIO) && BOOST_VERSION >= 106600) || (defined(WT_ASIO_IS_STANDALONE_ASIO) && ASIO_VERSION >= 101100)
@@ -131,7 +131,7 @@ Server::Server(const Configuration& config, Wt::WServer& wtServer)
     connection_manager_(),
     sessionManager_(0),
     request_handler_(config, wt_.configuration(), accessLogger_),
-    expireSessionsTimer_(wt_.ioService())
+    expireSessionsTimer_(wt_.ioService().get())
 {
   if (config.parentPort() != -1) {
     accessLogger_.configure(std::string("-*"));
@@ -144,7 +144,7 @@ Server::Server(const Configuration& config, Wt::WServer& wtServer)
 
   if (wt_.configuration().sessionPolicy() == Wt::Configuration::DedicatedProcess &&
       config.parentPort() == -1) {
-    sessionManager_ = new SessionProcessManager(wt_.ioService(), wt_.configuration());
+    sessionManager_ = new SessionProcessManager(wt_.ioService().get(), wt_.configuration());
     request_handler_.setSessionManager(sessionManager_);
   }
 
@@ -161,7 +161,7 @@ Server::Server(const Configuration& config, Wt::WServer& wtServer)
 
 asio::io_service& Server::service()
 {
-  return wt_.ioService();
+  return wt_.ioService().get();
 }
 
 Wt::WebController *Server::controller()
@@ -181,7 +181,7 @@ void Server::start()
       (std::bind(&Server::expireSessions, this, std::placeholders::_1));
   }
 
-  asio::ip::tcp::resolver resolver(wt_.ioService());
+  asio::ip::tcp::resolver resolver(wt_.ioService().get());
 
   // HTTP
   if (config_.parentPort() != -1) {
@@ -295,13 +295,13 @@ void Server::start()
   // accept exits. To avoid that this happens when called within the
   // WServer context, we post the action of calling accept to one of
   // the threads in the threadpool.
-  wt_.ioService().post(std::bind(&Server::startAccept, this));
+  wt_.ioService().get().post(std::bind(&Server::startAccept, this));
 
   if (config_.parentPort() != -1) {
     // This is a child process, connect to parent to
     // announce the listening port.,
-    parentSocket_ = std::make_unique<asio::ip::tcp::socket>(wt_.ioService());
-    wt_.ioService().post
+    parentSocket_ = std::make_unique<asio::ip::tcp::socket>(wt_.ioService().get());
+    wt_.ioService().get().post
       (std::bind(&Server::startConnect, this));
   }
 }
@@ -389,7 +389,7 @@ void Server::addTcpEndpoint(const asio::ip::tcp::endpoint &endpoint,
                             const std::string &address,
                             Wt::AsioWrapper::error_code &errc)
 {
-  tcp_listeners_.push_back(TcpListener(asio::ip::tcp::acceptor(wt_.ioService()), TcpConnectionPtr()));
+  tcp_listeners_.push_back(TcpListener(asio::ip::tcp::acceptor(wt_.ioService().get()), TcpConnectionPtr()));
   asio::ip::tcp::acceptor &tcp_acceptor = tcp_listeners_.back().acceptor;
   tcp_acceptor.open(endpoint.protocol());
   tcp_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
@@ -403,7 +403,7 @@ void Server::addTcpEndpoint(const asio::ip::tcp::endpoint &endpoint,
     LOG_INFO_S(&wt_, "started server: {}", addressString("http", endpoint, address));
 
     tcp_listeners_.back().new_connection.reset
-      (new TcpConnection(wt_.ioService(), this, connection_manager_,
+      (new TcpConnection(wt_.ioService().get(), this, connection_manager_,
                          request_handler_));
   } else {
     LOG_WARN_S(&wt_, fmt::runtime(bindError(endpoint, errc)));
@@ -446,7 +446,7 @@ void Server::addSslEndpoint(const asio::ip::tcp::endpoint &endpoint,
                             const std::string &address,
                             Wt::AsioWrapper::error_code &errc)
 {
-  ssl_listeners_.push_back(SslListener(asio::ip::tcp::acceptor(wt_.ioService()), SslConnectionPtr()));
+  ssl_listeners_.push_back(SslListener(asio::ip::tcp::acceptor(wt_.ioService().get()), SslConnectionPtr()));
   asio::ip::tcp::acceptor &ssl_acceptor = ssl_listeners_.back().acceptor;
   ssl_acceptor.open(endpoint.protocol());
   ssl_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
@@ -460,7 +460,7 @@ void Server::addSslEndpoint(const asio::ip::tcp::endpoint &endpoint,
     LOG_INFO_S(&wt_, "started server: {}", addressString("https", endpoint, address));
 
     ssl_listeners_.back().new_connection.reset
-      (new SslConnection(wt_.ioService(), this, ssl_context_, connection_manager_,
+      (new SslConnection(wt_.ioService().get(), this, ssl_context_, connection_manager_,
                          request_handler_));
   } else {
     LOG_WARN_S(&wt_, fmt::runtime(bindError(endpoint, errc)));
@@ -577,13 +577,13 @@ void Server::stop()
   // Post a call to the stop function so that server::stop() is safe
   // to call from any thread, and not simultaneously with waiting for
   // a new async_accept() call.
-  wt_.ioService().post
+  wt_.ioService().get().post
     (accept_strand_.wrap(std::bind(&Server::handleStop, this)));
 }
 
 void Server::resume()
 {
-  wt_.ioService().post(std::bind(&Server::handleResume, this));
+  wt_.ioService().get().post(std::bind(&Server::handleResume, this));
 }
 
 void Server::handleResume()
@@ -605,7 +605,7 @@ void Server::handleTcpAccept(TcpListener *listener, const Wt::AsioWrapper::error
 {
   if (!e) {
     connection_manager_.start(listener->new_connection);
-    listener->new_connection.reset(new TcpConnection(wt_.ioService(), this,
+    listener->new_connection.reset(new TcpConnection(wt_.ioService().get(), this,
                                                      connection_manager_, request_handler_));
   } else if (!listener->acceptor.is_open()) {
     // server shutdown
@@ -626,7 +626,7 @@ void Server::handleSslAccept(SslListener *listener, const Wt::AsioWrapper::error
 {
   if (!e) {
     connection_manager_.start(listener->new_connection);
-    listener->new_connection.reset(new SslConnection(wt_.ioService(), this,
+    listener->new_connection.reset(new SslConnection(wt_.ioService().get(), this,
                                                      ssl_context_, connection_manager_, request_handler_));
   } else if (!listener->acceptor.is_open()) {
     // server shutdown

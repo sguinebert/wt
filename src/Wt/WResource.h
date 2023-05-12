@@ -18,6 +18,9 @@
 #include <mutex>
 #endif // WT_THREADED
 
+#include <Wt/cuehttp/context.hpp>
+#include <Wt/AsioWrapper/asio.hpp>
+
 namespace Wt {
 
   class WebRequest;
@@ -369,8 +372,13 @@ public:
    * not being concurrently deleted, but multiple requests may happend
    * simultaneously for a single resource.
    */
-  virtual void handleRequest(const Http::Request& request,
-			     Http::Response& response) = 0;
+  virtual void handleRequest(const Http::Request& request, Http::Response& response) = 0;
+
+  virtual awaitable<void> handleRequest(Wt::http::request& request, Wt::http::response& response) { co_return; };
+
+  virtual awaitable<void> handleRequest(Wt::http::context& ctx) { co_return; };
+
+  void setLocale(Wt::http::request& request);
 
   /*! \brief Handles a continued request being aborted.
    *
@@ -474,8 +482,12 @@ private:
   Http::ResponseContinuationPtr addContinuation(Http::ResponseContinuation *c);
   void doContinue(Http::ResponseContinuationPtr continuation);
   void handle(WebRequest *webRequest, WebResponse *webResponse,
-	      Http::ResponseContinuationPtr continuation
-	        = Http::ResponseContinuationPtr());
+              Http::ResponseContinuationPtr continuation
+              = Http::ResponseContinuationPtr());
+
+  awaitable<void> handle(Wt::http::context *webRequest,
+                                      Http::ResponseContinuationPtr continuation
+                                      = Http::ResponseContinuationPtr());
 
   Wt::WString suggestedFileName_;
   ContentDisposition dispositionType_;
@@ -489,6 +501,7 @@ private:
   friend class Http::Response;
   friend class WebSession;
   friend class WebController;
+  friend class WServer;
   friend class Configuration;
 };
 

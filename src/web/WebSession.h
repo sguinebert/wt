@@ -28,7 +28,7 @@
 #include "TimeUtil.h"
 #include "WebRenderer.h"
 #include "WebRequest.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 
 #include "Wt/WApplication.h"
 #include "Wt/WEnvironment.h"
@@ -37,6 +37,8 @@
 #ifdef WT_THREADED
 #include <atomic>
 #endif // WT_THREADED
+
+#include <Wt/cuehttp/context.hpp>
 
 namespace Wt {
 
@@ -67,9 +69,9 @@ public:
     Dead
   };
 
-  WebSession(WebController *controller, const std::string& sessionId,
-	     EntryPointType type, const std::string& favicon,
-	     const WebRequest *request, WEnvironment *env = nullptr);
+    WebSession(WebController *controller, const std::string& sessionId,
+               EntryPointType type, const std::string& favicon,
+               Wt::http::context *ctx, WEnvironment *env = nullptr);
   ~WebSession();
 
 #ifdef WT_TARGET_JAVA
@@ -149,23 +151,22 @@ public:
 
   //    (http://www.bigapp.com/myapp/app.wt) ?wtd=ABCD
   // or (http://www.bigapp.com/myapp/) app.wt/path?wtd=ABCD
-  std::string mostRelativeUrl(const std::string& internalPath = std::string())
-    const;
+  std::string mostRelativeUrl(const std::string& internalPath = std::string()) const;
 
-  std::string appendInternalPath(const std::string& url,
-				 const std::string& internalPath) const;
+  std::string appendInternalPath(const std::string& url, const std::string& internalPath) const;
 
   std::string appendSessionQuery(const std::string& url) const;
 
   std::string ajaxCanonicalUrl(const WebResponse& request) const;
+  std::string ajaxCanonicalUrl(http::context* context) const;
 
   enum class BootstrapOption {
     ClearInternalPath,
     KeepInternalPath
   };
 
-  std::string bootstrapUrl(const WebResponse& response, BootstrapOption option)
-    const;
+  std::string bootstrapUrl(const WebResponse& response, BootstrapOption option) const;
+  std::string bootstrapUrl(http::context* context, BootstrapOption option) const;
 
   std::string fixRelativeUrl(const std::string& url) const;
   std::string makeAbsoluteUrl(const std::string& url) const;
@@ -191,8 +192,8 @@ public:
     };
 
     Handler();
-    Handler(const std::shared_ptr<WebSession>& session,
-	    WebRequest& request, WebResponse& response);
+    Handler(const std::shared_ptr<WebSession>& session, WebRequest& request, WebResponse& response);
+    Handler(const std::shared_ptr<WebSession>& session, Wt::http::context* context);
     Handler(const std::shared_ptr<WebSession>& session, LockOption lockOption);
     Handler(WebSession *session);
     ~Handler();
@@ -211,6 +212,9 @@ public:
     WebRequest *request() { return request_; }
     WebSession *session() const { return session_; }
     void setRequest(WebRequest *request, WebResponse *response);
+    void setRequest(http::context *context);
+
+    Wt::http::context *context() { return context_; }
 
     int nextSignal;
     std::vector<unsigned int> signalOrder;
@@ -220,8 +224,7 @@ public:
     std::unique_lock<std::mutex>& lock() { return lock_; }
 #endif
 
-    static void attachThreadToSession
-      (const std::shared_ptr<WebSession>& session);
+    static void attachThreadToSession(const std::shared_ptr<WebSession>& session);
     static Handler *attachThreadToHandler(Handler *handler);
 
   private:
@@ -241,6 +244,7 @@ public:
 
     WebSession *session_;
 
+    Wt::http::context *context_ = nullptr;
     WebRequest *request_;
     WebResponse *response_;
     bool killed_;
@@ -278,18 +282,16 @@ public:
 private:
 #ifndef WT_TARGET_JAVA
   void handleWebSocketRequest(Handler& handler);
-  static void handleWebSocketMessage(std::weak_ptr<WebSession> session,
-				     WebReadEvent event);
-  static void webSocketConnect(std::weak_ptr<WebSession> session,
-			       WebWriteEvent event);
-  static void webSocketReady(std::weak_ptr<WebSession> session,
-			     WebWriteEvent event);
+  static void handleWebSocketMessage(std::weak_ptr<WebSession> session, WebReadEvent event);
+  static void webSocketConnect(std::weak_ptr<WebSession> session, WebWriteEvent event);
+  static void webSocketReady(std::weak_ptr<WebSession> session, WebWriteEvent event);
 #endif
 
   void checkTimers();
   void hibernate();
 
   bool resourceRequest(const WebRequest& request) const;
+  bool resourceRequest(Wt::http::context *request) const;
 
 #ifdef WT_BOOST_THREADS
   std::mutex mutex_;
@@ -313,13 +315,19 @@ private:
   std::string docRoot_;
   std::string redirect_;
   std::string pagePathInfo_;
-  WebResponse *asyncResponse_, *webSocket_, *bootStyleResponse_;
+  /* They are pointers to the same context.  */
+  http::context *asyncResponse_, *bootStyleResponse_;
+  http::context *webSocket_ctx_ = nullptr;
+  WebRequest *webSocket_; //useless now
+  std::shared_ptr<http::websocket> websocket_;
+
   bool canWriteWebSocket_, webSocketConnected_;
   int pollRequestsIgnored_;
   bool progressiveBoot_;
 
-  WebRequest *deferredRequest_;
-  WebResponse *deferredResponse_;
+  //WebRequest *deferredRequest_;
+  //WebResponse *deferredResponse_;
+  http::context *deferredRequest_;
   int deferCount_;
 
 #ifndef WT_TARGET_JAVA
@@ -352,14 +360,13 @@ private:
 
   void pushUpdates();
   WResource *decodeResource(const std::string& resourceId);
-  EventSignalBase *decodeSignal(const std::string& signalId,
-				bool checkExposed) const;
+  EventSignalBase *decodeSignal(const std::string& signalId, bool checkExposed) const;
   EventSignalBase *decodeSignal(const std::string& objectId,
-				const std::string& signalName,
-				bool checkExposed) const;
+                                const std::string& signalName,
+                                bool checkExposed) const;
 
-  static WObject::FormData getFormData(const WebRequest& request,
-				       const std::string& name);
+  static WObject::FormData getFormData(const WebRequest& request, const std::string& name);
+  static WObject::FormData getFormData(http::context *context, const std::string& name);
 
   void render(Handler& handler);
   void serveError(int status, Handler& handler, const std::string& exception);
@@ -368,22 +375,26 @@ private:
   enum class SignalKind { LearnedStateless = 0,
                           AutoLearnStateless = 1,
                           Dynamic = 2 };
-  void processSignal(EventSignalBase *s, const std::string& se,
-                     const WebRequest& request, SignalKind kind);
+  void processSignal(EventSignalBase *s, const std::string& se, const WebRequest& request, SignalKind kind);
+  void processSignal(EventSignalBase *s, const std::string& se, http::context *context, SignalKind kind);
 
   std::vector<unsigned int> getSignalProcessingOrder(const WEvent& e) const;
   void notifySignal(const WEvent& e);
   void propagateFormValues(const WEvent& e, const std::string& se);
 
-  const std::string *getSignal(const WebRequest& request,
-			       const std::string& se) const;
+  const std::string *getSignal(const WebRequest& request, const std::string& se) const;
+  std::string_view getSignal(Wt::http::context *context, const std::string& se) const;
 
   void init(const WebRequest& request);
   bool start(WebResponse *response);
 
+  void init(Wt::http::context *context);
+  bool start(http::context *context);
+
   std::string sessionQuery() const;
   void flushBootStyleResponse();
   void changeInternalPath(const std::string& path, WebResponse *response);
+  void changeInternalPath(const std::string& path, http::context *context);
 
   void processQueuedEvents(WebSession::Handler& handler);
   std::shared_ptr<ApplicationEvent> popQueuedEvent();
@@ -391,11 +402,12 @@ private:
   friend class WebSocketMessage;
   friend class WebRenderer;
   friend class WebSocketSupport;
+  friend class WebController;
 };
 
 struct WEvent::Impl {
   WebSession::Handler *handler;
-  WebResponse *response;
+  http::context *response;
   Function function;
   bool renderOnly;
 
@@ -419,7 +431,7 @@ struct WEvent::Impl {
       renderOnly(other.renderOnly)
   { }
 
-  Impl(WebResponse *aResponse)
+  Impl(http::context *aResponse)
     : handler(nullptr),
       response(aResponse),
       renderOnly(true)

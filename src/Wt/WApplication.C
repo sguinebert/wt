@@ -23,7 +23,7 @@
 #include "DomElement.h"
 #include "Configuration.h"
 #include "SoundManager.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 #include "WebUtils.h"
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -821,7 +821,7 @@ void WApplication::idleTimeout()
   quit();
 }
 
-void WApplication::handleJavaScriptError(const std::string& errorText)
+void WApplication::handleJavaScriptError(std::string_view errorText)
 {
   LOG_ERROR("JavaScript error: {}", errorText);
   quit();
@@ -907,8 +907,7 @@ bool WApplication::removeExposedResource(WResource *resource)
     return false;
 }
 
-WResource *WApplication::decodeExposedResource(const std::string& resourceKey) 
-  const
+WResource *WApplication::decodeExposedResource(const std::string& resourceKey) const
 {
   ResourceMap::const_iterator i = exposedResources_.find(resourceKey);
   
@@ -1722,8 +1721,7 @@ bool WApplication::javaScriptLoaded(const char *jsFile) const
   return javaScriptLoaded_.find(jsFile) != javaScriptLoaded_.end();
 }
 
-void WApplication::setFocus(const std::string& id,
-			    int selectionStart, int selectionEnd)
+void WApplication::setFocus(const std::string& id, int selectionStart, int selectionEnd)
 {
   focusId_ = id;
   selectionStart_ = selectionStart;

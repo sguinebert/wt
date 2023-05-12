@@ -21,7 +21,7 @@
 #include "Wt/WfcgiServer.h"
 
 #include "Configuration.h"
-#include "WebController.h"
+#include "Wt/WebController.h"
 
 namespace Wt {
 

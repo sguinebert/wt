@@ -45,7 +45,7 @@
 #define bswap_le(bits) cue_bswap_##bits
 #endif
 
-namespace cue {
+namespace Wt {
 namespace http {
 namespace detail {
 

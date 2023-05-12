@@ -20,9 +20,11 @@
 #include "Wt/WServer.h"
 #include "Wt/WSocketNotifier.h"
 
-#include "Configuration.h"
+#include "Wt/Configuration.h"
+#include "Wt/WebController.h"
+
+#include "WebSession.h"
 #include "CgiParser.h"
-#include "WebController.h"
 #include "WebRequest.h"
 #include "WebSession.h"
 #include "TimeUtil.h"
@@ -277,11 +279,16 @@ std::string WebController::appSessionCookie(const std::string& url)
   return Utils::urlEncode(url);
 }
 
-std::string WebController::sessionFromCookie(const char * const cookies,
-					     const std::string& scriptName,
+std::string WebController::appSessionCookie(std::string_view url)
+{
+  return Utils::urlEncode(url);
+}
+
+std::string WebController::sessionFromCookie(std::string_view cookies,
+                                             std::string_view scriptName,
                                              const int sessionIdLength)
 {
-  if (!cookies)
+  if (cookies.empty())
     return std::string();
 
   std::string cookieName = appSessionCookie(scriptName);
@@ -292,8 +299,8 @@ std::string WebController::sessionFromCookie(const char * const cookies,
                                              (c >= 'a' && c <= 'z') ||
                                              (c >= '0' && c <= '9'); };
 
-  const char *start = cookies;
-  const char * const end = cookies + strlen(cookies);
+  const char *start = cookies.data();
+  const char * const end = cookies.data() + cookies.size();// cookies + strlen(cookies);
   start = std::find_if_not(start, end, is_whitespace); // Skip leading whitespace
   while (start < end) {
     const char *const nextEquals = std::find(start, end, '=');
@@ -553,9 +560,7 @@ bool WebController::handleApplicationEvent(const std::shared_ptr<ApplicationEven
     std::unique_lock<std::recursive_mutex> lock(mutex_);
 #endif // WT_THREADED
 
-    SessionMap::iterator i = sessions_.find(event->sessionId);
-
-    if (i != sessions_.end() && !i->second->dead())
+    if (auto i = sessions_.find(event->sessionId); i != sessions_.end() && !i->second->dead())
       session = i->second;
   }
 
@@ -598,6 +603,11 @@ void WebController::removeUploadProgressUrl(const std::string& url)
 std::string WebController::computeRedirectHash(const std::string& url)
 {
   return Utils::base64Encode(Utils::md5(redirectSecret_ + url));
+}
+
+std::string WebController::computeRedirectHash(std::string_view url)
+{
+  return Utils::base64Encode(Utils::md5(redirectSecret_ + std::string(url.data(), url.length())));
 }
 
 void WebController::handleRequest(WebRequest *request)
@@ -709,7 +719,7 @@ void WebController::handleRequest(WebRequest *request)
 	// If it is another request to take over the persistent session,
 	// it should be handled by the persistent session. We can distinguish
 	// using the type of the request
-	LOG_INFO_S(&server_, "persistent session requested Id: {}, persisten Id: {}", sessionId, singleSessionId_);
+    LOG_INFO_S(&server_, "persistent session requested Id: {}, persisten Id: {}", sessionId, singleSessionId_);
 
 	if (sessions_.empty() || strcmp(request->requestMethod(), "GET") == 0)
 	  sessionId = singleSessionId_;
@@ -726,14 +736,14 @@ void WebController::handleRequest(WebRequest *request)
 	 (multiSessionCookie.empty() || multiSessionCookie != i->second->multiSessionId()))) {
       try {
         if (sessionTracking == Configuration::Combined &&
-            i != sessions_.end() && !i->second->dead()) {
-          if (!request->headerValue("Cookie")) {
-            LOG_ERROR_S(&server_, "Valid session id: {}, but no cookie received (expecting multi session cookie)", sessionId);
-            request->setStatus(403);
-            request->flush(WebResponse::ResponseState::ResponseDone);
-	    return;
-	  }
-	}
+                i != sessions_.end() && !i->second->dead()) {
+              if (!request->headerValue("Cookie")) {
+                LOG_ERROR_S(&server_, "Valid session id: {}, but no cookie received (expecting multi session cookie)", sessionId);
+                request->setStatus(403);
+                request->flush(WebResponse::ResponseState::ResponseDone);
+            return;
+          }
+        }
 
         if (request->isWebSocketRequest()) {
           LOG_INFO_S(&server_, "WebSocket request for non-existing session rejected. "
@@ -744,21 +754,21 @@ void WebController::handleRequest(WebRequest *request)
           return;
         }
 
-	if (singleSessionId_.empty()) {
-	  do {
-	    sessionId = conf_.generateSessionId();
-	    if (!conf_.registerSessionId(std::string(), sessionId))
-	      sessionId.clear();
-	  } while (sessionId.empty());
-	}
+        if (singleSessionId_.empty()) {
+          do {
+            sessionId = conf_.generateSessionId();
+            if (!conf_.registerSessionId(std::string(), sessionId))
+              sessionId.clear();
+          } while (sessionId.empty());
+        }
 
-	std::string favicon = request->entryPoint_->favicon();
-	if (favicon.empty())
-	  conf_.readConfigurationProperty("favicon", favicon);
+        std::string favicon = request->entryPoint_->favicon();
+        if (favicon.empty())
+          conf_.readConfigurationProperty("favicon", favicon);
 
-	session.reset(new WebSession(this, sessionId,
-				     request->entryPoint_->type(),
-				     favicon, request));
+    //	session.reset(new WebSession(this, sessionId,
+    //				     request->entryPoint_->type(),
+    //				     favicon, request));
 
         if (sessionTracking == Configuration::Combined) {
           if (multiSessionCookie.empty())
@@ -767,22 +777,22 @@ void WebController::handleRequest(WebRequest *request)
         }
 
         if (sessionTracking == Configuration::CookiesURL)
-	  request->addHeader("Set-Cookie",
-			     appSessionCookie(request->scriptName())
-			     + "=" + sessionId + "; Version=1;"
-			     + " Path=" + session->env().deploymentPath()
-			     + "; httponly;" + (session->env().urlScheme() == "https" ? " secure;" : ""));
+          request->addHeader("Set-Cookie",
+                     appSessionCookie(request->scriptName())
+                     + "=" + sessionId + "; Version=1;"
+                     + " Path=" + session->env().deploymentPath()
+                     + "; httponly;" + (session->env().urlScheme() == "https" ? " secure;" : ""));
 
-	sessions_[sessionId] = session;
-	++plainHtmlSessions_;
+        sessions_[sessionId] = session;
+        ++plainHtmlSessions_;
 
         if (server_.dedicatedSessionProcess()) {
           server_.updateProcessSessionId(sessionId);
         }
       } catch (std::exception& e) {
-	LOG_ERROR_S(&server_, "could not create new session: {}", e.what());
-	request->flush(WebResponse::ResponseState::ResponseDone);
-	return;
+        LOG_ERROR_S(&server_, "could not create new session: {}", e.what());
+        request->flush(WebResponse::ResponseState::ResponseDone);
+        return;
       }
     } else {
       session = i->second;
@@ -811,11 +821,329 @@ void WebController::handleRequest(WebRequest *request)
     handleRequest(request);
 }
 
-std::unique_ptr<WApplication> WebController
-::doCreateApplication(WebSession *session)
+awaitable<void> WebController::handleRequest(Wt::http::context *context, const EntryPoint *entryPoint)
 {
-  const EntryPoint *ep 
-    = WebSession::Handler::instance()->request()->entryPoint_;
+  if (!running_) {
+    context->status(500);
+    context->flush();
+    //request->flush();
+    co_return;
+  }
+
+  //      if (!context->entryPoint_) {
+  //          EntryPointMatch match = getEntryPoint(context);
+  //          context->entryPoint_ = match.entryPoint;
+  //          if (!context->entryPoint_) {
+  //              request->setStatus(404);
+  //              context->flush();
+  //              return;
+  //          }
+  //          context->urlParams_ = std::move(match.urlParams);
+  //      }
+
+  CgiParser cgi(conf_.maxRequestSize(), conf_.maxFormDataSize());
+
+  try {
+    cgi.parse(context, conf_.needReadBodyBeforeResponse()
+                            ? CgiParser::ReadBodyAnyway
+                            : CgiParser::ReadDefault);
+  } catch (std::exception& e) {
+    LOG_ERROR_S(&server_, "could not parse request: {}", e.what());
+
+    context->type("text/html");
+    context->body()
+        << "<title>Error occurred.</title>"
+        << "<h2>Error occurred.</h2>"
+           "Error parsing CGI request: " << e.what(); //<< std::endl
+
+    context->flush();
+    //request->flush(WebResponse::ResponseState::ResponseDone);
+    co_return;
+  }
+
+  if (entryPoint->type() == EntryPointType::StaticResource) {
+    co_await entryPoint->resource()->handle(context);
+    co_return;
+  }
+
+  auto requestE = context->getParameter("request");
+  if (requestE == "redirect") {
+    auto urlE = context->getParameter("url");
+    auto hashE = context->getParameter("hash");
+
+    if (hashE != computeRedirectHash(urlE))
+      hashE = "";
+
+    if (!urlE.empty() && !hashE.empty()) {
+      context->redirect(urlE);
+    } else {
+      context->type("text/html");
+      context->res().body()
+          << "<title>Error occurred.</title><h2>Error occurred.</h2><p>Invalid redirect.</p>"; //<< std::endl
+    }
+    //request->flush(WebResponse::ResponseState::ResponseDone);
+    context->flush();
+    co_return;
+  }
+
+  std::string sessionId;
+
+  /*
+   * Get session from request.
+   */
+  auto wtdE = context->getParameter("wtd");
+
+  if (conf_.sessionTracking() == Configuration::CookiesURL && !conf_.reloadIsNewSession())
+    sessionId = sessionFromCookie(context->getHeader("Cookie"),
+                                  context->path(),
+                                  conf_.fullSessionIdLength());
+
+  std::string multiSessionCookie;
+  if (conf_.sessionTracking() == Configuration::Combined)
+    multiSessionCookie = sessionFromCookie(context->getHeader("Cookie"),
+                                           "ms" + std::string(context->path()),
+                                           conf_.sessionIdLength());
+
+  if (sessionId.empty() && !wtdE.empty())
+    sessionId = wtdE;
+
+  std::shared_ptr<WebSession> session;
+  {
+#ifdef WT_THREADED
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
+
+    if (!singleSessionId_.empty() && sessionId != singleSessionId_) {
+      if (conf_.persistentSessions()) {
+        // This may be because of a race condition in the filesystem:
+        // the session file is renamed in generateNewSessionId() but
+        // still a request for an old session may have arrived here
+        // while this was happening.
+        //
+        // If it is from the old app, We should be sent a reload signal,
+        // this is what will be done by a new session (which does not create
+        // an application).
+        //
+        // If it is another request to take over the persistent session,
+        // it should be handled by the persistent session. We can distinguish
+        // using the type of the request
+        LOG_INFO_S(&server_, "persistent session requested Id: {}, persisten Id: {}", sessionId, singleSessionId_);
+
+        if (sessions_.empty() || context->method() == "GET")
+          sessionId = singleSessionId_;
+      } else
+        sessionId = singleSessionId_;
+    }
+
+    SessionMap::iterator i = sessions_.find(sessionId);
+
+    Configuration::SessionTracking sessionTracking = configuration().sessionTracking();
+
+    if (i == sessions_.end() || i->second->dead() ||
+        (sessionTracking == Configuration::Combined &&
+         (multiSessionCookie.empty() || multiSessionCookie != i->second->multiSessionId()))) {
+      try {
+        if (sessionTracking == Configuration::Combined &&
+            i != sessions_.end() && !i->second->dead()) {
+          if (context->getHeader("Cookie").empty()) {
+                LOG_ERROR_S(&server_, "Valid session id: {}, but no cookie received (expecting multi session cookie)", sessionId);
+                context->status(403);
+                context->flush();
+                //request->flush(WebResponse::ResponseState::ResponseDone);
+                co_return;
+              }
+        }
+
+        if (context->req().websocket()) {
+              LOG_INFO_S(&server_, "WebSocket request for non-existing session rejected. "
+                                   "This is likely because of a browser with an old session "
+                                   "trying to reconnect (e.g. when the server was restarted)");
+              context->status(403);
+              context->flush();
+              //context->flush(WebResponse::ResponseState::ResponseDone);
+              co_return;
+        }
+
+        if (singleSessionId_.empty()) {
+              do {
+                sessionId = conf_.generateSessionId();
+                if (!conf_.registerSessionId(std::string(), sessionId))
+                    sessionId.clear();
+              } while (sessionId.empty());
+        }
+
+        std::string favicon = entryPoint->favicon();
+        if (favicon.empty())
+            conf_.readConfigurationProperty("favicon", favicon);
+
+        session.reset(new WebSession(this, sessionId,
+                                     entryPoint->type(),
+                                     favicon, context));
+
+        if (sessionTracking == Configuration::Combined) {
+              if (multiSessionCookie.empty())
+                multiSessionCookie = conf_.generateSessionId();
+              session->setMultiSessionId(multiSessionCookie);
+        }
+
+
+
+        if (sessionTracking == Configuration::CookiesURL) {
+              auto cookie = fmt::format(FMT_COMPILE("{}={}; Version=1; Path={}; httponly;{}"),
+                                        appSessionCookie(context->req().path()),
+                                        sessionId, session->env().deploymentPath(),
+                                        (session->env().urlScheme() == "https" ? " secure;" : ""));
+              context->res().addHeader("Set-Cookie", cookie);
+        }
+
+        sessions_[sessionId] = session;
+        ++plainHtmlSessions_;
+
+        if (server_.dedicatedSessionProcess()) {
+              server_.updateProcessSessionId(sessionId);
+        }
+      } catch (std::exception& e) {
+        LOG_ERROR_S(&server_, "could not create new session: {}", e.what());
+        context->flush();
+        //context->flush(WebResponse::ResponseState::ResponseDone);
+        co_return;
+      }
+    } else {
+      session = i->second;
+    }
+  }
+
+  bool handled = false;
+  {
+    //WebSession::Handler handler(session, *request, *(WebResponse *)request);
+    WebSession::Handler handler(session, context);
+
+    if (!session->dead()) {
+      handled = true;
+      session->handleRequest(handler);
+    }
+  }
+
+  if (session->dead())
+    removeSession(sessionId);
+
+  session.reset();
+
+  if (autoExpire_)
+    expireSessions();
+
+  if (!handled)
+    co_await handleRequest(context);
+  co_return;
+}
+
+awaitable<void> WebController::handleWebSocketMessage(http::context *context, std::string &message)
+{
+  auto lock = context->websession().lock();
+  auto websocket = context->websocket_ptr();
+
+  bool closing = message.length() == 0;
+
+  WebSession::Handler handler(lock, context);
+  lock->handleRequest(handler);
+
+  if (!closing)
+  {
+    CgiParser cgi(this->configuration().maxRequestSize(),
+                  this->configuration().maxFormDataSize());
+    try {
+      cgi.parse(message, lock->sessionId(), context, CgiParser::ReadDefault);
+    } catch (std::exception& e) {
+      LOG_ERROR("could not parse ws message: {}", e.what());
+      closing = true;
+    }
+  }
+
+  if (!closing)
+  {
+    auto connectedE = context->getParameter("connected");
+    if (!connectedE.empty()) {
+      if (lock->asyncResponse_) {
+        lock->asyncResponse_->flush();
+        lock->asyncResponse_ = nullptr;
+      }
+
+      lock->renderer_.ackUpdate(static_cast<unsigned int>(Utils::stoul(connectedE)));
+      lock->webSocketConnected_ = true;
+    }
+
+    auto wsRqIdE = context->getParameter("wsRqId");
+    if (!wsRqIdE.empty()) {
+      int wsRqId = Utils::stoi(wsRqIdE);
+      lock->renderer_.addWsRequestId(wsRqId);
+    }
+
+    auto signalE = context->getParameter("signal");
+
+    if (signalE == "ping")
+    {
+      LOG_DEBUG("ws: handle ping");
+      if (lock->canWriteWebSocket_)
+      {
+        lock->canWriteWebSocket_ = false;
+        context->out() << "{}";
+        context->flush();
+//        lock->webSocket_->out() << "{}";
+//        lock->webSocket_->flush
+//            (WebRequest::ResponseState::ResponseFlush,
+//             std::bind(&WebSession::webSocketReady, session, std::placeholders::_1));
+      }
+
+//      lock->webSocket_->readWebSocketMessage
+//          (std::bind(&WebSession::handleWebSocketMessage, session, std::placeholders::_1));
+
+      //delete message;
+
+      co_return;
+    }
+
+    auto pageIdE = context->getParameter("pageId");
+    if (!pageIdE.empty() && pageIdE != std::to_string(lock->renderer_.pageId()))
+      closing = true;
+  }
+
+  if (!closing) {
+    //handler.setRequest(message, message);
+    handler.setRequest(context);
+    lock->handleRequest(handler);
+  }
+
+//  else
+//    delete message;
+
+  if (lock->dead()) {
+    closing = true;
+    lock->controller_->removeSession(lock->sessionId());
+  }
+
+  if (closing)
+  {
+    if (lock->webSocket_ && lock->canWriteWebSocket_)
+    {
+      context->flush();
+//      lock->webSocket_->flush();
+//      lock->webSocket_ = nullptr;
+    }
+  }
+
+  /*else
+    if (lock->webSocket_)
+      lock->webSocket_->readWebSocketMessage
+          (std::bind(&WebSession::handleWebSocketMessage, session, std::placeholders::_1));*/
+
+  co_return;
+}
+
+std::unique_ptr<WApplication> WebController
+    ::doCreateApplication(WebSession *session)
+{
+  const EntryPoint *ep
+      = WebSession::Handler::instance()->request()->entryPoint_;
 
   return ep->appCallback()(session->env());
 }
@@ -850,6 +1178,11 @@ WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
   if (!singleSessionId_.empty())
     singleSessionId_ = newSessionId;
 
+  /* more efficient c++ 17 ? than make shared_ptr then find insert erase*/
+//  auto node = sessions_.extract(session->sessionId());
+//  node.key() = newSessionId;
+//  sessions_.insert(std::move(node));
+
   return newSessionId;
 }
 
@@ -872,7 +1205,7 @@ bool WebController::limitPlainHtmlSessions()
 
     if (plainHtmlSessions_ + ajaxSessions_ > 20)
       return plainHtmlSessions_ > conf_.maxPlainSessionsRatio()
-	* (ajaxSessions_ + plainHtmlSessions_);
+                                      * (ajaxSessions_ + plainHtmlSessions_);
     else
       return false;
   } else
