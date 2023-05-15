@@ -7,7 +7,7 @@
 
 #include <chrono>
 
-namespace http {
+namespace Http {
   namespace server {
     class Server;
   }

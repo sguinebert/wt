@@ -10,7 +10,7 @@
 
 #include <array>
 
-namespace http {
+namespace Http {
 namespace server {
 
 typedef std::array<char, 8192> Buffer;

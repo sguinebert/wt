@@ -45,7 +45,7 @@ static bool openStream(std::ifstream &stream, std::string &path, bool acceptGzip
 
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 StaticReply::StaticReply(Request& request, const Configuration& config)

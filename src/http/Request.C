@@ -38,7 +38,7 @@ namespace Wt {
   LOGGER("wthttp");
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 std::string buffer_string::str() const
@@ -335,4 +335,4 @@ const Request::Header *Request::getHeader(const char *name) const
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

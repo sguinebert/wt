@@ -34,7 +34,7 @@ namespace Wt {
 namespace http {
 namespace detail {
 
-static constexpr std::uint64_t threshold = 2048;
+static constexpr std::uint64_t threshold = 500000000; //2048;
 
 struct gzip final : safe_noncopyable {
     static bool compress(std::string_view src, std::string& dst, int level = 8) {

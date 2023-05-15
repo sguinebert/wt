@@ -32,7 +32,7 @@ using std::chrono::steady_clock;
 
 #include "Wt/WFlags.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 namespace asio = Wt::AsioWrapper::asio;
@@ -211,6 +211,6 @@ private:
 typedef std::shared_ptr<Connection> ConnectionPtr;
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_CONNECTION_HPP

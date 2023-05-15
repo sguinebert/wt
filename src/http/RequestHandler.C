@@ -42,7 +42,7 @@ namespace {
   }
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 RequestHandler::RequestHandler(const Configuration &config,
@@ -192,4 +192,4 @@ bool RequestHandler::url_decode(const buffer_string& in, std::string& path,
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

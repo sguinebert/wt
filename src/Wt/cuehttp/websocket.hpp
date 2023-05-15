@@ -43,6 +43,7 @@ namespace ws_send {
 
 struct options final {
   bool fin{true};
+  bool zip{false};
   bool mask{true};
   bool binary{false};
 };
@@ -76,7 +77,7 @@ class websocket final : public std::enable_shared_from_this<websocket>, safe_non
 
   template <typename _Msg>
   void send(_Msg&& msg, ws_send::options options = {}) {
-    send_handler_({options.fin, options.binary ? detail::ws_opcode::binary : detail::ws_opcode::text, options.mask,
+    send_handler_({options.fin, options.binary ? detail::ws_opcode::binary : detail::ws_opcode::text, options.zip, options.mask,
                    std::forward<_Msg>(msg)});
   }
 

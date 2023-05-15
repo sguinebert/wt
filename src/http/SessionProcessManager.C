@@ -23,7 +23,7 @@ namespace Wt {
   LOGGER("wthttp/proxy");
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 namespace {
@@ -305,4 +305,4 @@ void SessionProcessManager::removeSessionForPid(pid_t cpid)
 #endif // WT_WIN32
 
 } // namespace server
-} // namespace http
+} // namespace Http

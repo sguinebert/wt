@@ -386,11 +386,26 @@ namespace Wt
       // For POST, parameters in url-encoded URL are still parsed.
 
       //std::string formQueryString = buf.get();
+      auto fsv = request.body();
+      auto& parameters = context->req().query();
 
       // if(request.isWebSocketMessage())
       //   std::cout << "formQueryString (len=" << len << "): " << formQueryString << std::endl;
+      std::cerr << fmt::format("formQueryString (len={}): {} type : {}", len, fsv, type) << std::endl;
 
       LOG_DEBUG("formQueryString (len={}): {}", len, queryString);
+      if (!fsv.empty())
+      {
+          request.parseFormUrlEncoded(fsv);
+      }
+
+      if (auto [begin, end] = parameters.equal_range("Wt-params"); begin != parameters.end() && std::distance(begin, end) == 1)
+      {
+          request.parseFormUrlEncoded(begin->second);
+      }
+      for(auto parameter : parameters) {
+          std::cerr << "parameter : " << parameter.first << " - " << parameter.second << std::endl;
+      }
 //      if (!formQueryString.empty())
 //      {
 //        //Http::Request::parseFormUrlEncoded(formQueryString, request.query());
@@ -405,6 +420,7 @@ namespace Wt
     if (readOption != ReadHeadersOnly &&
         !type.empty() && type.find("multipart/form-data") != std::string_view::npos)
     {
+      std::cerr << fmt::format("multipart/form-data (len={}): {} type : {}", len, "ReadHeadersOnly", type) << std::endl;
       if (meth != "POST")
       {
         throw WException("Invalid method for multipart/form-data: " + std::string(meth));
@@ -434,7 +450,7 @@ namespace Wt
     //request_ = &request;
     auto& request = context->req();
 
-    auto session = context->websession().lock();
+    auto session = context->websession();
 
     auto& parameters = context->req().query();
 
@@ -455,7 +471,7 @@ namespace Wt
 
     context->postDataExceeded_ = (len > maxRequestSize_ ? len : 0);
 
-    LOG_DEBUG("queryString (len={}): {}", len, queryString);
+    LOG_DEBUG("queryString (len={}): {}", len, message);
 
     //    if (!queryString.empty() && request.query().empty())
     //    {
@@ -499,7 +515,7 @@ namespace Wt
       // if(request.isWebSocketMessage())
       //   std::cout << "formQueryString (len=" << len << "): " << formQueryString << std::endl;
 
-      LOG_DEBUG("formQueryString (len={}): {}", len, queryString);
+      LOG_DEBUG("formQueryString (len={}): {}", len, message);
       if (!message.empty())
       {
           request.parseFormUrlEncoded(message);

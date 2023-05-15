@@ -28,7 +28,7 @@ namespace Wt {
   LOGGER("wthttp");
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 const std::string HTTPRequest::empty_;
@@ -429,4 +429,4 @@ const std::vector<std::pair<std::string, std::string> > &HTTPRequest::urlParams(
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

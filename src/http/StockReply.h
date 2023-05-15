@@ -23,7 +23,7 @@
 #include "Reply.h"
 #include "WHttpDllDefs.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 /// A stock reply to be sent to a client.
@@ -55,6 +55,6 @@ private:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_STOCK_REPLY_HPP

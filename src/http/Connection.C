@@ -34,7 +34,7 @@ typedef std::chrono::seconds asio_timer_seconds;
 typedef boost::posix_time::seconds asio_timer_seconds;
 #endif
 
-namespace http {
+namespace Http {
 namespace server {
 
 static const int CONNECTION_TIMEOUT = 300; // 5 minutes
@@ -76,7 +76,7 @@ asio::ip::tcp::socket::native_type Connection::native()
 void Connection::finishReply()
 { 
   if (!request_.uri.empty()) {
-    LOG_DEBUG("last request: {} {} (ws:{})", request_.method.str(), request_.uri.str(), request_.webSocketVersion << ")");
+    LOG_DEBUG("last request: {} {} (ws:{})", request_.method.str(), request_.uri.str(), request_.webSocketVersion);
   }
 }
 
@@ -217,7 +217,7 @@ void Connection::handleReadRequest0()
     if (doWebSockets)
       request_.enableWebSocket();
 
-    LOG_DEBUG("{} request: {}", native(), status);
+    LOG_DEBUG("{} request: {}", native(), (int)status);
 
     if (status >= 300)
       sendStockReply(status);
@@ -501,4 +501,4 @@ void Connection::handleWriteResponse0(ReplyPtr reply,
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

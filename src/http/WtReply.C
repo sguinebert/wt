@@ -19,7 +19,7 @@ namespace Wt {
   LOGGER("wthttp");
 }
 
-namespace http {
+namespace Http {
   namespace server {
 
 namespace misc_strings {

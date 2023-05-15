@@ -27,7 +27,7 @@
 
 #include "Connection.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 class RequestHandler;
@@ -78,7 +78,7 @@ private:
 typedef std::shared_ptr<SslConnection> SslConnectionPtr;
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_WITH_SSL
 

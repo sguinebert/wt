@@ -22,7 +22,7 @@ namespace Wt {
   LOGGER("wthttp/async");
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 TcpConnection::TcpConnection(asio::io_service& io_service, Server *server,
@@ -38,17 +38,17 @@ asio::ip::tcp::socket& TcpConnection::socket()
 
 void TcpConnection::stop()
 {
-  LOG_DEBUG(native() << ": stop()");
+  LOG_DEBUG("{}: stop()", native());
 
   finishReply();
 
   try {
     Wt::AsioWrapper::error_code ignored_ec;
     socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ignored_ec);
-    LOG_DEBUG(native() << ": closing socket");
+    LOG_DEBUG("{}: closing socket", native());
     socket_.close();
   } catch (Wt::AsioWrapper::system_error& e) {
-    LOG_DEBUG(native() << ": error " << e.what());
+    LOG_DEBUG("{}: error {}", native(), e.what());
   }
 
   Connection::stop();
@@ -56,12 +56,10 @@ void TcpConnection::stop()
 
 void TcpConnection::startAsyncReadRequest(Buffer& buffer, int timeout)
 {
-  LOG_DEBUG(native() << ": startAsyncReadRequest");
+  LOG_DEBUG("{}: startAsyncReadRequest", native());
 
   if (state_ & Reading) {
-    LOG_DEBUG(native() << ": state_ = "
-	      << (state_ & Reading ? "reading " : "")
-	      << (state_ & Writing ? "writing " : ""));
+    LOG_DEBUG("{}: state_ = {} {}", native(), (state_ & Reading ? "reading " : ""), (state_ & Writing ? "writing " : ""));
     stop();
     return;
   }
@@ -88,12 +86,10 @@ void TcpConnection::startAsyncReadRequest(Buffer& buffer, int timeout)
 void TcpConnection::startAsyncReadBody(ReplyPtr reply,
 				       Buffer& buffer, int timeout)
 {
-  LOG_DEBUG(native() << ": startAsyncReadBody");
+  LOG_DEBUG("{}: startAsyncReadBody", native());
 
   if (state_ & Reading) {
-    LOG_DEBUG(native() << ": state_ = "
-	      << (state_ & Reading ? "reading " : "")
-	      << (state_ & Writing ? "writing " : ""));
+    LOG_DEBUG("{}: state_ = {} {}", native(), (state_ & Reading ? "reading " : ""), (state_ & Writing ? "writing " : ""));
     stop();
     return;
   }
@@ -117,12 +113,10 @@ void TcpConnection::startAsyncWriteResponse
       const std::vector<asio::const_buffer>& buffers,
       int timeout)
 {
-  LOG_DEBUG(native() << ": startAsyncWriteResponse");
+  LOG_DEBUG("{}: startAsyncWriteResponse", native());
 
   if (state_ & Writing) {
-    LOG_DEBUG(native() << ": state_ = "
-	      << (state_ & Reading ? "reading " : "")
-	      << (state_ & Writing ? "writing " : ""));
+    LOG_DEBUG("{}: state_ = {} {}", native(), (state_ & Reading ? "reading " : ""), (state_ & Writing ? "writing " : ""));
     stop();
     return;
   }
@@ -142,4 +136,4 @@ void TcpConnection::startAsyncWriteResponse
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

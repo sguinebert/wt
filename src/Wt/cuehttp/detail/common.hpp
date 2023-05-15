@@ -36,9 +36,9 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <fmt/format.h>
-#include <fmt/compile.h>
-#include <fmt/chrono.h>
+#include <Wt/fmt/format.h>
+#include <Wt/fmt/compile.h>
+#include <Wt/fmt/chrono.h>
 
 #include <Wt/AsioWrapper/asio.hpp>
 using namespace boost;
@@ -61,6 +61,7 @@ struct ws_frame;
 
 // types
 using reply_handler = std::function<awaitable<bool>(std::string_view)>;
+using reply_handler2 = std::function<bool(std::string_view)>;
 using http_socket = asio::ip::tcp::socket; //asio::basic_stream_socket<asio::ip::tcp, asio::io_context::executor_type>; //asio::ip::tcp::socket;
 #ifdef ENABLE_HTTPS
 using https_socket = asio::ssl::stream<asio::ip::tcp::socket>;
@@ -75,6 +76,7 @@ struct ws_reader final {
   bool fin{true};
   bool last_fin{true};
   ws_opcode opcode;
+  bool zip{false};
   bool has_mask{false};
   std::uint64_t length{0};
   char mask[4]{0};

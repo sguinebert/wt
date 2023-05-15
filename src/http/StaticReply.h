@@ -23,7 +23,7 @@
 
 #include "Reply.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 class StockReply;
@@ -67,6 +67,6 @@ private:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_STATIC_REPLY_HPP

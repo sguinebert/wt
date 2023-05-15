@@ -167,7 +167,7 @@ namespace Wt
 
           snprintf(name_, 64, "SQL%p%08X", (void *)this, rand());
 
-          LOG_DEBUG("{} for: {}", this, sql_);
+          LOG_DEBUG("{} for: {}", (long long)this, sql_);
 
           state_ = Done;
         }
@@ -202,7 +202,7 @@ namespace Wt
 
         virtual void bind(int column, const std::string &value) override
         {
-          LOG_DEBUG("{} bind {} {}", this, column, value);
+          LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
 
           setValue(column, value);
         }
@@ -214,28 +214,28 @@ namespace Wt
 
         virtual void bind(int column, int value) override
         {
-          LOG_DEBUG("{} bind {} {}", this, column, value);
+          LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
 
           setValue(column, std::to_string(value));
         }
 
         virtual void bind(int column, long long value) override
         {
-          LOG_DEBUG("{} bind {} {}", this, column, value);
+          LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
 
           setValue(column, std::to_string(value));
         }
 
         virtual void bind(int column, float value) override
         {
-          LOG_DEBUG("{} bind {} {}", this, column, value);
+          LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
 
           setValue(column, float_to_s(value));
         }
 
         virtual void bind(int column, double value) override
         {
-          LOG_DEBUG("{} bind {} {}", this, column, value);
+          LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
 
           setValue(column, double_to_s(value));
         }
@@ -258,7 +258,7 @@ namespace Wt
              << std::setw(2) << seconds.count() << '.'
              << std::setw(3) << milliseconds.count();
 
-          LOG_DEBUG("{} bind {} {}", this, column, ss.str());
+          LOG_DEBUG("{} bind {} {}", (long long)this, column, ss.str());
 
           setValue(column, ss.str());
         }
@@ -292,14 +292,14 @@ namespace Wt
             */
             ss << "+00";
           }
-          LOG_DEBUG("{} bind {} {}", this, column, ss.str());
+          LOG_DEBUG("{} bind {} {}", (long long)this, column, ss.str());
           
           setValue(column, ss.str());
         }
 
         virtual void bind(int column, const std::vector<unsigned char> &value) override
         {
-          LOG_DEBUG("{} bind {} (blob, size={})", this, column, value.size());
+          LOG_DEBUG("{} bind {} (blob, size={})", (long long)this, column, value.size());
 
           for (int i = (int)params_.size(); i <= column; ++i)
             params_.push_back(Param());
@@ -318,7 +318,7 @@ namespace Wt
 
         virtual void bindNull(int column) override
         {
-          LOG_DEBUG("{} bind {} null", this, column);
+          LOG_DEBUG("{} bind {} null", (long long)this, column);
 
           for (int i = (int)params_.size(); i <= column; ++i)
             params_.push_back(Param());
@@ -543,7 +543,7 @@ namespace Wt
 
           *value = PQgetvalue(result_, row_, column);
 
-          LOG_DEBUG("{} result string {} {}", this, column, value);
+          LOG_DEBUG("{} result string {} {}", (long long)this, column, value);
 
           return true;
         }
@@ -577,7 +577,7 @@ namespace Wt
           else
             *value = std::stoi(v);
 
-          LOG_DEBUG("{} result int {} {}", this, column, value);
+          LOG_DEBUG("{} result int {} {}", (long long)this, column, value);
 
           return true;
         }
@@ -589,7 +589,7 @@ namespace Wt
 
           *value = std::stoll(PQgetvalue(result_, row_, column));
 
-          LOG_DEBUG("{} result long long {} {}", this, column, value);
+          LOG_DEBUG("{} result long long {} {}", (long long)this, column, value);
 
           return true;
         }
@@ -601,7 +601,7 @@ namespace Wt
 
           *value = std::stof(PQgetvalue(result_, row_, column));
 
-          LOG_DEBUG("{} result float {} {}", this, column, value);
+          LOG_DEBUG("{} result float {} {}", (long long)this, column, value);
 
           return true;
         }
@@ -613,7 +613,7 @@ namespace Wt
 
           *value = std::stod(PQgetvalue(result_, row_, column));
 
-          LOG_DEBUG("{} result double {} {}", this, column, value);
+          LOG_DEBUG("{} result double {} {}", (long long)this, column, value);
 
           return true;
         }
@@ -692,7 +692,7 @@ namespace Wt
           std::copy(v, v + vlength, value->begin());
           PQfreemem(v);
 
-          LOG_DEBUG("{} result blob {} (blob, size ={})", this, column, vlength);
+          LOG_DEBUG("{} result blob {} (blob, size ={})", (long long)this, column, vlength);
 
           return true;
         }
@@ -918,7 +918,7 @@ namespace Wt
 
       bool Postgres::reconnect()
       {
-        //LOG_INFO("{} reconnecting...", this);
+        //LOG_INFO("{} reconnecting...", (long long)this);
 
         if (conn_)
         {

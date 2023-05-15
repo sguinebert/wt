@@ -20,7 +20,7 @@ namespace Wt {
   LOGGER("wthttp/async");
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 void ConnectionManager::start(ConnectionPtr c)
@@ -95,4 +95,4 @@ void ConnectionManager::stopAll()
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

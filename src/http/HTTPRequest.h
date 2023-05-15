@@ -13,7 +13,7 @@
 #include "WtReply.h"
 #include "Wt/Http/Message.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 class HTTPRequest final : public Wt::WebResponse

@@ -43,7 +43,7 @@ namespace {
     Wt::WLogger stderrLogger;
     stderrLogger.setStream(std::cerr);
 
-    http::server::Configuration serverConfiguration(stderrLogger, true);
+    Http::server::Configuration serverConfiguration(stderrLogger, true);
     serverConfiguration.setOptions(applicationPath, args, configurationFile);
 
     return PartialArgParseResult {
@@ -73,8 +73,8 @@ struct WServer::Impl
     delete serverConfiguration_;
   }
 
-  http::server::Configuration *serverConfiguration_;
-  http::server::Server        *server_;
+  ::Http::server::Configuration *serverConfiguration_;
+  ::Http::server::Server        *server_;
 };
 
 //WServer::WServer(const std::string& applicationPath,

@@ -48,7 +48,7 @@ namespace {
   }
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 template <typename T>
@@ -641,4 +641,4 @@ bool Reply::encodeNextContentBuffer(std::vector<asio::const_buffer>& result,
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

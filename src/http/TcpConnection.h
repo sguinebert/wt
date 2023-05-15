@@ -23,7 +23,7 @@
 
 #include "Connection.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 class RequestHandler;
@@ -58,6 +58,6 @@ protected:
 typedef std::shared_ptr<TcpConnection> TcpConnectionPtr;
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_CONNECTION_HPP

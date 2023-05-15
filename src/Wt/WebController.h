@@ -29,7 +29,7 @@
 
 #include <Wt/WLogger.h>
 
-namespace http {
+namespace Http {
   namespace server {
 	class ProxyReply;
   }
@@ -99,7 +99,7 @@ class WT_API WebController
 public:
   static bool isAsyncSupported() { return true; }
 
-  std::unique_ptr<WApplication> doCreateApplication(WebSession *session);
+  std::unique_ptr<WApplication> doCreateApplication(WebSession *session, EntryPoint *ep);
   Configuration& configuration();
 
   void addSession(const std::shared_ptr<WebSession>& session);
@@ -128,9 +128,9 @@ public:
 
   void handleRequest(WebRequest *request);
 
-  awaitable<void> handleRequest(Wt::http::context *context, const EntryPoint *entryPoint = nullptr);
+  awaitable<void> handleRequest(Wt::http::context *context, EntryPoint *entryPoint = nullptr);
 
-  awaitable<void> handleWebSocketMessage(Wt::http::context *context, std::string& message);
+  awaitable<void> handleWebSocketMessage(Wt::http::context *context, EntryPoint *entryPoint, std::string& message);
 
 
 #ifndef WT_CNOR
@@ -215,7 +215,7 @@ private:
 
   WServer& server_;
 
-  friend class http::server::ProxyReply;
+  friend class ::Http::server::ProxyReply;
   friend class WEnvironment;
 };
 

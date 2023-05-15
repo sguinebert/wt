@@ -25,7 +25,7 @@ namespace Wt {
   LOGGER("wthttp/async");
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 SslConnection::SslConnection(asio::io_service& io_service, Server *server,
@@ -112,14 +112,14 @@ void SslConnection::stopNextLayer(const Wt::AsioWrapper::error_code& ec)
   try {
     if (socket().is_open()) {
       Wt::AsioWrapper::error_code ignored_ec;
-      LOG_DEBUG(native() << ": socket shutdown");
+      LOG_DEBUG("{}: socket shutdown", native());
       socket().shutdown(asio::ip::tcp::socket::shutdown_both, 
 			ignored_ec);
-      LOG_DEBUG(native() << "closing socket");
+      LOG_DEBUG("{} closing socket", native());
       socket().close();
     }
   } catch (Wt::AsioWrapper::system_error& e) {
-    LOG_DEBUG(native() << ": error " << e.what());
+    LOG_DEBUG("{}: error {}", native(), e.what());
   }
 }
 
@@ -159,9 +159,7 @@ void SslConnection::startAsyncReadBody(ReplyPtr reply,
 				       Buffer& buffer, int timeout)
 {
   if (state_ & Reading) {
-    LOG_DEBUG(native() << ": state_ = "
-	      << (state_ & Reading ? "reading " : "")
-	      << (state_ & Writing ? "writing " : ""));
+    LOG_DEBUG("{}: state_ = {} {}", native(), (state_ & Reading ? "reading " : ""), (state_ & Writing ? "writing " : ""));
     stop();
     return;
   }
@@ -196,9 +194,7 @@ void SslConnection
 			  int timeout)
 {
   if (state_ & Writing) {
-    LOG_DEBUG(native() << ": state_ = "
-	      << (state_ & Reading ? "reading " : "")
-	      << (state_ & Writing ? "writing " : ""));
+    LOG_DEBUG("{}: state_ = {} {}", native(), (state_ & Reading ? "reading " : ""), (state_ & Writing ? "writing " : ""));
     stop();
     return;
   }
@@ -216,6 +212,6 @@ void SslConnection
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_WITH_SSL

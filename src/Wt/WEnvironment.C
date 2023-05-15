@@ -115,7 +115,19 @@ void WEnvironment::updateUrlScheme(http::context *context)
 {
   Configuration& conf = session_->controller()->configuration();
 
-  urlScheme_ = context->urlScheme(conf);
+  if (conf.behindReverseProxy() || conf.isTrustedProxy(context->host())) {
+    auto forwardedProto = context->getHeader("X-Forwarded-Proto");
+    if (!forwardedProto.empty()) {
+      if (auto i = forwardedProto.rfind(','); i == std::string::npos)
+        urlScheme_ = forwardedProto;
+      else
+        urlScheme_ = forwardedProto.substr(i+1);
+    }
+  }
+
+  urlScheme_ = context->req().scheme();
+
+  //urlScheme_ = context->urlScheme(conf);
 }
 
 void WEnvironment::init(const WebRequest& request)
@@ -123,7 +135,7 @@ void WEnvironment::init(const WebRequest& request)
   Configuration& conf = session_->controller()->configuration();
 
   queryString_ = request.queryString();
-  parameters_ = request.getParameterMap();
+  //parameters_ = request.getParameterMap();
   host_            = str(request.headerValue("Host"));
   referer_         = str(request.headerValue("Referer"));
   accept_          = str(request.headerValue("Accept"));
@@ -334,7 +346,73 @@ void WEnvironment::enableAjax(const WebRequest& request)
   }
 }
 
-void WEnvironment::setUserAgent(const std::string& userAgent)
+#warning "not finished init"
+void WEnvironment::init(http::context *context)
+{
+  Configuration& conf = session_->controller()->configuration();
+
+  queryString_ = context->querystring();
+  //parameters_ = request.getParameterMap();
+  host_            = context->getHeader("Host");
+  referer_         = context->getHeader("Referer");
+  accept_          = context->getHeader("Accept");
+  serverSignature_ = context->req().envValue("SERVER_SIGNATURE");
+  serverSoftware_  = context->req().envValue("SERVER_SOFTWARE");
+  serverAdmin_     = context->req().envValue("SERVER_ADMIN");
+  pathInfo_        = context->pathInfo();
+
+#ifndef WT_TARGET_JAVA
+  if(auto secret = context->getHeader("Redirect-Secret"); !secret.empty())
+    session_->controller()->redirectSecret_ = secret;
+
+  //sslInfo_ = context->sslInfo(conf);
+#endif
+
+  setUserAgent(context->getHeader("User-Agent"));
+  updateUrlScheme(context);
+
+  LOG_INFO("UserAgent: {}", userAgent_);
+
+  /*
+   * If behind a reverse proxy, use external host, schema as communicated using 'X-Forwarded'
+   * headers.
+   */
+  if (conf.behindReverseProxy() || conf.isTrustedProxy(context->req().host()))
+  {
+    auto forwardedHost = context->getHeader("X-Forwarded-Host");
+
+    if (!forwardedHost.empty()) {
+      std::string::size_type i = forwardedHost.rfind(',');
+      if (i == std::string::npos)
+        host_ = forwardedHost;
+      else
+        host_ = forwardedHost.substr(i+1);
+    }
+  }
+
+
+
+  if (host_.empty()) {
+    /*
+     * HTTP 1.0 doesn't require it: guess from config
+     */
+    //host_ = context->req().serverName();
+//    if (!request.serverPort().empty())
+//      host_ += ":" + request.serverPort();
+  }
+
+  //clientAddress_ = context->clientAddress(conf);
+
+  auto cookie = context->getHeader("Cookie");
+  doesCookies_ = !cookie.empty();
+
+//  if (!cookie.empty())
+//    parseCookies(cookie, cookies_);
+
+  //locale_ = request.parseLocale();
+}
+
+void WEnvironment::setUserAgent(std::string_view userAgent)
 {
   userAgent_ = userAgent;
 
@@ -492,23 +570,23 @@ void WEnvironment::libraryVersion(int& series, int& major, int& minor) const
 }
 #endif //WT_TARGET_JAVA
 
-const Http::ParameterValues&
+const http::ParameterValues&
 WEnvironment::getParameterValues(const std::string& name) const
 {
-  Http::ParameterMap::const_iterator i = parameters_.find(name);
+  auto i = parameters_.find(name);
 
   if (i != parameters_.end())
     return i->second;
-  else
-    return WebRequest::emptyValues_;
+//  else
+//    return WebRequest::emptyValues_;
 }
 
 const std::string *WEnvironment::getParameter(const std::string& name) const
 {
-  const Http::ParameterValues& values = getParameterValues(name);
-  if (!Utils::isEmpty(values))
-    return &values[0];
-  else
+//  const auto& values = getParameterValues(name);
+//  if (!Utils::isEmpty(values))
+//    return &values[0];
+//  else
     return nullptr;
 }
 

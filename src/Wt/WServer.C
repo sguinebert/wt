@@ -24,6 +24,30 @@
 #include "Wt/WebController.h"
 #include "../web/WebUtils.h"
 
+namespace {
+struct PartialArgParseResult {
+    std::string wtConfigXml;
+    std::string appRoot;
+};
+
+static PartialArgParseResult parseArgsPartially(const std::string &applicationPath,
+                                                const std::vector<std::string> &args,
+                                                const std::string &configurationFile)
+{
+    std::string wt_config_xml;
+    Wt::WLogger stderrLogger;
+    stderrLogger.setStream(std::cerr);
+
+    Http::server::Configuration serverConfiguration(stderrLogger, true);
+    serverConfiguration.setOptions(applicationPath, args, configurationFile);
+
+    return PartialArgParseResult {
+        serverConfiguration.configPath(),
+        serverConfiguration.appRoot()
+    };
+}
+}
+
 namespace Wt {
 
 LOGGER("WServer");
@@ -143,17 +167,17 @@ void WServer::setServerConfiguration(const std::string &applicationPath,
                             const std::vector<std::string> &args,
                             const std::string &serverConfigurationFile)
 {
-//  auto result = parseArgsPartially(applicationPath, args, serverConfigurationFile);
+  auto result = parseArgsPartially(applicationPath, args, serverConfigurationFile);
 
-//  if (!result.appRoot.empty())
-//    setAppRoot(result.appRoot);
+  if (!result.appRoot.empty())
+    setAppRoot(result.appRoot);
 
-//  if (configurationFile().empty())
-//    setConfiguration(result.wtConfigXml);
+  if (configurationFile().empty())
+    setConfiguration(result.wtConfigXml);
 
   webController_ = new Wt::WebController(*this);
 
-  serverConfiguration_ = new http::server::Configuration(logger());
+  serverConfiguration_ = new ::Http::server::Configuration(logger());
 
   serverConfiguration_->setSslPasswordCallback(sslPasswordCallback_);
 

@@ -37,7 +37,7 @@
 #include "WHttpDllDefs.h"
 #include "Request.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 namespace asio = Wt::AsioWrapper::asio;
@@ -195,6 +195,6 @@ private:
 typedef std::shared_ptr<Reply> ReplyPtr;
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_REPLY_HPP

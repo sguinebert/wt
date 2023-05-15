@@ -113,7 +113,7 @@ namespace Wt {
   LOGGER("wthttp");
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 Server::Server(const Configuration& config, Wt::WServer& wtServer)
@@ -705,4 +705,4 @@ void Server::updateProcessSessionId(const std::string& sessionId)
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

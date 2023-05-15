@@ -31,7 +31,7 @@
 
 #include "Wt/WLogger.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 class Configuration;
@@ -186,6 +186,6 @@ private:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_SERVER_HPP

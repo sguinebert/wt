@@ -11,7 +11,7 @@
 #include "Reply.h"
 #include "SessionProcessManager.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 class ProxyReply final : public Reply
@@ -85,6 +85,6 @@ private:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_PROXY_REPLY_HPP

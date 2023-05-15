@@ -22,7 +22,7 @@
 #include "Request.h"
 #include "../Wt/Utils.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 namespace stock_replies {
@@ -380,4 +380,4 @@ bool StockReply::nextContentBuffers(std::vector<asio::const_buffer>& result)
 
 
 } // namespace server
-} // namespace http
+} // namespace Http

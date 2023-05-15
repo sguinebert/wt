@@ -18,7 +18,7 @@
 #include <sys/types.h>
 #endif // WT_WIN32
 
-namespace http {
+namespace Http {
 namespace server {
 
 class SessionProcessManager;
@@ -89,6 +89,6 @@ private:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // WT_SESSION_PROCESS_HPP

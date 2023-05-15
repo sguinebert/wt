@@ -24,7 +24,7 @@
 #endif // WT_THREADED
 
 
-namespace http {
+namespace Http {
 namespace server {
 
 /// Manages open connections so that they may be cleanly stopped when the server
@@ -57,6 +57,6 @@ private:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_CONNECTION_MANAGER_HPP

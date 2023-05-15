@@ -33,7 +33,7 @@ namespace Wt {
   LOGGER("wthttp");
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 
@@ -455,4 +455,4 @@ void Configuration::checkPath(std::string& result,
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

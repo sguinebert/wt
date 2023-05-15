@@ -1066,14 +1066,14 @@ void WebRenderer::addResponseAckPuzzle(WStringStream& out)
     std::string l;
     for (WWidget *w = wc->parent(); w; w = w->parent()) {
       if (w->id().empty())
-	continue;
+        continue;
       if (w->id() == l)
-	continue;
+        continue;
 
       l = w->id();
 
       if (!solution_.empty())
-	solution_ += ',';
+        solution_ += ',';
 
       solution_ += l;
     }
@@ -1607,7 +1607,7 @@ void WebRenderer::serveMainAjax(WStringStream& out)
     if (app->theme()) {
       auto styleSheets = app->theme()->styleSheets();
       for (unsigned i = 0; i < styleSheets.size(); ++i)
-	loadStyleSheet(out, app, styleSheets[i]);
+        loadStyleSheet(out, app, styleSheets[i]);
     }
 
     app->styleSheetsAdded_ = app->styleSheets_.size();
@@ -1874,7 +1874,7 @@ void WebRenderer::serveMainscript(http::context *context)
 #ifndef WT_TARGET_JAVA
       std::vector<const char *> parts = skeletons::JQuery_js();
       for (std::size_t i = 0; i < parts.size(); ++i)
-    out << const_cast<char *>(parts[i]);
+        out << const_cast<char *>(parts[i]);
 #else
       out << const_cast<char *>(skeletons::JQuery_js1);
 #endif
@@ -1953,21 +1953,21 @@ void WebRenderer::serveMainscript(http::context *context)
      * Ajax update request has all the information to reload the session.
      */
     std::string params;
-    if (session_.type() == EntryPointType::WidgetSet) {
+    if (session_.type() == EntryPointType::WidgetSet)
+    {
       const Http::ParameterMap *m = &session_.env().getParameterMap();
       Http::ParameterMap::const_iterator it = m->find("Wt-params");
       Http::ParameterMap wtParams;
       if (it != m->end()) {
-    // Parse and reencode Wt-params, so it's definitely safe
-    Http::Request::parseFormUrlEncoded(it->second[0], wtParams);
-    m = &wtParams;
+        // Parse and reencode Wt-params, so it's definitely safe
+        Http::Request::parseFormUrlEncoded(it->second[0], wtParams);
+        m = &wtParams;
       }
-      for (Http::ParameterMap::const_iterator i = m->begin();
-           i != m->end(); ++i) {
-    if (!params.empty())
-      params += '&';
-    params
-        += Utils::urlEncode(i->first) + '=' + Utils::urlEncode(i->second[0]);
+      for (auto i = m->begin(); i != m->end(); ++i)
+      {
+        if (!params.empty())
+          params += '&';
+        params += Utils::urlEncode(i->first) + '=' + Utils::urlEncode(i->second[0]);
       }
     }
     script.setVar("PARAMS", params);
@@ -2131,8 +2131,7 @@ std::string WebRenderer::safeJsStringLiteral(const std::string& value)
   return Wt::Utils::replace(s, "<", "<'+'");
 }
 
-void WebRenderer::updateLoadIndicator(WStringStream& out, WApplication *app,
-				      bool all)
+void WebRenderer::updateLoadIndicator(WStringStream& out, WApplication *app, bool all)
 {
   if (app->showLoadingIndicator_.needsUpdate(all)) {
     out << "showLoadingIndicator = function() {var o=null,e=null;\n"
@@ -2374,8 +2373,7 @@ int WebRenderer::loadScriptLibraries(WStringStream& out,
   }
 }
 
-void WebRenderer::loadStyleSheet(WStringStream& out, WApplication *app,
-				 const WLinkedCssStyleSheet& sheet)
+void WebRenderer::loadStyleSheet(WStringStream& out, WApplication *app, const WLinkedCssStyleSheet& sheet)
 {
   out << WT_CLASS << ".addStyleSheet('"
       << sheet.link().resolveUrl(app) << "', '"

@@ -417,10 +417,12 @@ class router final : safe_noncopyable {
         co_return;
       }
 
-      const auto it = handlers_.find(fmt::format("{}+{}{}", ctx.method(), prefix_, ctx.path()));
-      if (it != handlers_.end()) {
+      if (const auto it = handlers_.find(fmt::format("{}+{}{}", ctx.method(), prefix_, ctx.path())); it != handlers_.end())
+      {
         co_await it->second(ctx);
+        co_return;
       }
+      ctx.flush();
       co_return;
     };
   }

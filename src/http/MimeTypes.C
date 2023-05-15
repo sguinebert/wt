@@ -17,7 +17,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-namespace http {
+namespace Http {
 namespace server {
 namespace mime_types {
 
@@ -63,4 +63,4 @@ const char *extensionToType(const std::string& extension)
 
 } // namespace mime_types
 } // namespace server
-} // namespace http
+} // namespace Http

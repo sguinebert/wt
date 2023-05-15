@@ -29,7 +29,7 @@ namespace Wt {
   class WLogEntry;
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 class Configuration
@@ -194,6 +194,6 @@ private:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_CONFIGURATION_HPP

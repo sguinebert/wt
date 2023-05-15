@@ -144,8 +144,9 @@ WebSession::WebSession(WebController *controller,
   if (context) {
       Configuration& conf = controller_->configuration();
 
-      if (conf.behindReverseProxy() || conf.isTrustedProxy(context->req().hostname())) {
-    std::string forwardedProto = str(context->getHeader("X-Forwarded-Proto"));
+      if (conf.behindReverseProxy() || conf.isTrustedProxy(context->req().hostname()))
+      {
+        std::string forwardedProto = str(context->getHeader("X-Forwarded-Proto"));
         if (!forwardedProto.empty()) {
             if (auto i = forwardedProto.rfind(','); i == std::string::npos)
             {
@@ -159,7 +160,7 @@ WebSession::WebSession(WebController *controller,
         env_->urlScheme_ = context->req().scheme();
       }
   }
-  //  env_->updateUrlScheme(*request);
+  env_->updateUrlScheme(context);
 
   /*
    * Obtain the applicationName_ as soon as possible for log().
@@ -186,11 +187,11 @@ WebSession::WebSession(WebController *controller,
   expire_ = Time() + 60*1000;
 #endif // WT_TARGET_JAVA
 
-  if (controller_->configuration().sessionIdCookie()) {
+  if (controller_->configuration().sessionIdCookie())
+  {
     sessionIdCookie_ = WRandom::generateId();
     sessionIdCookieChanged_ = true;
-    renderer().setCookie("Wt" + sessionIdCookie_, "1", Wt::WDateTime(), "", "",
-			 env_->urlScheme() == "https");
+    renderer().setCookie("Wt" + sessionIdCookie_, "1", Wt::WDateTime(), "", "", env_->urlScheme() == "https");
   }
 }
 
@@ -348,6 +349,61 @@ std::string WebSession::docType() const
 #else
       "<!DOCTYPE html>"; // HTML5 hoeray
 #endif
+}
+
+std::string_view clientAddress(http::request& request, const Wt::Configuration &conf)
+{
+  //std::string remoteAddr = str(envValue("REMOTE_ADDR"));
+  auto remoteAddr = request.envValue("REMOTE_ADDR");
+  if (conf.behindReverseProxy()) {
+    // Old, deprecated behavior
+    auto clientIp = request.get("Client-IP");
+
+    std::vector<std::string_view> ips;
+    if (!clientIp.empty())
+        boost::split(ips, clientIp, boost::is_any_of(","));
+
+    auto forwardedFor = request.get("X-Forwarded-For");
+
+    std::vector<std::string_view> forwardedIps;
+    if (!forwardedFor.empty())
+        boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
+
+    //Utils::insert(ips, forwardedIps);
+    ips.insert(ips.end(), forwardedIps.begin(), forwardedIps.end());
+
+    for (auto &ip : ips) {
+        ip = boost::trim_copy(ip);
+
+        if (!ip.empty() && !request.isPrivateIP(ip)) {
+            return ip;
+        }
+    }
+
+    return remoteAddr;
+  } else {
+    if (conf.isTrustedProxy(remoteAddr)) {
+        auto forwardedFor = request.get(conf.originalIPHeader());
+        forwardedFor = boost::trim_copy(forwardedFor);
+        std::vector<std::string_view> forwardedIps;
+        boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
+        for (auto it = forwardedIps.rbegin(); it != forwardedIps.rend(); ++it) {
+            *it = boost::trim_copy(*it);
+            if (!it->empty()) {
+                if (!conf.isTrustedProxy(*it)) {
+                    return *it;
+                } else {
+                    /*
+             * When the left-most address in a forwardedHeader is contained
+             * within a trustedProxy subnet, it should be returned as the clientAddress
+             */
+                    remoteAddr = *it;
+                }
+            }
+        }
+    }
+    return remoteAddr;
+  }
 }
 
 void WebSession::setLoaded()
@@ -751,10 +807,10 @@ std::string WebSession::appendInternalPath(const std::string& baseUrl, const std
   }
 }
 
-bool WebSession::start(WebResponse *response)
+bool WebSession::start(WebResponse *response, EntryPoint *ep)
 {
   try {
-    app_ = controller_->doCreateApplication(this).release();
+    app_ = controller_->doCreateApplication(this, ep).release();
     if (!app_->internalPathValid_)
       if (response->responseType() == WebResponse::ResponseType::Page)
             response->setStatus(404);
@@ -824,6 +880,8 @@ void WebSession::init(Wt::http::context *context)
   if (path.empty() && !hashE.empty())
     path = hashE;
 
+  std::cout << "env_->setInternalPath " << path << std::endl;
+
   env_->setInternalPath(std::string(path));
   pagePathInfo_ = context->pathInfo(); //request.pathInfo();
 
@@ -831,10 +889,10 @@ void WebSession::init(Wt::http::context *context)
   docRoot_ = getCgiValue("DOCUMENT_ROOT");
 }
 
-bool WebSession::start(http::context *context)
+bool WebSession::start(http::context *context, EntryPoint *ep)
 {
   try {
-    app_ = controller_->doCreateApplication(this).release();
+    app_ = controller_->doCreateApplication(this, ep).release();
     if (!app_->internalPathValid_)
       if (context->res().responseType() == http::response::ResponseType::Page)
         context->status(404);
@@ -929,8 +987,7 @@ WebSession::Handler::Handler()
   init();
 }
 
-WebSession::Handler::Handler(const std::shared_ptr<WebSession>& session,
-			     LockOption lockOption)
+WebSession::Handler::Handler(const std::shared_ptr<WebSession>& session, LockOption lockOption)
   : nextSignal(-1),
 #ifndef WT_TARGET_JAVA
     sessionPtr_(session),
@@ -1270,10 +1327,14 @@ void WebSession::Handler::setRequest(http::context *context)
 
 void WebSession::Handler::flushResponse()
 {
+  if(context_->isWebSocketMessage()) {
+    session_->pushUpdates();
+    //return;
+  }
   if(context_) {
     context_->flush();
     setRequest(nullptr, nullptr);
-    //setRequest(nullptr);
+    setRequest(nullptr);
   }
 //  if (response_) {
 //    response_->flush();
@@ -1437,6 +1498,9 @@ bool WebSession::unlockRecursiveEventLoop()
   recursiveEventHandler_->setRequest(handler->request(), handler->response());
   handler->setRequest(nullptr, nullptr);
 
+  recursiveEventHandler_->setRequest(handler->context());
+  handler->setRequest(nullptr);
+
   newRecursiveEvent_ = new WEvent::Impl(recursiveEventHandler_);
 
 #ifdef WT_BOOST_THREADS
@@ -1446,7 +1510,7 @@ bool WebSession::unlockRecursiveEventLoop()
   return true;
 }
 
-void WebSession::handleRequest(Handler& handler)
+void WebSession::handleRequest(Handler& handler, EntryPoint *ep)
 {
   auto context = handler.context_;
 
@@ -1455,14 +1519,11 @@ void WebSession::handleRequest(Handler& handler)
   auto wtdE = context->getParameter("wtd");
   auto origin = context->origin();
 
-//  WebRequest& request = *handler.request();
-
-//  const std::string *wtdE = request.getParameter("wtd");
-
   Configuration& conf = controller_->configuration();
 
   //const char *origin = request.headerValue("Origin");
-  if (request.websocket()) {
+  if (request.websocket())
+  {
     std::string trustedOrigin = env_->urlScheme() + "://" + env_->hostName();
     // Allow new WebSocket connection:
     // - Origin is OK if:
@@ -1479,13 +1540,15 @@ void WebSession::handleRequest(Handler& handler)
       } else {
         LOG_ERROR("WebSocket request refused: missing Origin");
       }
-      context->status(403);
-      context->flush();
-//      handler.response()->setStatus(403);
-//      handler.flushResponse();
+//      context->status(403);
+//      context->flush();
+      handler.context()->status(403);
+      handler.flushResponse();
       return;
     }
-  } else if (!origin.empty()) {
+  }
+  else if (!origin.empty())
+  {
     /*
      * CORS (Cross-Origin Resource Sharing)
      */
@@ -1522,7 +1585,7 @@ void WebSession::handleRequest(Handler& handler)
     }
   }
 
-  auto requestE = request.get("request");
+  auto requestE = request.getParameter("request");
   bool requestForResource = resourceRequest(context);
   bool requestForStyle = requestE == "style";
 
@@ -1534,8 +1597,8 @@ void WebSession::handleRequest(Handler& handler)
     LOG_INFO("Upgrade: {}", request.get("Upgrade"));
     LOG_INFO("Sec-WebSocket-Version: {}", request.get("Sec-WebSocket-Version"));
 
-    context->flush();
-    //handler.flushResponse();
+    //context->flush();
+    handler.flushResponse();
     return;
   }
 
@@ -1552,8 +1615,8 @@ void WebSession::handleRequest(Handler& handler)
       handleWebSocketRequest(handler);
       return;
     } else {
-      context->flush();
-      //handler.flushResponse();
+      //context->flush();
+      handler.flushResponse();
       kill();
       return;
     }
@@ -1569,10 +1632,10 @@ void WebSession::handleRequest(Handler& handler)
    */
   if (!(requestForResource
         || request.method() == "POST"
-        || request.method() == "GET"))
+        || request.method() == "GET" || webSocketConnected_))
   {
-    context->status(400);
-    context->flush();
+    handler.context()->status(400);
+    handler.flushResponse();
 //    handler.response()->setStatus(400); // Bad Request
 //    handler.flushResponse();
     return;
@@ -1605,7 +1668,7 @@ void WebSession::handleRequest(Handler& handler)
    */
   if ((wtdE.empty() || wtdE != sessionId_) && state_ != State::JustCreated && (requestE == "jsupdate" || requestE == "jserror" || requestE == "resource"))
   {
-    LOG_DEBUG("CSRF: {} != {}, requestE: {}", (wtdE ? *wtdE : "no wtd"), sessionId_, (requestE ? *requestE : "none"));
+    //LOG_DEBUG("CSRF: {} != {}, requestE: {}", (wtdE ? *wtdE : "no wtd"), sessionId_, (requestE ? requestE : "none"));
     LOG_SECURE("CSRF prevention kicked in.");
     serveError(403, handler, "Forbidden");
   }
@@ -1683,7 +1746,7 @@ void WebSession::handleRequest(Handler& handler)
             /*
              * First start the application
              */
-            if (!start(context))
+            if (!start(context, ep))
                 throw WException("Could not start application.");
 
             app_->notify(WEvent(WEvent::Impl(&handler)));
@@ -1729,7 +1792,7 @@ void WebSession::handleRequest(Handler& handler)
             init(context); // env, url/internalpath, initial query parameters
             env_->enableAjax(context);
 
-            if (!start(context))
+            if (!start(context, ep))
                 throw WException("Could not start application.");
 
             app_->notify(WEvent(WEvent::Impl(&handler)));
@@ -1747,6 +1810,7 @@ void WebSession::handleRequest(Handler& handler)
       case State::Loaded:
       case State::Suspended:
       {
+        std::cerr << "State::ExpectLoad " << requestE /*<< " - "     << signalE*/ << std::endl;
         if (conf.sessionTracking() == Configuration::Combined)
         {
           auto signalE = context->getParameter("signal");
@@ -1789,22 +1853,27 @@ void WebSession::handleRequest(Handler& handler)
             bool bootStyle = (app_ || (!ios5 && !nojs)) &&
                              page == std::to_string(renderer_.pageId());
 
-            if (!bootStyle) {
+            if (!bootStyle)
+            {
                 handler.context()->type("text/css");
                 handler.flushResponse();
-        } else {
-#ifndef WT_TARGET_JAVA
-            if (!app_) {
-                bootStyleResponse_ = handler.context();
-                handler.setRequest(nullptr, nullptr);
-
-                controller_->server()
-                    ->schedule(std::chrono::milliseconds{2000}, sessionId_,
-                               std::bind(&WebSession::flushBootStyleResponse, this));
             } else {
-                renderer_.serveLinkedCss(context);
-                handler.flushResponse();
-            }
+#ifndef WT_TARGET_JAVA
+                if (!app_)
+                {
+                    std::cerr << "bootStyleResponse_ "<< bootStyleResponse_ << std::endl;
+                    bootStyleResponse_ = handler.context();
+                    handler.setRequest(nullptr, nullptr);
+                    handler.setRequest(nullptr);
+
+                    controller_->server()
+                        ->schedule(std::chrono::milliseconds{2000}, sessionId_,
+                                   std::bind(&WebSession::flushBootStyleResponse, this));
+                } else {
+                    renderer_.serveLinkedCss(context);
+                    std::cerr << "serveLinkedCss "<< handler.context()->res().dump_body() << std::endl;
+                    handler.flushResponse();
+                }
 #else
             /*
            * In Servlet2, we cannot defer responding the request. So we
@@ -1830,7 +1899,7 @@ void WebSession::handleRequest(Handler& handler)
 
             handler.flushResponse();
 #endif // WT_TARGET_JAVA
-        }
+            }
 
             break;
           }
@@ -1840,12 +1909,15 @@ void WebSession::handleRequest(Handler& handler)
           //const std::string *resourceE = request.getParameter("resource");
           auto resourceE = context->getParameter("resource");
 
+          std::cerr << "context->querystring " << context->querystring() << std::endl;
+          std::cerr << "resourceE : " << resourceE << std::endl;
+
           if (handler.context()->responseType() == http::response::ResponseType::Script)
           {
             if (request.get("skeleton").empty()) {
                 env_->enableAjax(context);
 
-                if (!start(handler.context()))
+                if (!start(handler.context(), ep))
                     throw WException("Could not start application.");
             } else {
                 serveResponse(handler);
@@ -1860,7 +1932,7 @@ void WebSession::handleRequest(Handler& handler)
             auto jsE = context->getParameter("js");
 
             if (jsE == "no") {
-                if (!start(handler.context()))
+                if (!start(handler.context(), ep))
                     throw WException("Could not start application.");
 
                 if (controller_->limitPlainHtmlSessions()) {
@@ -1868,6 +1940,7 @@ void WebSession::handleRequest(Handler& handler)
                     kill();
                 }
             } else {
+                std::cout << conf.reloadIsNewSession() << " - " << "wtdE : " << wtdE << " - " << sessionId_ << std::endl;
                 // This could be because the session Id was not as
                 // expected. At least, it should be correct now.
                 if (!conf.reloadIsNewSession() && wtdE == sessionId_) {
@@ -1886,11 +1959,13 @@ void WebSession::handleRequest(Handler& handler)
 
         bool doNotify = false;
 
-        if (handler.context()) {
+        if (handler.context())
+        {
           auto signalE = handler.context()->getParameter("signal");
           bool isPoll = signalE == "poll";
 
-          if (requestForResource || isPoll || !unlockRecursiveEventLoop()) {
+          if (requestForResource || isPoll || !unlockRecursiveEventLoop())
+          {
             doNotify = true;
 
             if (env_->ajax()) {
@@ -1968,6 +2043,7 @@ void WebSession::handleRequest(Handler& handler)
 
 void WebSession::flushBootStyleResponse()
 {
+  std::cerr << "FLUSH flushBootStyleResponse()" << std::endl;
   if (bootStyleResponse_) {
     bootStyleResponse_->flush();
     bootStyleResponse_ = nullptr;
@@ -2012,8 +2088,13 @@ void WebSession::handleWebSocketRequest(Handler& handler)
 //       std::bind(&WebSession::webSocketConnect,
 //                 std::weak_ptr<WebSession>(shared_from_this()),
 //                 std::placeholders::_1));
+  webSocket_ctx_->flush();
+
+  //webSocket_ctx_->out() <<
+  //websocket_->send("connect");
 
   handler.setRequest(nullptr, nullptr);
+  handler.setRequest(nullptr);
 }
 #endif // WT_TARGET_JAVA
 
@@ -2209,7 +2290,7 @@ void WebSession::handleWebSocketMessage(std::weak_ptr<WebSession> session, WebRe
 
         if (!closing) {
           handler.setRequest(message, message);
-          lock->handleRequest(handler);
+          lock->handleRequest(handler, nullptr);
         } else
           delete message;
 
@@ -2256,14 +2337,16 @@ void WebSession::pushUpdates()
     updatesPending_ = false;
     asyncResponse_->flush();
     asyncResponse_ = nullptr;
-  } else if (webSocket_ && webSocketConnected_) {
-    if (webSocket_->webSocketMessagePending()) {
-      LOG_DEBUG("pushUpdates(): web socket message pending");
-      return;
-    }
+  }
+  else if (webSocket_ctx_ && webSocketConnected_)
+  {
+//    if (webSocket_->webSocketMessagePending()) {
+//      LOG_DEBUG("pushUpdates(): web socket message pending");
+//      return;
+//    }
 
-    if (canWriteWebSocket_)
-    {
+//    if (canWriteWebSocket_)
+//    {
 #ifndef WT_TARGET_JAVA
       {
 //        WebSocketMessage m(this);
@@ -2287,7 +2370,7 @@ void WebSession::pushUpdates()
       updatesPending_ = false;
       webSocket_->flushBuffer();
 #endif
-    }
+//    }
   }
 
   if (updatesPending_) {
@@ -2382,8 +2465,9 @@ std::string WebSession::ajaxCanonicalUrl(http::context *context) const
       url = fixRelativeUrl(applicationName_);
 
     bool firstParameter = true;
-    auto headers = context->headers();
-    for(auto &[key, value] : headers) {
+    //auto headers = context->headers();
+    auto& params = context->req().query();
+    for(auto &[key, value] : params) {
       if (key != "_") {
         url += (firstParameter ? '?' : '&')
                + Utils::urlEncode(key) + '='
@@ -2440,7 +2524,7 @@ std::string_view WebSession::getSignal(Wt::http::context *context, const std::st
   if (signalE.empty()) {
     const int signalLength = 7 + se.length();
 
-    auto entries = context->headers();
+    auto& entries = context->req().query();
 
     for (auto& [key, value] : entries)
     {
@@ -2491,35 +2575,46 @@ void WebSession::externalNotify(const WEvent::Impl& event)
 
 void WebSession::notify(const WEvent& event)
 {
-  auto context = event.impl_.handler->context();
-  if (context) {
-    try {
-      renderer_.serveResponse(context);
-    } catch (std::exception& e) {
+  //auto context = ;
+  if (event.impl_.response)
+  {
+    try
+    {
+      renderer_.serveResponse(event.impl_.response);
+    }
+    catch (std::exception& e)
+    {
       LOG_ERROR("Exception in WApplication::notify(): {}", e.what());
 
 #ifdef WT_TARGET_JAVA
       e.printStackTrace();
 #endif // WT_TARGET_JAVA
-    } catch (...) {
+    }
+    catch (...)
+    {
       LOG_ERROR("Exception in WApplication::notify()");
     }
     return;
   }
 
   if (event.impl_.function) {
-    try {
+    try
+    {
       WT_CALL_FUNCTION(event.impl_.function);
 
-      if (context)
+      if (event.impl_.handler->context())
         render(*event.impl_.handler);
-    } catch (std::exception& e) {
+    }
+    catch (std::exception& e)
+    {
       LOG_ERROR("Exception in WApplication::notify(): {}", e.what());
 
 #ifdef WT_TARGET_JAVA
       e.printStackTrace();
 #endif // WT_TARGET_JAVA
-    } catch (...) {
+    }
+    catch (...)
+    {
       LOG_ERROR("Exception in WApplication::notify()");
     }
     return;
@@ -2535,15 +2630,17 @@ void WebSession::notify(const WEvent& event)
     if (!app_->internalPathValid_)
     {
       //WebResponse *response = handler.response();
+      auto context = handler->context();
       if (context && context->responseType() == http::response::ResponseType::Page)
         context->status(404);
     }
   }
 #endif
 
-  if (!context)
+  if (!handler->context())
     return;
 
+  auto context = handler->context();
 //  WebRequest& request = *handler.request();
 //  WebResponse& response = *handler.response();
 
@@ -2578,7 +2675,7 @@ void WebSession::notify(const WEvent& event)
   }
 
   auto pageIdE = context->getParameter("pageId");
-  if (pageIdE != std::to_string(renderer_.pageId())) {
+  if (!pageIdE.empty() && pageIdE != std::to_string(renderer_.pageId())) {
     context->res().setContentType("text/javascript; charset=UTF-8");
     context->out() << "{}";
     handler->flushResponse();
@@ -2625,7 +2722,7 @@ void WebSession::notify(const WEvent& event)
         }
       }
 
-      auto ca = context->req().clientAddress(controller_->configuration());
+      auto ca = clientAddress(context->req(), controller_->configuration());// context->req().clientAddress(controller_->configuration());
 
       if (ca != env_->clientAddress()) {
         bool isInvalid = sessionIdCookie_.empty();
@@ -2726,6 +2823,7 @@ void WebSession::notify(const WEvent& event)
 
           if (resource) {
             try {
+              std::cerr << "WATCH OUT CO_AWAIT " << std::endl;
               resource->handle(context);
               handler->setRequest(nullptr, nullptr);
             } catch (std::exception& e) {
@@ -2863,8 +2961,8 @@ void WebSession::notify(const WEvent& event)
 #endif
 	  }
 
-      if (context) {
-	    LOG_DEBUG("signal: {}", *signalE);
+      if (handler->context()) {
+        LOG_DEBUG("signal: {}", signalE);
 
 	    /*
 	     * Special signal values:
@@ -2968,7 +3066,7 @@ EventType WebSession::getEventType(const WEvent& event) const
   //auto requestE = context->get("request");
 
   auto pageIdE = context->getParameter("pageId");
-  if (pageIdE != std::to_string(renderer_.pageId()))
+  if (!pageIdE.empty() && pageIdE != std::to_string(renderer_.pageId()))
     return EventType::Other;
 
   switch (state_) {
@@ -3056,7 +3154,8 @@ bool WebSession::resourceRequest(Wt::http::context *context) const
 {
   if (state_ == State::ExpectLoad ||
       state_ == State::Loaded ||
-      state_ == State::Suspended) {
+      state_ == State::Suspended)
+  {
     auto requestE = context->getParameter("request");
     auto resourceE = context->getParameter("resource");
     if (requestE == "resource" && !resourceE.empty()) {
@@ -3067,7 +3166,7 @@ bool WebSession::resourceRequest(Wt::http::context *context) const
         return true;
 
       auto hashE = context->getParameter("_");// request.getParameter("_");
-      if (!hashE.empty() &&
+      if (/*!hashE.empty() &&*/
           app_->decodeExposedResource("/path/" + std::string(hashE)) != nullptr)
         return true;
     }
@@ -3100,7 +3199,7 @@ void WebSession::render(Handler& handler)
     if (app_ && app_->hasQuit())
       kill();
 
-    if (handler.response()) { // a recursive eventloop may remove it in kill()
+    if (handler.context()) { // a recursive eventloop may remove it in kill()
       updatesPending_ = false;
       serveResponse(handler);
     }
@@ -3126,7 +3225,8 @@ void WebSession::serveResponse(Handler& handler)
 {
   auto context = handler.context();
 
-  if (context->res().responseType() == http::response::ResponseType::Page) {
+  if (context->res().responseType() == http::response::ResponseType::Page)
+  {
     pagePathInfo_ = context->pathInfo();
     auto wtdE = context->getParameter("wtd");
     if (!wtdE.empty() && wtdE == sessionId_)
@@ -3164,7 +3264,6 @@ void WebSession::serveResponse(Handler& handler)
       mutex_.lock();
 #endif
     }
-
     renderer_.serveResponse(context);
   }
 
@@ -3300,7 +3399,7 @@ void WebSession::notifySignal(const WEvent& e)
     if (signalE.empty())
       return;
 
-    LOG_DEBUG("signal: {}", *signalE);
+    LOG_DEBUG("signal: {}", signalE);
 
     if (type() != EntryPointType::WidgetSet ||
     (signalE != "none" && signalE != "load"))

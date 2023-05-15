@@ -31,7 +31,7 @@
 #include "response.hpp"
 
 #include <Wt/Http/Request.h>
-#include <Wt/Configuration.h>
+//#include <Wt/Configuration.h>
 
 namespace Wt {
 namespace http {
@@ -391,6 +391,7 @@ public:
     origin_.clear();
     href_.clear();
     path_ = {};
+    pathInfo_ = {};
     querystring_ = {};
     query_.clear();
     search_ = {};
@@ -571,60 +572,60 @@ public:
     return false;
   }
 
-  std::string_view clientAddress(const Wt::Configuration &conf) const
-  {
-    //std::string remoteAddr = str(envValue("REMOTE_ADDR"));
-    auto remoteAddr = envValue("REMOTE_ADDR");
-    if (conf.behindReverseProxy()) {
-      // Old, deprecated behavior
-      auto clientIp = get("Client-IP");
+//  std::string_view clientAddress(const Wt::Configuration &conf) const
+//  {
+//    //std::string remoteAddr = str(envValue("REMOTE_ADDR"));
+//    auto remoteAddr = envValue("REMOTE_ADDR");
+//    if (conf.behindReverseProxy()) {
+//      // Old, deprecated behavior
+//      auto clientIp = get("Client-IP");
 
-      std::vector<std::string_view> ips;
-      if (!clientIp.empty())
-        boost::split(ips, clientIp, boost::is_any_of(","));
+//      std::vector<std::string_view> ips;
+//      if (!clientIp.empty())
+//        boost::split(ips, clientIp, boost::is_any_of(","));
 
-      auto forwardedFor = get("X-Forwarded-For");
+//      auto forwardedFor = get("X-Forwarded-For");
 
-      std::vector<std::string_view> forwardedIps;
-      if (!forwardedFor.empty())
-        boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
+//      std::vector<std::string_view> forwardedIps;
+//      if (!forwardedFor.empty())
+//        boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
 
-      //Utils::insert(ips, forwardedIps);
-      ips.insert(ips.end(), forwardedIps.begin(), forwardedIps.end());
+//      //Utils::insert(ips, forwardedIps);
+//      ips.insert(ips.end(), forwardedIps.begin(), forwardedIps.end());
 
-      for (auto &ip : ips) {
-        boost::trim(ip);
+//      for (auto &ip : ips) {
+//        ip = boost::trim_copy(ip);
 
-        if (!ip.empty() && !isPrivateIP(ip)) {
-          return ip;
-        }
-      }
+//        if (!ip.empty() && !isPrivateIP(ip)) {
+//          return ip;
+//        }
+//      }
 
-      return remoteAddr;
-    } else {
-      if (conf.isTrustedProxy(remoteAddr)) {
-        auto forwardedFor = get(conf.originalIPHeader());
-        boost::trim(forwardedFor);
-        std::vector<std::string_view> forwardedIps;
-        boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
-        for (auto it = forwardedIps.rbegin(); it != forwardedIps.rend(); ++it) {
-          boost::trim(*it);
-          if (!it->empty()) {
-            if (!conf.isTrustedProxy(*it)) {
-              return *it;
-            } else {
-              /*
-             * When the left-most address in a forwardedHeader is contained
-             * within a trustedProxy subnet, it should be returned as the clientAddress
-             */
-              remoteAddr = *it;
-            }
-          }
-        }
-      }
-      return remoteAddr;
-    }
-  }
+//      return remoteAddr;
+//    } else {
+//      if (conf.isTrustedProxy(remoteAddr)) {
+//        auto forwardedFor = get(conf.originalIPHeader());
+//        forwardedFor = boost::trim_copy(forwardedFor);
+//        std::vector<std::string_view> forwardedIps;
+//        boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
+//        for (auto it = forwardedIps.rbegin(); it != forwardedIps.rend(); ++it) {
+//          *it = boost::trim_copy(*it);
+//          if (!it->empty()) {
+//            if (!conf.isTrustedProxy(*it)) {
+//              return *it;
+//            } else {
+//              /*
+//             * When the left-most address in a forwardedHeader is contained
+//             * within a trustedProxy subnet, it should be returned as the clientAddress
+//             */
+//              remoteAddr = *it;
+//            }
+//          }
+//        }
+//      }
+//      return remoteAddr;
+//    }
+//  }
 
  private:
   void parse_url() {
@@ -636,8 +637,9 @@ public:
       querystring_ = url_.substr(pos + 1, url_.length() - pos - 1);
       search_ = url_.substr(pos, url_.length() - pos);
 
-      const auto pos = url_.find('#');
-      pathInfo_ = url_.substr(pos + 1);
+//      const auto pos = url_.find('#');
+//      pathInfo_ = url_.substr(pos + 1);
+      //pathInfo_ = path_;
     }
   }
 

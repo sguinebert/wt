@@ -34,7 +34,7 @@ namespace Wt {
   class WSslInfo;
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 /*
@@ -147,6 +147,6 @@ public:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_REQUEST_HPP

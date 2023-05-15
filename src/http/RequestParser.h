@@ -27,7 +27,7 @@
 #include <zlib.h>
 #endif
 
-namespace http {
+namespace Http {
 namespace server {
 
 class Request;
@@ -174,6 +174,6 @@ private:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_REQUEST_PARSER_HPP

@@ -25,7 +25,7 @@ namespace Wt {
   LOGGER("wthttp/proxy");
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 SessionProcess::SessionProcess(SessionProcessManager *manager)
@@ -332,4 +332,4 @@ void SessionProcess::exec(const Configuration& config,
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

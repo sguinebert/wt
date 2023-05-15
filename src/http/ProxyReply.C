@@ -26,7 +26,7 @@ namespace Wt {
 
 #define SSL_CLIENT_CERTIFICATES_HEADER "X-Wt-Ssl-Client-Certificates"
 
-namespace http {
+namespace Http {
 namespace server {
 
 ProxyReply::ProxyReply(Request& request,
@@ -93,12 +93,12 @@ void ProxyReply::writeDone(bool success)
   if (request_.type == Request::TCP && !receiving_) {
     // Sent 101 response, start receiving more data from the client
     receiving_ = true;
-    LOG_DEBUG("{}: receive() upstream", this);
+    LOG_DEBUG("{}: receive() upstream", (long long)this);
     receive();
   }
 
   if (more_ && socket_) {
-    LOG_DEBUG("{}: async_read downstream", this);
+    LOG_DEBUG("{}: async_read downstream", (long long)this);
     asio::async_read
       (*socket_, responseBuf_,
        asio::transfer_at_least(1),
@@ -113,7 +113,7 @@ bool ProxyReply::consumeData(const char *begin,
 			     const char *end,
 			     Request::State state)
 {
-  LOG_DEBUG("{}: consumeData()", this);
+  LOG_DEBUG("{}: consumeData()", (long long)this);
 
   if (state == Request::Error) {
     return false;
@@ -125,7 +125,7 @@ bool ProxyReply::consumeData(const char *begin,
 
   if (sessionProcess_) {
    if (socket_) {
-      LOG_DEBUG("{}: sending to child", this);
+      LOG_DEBUG("{}: sending to child", (long long)this);
       // Connection with child already established, send request data
       asio::async_write
 	(*socket_,
@@ -370,7 +370,7 @@ void ProxyReply::handleDataWritten(const Wt::AsioWrapper::error_code &ec,
   if (!ec) {
     if (state_ == Request::Partial) {
       requestBuf_.consume(transferred);
-      LOG_DEBUG("{}: receive() upstream", this);
+      LOG_DEBUG("{}: receive() upstream", (long long)this);
       receive();
     } else {
       asio::async_read_until
@@ -493,7 +493,7 @@ void ProxyReply::handleHeadersRead(const Wt::AsioWrapper::error_code &ec)
 
 void ProxyReply::handleResponseRead(const Wt::AsioWrapper::error_code &ec)
 {
-  LOG_DEBUG("{}: async_read done.", this);
+  LOG_DEBUG("{}: async_read done.", (long long)this);
 
   if (!ec) {
     if (responseBuf_.size() > 0) {
@@ -620,4 +620,4 @@ bool ProxyReply::sendReload()
 }
 
   } // namespace server
-} // namespace http
+} // namespace Http

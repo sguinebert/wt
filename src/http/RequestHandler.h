@@ -26,7 +26,7 @@
 #include "WtReply.h"
 #include "../Wt/Configuration.h"
 
-namespace http {
+namespace Http {
 namespace server {
 
 class Configuration;
@@ -80,6 +80,6 @@ private:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_REQUEST_HANDLER_HPP

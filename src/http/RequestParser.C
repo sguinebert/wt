@@ -57,7 +57,7 @@ namespace Wt {
   LOGGER("wthttp");
 }
 
-namespace http {
+namespace Http {
 namespace server {
 
 RequestParser::RequestParser(Server *server) :
@@ -752,7 +752,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
     }
   }
 
-  LOG_DEBUG("ws: {}, {}", (dataEnd - dataBegin), state);
+  LOG_DEBUG("ws: {}, {}", (dataEnd - dataBegin), (int)state);
 
   if (dataBegin < dataEnd || state == Request::Complete)
   {
@@ -1220,4 +1220,4 @@ Reply::status_type RequestParser::validate(Request& req)
 }
 
 } // namespace server
-} // namespace http
+} // namespace Http

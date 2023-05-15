@@ -159,7 +159,8 @@ public:
    *
    * \sa getParameterValues()
    */
-  const Http::ParameterMap& getParameterMap() const { return parameters_; }
+  Http::ParameterMap dumb_;
+  const Http::ParameterMap& getParameterMap() const { return dumb_; }
 
   /*! \brief Returns values for a query parameter.
    *
@@ -181,7 +182,7 @@ public:
    *
    * \sa getParameterMap()
    */
-  const Http::ParameterValues& getParameterValues(const std::string& name)
+  const http::ParameterValues& getParameterValues(const std::string& name)
     const;
 
   /*! \brief Returns a single value for a query parameter.
@@ -718,7 +719,7 @@ protected:
   WEnvironment();
   virtual ~WEnvironment();
 
-  void setUserAgent(const std::string& agent);
+  void setUserAgent(std::string_view agent);
   void setInternalPath(const std::string& path);
  
 private:

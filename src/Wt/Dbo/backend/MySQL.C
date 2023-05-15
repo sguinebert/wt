@@ -161,7 +161,7 @@ class MySQLStatement final : public SqlStatement
       if (column >= paramCount_)
         throw MySQLException(std::string("Try to bind too much?"));
 
-      LOG_DEBUG("{} bind {} {}", this, column, value);
+      LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
 
       unsigned long * len = (unsigned long *)malloc(sizeof(unsigned long));
 
@@ -185,7 +185,7 @@ class MySQLStatement final : public SqlStatement
       if (column >= paramCount_)
         throw MySQLException(std::string("Try to bind too much?"));
 
-      LOG_DEBUG("{} bind {} {}", this, column, value);
+      LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
       short * data = (short *)malloc(sizeof(short));
       *data = value;
       freeColumn(column);
@@ -201,7 +201,7 @@ class MySQLStatement final : public SqlStatement
       if (column >= paramCount_)
         throw MySQLException(std::string("Try to bind too much?"));
 
-      LOG_DEBUG("{} bind {} {}", this, column, value);
+      LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
       int * data = (int *)malloc(sizeof(int));
       *data = value;
       freeColumn(column);
@@ -216,7 +216,7 @@ class MySQLStatement final : public SqlStatement
       if (column >= paramCount_)
         throw MySQLException(std::string("Try to bind too much?"));
 
-      LOG_DEBUG("{} bind {} {}", this, column, value);
+      LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
       long long * data = (long long *)malloc(sizeof(long long));
       *data = value;
       freeColumn(column);
@@ -228,7 +228,7 @@ class MySQLStatement final : public SqlStatement
 
     virtual void bind(int column, float value) override
     {
-      LOG_DEBUG("{} bind {} {}", this, column, value);
+      LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
       float * data = (float *) malloc(sizeof(float));
       *data = value;
       freeColumn(column);
@@ -243,7 +243,7 @@ class MySQLStatement final : public SqlStatement
       if (column >= paramCount_)
         throw MySQLException(std::string("Try to bind too much?"));
 
-      LOG_DEBUG("{} bind {} {}", this, column, value);
+      LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
       double * data = (double *)malloc(sizeof(double));
       *data = value;
       freeColumn(column);
@@ -314,7 +314,7 @@ class MySQLStatement final : public SqlStatement
       auto seconds = cpp20::date::floor<std::chrono::seconds>(absValue) - hours - minutes;
       auto msecs = cpp20::date::floor<std::chrono::milliseconds>(absValue) - hours - minutes - seconds;
 
-      LOG_DEBUG("{} bind {} {}ms", this, column, value.count());
+      LOG_DEBUG("{} bind {} {}ms", (long long)this, column, value.count());
 
       MYSQL_TIME* ts  = (MYSQL_TIME *)malloc(sizeof(MYSQL_TIME));
 
@@ -347,7 +347,7 @@ class MySQLStatement final : public SqlStatement
       if (column >= paramCount_)
         throw MySQLException(std::string("Try to bind too much?"));
 
-      LOG_DEBUG("{} bind {}  (blob, size={})", this, column, value.size());
+      LOG_DEBUG("{} bind {}  (blob, size={})", (long long)this, column, value.size());
 
       unsigned long * len = (unsigned long *)malloc(sizeof(unsigned long));
 
@@ -374,7 +374,7 @@ class MySQLStatement final : public SqlStatement
       if (column >= paramCount_)
         throw MySQLException(std::string("Try to bind too much?"));
 
-      LOG_DEBUG("{} bind {} null", this, column);
+      LOG_DEBUG("{} bind {} null", (long long)this, column);
 
       freeColumn(column);
       in_pars_[column].buffer_type = MYSQL_TYPE_NULL;
@@ -513,7 +513,7 @@ class MySQLStatement final : public SqlStatement
 	str = static_cast<char*>( out_pars_[column].buffer);
         *value = std::string(str, *out_pars_[column].length);
 
-        LOG_DEBUG("{} result string ", this, column , value);
+        LOG_DEBUG("{} result string ", (long long)this, column , value);
 
         return true;
       }
@@ -593,7 +593,7 @@ class MySQLStatement final : public SqlStatement
 	return false;
       }
 
-      LOG_DEBUG("{} result int {} {}", this, column, *value);
+      LOG_DEBUG("{} result int {} {}", (long long)this, column, *value);
 
       return true;
     }
@@ -624,7 +624,7 @@ class MySQLStatement final : public SqlStatement
 	  break;
       }
 
-      LOG_DEBUG("{} result long long {} {}", this, column, *value);
+      LOG_DEBUG("{} result long long {} {}", (long long)this, column, *value);
 
       return true;
     }
@@ -640,7 +640,7 @@ class MySQLStatement final : public SqlStatement
 
        *value = *static_cast<float*>(out_pars_[column].buffer);
 
-      LOG_DEBUG("{} result float {} {}", this, column, *value);
+      LOG_DEBUG("{} result float {} {}", (long long)this, column, *value);
 
       return true;
     }
@@ -682,7 +682,7 @@ class MySQLStatement final : public SqlStatement
 	return false;
       }
 
-      LOG_DEBUG("{} result double {} {}", this, column, *value);
+      LOG_DEBUG("{} result double {} {}", (long long)this, column, *value);
 
       return true;
     }
@@ -740,7 +740,7 @@ class MySQLStatement final : public SqlStatement
                      + std::chrono::seconds(ts->second) + msecs;
        *value = ts->neg ? -absValue : absValue;
 
-       LOG_DEBUG("{} result time {} {}ms", this, column, value->count());
+       LOG_DEBUG("{} result time {} {}ms", (long long)this, column, value->count());
 
        return true;
     }
@@ -771,7 +771,7 @@ class MySQLStatement final : public SqlStatement
         value->resize(vlength);
         std::copy(v, v + vlength, value->begin());
 
-        LOG_DEBUG("{} result blob {} (blob, size = {})", this, column, vlength);
+        LOG_DEBUG("{} result blob {} (blob, size = {})", (long long)this, column, vlength);
 
         return true;
       }

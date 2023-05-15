@@ -1343,6 +1343,8 @@ std::string WApplication::internalPath() const
 
 void WApplication::setInternalPath(const std::string& path, bool emitChange)
 {
+
+  std::cerr << "setInternalPath(const std::string& path" << path << std::endl;
   enableInternalPaths();
 
   if (!session_->renderer().preLearning() && emitChange)

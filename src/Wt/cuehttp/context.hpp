@@ -39,11 +39,12 @@ namespace http {
 class context final : safe_noncopyable {
     friend class CgiParser;
  public:
-  context(detail::reply_handler handler, bool https, detail::ws_send_handler ws_send_handler) noexcept
-      : response_{cookies_, std::move(handler)},
+    context(detail::reply_handler handler, detail::reply_handler2 handler2, bool https, detail::ws_send_handler ws_send_handler) noexcept
+         : handler2_{std::move(handler2)}, response_{cookies_, std::move(handler)},
         request_{https, response_, cookies_},
         ws_send_handler_{std::move(ws_send_handler)} {}
 
+  detail::reply_handler2 handler2_;
   request& req() noexcept { return request_; }
 
   response& res() noexcept { return response_; }
@@ -53,7 +54,7 @@ class context final : safe_noncopyable {
     return *websocket_;
   }
 
-  bool isWebSocketMessage() { return request_.websocket(); }
+  bool isWebSocketMessage() { return websocket_ != nullptr; }
 
   std::shared_ptr<class websocket> websocket_ptr() {
     make_ws();
@@ -91,20 +92,20 @@ class context final : safe_noncopyable {
 
   //const UploadedFileMap& uploadedFiles() const { return request_.files(); }
 
-  std::string_view urlScheme(const Configuration &conf) const
-  {
-    if (conf.behindReverseProxy() || conf.isTrustedProxy(host())) {
-        auto forwardedProto = getHeader("X-Forwarded-Proto");
-        if (!forwardedProto.empty()) {
-            if (auto i = forwardedProto.rfind(','); i == std::string::npos)
-                return forwardedProto;
-            else
-                return forwardedProto.substr(i+1);
-        }
-    }
+//  std::string_view urlScheme(const Configuration &conf) const
+//  {
+//    if (conf.behindReverseProxy() || conf.isTrustedProxy(host())) {
+//        auto forwardedProto = getHeader("X-Forwarded-Proto");
+//        if (!forwardedProto.empty()) {
+//            if (auto i = forwardedProto.rfind(','); i == std::string::npos)
+//                return forwardedProto;
+//            else
+//                return forwardedProto.substr(i+1);
+//        }
+//    }
 
-    return request_.scheme();
-  }
+//    return request_.scheme();
+//  }
 
   // response
   unsigned status() const noexcept { return response_.status(); }
@@ -178,6 +179,7 @@ class context final : safe_noncopyable {
   std::ostream& out() { return response_.body(); }
 
   void reset() {
+    flush_ = false;
     request_.reset();
     response_.reset();
     cookies_.reset();
@@ -198,8 +200,11 @@ class context final : safe_noncopyable {
     flush_ = true;
 
     if(websocket_) {
-        websocket_->send(response_.dump_body());
+        std::cerr << "websocket dump message ---------------------------\n" << response_.dump_body() << std::endl;
+        if(auto sv = response_.dump_body(); !sv.empty())
+            websocket_->send(std::string(sv));
         response_.reset();
+        request_.reset();
         return;
     }
 
@@ -209,7 +214,23 @@ class context final : safe_noncopyable {
     writecallback_ = nullptr;
   }
 
-  std::weak_ptr<Wt::WebSession> websession() { return websession_; }
+  void flush_r() {
+    flush_ = true;
+
+    if(websocket_) {
+        websocket_->send(std::string(response_.dump_body()));
+        response_.reset();
+        return;
+    }
+    std::string buffers;
+    response_.to_strbuffers(buffers);
+    handler2_(buffers);
+
+    response_.reset();
+  }
+
+  std::shared_ptr<Wt::WebSession> websession() { return websession_; }
+  void websession(std::shared_ptr<Wt::WebSession> wsession) { websession_ = wsession; }
 
   //std::string ws_querystring() { return "wtd=" + websession_.lock()->sessionId() + "&request=jsupdate"; }
 
@@ -218,7 +239,7 @@ class context final : safe_noncopyable {
 
  private:
   void make_ws() {
-    assert(request_.websocket());
+    //assert(request_.websocket());
     if (!websocket_) {
       websocket_ = std::make_shared<class websocket>(ws_send_handler_);
     }
@@ -231,7 +252,7 @@ class context final : safe_noncopyable {
   detail::ws_send_handler ws_send_handler_;
   std::unique_ptr<class session> session_{nullptr};
 
-  std::weak_ptr<Wt::WebSession> websession_;
+  std::shared_ptr<Wt::WebSession> websession_;
 
   Wt::cpp23::move_only_function<void()> writecallback_ = nullptr;
 };

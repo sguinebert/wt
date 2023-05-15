@@ -14,7 +14,7 @@
 
 #include "Wt/AsioWrapper/steady_timer.hpp"
 
-namespace http {
+namespace Http {
 namespace server {
 
 typedef std::map<std::string, std::shared_ptr<SessionProcess> > SessionMap;
@@ -68,6 +68,6 @@ private:
 };
 
 } // namespace server
-} // namespace http
+} // namespace Http
 
 #endif // HTTP_SESSION_PROCESS_MANAGER_HPP

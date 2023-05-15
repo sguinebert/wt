@@ -255,7 +255,7 @@ public:
     friend class WFileUploadResource;
   };
 
-  void handleRequest(Handler& handler);
+  void handleRequest(Handler& handler, EntryPoint *ep);
 
 #ifdef WT_BOOST_THREADS
   std::mutex& mutex() { return mutex_; }
@@ -386,10 +386,10 @@ private:
   std::string_view getSignal(Wt::http::context *context, const std::string& se) const;
 
   void init(const WebRequest& request);
-  bool start(WebResponse *response);
+  bool start(WebResponse *response, EntryPoint *ep);
 
   void init(Wt::http::context *context);
-  bool start(http::context *context);
+  bool start(http::context *context, EntryPoint *ep);
 
   std::string sessionQuery() const;
   void flushBootStyleResponse();

@@ -22,7 +22,7 @@
 
 #include <chrono>
 
-namespace http {
+namespace Http {
   namespace server {
     class Server;
   }
@@ -427,10 +427,20 @@ public:
         auto entrypoints = configuration().entryPoints();
         auto config = serverConfiguration_;
 
+//        router_.all("/resources/themes/default/wt.css", [this] (http::context& ctx) -> awaitable<void> {
+//            ctx.status(404);
+//            co_return;
+//        });
+
+//       router_.all("/resources/webkit-transitions.css", [this] (http::context& ctx) -> awaitable<void> {
+//           ctx.status(404);
+//           co_return;
+//       });
+
         for (auto &ep : entrypoints)
         {
             //std::cerr << "entry point :" << ep.path().data() << std::endl;
-            router_.get(ep.path(), [this, config, &ep] (Wt::http::context& ctx) -> awaitable<void>
+            router_.get(ep.path(), [this, config, &ep] (http::context& ctx) -> awaitable<void>
                        {
                            // std::cerr << "entry get :" << req->getMethod() << std::endl;
 
@@ -440,7 +450,7 @@ public:
                            //std::cerr << "entry get getQuery :" << wtreq << std::endl;
 
                            //ctx.type("text/plain");
-                           //ctx.status(200);
+                           ctx.status(200);
 
 //                           if(ep.type() == EntryPointType::StaticResource) {
 //                               co_await ep.resource()->handle(&ctx);
@@ -457,7 +467,7 @@ public:
 //                           co_return;
 
                            co_await this->webController_->handleRequest(&ctx, &ep);
-
+                           //std::cerr << "dump_body : " << ctx.res().dump_body() << std::endl;
 
 
                            //streply->send(res, http::server::Reply::status_type::not_found);
@@ -465,31 +475,35 @@ public:
                        });
             router_.post(ep.path(), [this, config, &ep] (Wt::http::context& ctx) -> awaitable<void>
                         {
-
+                            ctx.status(200);
+                            co_await this->webController_->handleRequest(&ctx, &ep);
                             //std::cerr << "---------rest post------- " << std::endl << std::endl;
                             //streply->send(res, http::server::Reply::status_type::not_found);
                             co_return;
                         });
 
             if(ep.type() != EntryPointType::StaticResource) {
-                ws_router_.all(ep.path(), [this, &ep](http::context& ctx) -> awaitable<void> {
+                auto epp = &ep;
+                ws_router_.all(ep.path(), [this, epp](http::context& ctx) -> awaitable<void> {
+                            std::cerr << "UPGRADE WS ---------" << std::endl;
 
-                            co_await this->webController_->handleRequest(&ctx, &ep);
-
-                            ctx.websocket().on_open([]() {
-                                std::cout << "websocket on_open" << std::endl;
+                            ctx.websocket().on_open([&ctx]() {
+                                std::cerr << "<<<<<<<<<<<<<<websocket on_open>>>>>>>>>>>>>>>>>" << std::endl;
+                                ctx.websocket().send("connect");
                             });
                             ctx.websocket().on_close([]() {
                                 std::cout << "websocket on_close" << std::endl;
                             });
-                            ctx.websocket().on_message([this, &ctx](std::string&& msg) -> awaitable<void>  {
+                            ctx.websocket().on_message([this, &ctx, epp](std::string&& msg) -> awaitable<void>  {
                                 std::cout << "websocket msg: " << msg << std::endl;
                                 //ctx.websocket().send(std::move(msg));
 
-                                co_await webController_->handleWebSocketMessage(msg);
+                                co_await webController_->handleWebSocketMessage(&ctx, epp, msg);
 
                                 co_return;
                             });
+
+                            co_await this->webController_->handleRequest(&ctx, epp);
                             co_return;
                 });
             }
@@ -984,7 +998,7 @@ private:
   struct Impl;
   Impl *impl_;
 
-  http::server::Configuration *serverConfiguration_ = nullptr;
+  ::Http::server::Configuration *serverConfiguration_ = nullptr;
   Wt::http::cuehttp *server_ = nullptr;
 
   WT_API void setConfiguration(const std::string& file, const std::string& application);

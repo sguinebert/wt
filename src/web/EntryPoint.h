@@ -5,7 +5,7 @@
  * All rights reserved.
  */
 
-#include "Wt/WApplication.h"
+//#include "Wt/WApplication.h"
 #include "Wt/WGlobal.h"
 
 #include <deque>
@@ -13,6 +13,15 @@
 #ifndef ENTRYPOINT_H
 #define ENTRYPOINT_H
 namespace Wt {
+
+/*! \brief Typedef for a function that creates WApplication objects.
+ *
+ * \sa WRun()
+ *
+ * \relates WApplication
+ */
+typedef std::function<std::unique_ptr<WApplication> (const WEnvironment&)> ApplicationCreator;
+
 
 class WT_API EntryPoint {
 public:

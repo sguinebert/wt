@@ -100,7 +100,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
   template <typename Socket = _Socket, typename = std::enable_if_t<std::is_same_v<std::decay_t<Socket>, http_socket>>>
   base_connection(std::function<awaitable<void>(context&)> handler, asio::io_service& io_service) noexcept
       : socket_{io_service},
-        context_{std::bind(&base_connection::coro_reply_chunk, this, std::placeholders::_1), false,
+        context_{std::bind(&base_connection::coro_reply_chunk, this, std::placeholders::_1), std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), false,
                  std::bind(&base_connection::spawn_coro_ws_send, this, std::placeholders::_1)},
         handler_{std::move(handler)} {}
 
@@ -260,11 +260,11 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
     auto& req = context_.req();
     auto& res = context_.res();
     res.minor_version(req.minor_version());
-    co_await handler_(context_);
     if (req.websocket() && !ws_helper_) {
       ws_helper_ = std::make_unique<ws_helper>();
       ws_helper_->websocket_ = context_.websocket_ptr();
     }
+    co_await handler_(context_);
 //    if (!res.is_stream()) {
 //      res.to_string(reply_str_);
 //    }
@@ -303,7 +303,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
     co_return !!code;
   }
 
-  bool reply_chunk(const std::string& chunk) {
+  bool reply_chunk(std::string_view chunk) {
     boost::system::error_code code;
     asio::write(socket_, asio::buffer(chunk), code);
     return !!code;
@@ -417,7 +417,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 //        if (frameType & 0x70 && (!req.pmdState_.enabled && frameType & 0x30))
 //            return Request::Error;
         //inflate
-        auto opcode = (detail::ws_opcode)(reader.opcode & 0x0F);
+        //auto opcode = (detail::ws_opcode)(reader.opcode & 0x0F);
 //        if (wsState_ < ws13_frame_start) {
 //            if (wsFrameType_ == 0x00)
 //                opcode = Reply::text_frame;

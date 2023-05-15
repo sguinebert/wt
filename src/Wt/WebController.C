@@ -805,7 +805,7 @@ void WebController::handleRequest(WebRequest *request)
 
     if (!session->dead()) {
       handled = true;
-      session->handleRequest(handler);
+      session->handleRequest(handler, (EntryPoint*)request->entryPoint_);
     }
   }
 
@@ -821,7 +821,7 @@ void WebController::handleRequest(WebRequest *request)
     handleRequest(request);
 }
 
-awaitable<void> WebController::handleRequest(Wt::http::context *context, const EntryPoint *entryPoint)
+awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPoint *entryPoint)
 {
   if (!running_) {
     context->status(500);
@@ -829,6 +829,9 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, const E
     //request->flush();
     co_return;
   }
+
+  std::cerr << "context->url() : "  << context->url() << std::endl;
+
 
   //      if (!context->entryPoint_) {
   //          EntryPointMatch match = getEntryPoint(context);
@@ -941,7 +944,8 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, const E
 
     if (i == sessions_.end() || i->second->dead() ||
         (sessionTracking == Configuration::Combined &&
-         (multiSessionCookie.empty() || multiSessionCookie != i->second->multiSessionId()))) {
+         (multiSessionCookie.empty() || multiSessionCookie != i->second->multiSessionId())))
+    {
       try {
         if (sessionTracking == Configuration::Combined &&
             i != sessions_.end() && !i->second->dead()) {
@@ -1013,6 +1017,8 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, const E
     }
   }
 
+  context->websession(session);
+
   bool handled = false;
   {
     //WebSession::Handler handler(session, *request, *(WebResponse *)request);
@@ -1020,7 +1026,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, const E
 
     if (!session->dead()) {
       handled = true;
-      session->handleRequest(handler);
+      session->handleRequest(handler, entryPoint);
     }
   }
 
@@ -1037,15 +1043,25 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, const E
   co_return;
 }
 
-awaitable<void> WebController::handleWebSocketMessage(http::context *context, std::string &message)
+awaitable<void> WebController::handleWebSocketMessage(http::context *context, EntryPoint *entryPoint, std::string &message)
 {
-  auto lock = context->websession().lock();
+
+  auto lock = context->websession();
   auto websocket = context->websocket_ptr();
 
   bool closing = message.length() == 0;
 
-  WebSession::Handler handler(lock, context);
-  lock->handleRequest(handler);
+//  WebSession::Handler handler(lock, context);
+//  lock->handleRequest(handler, entryPoint);
+
+  if (!lock)
+    co_return;
+
+  WebSession::Handler handler(lock, WebSession::Handler::LockOption::TakeLock);
+  //  lock->handleRequest(handler, entryPoint);
+
+//  if (!lock->webSocket_ctx_)
+//    co_return;
 
   if (!closing)
   {
@@ -1057,6 +1073,9 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, st
       LOG_ERROR("could not parse ws message: {}", e.what());
       closing = true;
     }
+  }
+  for(auto &[key, val] : context->req().query()){
+    std::cerr << "key : " << key << " - val: " << val << std::endl;
   }
 
   if (!closing)
@@ -1083,8 +1102,8 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, st
     if (signalE == "ping")
     {
       LOG_DEBUG("ws: handle ping");
-      if (lock->canWriteWebSocket_)
-      {
+//      if (lock->canWriteWebSocket_)
+//      {
         lock->canWriteWebSocket_ = false;
         context->out() << "{}";
         context->flush();
@@ -1092,7 +1111,7 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, st
 //        lock->webSocket_->flush
 //            (WebRequest::ResponseState::ResponseFlush,
 //             std::bind(&WebSession::webSocketReady, session, std::placeholders::_1));
-      }
+//      }
 
 //      lock->webSocket_->readWebSocketMessage
 //          (std::bind(&WebSession::handleWebSocketMessage, session, std::placeholders::_1));
@@ -1110,7 +1129,7 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, st
   if (!closing) {
     //handler.setRequest(message, message);
     handler.setRequest(context);
-    lock->handleRequest(handler);
+    lock->handleRequest(handler, entryPoint);
   }
 
 //  else
@@ -1123,9 +1142,10 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, st
 
   if (closing)
   {
-    if (lock->webSocket_ && lock->canWriteWebSocket_)
+    if (lock->webSocket_ctx_ /*&& lock->canWriteWebSocket_*/)
     {
-      context->flush();
+      lock->webSocket_ctx_->flush();
+      lock->webSocket_ctx_ = nullptr;
 //      lock->webSocket_->flush();
 //      lock->webSocket_ = nullptr;
     }
@@ -1140,10 +1160,10 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, st
 }
 
 std::unique_ptr<WApplication> WebController
-    ::doCreateApplication(WebSession *session)
+    ::doCreateApplication(WebSession *session, EntryPoint *ep)
 {
-  const EntryPoint *ep
-      = WebSession::Handler::instance()->request()->entryPoint_;
+//  const EntryPoint *ep
+//      = WebSession::Handler::instance()->request()->entryPoint_;
 
   return ep->appCallback()(session->env());
 }
