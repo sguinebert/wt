@@ -504,7 +504,7 @@ void WDialog::setClosable(bool closable)
   }
 }
 
-DialogCode WDialog::exec(const WAnimation& animation)
+awaitable<DialogCode> WDialog::exec(const WAnimation& animation)
 {
   if (recursiveEventLoop_)
     throw WException("WDialog::exec(): already being executed.");
@@ -527,13 +527,13 @@ DialogCode WDialog::exec(const WAnimation& animation)
       throw WException("Test case must close dialog");
   } else {
     do {
-      app->waitForEvent();
+      co_await app->waitForEvent();
     } while (recursiveEventLoop_);
   }
 
   hide();
 
-  return result_;
+  co_return result_;
 }
 
 void WDialog::done(DialogCode result)

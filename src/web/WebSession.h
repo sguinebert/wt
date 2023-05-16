@@ -108,10 +108,10 @@ public:
   WLogEntry log(const std::string& type) const;
 #endif // WT_TARGET_JAVA
 
-  void externalNotify(const WEvent::Impl& e);
-  void notify(const WEvent& e);
+  awaitable<void> externalNotify(const WEvent::Impl& e);
+  awaitable<void> notify(const WEvent& e);
 
-  void doRecursiveEventLoop();
+  awaitable<void> doRecursiveEventLoop();
 
   void deferRendering();
   void resumeRendering();
@@ -197,6 +197,8 @@ public:
     Handler(const std::shared_ptr<WebSession>& session, LockOption lockOption);
     Handler(WebSession *session);
     ~Handler();
+    awaitable<void> destroy();
+    bool destroyed = false;
 
 #ifdef WT_TARGET_JAVA
     void release();
@@ -255,7 +257,7 @@ public:
     friend class WFileUploadResource;
   };
 
-  void handleRequest(Handler& handler, EntryPoint *ep);
+  awaitable<void> handleRequest(Handler& handler, EntryPoint *ep);
 
 #ifdef WT_BOOST_THREADS
   std::mutex& mutex() { return mutex_; }
@@ -389,14 +391,14 @@ private:
   bool start(WebResponse *response, EntryPoint *ep);
 
   void init(Wt::http::context *context);
-  bool start(http::context *context, EntryPoint *ep);
+  awaitable<bool> start(http::context *context, EntryPoint *ep);
 
   std::string sessionQuery() const;
   void flushBootStyleResponse();
   void changeInternalPath(const std::string& path, WebResponse *response);
   void changeInternalPath(const std::string& path, http::context *context);
 
-  void processQueuedEvents(WebSession::Handler& handler);
+  awaitable<void> processQueuedEvents(WebSession::Handler& handler);
   std::shared_ptr<ApplicationEvent> popQueuedEvent();
 
   friend class WebSocketMessage;

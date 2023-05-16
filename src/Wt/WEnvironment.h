@@ -739,6 +739,18 @@ private:
   static void parseCookies(const std::string& cookie,
 			   std::unordered_map<std::string, std::string>& result);
 
+  void reset() {
+    //session = nullptr;
+    doesAjax_ = false;
+    doesCookies_ = false;
+    internalPathUsingFragments_ = false;
+    screenWidth_ = -1;
+    screenHeight_ = -1;
+    dpiScale_ = 1;
+    webGLsupported_ = false;
+    timeZoneOffset_ = std::chrono::minutes(0);
+  }
+
   friend class WebController;
   friend class WebRenderer;
   friend class WebSession;

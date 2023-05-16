@@ -346,13 +346,68 @@ void WEnvironment::enableAjax(const WebRequest& request)
   }
 }
 
+std::string_view clientaddress(http::request& request, const Wt::Configuration &conf)
+{
+  //std::string remoteAddr = str(envValue("REMOTE_ADDR"));
+  auto remoteAddr = request.envValue("REMOTE_ADDR");
+  if (conf.behindReverseProxy()) {
+    // Old, deprecated behavior
+    auto clientIp = request.get("Client-IP");
+
+    std::vector<std::string_view> ips;
+    if (!clientIp.empty())
+      boost::split(ips, clientIp, boost::is_any_of(","));
+
+    auto forwardedFor = request.get("X-Forwarded-For");
+
+    std::vector<std::string_view> forwardedIps;
+    if (!forwardedFor.empty())
+      boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
+
+    //Utils::insert(ips, forwardedIps);
+    ips.insert(ips.end(), forwardedIps.begin(), forwardedIps.end());
+
+    for (auto &ip : ips) {
+      ip = boost::trim_copy(ip);
+
+      if (!ip.empty() && !request.isPrivateIP(ip)) {
+        return ip;
+      }
+    }
+
+    return remoteAddr;
+  } else {
+    if (conf.isTrustedProxy(remoteAddr)) {
+      auto forwardedFor = request.get(conf.originalIPHeader());
+      forwardedFor = boost::trim_copy(forwardedFor);
+      std::vector<std::string_view> forwardedIps;
+      boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
+      for (auto it = forwardedIps.rbegin(); it != forwardedIps.rend(); ++it) {
+        *it = boost::trim_copy(*it);
+        if (!it->empty()) {
+            if (!conf.isTrustedProxy(*it)) {
+                return *it;
+            } else {
+                /*
+             * When the left-most address in a forwardedHeader is contained
+             * within a trustedProxy subnet, it should be returned as the clientAddress
+             */
+                remoteAddr = *it;
+            }
+        }
+      }
+    }
+    return remoteAddr;
+  }
+}
+
 #warning "not finished init"
 void WEnvironment::init(http::context *context)
 {
   Configuration& conf = session_->controller()->configuration();
 
   queryString_ = context->querystring();
-  //parameters_ = request.getParameterMap();
+  parameters_ = context->req().getParameters();
   host_            = context->getHeader("Host");
   referer_         = context->getHeader("Referer");
   accept_          = context->getHeader("Accept");
@@ -396,20 +451,20 @@ void WEnvironment::init(http::context *context)
     /*
      * HTTP 1.0 doesn't require it: guess from config
      */
-    //host_ = context->req().serverName();
-//    if (!request.serverPort().empty())
-//      host_ += ":" + request.serverPort();
+//    host_ = context->hostname();
+//    if (!context->port().empty())
+      host_ = context->host();
   }
 
-  //clientAddress_ = context->clientAddress(conf);
+  clientAddress_ = clientaddress(context->req(), conf);
 
-  auto cookie = context->getHeader("Cookie");
+  std::string cookie { context->getHeader("Cookie") };
   doesCookies_ = !cookie.empty();
 
-//  if (!cookie.empty())
-//    parseCookies(cookie, cookies_);
+  if (!cookie.empty())
+    parseCookies(cookie, cookies_);
 
-  //locale_ = request.parseLocale();
+  locale_ = Wt::WLocale(context->req().parsePreferredAcceptValue()); ;
 }
 
 void WEnvironment::setUserAgent(std::string_view userAgent)
@@ -570,6 +625,8 @@ void WEnvironment::libraryVersion(int& series, int& major, int& minor) const
 }
 #endif //WT_TARGET_JAVA
 
+static http::ParameterValues emptyValues_;
+
 const http::ParameterValues&
 WEnvironment::getParameterValues(const std::string& name) const
 {
@@ -577,10 +634,10 @@ WEnvironment::getParameterValues(const std::string& name) const
 
   if (i != parameters_.end())
     return i->second;
-//  else
-//    return WebRequest::emptyValues_;
+  else
+    return emptyValues_;
 }
-
+#warning "TODO : finish that"
 const std::string *WEnvironment::getParameter(const std::string& name) const
 {
 //  const auto& values = getParameterValues(name);

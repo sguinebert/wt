@@ -222,7 +222,7 @@ public:
    *
    * \sa done(DialogCode r), accept(), reject()
    */
-  DialogCode exec(const WAnimation& animation = WAnimation());
+  awaitable<DialogCode> exec(const WAnimation& animation = WAnimation());
 
   /*! \brief Stops the dialog.
    *

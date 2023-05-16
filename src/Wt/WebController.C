@@ -58,8 +58,8 @@ namespace Wt {
 LOGGER("WebController");
 
 WebController::WebController(WServer& server,
-			     const std::string& singleSessionId,
-			     bool autoExpire)
+                 const std::string& singleSessionId,
+                 bool autoExpire)
   : conf_(server.configuration()),
     singleSessionId_(singleSessionId),
     autoExpire_(autoExpire),
@@ -125,9 +125,8 @@ void WebController::shutdown()
 
       LOG_INFO_S(&server_, "shutdown: stopping {} sessions.", sessions_.size());
 
-      for (SessionMap::iterator i = sessions_.begin(); i != sessions_.end();
-	   ++i)
-	sessionList.push_back(i->second);
+      for (auto i = sessions_.begin(); i != sessions_.end(); ++i)
+        sessionList.push_back(i->second);
 
       sessions_.clear();
 
@@ -137,8 +136,7 @@ void WebController::shutdown()
 
     for (unsigned i = 0; i < sessionList.size(); ++i) {
       std::shared_ptr<WebSession> session = sessionList[i];
-      WebSession::Handler handler(session, 
-				  WebSession::Handler::LockOption::TakeLock);
+      WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock);
       session->expire();
     }
   }
@@ -202,7 +200,7 @@ bool WebController::expireSessions()
       int diff = session->expireTime() - now;
 
       if (diff < 1000 && configuration().sessionTimeout() != -1) {
-	toExpire.push_back(session);
+    toExpire.push_back(session);
         // Note: the session is not yet removed from sessions_ map since
         // we want to grab the UpdateLock to do this and grabbing it here
         // might cause a deadlock.
@@ -216,8 +214,7 @@ bool WebController::expireSessions()
     std::shared_ptr<WebSession> session = toExpire[i];
 
     LOG_INFO_S(session, "timeout: expiring");
-    WebSession::Handler handler(session,
-				WebSession::Handler::LockOption::TakeLock);
+    WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock);
 
 #ifdef WT_THREADED
     std::unique_lock<std::recursive_mutex> lock(mutex_);
@@ -324,7 +321,7 @@ std::string WebController::sessionFromCookie(std::string_view cookies,
     //                              \- nextEquals
 
     if (std::distance(start, nextEquals) == (long)cookieName.size() &&
-	std::equal(start, nextEquals, cookieName.c_str())) {
+    std::equal(start, nextEquals, cookieName.c_str())) {
       const char * cookieValueStart = nextEquals+1;
       assert(cookieValueStart <= end); // Because of nextEquals == end check earlier
       // Leave out trailing whitespace
@@ -398,7 +395,7 @@ void WebController::socketSelected(int descriptor, WSocketNotifier::Type type)
   }
 
   server_.post(sessionId, std::bind(&WebController::socketNotify,
-				      this, descriptor, type));
+                      this, descriptor, type));
 #endif // WT_THREADED
 }
 
@@ -409,7 +406,7 @@ void WebController::socketNotify(int descriptor, WSocketNotifier::Type type)
   {
     std::unique_lock<std::recursive_mutex> lock(notifierMutex_);
     SocketNotifierMap &notifiers = socketNotifiers(type);
-    SocketNotifierMap::iterator k = notifiers.find(descriptor);	
+    SocketNotifierMap::iterator k = notifiers.find(descriptor);
     if (k != notifiers.end()) {
       notifier = k->second;
       notifiers.erase(k);
@@ -468,8 +465,8 @@ void WebController::removeSocketNotifier(WSocketNotifier *notifier)
 }
 
 bool WebController::requestDataReceived(WebRequest *request,
-					std::uintmax_t current,
-					std::uintmax_t total)
+                    std::uintmax_t current,
+                    std::uintmax_t total)
 {
 #ifdef WT_THREADED
   std::unique_lock<std::mutex> lock(uploadProgressUrlsMutex_);
@@ -633,8 +630,8 @@ void WebController::handleRequest(WebRequest *request)
 
   try {
     cgi.parse(*request, conf_.needReadBodyBeforeResponse()
-	      ? CgiParser::ReadBodyAnyway
-	      : CgiParser::ReadDefault);
+          ? CgiParser::ReadBodyAnyway
+          : CgiParser::ReadDefault);
   } catch (std::exception& e) {
     LOG_ERROR_S(&server_, "could not parse request: {}", e.what());
 
@@ -661,7 +658,7 @@ void WebController::handleRequest(WebRequest *request)
 
     if (urlE && hashE) {
       if (*hashE != computeRedirectHash(*urlE))
-	hashE = nullptr;
+    hashE = nullptr;
     }
 
     if (urlE && hashE) {
@@ -669,8 +666,8 @@ void WebController::handleRequest(WebRequest *request)
     } else {
       request->setContentType("text/html");
       request->out()
-	<< "<title>Error occurred.</title>"
-	<< "<h2>Error occurred.</h2><p>Invalid redirect.</p>" << std::endl;
+    << "<title>Error occurred.</title>"
+    << "<h2>Error occurred.</h2><p>Invalid redirect.</p>" << std::endl;
     }
 
     request->flush(WebResponse::ResponseState::ResponseDone);
@@ -687,8 +684,8 @@ void WebController::handleRequest(WebRequest *request)
   if (conf_.sessionTracking() == Configuration::CookiesURL
       && !conf_.reloadIsNewSession())
     sessionId = sessionFromCookie(request->headerValue("Cookie"),
-				  request->scriptName(),
-				  conf_.fullSessionIdLength());
+                  request->scriptName(),
+                  conf_.fullSessionIdLength());
 
   std::string multiSessionCookie;
   if (conf_.sessionTracking() == Configuration::Combined)
@@ -707,24 +704,24 @@ void WebController::handleRequest(WebRequest *request)
 
     if (!singleSessionId_.empty() && sessionId != singleSessionId_) {
       if (conf_.persistentSessions()) {
-	// This may be because of a race condition in the filesystem:
-	// the session file is renamed in generateNewSessionId() but
-	// still a request for an old session may have arrived here
-	// while this was happening.
-	//
-	// If it is from the old app, We should be sent a reload signal,
-	// this is what will be done by a new session (which does not create
-	// an application).
-	//
-	// If it is another request to take over the persistent session,
-	// it should be handled by the persistent session. We can distinguish
-	// using the type of the request
+    // This may be because of a race condition in the filesystem:
+    // the session file is renamed in generateNewSessionId() but
+    // still a request for an old session may have arrived here
+    // while this was happening.
+    //
+    // If it is from the old app, We should be sent a reload signal,
+    // this is what will be done by a new session (which does not create
+    // an application).
+    //
+    // If it is another request to take over the persistent session,
+    // it should be handled by the persistent session. We can distinguish
+    // using the type of the request
     LOG_INFO_S(&server_, "persistent session requested Id: {}, persisten Id: {}", sessionId, singleSessionId_);
 
-	if (sessions_.empty() || strcmp(request->requestMethod(), "GET") == 0)
-	  sessionId = singleSessionId_;
+    if (sessions_.empty() || strcmp(request->requestMethod(), "GET") == 0)
+      sessionId = singleSessionId_;
       } else
-	sessionId = singleSessionId_;
+    sessionId = singleSessionId_;
     }
 
     SessionMap::iterator i = sessions_.find(sessionId);
@@ -733,7 +730,7 @@ void WebController::handleRequest(WebRequest *request)
 
     if (i == sessions_.end() || i->second->dead() ||
         (sessionTracking == Configuration::Combined &&
-	 (multiSessionCookie.empty() || multiSessionCookie != i->second->multiSessionId()))) {
+     (multiSessionCookie.empty() || multiSessionCookie != i->second->multiSessionId()))) {
       try {
         if (sessionTracking == Configuration::Combined &&
                 i != sessions_.end() && !i->second->dead()) {
@@ -805,7 +802,7 @@ void WebController::handleRequest(WebRequest *request)
 
     if (!session->dead()) {
       handled = true;
-      session->handleRequest(handler, (EntryPoint*)request->entryPoint_);
+      //session->handleRequest(handler, (EntryPoint*)request->entryPoint_);
     }
   }
 
@@ -910,7 +907,10 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
   if (sessionId.empty() && !wtdE.empty())
     sessionId = wtdE;
 
-  std::shared_ptr<WebSession> session;
+//  std::cerr << "sessionId : " << sessionId << std::endl;
+
+  std::shared_ptr<WebSession> session = context->websession();
+  if(!session || sessionId.empty())
   {
 #ifdef WT_THREADED
     std::unique_lock<std::recursive_mutex> lock(mutex_);
@@ -938,27 +938,30 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
         sessionId = singleSessionId_;
     }
 
-    SessionMap::iterator i = sessions_.find(sessionId);
+    SessionMap::iterator si = sessions_.find(sessionId);
 
     Configuration::SessionTracking sessionTracking = configuration().sessionTracking();
 
-    if (i == sessions_.end() || i->second->dead() ||
+    if (si == sessions_.end() || si->second->dead() ||
         (sessionTracking == Configuration::Combined &&
-         (multiSessionCookie.empty() || multiSessionCookie != i->second->multiSessionId())))
+         (multiSessionCookie.empty() || multiSessionCookie != si->second->multiSessionId())))
     {
       try {
         if (sessionTracking == Configuration::Combined &&
-            i != sessions_.end() && !i->second->dead()) {
-          if (context->getHeader("Cookie").empty()) {
-                LOG_ERROR_S(&server_, "Valid session id: {}, but no cookie received (expecting multi session cookie)", sessionId);
-                context->status(403);
-                context->flush();
-                //request->flush(WebResponse::ResponseState::ResponseDone);
-                co_return;
-              }
+            si != sessions_.end() && !si->second->dead())
+        {
+          if (context->getHeader("Cookie").empty())
+          {
+            LOG_ERROR_S(&server_, "Valid session id: {}, but no cookie received (expecting multi session cookie)", sessionId);
+            context->status(403);
+            context->flush();
+            //request->flush(WebResponse::ResponseState::ResponseDone);
+            co_return;
+          }
         }
 
-        if (context->req().websocket()) {
+        if (context->req().websocket())
+        {
               LOG_INFO_S(&server_, "WebSocket request for non-existing session rejected. "
                                    "This is likely because of a browser with an old session "
                                    "trying to reconnect (e.g. when the server was restarted)");
@@ -968,7 +971,8 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
               co_return;
         }
 
-        if (singleSessionId_.empty()) {
+        if (singleSessionId_.empty())
+        {
               do {
                 sessionId = conf_.generateSessionId();
                 if (!conf_.registerSessionId(std::string(), sessionId))
@@ -1001,6 +1005,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
         }
 
         sessions_[sessionId] = session;
+        context->websession(session);
         ++plainHtmlSessions_;
 
         if (server_.dedicatedSessionProcess()) {
@@ -1013,11 +1018,23 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
         co_return;
       }
     } else {
-      session = i->second;
+      session = si->second;
+      context->websession(session);
     }
   }
-
-  context->websession(session);
+//  else if(sessionId.empty()) {
+//    do {
+//      sessionId = conf_.generateSessionId();
+//      if (!conf_.registerSessionId(std::string(), sessionId))
+//        sessionId.clear();
+//    } while (sessionId.empty());
+//    auto node = sessions_.extract(session->sessionId());
+//    if (!node.empty())
+//    {
+//      node.key() = sessionId;
+//      sessions_.insert(std::move(node));
+//    }
+//  }
 
   bool handled = false;
   {
@@ -1026,8 +1043,9 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
 
     if (!session->dead()) {
       handled = true;
-      session->handleRequest(handler, entryPoint);
+      co_await session->handleRequest(handler, entryPoint);
     }
+    co_await handler.destroy();
   }
 
   if (session->dead())
@@ -1039,7 +1057,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
     expireSessions();
 
   if (!handled)
-    co_await handleRequest(context);
+    co_await handleRequest(context, entryPoint);
   co_return;
 }
 
@@ -1074,9 +1092,9 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
       closing = true;
     }
   }
-  for(auto &[key, val] : context->req().query()){
-    std::cerr << "key : " << key << " - val: " << val << std::endl;
-  }
+//  for(auto &[key, val] : context->req().query()){
+//    std::cerr << "key : " << key << " - val: " << val << std::endl;
+//  }
 
   if (!closing)
   {
@@ -1107,16 +1125,7 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
         lock->canWriteWebSocket_ = false;
         context->out() << "{}";
         context->flush();
-//        lock->webSocket_->out() << "{}";
-//        lock->webSocket_->flush
-//            (WebRequest::ResponseState::ResponseFlush,
-//             std::bind(&WebSession::webSocketReady, session, std::placeholders::_1));
 //      }
-
-//      lock->webSocket_->readWebSocketMessage
-//          (std::bind(&WebSession::handleWebSocketMessage, session, std::placeholders::_1));
-
-      //delete message;
 
       co_return;
     }
@@ -1129,7 +1138,7 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
   if (!closing) {
     //handler.setRequest(message, message);
     handler.setRequest(context);
-    lock->handleRequest(handler, entryPoint);
+    co_await lock->handleRequest(handler, entryPoint);
   }
 
 //  else
@@ -1151,6 +1160,8 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
     }
   }
 
+  co_await handler.destroy();
+
   /*else
     if (lock->webSocket_)
       lock->webSocket_->readWebSocketMessage
@@ -1159,8 +1170,8 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
   co_return;
 }
 
-std::unique_ptr<WApplication> WebController
-    ::doCreateApplication(WebSession *session, EntryPoint *ep)
+std::unique_ptr<WApplication>
+WebController::doCreateApplication(WebSession *session, EntryPoint *ep)
 {
 //  const EntryPoint *ep
 //      = WebSession::Handler::instance()->request()->entryPoint_;
@@ -1181,7 +1192,7 @@ WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
 {
 #ifdef WT_THREADED
   std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED  
+#endif // WT_THREADED
 
   std::string newSessionId;
   do {
@@ -1210,7 +1221,7 @@ void WebController::newAjaxSession()
 {
 #ifdef WT_THREADED
   std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED  
+#endif // WT_THREADED
 
   --plainHtmlSessions_;
   ++ajaxSessions_;

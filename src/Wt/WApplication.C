@@ -1564,24 +1564,25 @@ void WApplication::streamBeforeLoadJavaScript(WStringStream& out, bool all)
   newBeforeLoadJavaScript_ = 0;
 }
 
-void WApplication::notify(const WEvent& e)
+awaitable<void> WApplication::notify(const WEvent& e)
 {
-  session_->notify(e);
+  co_await session_->notify(e);
 }
 
-void WApplication::processEvents()
+awaitable<void> WApplication::processEvents()
 {
   /* set timeout to allow other events to be interleaved */
   doJavaScript("setTimeout(\"" + javaScriptClass_
 	       + "._p_.update(null,'none',null,true);\",0);");
 
-  waitForEvent();
+  co_await waitForEvent();
 }
 
-void WApplication::waitForEvent()
+awaitable<void> WApplication::waitForEvent()
 {
   if (!environment().isTest())
-    session_->doRecursiveEventLoop();
+    co_await session_->doRecursiveEventLoop();
+  co_return;
 }
 
 bool WApplication::require(const std::string& uri, const std::string& symbol)

@@ -600,19 +600,17 @@ void WebRenderer::serveMainpage(http::context *context)
   if (!app->environment().ajax()
       && (/*response.requestMethod() == "POST"
       || */(app->internalPathIsChanged_
-           && app->renderedInternalPath_ != app->newInternalPath_))) {
+           && app->renderedInternalPath_ != app->newInternalPath_)))
+  {
     app->renderedInternalPath_ = app->newInternalPath_;
 
     if (session_.state() == WebSession::State::JustCreated &&
-        conf.progressiveBoot(app->environment().internalPath())) {
-      session_.redirect
-          (session_.fixRelativeUrl
-           (session_.bookmarkUrl(app->newInternalPath_)));
+        conf.progressiveBoot(app->environment().internalPath()))
+    {
+      session_.redirect(session_.fixRelativeUrl(session_.bookmarkUrl(app->newInternalPath_)));
       session_.kill();
     } else {
-      session_.redirect
-          (session_.fixRelativeUrl
-           (session_.mostRelativeUrl(app->newInternalPath_)));
+      session_.redirect(session_.fixRelativeUrl(session_.mostRelativeUrl(app->newInternalPath_)));
     }
   }
 

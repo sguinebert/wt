@@ -283,6 +283,10 @@ public:
     const auto host_str = host();
     return host_str.substr(0, host_str.rfind(":"));
   }
+  std::string_view port() const noexcept {
+    const auto host_str = host();
+    return host_str.substr(host_str.rfind(":"));
+  }
 
   std::string_view url() const noexcept { return url_; }
 
@@ -507,8 +511,9 @@ public:
 //    return Wt::WLocale(parsePreferredAcceptValue(get("Accept-Language")));
 //  }
 
-  std::string_view parsePreferredAcceptValue(std::string_view sv) const
+  std::string_view parsePreferredAcceptValue() const
   {
+    auto sv = get("Accept-Language");
     if (sv.empty())
       return ""sv;
 
@@ -528,10 +533,10 @@ public:
 //      if (best < values.size())
 //        return values[best].value;
 //      else
-//        return std::string();
+//        return ""sv;
 //    } else {
 //      //LOG_ERROR("Could not parse 'Accept-Language: {}', stopped at: '{}'", str, info.stop);
-//      return std::string();
+//      return ""sv;
 //    }
   }
   std::string_view envValue(std::string_view name) const

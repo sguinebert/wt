@@ -72,6 +72,8 @@ class context final : safe_noncopyable {
 
   std::string_view host() const noexcept { return request_.host(); }
 
+  std::string_view port() const noexcept { return request_.port(); }
+
   std::string_view hostname() const noexcept { return request_.hostname(); }
 
   std::string_view url() const noexcept { return request_.url(); }
@@ -200,7 +202,6 @@ class context final : safe_noncopyable {
     flush_ = true;
 
     if(websocket_) {
-        std::cerr << "websocket dump message ---------------------------\n" << response_.dump_body() << std::endl;
         if(auto sv = response_.dump_body(); !sv.empty())
             websocket_->send(std::string(sv));
         response_.reset();

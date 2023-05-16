@@ -32,8 +32,6 @@
 
 #ifndef WT_TARGET_JAVA
 
-#define WT_DEBUG_ENABLED 1
-
 namespace Wt
 {
 
@@ -516,8 +514,8 @@ namespace Wt
 //   } while (0)
 
 #ifdef WT_DEBUG_ENABLED
-#define LOG_DEBUG_S(s, m, ...) logi(m, ##__VA_ARGS__);
-#define LOG_DEBUG(m, ...) logi(m, ##__VA_ARGS__);
+#define LOG_DEBUG_S(s, m, ...) logd(m, ##__VA_ARGS__);
+#define LOG_DEBUG(m, ...) logd(m, ##__VA_ARGS__);
 #else
 #define LOG_DEBUG_S(s, m, ...)
 #define LOG_DEBUG(m, ...)

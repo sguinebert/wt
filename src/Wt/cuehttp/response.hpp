@@ -330,8 +330,6 @@ class response final : safe_noncopyable {
       buf_ << "Content-Length: 0\r\n\r\n";
     }
 
-    std::cerr << "dump body ----------------------------------------\n" << dump_body() << std::endl;
-
     buf_.asioBuffers(sgbuffers);
     if(content_length_)
         body_.empty() ? sgbuffers.push_back(buffer_.data()) : sgbuffers.push_back(asio::buffer(body_));

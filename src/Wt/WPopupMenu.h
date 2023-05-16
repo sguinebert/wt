@@ -158,7 +158,7 @@ public:
    *
    * \sa popup()
    */
-  WMenuItem *exec(const WPoint& point);
+  awaitable<WMenuItem *> exec(const WPoint& point);
 
   /*! \brief Executes the the popup at the location of a mouse event.
    *
@@ -167,13 +167,13 @@ public:
    *
    * \sa exec(const WPoint&)
    */
-  WMenuItem *exec(const WMouseEvent& event);
+  awaitable<WMenuItem *> exec(const WMouseEvent& event);
 
   /*! \brief Executes the popup besides a widget.
    *
    * \sa positionAt(), popup(const WPointF&)
    */
-  WMenuItem *exec(WWidget *location, 
+  awaitable<WMenuItem *> exec(WWidget *location,
 		  Orientation orientation = Orientation::Vertical);
 
   /*! \brief Returns the last triggered menu item.
@@ -256,7 +256,7 @@ private:
   bool hideOnSelect_;
   int autoHideDelay_;
 
-  void exec();
+  awaitable<void> exec();
   void cancel();
   void done(WMenuItem *result);
   void popupImpl();

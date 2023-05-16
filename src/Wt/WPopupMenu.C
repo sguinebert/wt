@@ -257,18 +257,18 @@ void WPopupMenu::adjustPadding()
   }
 }
 
-WMenuItem *WPopupMenu::exec(const WPoint& p)
+awaitable<WMenuItem *> WPopupMenu::exec(const WPoint& p)
 {
   if (recursiveEventLoop_)
     throw WException("WPopupMenu::exec(): already being executed.");
 
   popup(p);
-  exec();
+  co_await exec();
 
-  return result_;
+  co_return result_;
 }
 
-void WPopupMenu::exec()
+awaitable<void> WPopupMenu::exec()
 {
   WApplication *app = WApplication::instance();
   recursiveEventLoop_ = true;
@@ -279,25 +279,26 @@ void WPopupMenu::exec()
       throw WException("Test case must close popup menu.");
   } else {
     do {
-      app->waitForEvent();
+      co_await app->waitForEvent();
     } while (recursiveEventLoop_);
   }
+  co_return;
 }
 
-WMenuItem *WPopupMenu::exec(const WMouseEvent& e)
+awaitable<WMenuItem *> WPopupMenu::exec(const WMouseEvent& e)
 {
-  return exec(WPoint(e.document().x, e.document().y));
+  co_return co_await exec(WPoint(e.document().x, e.document().y));
 }
 
-WMenuItem *WPopupMenu::exec(WWidget *location, Orientation orientation)
+awaitable<WMenuItem *> WPopupMenu::exec(WWidget *location, Orientation orientation)
 {
   if (recursiveEventLoop_)
     throw WException("WPopupMenu::exec(): already being executed.");
 
   popup(location, orientation);
-  exec();
+  co_await exec();
 
-  return result_;
+  co_return result_;
 }
 
 void WPopupMenu::setAutoHide(bool enabled, int autoHideDelay)

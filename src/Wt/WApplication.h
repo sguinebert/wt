@@ -1514,7 +1514,7 @@ public:
    * Because a thread is blocked, this may affect your application
    * scalability.
    */
-  void processEvents();
+  awaitable<void> processEvents();
 
   /*! \brief Blocks the thread, waiting for an UI event.
    *
@@ -1526,7 +1526,7 @@ public:
    * process incoming requests, and is not scalable when working with
    * a fixed size thread pools.
    */
-  virtual void waitForEvent();
+  virtual awaitable<void> waitForEvent();
 
 #ifndef WT_TARGET_JAVA
   /*! \brief Reads a configuration property.
@@ -2091,7 +2091,7 @@ protected:
    * Note that any uncaught exception throw during event handling
    * terminates the session.
    */
-  virtual void notify(const WEvent& e);
+   virtual awaitable<void> notify(const WEvent& e);
 
   /*! \brief Returns whether a widget is exposed in the interface.
    *

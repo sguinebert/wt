@@ -403,9 +403,9 @@ namespace Wt
       {
           request.parseFormUrlEncoded(begin->second);
       }
-      for(auto parameter : parameters) {
-          std::cerr << "parameter : " << parameter.first << " - " << parameter.second << std::endl;
-      }
+//      for(auto parameter : parameters) {
+//          std::cerr << "parameter : " << parameter.first << " - " << parameter.second << std::endl;
+//      }
 //      if (!formQueryString.empty())
 //      {
 //        //Http::Request::parseFormUrlEncoded(formQueryString, request.query());
