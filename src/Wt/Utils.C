@@ -181,9 +181,9 @@ namespace Wt
       std::string result(data.length() * 2, '-');
 
 #ifdef __AVX__
-      encodeHexVec((uint8_t *)result.c_str(), (uint8_t *)data.c_str(), data.size());
+      encodeHexVec((uint8_t *)result.data(), (uint8_t *)data.data(), data.size());
 #else
-      encodeHex((uint8_t *)result.c_str(), (uint8_t *)data.c_str(), data.size());
+      encodeHex((uint8_t *)result.data(), (uint8_t *)data.data(), data.size());
 #endif
       // for (unsigned i = 0; i < data.length(); ++i)
       //   toHex(data[i], result[2 * i], result[2 * i + 1]);
@@ -196,9 +196,9 @@ namespace Wt
       std::string result(data.length() / 2, '-');
 
 #ifdef __AVX__
-      decodeHexVec((uint8_t *)result.c_str(), (uint8_t *)data.c_str(), data.size());
+      decodeHexVec((uint8_t *)result.data(), (uint8_t *)data.data(), data.size());
 #else
-      decodeHexLUT4((uint8_t *)result.c_str(), (uint8_t *)data.c_str(), data.size());
+      decodeHexLUT4((uint8_t *)result.data(), (uint8_t *)data.data(), data.size());
 #endif
 
       // for (unsigned i = 0; i < result.length(); ++i)

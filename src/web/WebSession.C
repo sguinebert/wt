@@ -913,7 +913,7 @@ awaitable<bool> WebSession::start(http::context *context, EntryPoint *ep)
 {
   try {
     //app_ = co_await ep->appCallback()(this->env()).release();
-    app_ = ep->appCallback()(this->env()).release(); // controller_->doCreateApplication(this, ep).release();
+    app_ = (co_await ep->appCallback()(this->env())).release(); // controller_->doCreateApplication(this, ep).release();
     if (!app_->internalPathValid_)
       if (context->res().responseType() == http::response::ResponseType::Page)
         context->status(404);

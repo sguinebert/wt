@@ -62,7 +62,8 @@ class SoundManager;
  *
  * \relates WApplication
  */
-typedef std::function<std::unique_ptr<WApplication> (const WEnvironment&)> ApplicationCreator;
+typedef std::function<awaitable<std::unique_ptr<WApplication>> (const WEnvironment&)> ApplicationCreator;
+typedef std::function<std::unique_ptr<WApplication> (const WEnvironment&)> SyncAppCreator;
 
 #ifdef WT_TARGET_JAVA
 /*! \brief An HTML Meta Header

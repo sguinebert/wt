@@ -5,7 +5,7 @@
  * All rights reserved.
  */
 
-//#include "Wt/WApplication.h"
+#include "Wt/WApplication.h"
 #include "Wt/WGlobal.h"
 
 #include <deque>
@@ -20,7 +20,7 @@ namespace Wt {
  *
  * \relates WApplication
  */
-typedef std::function<std::unique_ptr<WApplication> (const WEnvironment&)> ApplicationCreator;
+//typedef std::function<awaitable<std::unique_ptr<WApplication>> (const WEnvironment&)> ApplicationCreator;
 
 
 class WT_API EntryPoint {

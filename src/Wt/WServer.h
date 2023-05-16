@@ -330,6 +330,26 @@ public:
     WT_API void addEntryPoint(EntryPointType type, ApplicationCreator callback,
                               const std::string& path = std::string(),
                               const std::string& favicon = std::string());
+
+    void addEntryPoint(EntryPointType type, SyncAppCreator callback,
+                              const std::string& path = std::string(),
+                              const std::string& favicon = std::string())
+    {
+        auto cc = [callback = std::move(callback)] (const WEnvironment& env) ->awaitable<std::unique_ptr<WApplication>> {
+                co_return callback(env);
+            };
+        addEntryPoint(type, cc, path, favicon);
+    }
+//    template<class F>
+//    void addEntryPoint(EntryPointType type, F callback,
+//                              const std::string& path = std::string(),
+//                              const std::string& favicon = std::string())
+//    {
+//        auto cc = [callback = std::move(callback)] (const WEnvironment& env) ->awaitable<std::unique_ptr<WApplication>> {
+//                co_return callback(env);
+//            };
+//        addEntryPoint(type, cc, path, favicon);
+//    }
 #endif
 
   /*! \brief Binds a resource to a fixed path.

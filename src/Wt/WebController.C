@@ -1176,7 +1176,7 @@ WebController::doCreateApplication(WebSession *session, EntryPoint *ep)
 //  const EntryPoint *ep
 //      = WebSession::Handler::instance()->request()->entryPoint_;
 
-  return ep->appCallback()(session->env());
+  return nullptr;// ep->appCallback()(session->env());
 }
 
 EntryPointMatch WebController::getEntryPoint(WebRequest *request)
