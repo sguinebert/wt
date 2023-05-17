@@ -39,12 +39,12 @@ void ResponseContinuation::haveMoreData()
       return;
 
     if (waiting_) {
-      waiting_ = false;
-      if (readyToContinue_) {
-        readyToContinue_ = false;
-	resource = resource_;
-	resource_ = nullptr;
-      }
+        waiting_ = false;
+        if (readyToContinue_) {
+            readyToContinue_ = false;
+            resource = resource_;
+            resource_ = nullptr;
+        }
     }
   }
 

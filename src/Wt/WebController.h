@@ -26,6 +26,8 @@
 #include <mutex>
 #endif
 
+//#include <Wt/libcuckoo/cuckoohash_map.hh>
+#include <Wt/parallel_hashmap/phmap.h>
 
 #include <Wt/WLogger.h>
 
@@ -165,7 +167,7 @@ private:
   Configuration& conf_;
   std::string singleSessionId_;
   bool autoExpire_;
-  int plainHtmlSessions_, ajaxSessions_;
+  std::atomic<int> plainHtmlSessions_, ajaxSessions_;
   int zombieSessions_;
   std::string redirectSecret_;
   bool running_;
@@ -175,7 +177,8 @@ private:
 #endif // WT_THREADED
   std::set<std::string> uploadProgressUrls_;
 
-  typedef std::unordered_map<std::string, std::shared_ptr<WebSession> > SessionMap;
+  //typedef std::unordered_map<std::string, std::shared_ptr<WebSession> > SessionMap;
+  typedef phmap::parallel_flat_hash_map<std::string, std::shared_ptr<WebSession> > SessionMap;
   SessionMap sessions_;
 
 #ifdef WT_THREADED

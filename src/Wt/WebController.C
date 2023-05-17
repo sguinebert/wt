@@ -125,6 +125,7 @@ void WebController::shutdown()
 
       LOG_INFO_S(&server_, "shutdown: stopping {} sessions.", sessions_.size());
 
+
       for (auto i = sessions_.begin(); i != sessions_.end(); ++i)
         sessionList.push_back(i->second);
 
@@ -190,9 +191,9 @@ bool WebController::expireSessions()
   {
     Time now;
 
-#ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//    std::unique_lock<std::recursive_mutex> lock(mutex_);
+//#endif // WT_THREADED
 
     for (SessionMap::iterator i = sessions_.begin(); i != sessions_.end(); ++i) {
       std::shared_ptr<WebSession> session = i->second;
@@ -200,7 +201,7 @@ bool WebController::expireSessions()
       int diff = session->expireTime() - now;
 
       if (diff < 1000 && configuration().sessionTimeout() != -1) {
-    toExpire.push_back(session);
+        toExpire.push_back(session);
         // Note: the session is not yet removed from sessions_ map since
         // we want to grab the UpdateLock to do this and grabbing it here
         // might cause a deadlock.
@@ -216,9 +217,9 @@ bool WebController::expireSessions()
     LOG_INFO_S(session, "timeout: expiring");
     WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock);
 
-#ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//    std::unique_lock<std::recursive_mutex> lock(mutex_);
+//#endif // WT_THREADED
 
     // Another thread might have already removed it
     if (sessions_.find(session->sessionId()) == sessions_.end())
@@ -241,18 +242,18 @@ bool WebController::expireSessions()
 
 void WebController::addSession(const std::shared_ptr<WebSession>& session)
 {
-#ifdef WT_THREADED
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//  std::unique_lock<std::recursive_mutex> lock(mutex_);
+//#endif // WT_THREADED
 
   sessions_[session->sessionId()] = session;
 }
 
 void WebController::removeSession(const std::string& sessionId)
 {
-#ifdef WT_THREADED
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//  std::unique_lock<std::recursive_mutex> lock(mutex_);
+//#endif // WT_THREADED
 
   LOG_INFO("Removing session {}", sessionId);
 
@@ -553,9 +554,9 @@ bool WebController::handleApplicationEvent(const std::shared_ptr<ApplicationEven
    */
   std::shared_ptr<WebSession> session;
   {
-#ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//    std::unique_lock<std::recursive_mutex> lock(mutex_);
+//#endif // WT_THREADED
 
     if (auto i = sessions_.find(event->sessionId); i != sessions_.end() && !i->second->dead())
       session = i->second;
@@ -912,9 +913,9 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
   std::shared_ptr<WebSession> session = context->websession();
   if(!session || sessionId.empty())
   {
-#ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//    std::unique_lock<std::recursive_mutex> lock(mutex_);
+//#endif // WT_THREADED
 
     if (!singleSessionId_.empty() && sessionId != singleSessionId_) {
       if (conf_.persistentSessions()) {
@@ -1190,9 +1191,9 @@ EntryPointMatch WebController::getEntryPoint(WebRequest *request)
 std::string
 WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
 {
-#ifdef WT_THREADED
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//  std::unique_lock<std::recursive_mutex> lock(mutex_);
+//#endif // WT_THREADED
 
   std::string newSessionId;
   do {
@@ -1219,9 +1220,9 @@ WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
 
 void WebController::newAjaxSession()
 {
-#ifdef WT_THREADED
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//  std::unique_lock<std::recursive_mutex> lock(mutex_);
+//#endif // WT_THREADED
 
   --plainHtmlSessions_;
   ++ajaxSessions_;
@@ -1230,9 +1231,9 @@ void WebController::newAjaxSession()
 bool WebController::limitPlainHtmlSessions()
 {
   if (conf_.maxPlainSessionsRatio() > 0) {
-#ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//    std::unique_lock<std::recursive_mutex> lock(mutex_);
+//#endif // WT_THREADED
 
     if (plainHtmlSessions_ + ajaxSessions_ > 20)
       return plainHtmlSessions_ > conf_.maxPlainSessionsRatio()
