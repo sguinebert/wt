@@ -151,9 +151,9 @@ void WebController::shutdown()
 
 void WebController::sessionDeleted()
 {
-#ifdef WT_THREADED
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//  std::unique_lock<std::recursive_mutex> lock(mutex_);
+//#endif // WT_THREADED
   --zombieSessions_;
 }
 
@@ -191,9 +191,9 @@ bool WebController::expireSessions()
   {
     Time now;
 
-//#ifdef WT_THREADED
-//    std::unique_lock<std::recursive_mutex> lock(mutex_);
-//#endif // WT_THREADED
+#ifdef WT_THREADED
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
 
     for (SessionMap::iterator i = sessions_.begin(); i != sessions_.end(); ++i) {
       std::shared_ptr<WebSession> session = i->second;
@@ -217,9 +217,9 @@ bool WebController::expireSessions()
     LOG_INFO_S(session, "timeout: expiring");
     WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock);
 
-//#ifdef WT_THREADED
-//    std::unique_lock<std::recursive_mutex> lock(mutex_);
-//#endif // WT_THREADED
+#ifdef WT_THREADED
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
 
     // Another thread might have already removed it
     if (sessions_.find(session->sessionId()) == sessions_.end())
@@ -242,18 +242,18 @@ bool WebController::expireSessions()
 
 void WebController::addSession(const std::shared_ptr<WebSession>& session)
 {
-//#ifdef WT_THREADED
-//  std::unique_lock<std::recursive_mutex> lock(mutex_);
-//#endif // WT_THREADED
+#ifdef WT_THREADED
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
 
   sessions_[session->sessionId()] = session;
 }
 
 void WebController::removeSession(const std::string& sessionId)
 {
-//#ifdef WT_THREADED
-//  std::unique_lock<std::recursive_mutex> lock(mutex_);
-//#endif // WT_THREADED
+#ifdef WT_THREADED
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
 
   LOG_INFO("Removing session {}", sessionId);
 
@@ -554,9 +554,9 @@ bool WebController::handleApplicationEvent(const std::shared_ptr<ApplicationEven
    */
   std::shared_ptr<WebSession> session;
   {
-//#ifdef WT_THREADED
-//    std::unique_lock<std::recursive_mutex> lock(mutex_);
-//#endif // WT_THREADED
+#ifdef WT_THREADED
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
 
     if (auto i = sessions_.find(event->sessionId); i != sessions_.end() && !i->second->dead())
       session = i->second;
@@ -911,11 +911,11 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
 //  std::cerr << "sessionId : " << sessionId << std::endl;
 
   std::shared_ptr<WebSession> session = context->websession();
-  if(!session || sessionId.empty())
+  if(!session /*|| sessionId.empty()*/)
   {
-//#ifdef WT_THREADED
-//    std::unique_lock<std::recursive_mutex> lock(mutex_);
-//#endif // WT_THREADED
+#ifdef WT_THREADED
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
 
     if (!singleSessionId_.empty() && sessionId != singleSessionId_) {
       if (conf_.persistentSessions()) {
@@ -1022,6 +1022,11 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
       session = si->second;
       context->websession(session);
     }
+  }
+  else if(sessionId.empty()) {
+    sessionId = session->sessionId();
+    session->state_ = WebSession::State::JustCreated;
+    session->env_->reset();
   }
 //  else if(sessionId.empty()) {
 //    do {
@@ -1202,6 +1207,11 @@ WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
       newSessionId.clear();
   } while (newSessionId.empty());
 
+  /* more efficient c++ 17 ? than make shared_ptr then find insert erase*/
+//    auto node = sessions_.extract(session->sessionId());
+//    node.key() = newSessionId;
+//    sessions_.insert(std::move(node));
+
   sessions_[newSessionId] = session;
 
   SessionMap::iterator i = sessions_.find(session->sessionId());
@@ -1209,11 +1219,6 @@ WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
 
   if (!singleSessionId_.empty())
     singleSessionId_ = newSessionId;
-
-  /* more efficient c++ 17 ? than make shared_ptr then find insert erase*/
-//  auto node = sessions_.extract(session->sessionId());
-//  node.key() = newSessionId;
-//  sessions_.insert(std::move(node));
 
   return newSessionId;
 }

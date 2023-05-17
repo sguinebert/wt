@@ -177,8 +177,8 @@ private:
 #endif // WT_THREADED
   std::set<std::string> uploadProgressUrls_;
 
-  //typedef std::unordered_map<std::string, std::shared_ptr<WebSession> > SessionMap;
-  typedef phmap::parallel_flat_hash_map<std::string, std::shared_ptr<WebSession> > SessionMap;
+  typedef std::unordered_map<std::string, std::shared_ptr<WebSession> > SessionMap;
+  //typedef phmap::parallel_flat_hash_map<std::string, std::shared_ptr<WebSession> > SessionMap;
   SessionMap sessions_;
 
 #ifdef WT_THREADED
