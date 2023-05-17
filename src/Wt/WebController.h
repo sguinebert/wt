@@ -26,8 +26,7 @@
 #include <mutex>
 #endif
 
-//#include <Wt/libcuckoo/cuckoohash_map.hh>
-#include <Wt/parallel_hashmap/phmap.h>
+//#include <Wt/parallel_hashmap/phmap.h>
 
 #include <Wt/WLogger.h>
 
