@@ -18,14 +18,7 @@
 #include <Wt/Dbo/Field.h>
 #include <Wt/Dbo/Query.h>
 #include <Wt/Dbo/Transaction.h>
-#include <Wt/Dbo/SqlConnection.h>
-
-#include <Wt/Dbo/backend/Sqlite3.h>
-#include <Wt/Dbo/backend/Postgres.h>
-#include <Wt/Dbo/backend/MySQL.h>
-#include <Wt/Dbo/backend/MSSQLServer.h>
-#include <Wt/Dbo/backend/Firebird.h>
-
+#include <Wt/Dbo/backend/connection.hpp> //#include <Wt/Dbo/sqlConnection.h> virtual polymorphism move to std::variant
 
 namespace Wt {
   namespace Dbo {
@@ -57,33 +50,32 @@ namespace Wt {
       };
 
       struct WTDBO_API MappingInfo {
-	bool initialized_;
-	const char *tableName;
-	const char *versionFieldName;
-	const char *surrogateIdFieldName;
+        bool initialized_;
+        const char *tableName;
+        const char *versionFieldName;
+        const char *surrogateIdFieldName;
 
-	std::string naturalIdFieldName; // for non-auto generated id
-	int naturalIdFieldSize;         // for non-auto generated id
+        std::string naturalIdFieldName; // for non-auto generated id
+        int naturalIdFieldSize;         // for non-auto generated id
 
-	std::string idCondition;
+        std::string idCondition;
 
-	std::vector<FieldInfo> fields;
-	std::vector<SetInfo> sets;
+        std::vector<FieldInfo> fields;
+        std::vector<SetInfo> sets;
 
-	std::vector<std::string> statements;
+        std::vector<std::string> statements;
 
-	MappingInfo();
-	virtual ~MappingInfo();
-	virtual void init(Session& session);
-	virtual void dropTable(Session& session,
-			       std::set<std::string>& tablesDropped);
-	virtual void rereadAll();
-	virtual MetaDboBase *create(Session& session);
-	virtual void load(Session& session, MetaDboBase *obj);
-	virtual MetaDboBase *load(Session& session, SqlStatement *statement,
-				  int& column);
+        MappingInfo();
+        virtual ~MappingInfo();
+        virtual void init(Session& session);
+        virtual void dropTable(Session& session,
+                       std::set<std::string>& tablesDropped);
+        virtual void rereadAll();
+        virtual MetaDboBase *create(Session& session);
+        virtual void load(Session& session, MetaDboBase *obj);
+        //virtual MetaDboBase *load(Session& session, SqlStatement *statement, int& column);
 
-	std::string primaryKeys(bool onlyDefault = false) const;
+        std::string primaryKeys(bool onlyDefault = false) const;
       };
     }
 
@@ -101,7 +93,7 @@ enum class FlushMode {
 };
 
 class Call;
-//class SqlConnection;
+//class sqlConnection;
 class SqlConnectionPool;
 class SqlStatement;
 template <typename Result, typename BindStrategy> class Query;
@@ -158,7 +150,7 @@ public:
    *
    * \sa setConnectionPool()
    */
-  void setConnection(std::unique_ptr<SqlConnection> connection);
+  void setConnection(std::unique_ptr<sqlConnection> connection);
 
   /*! \brief Sets a connection pool.
    *
@@ -275,6 +267,12 @@ public:
     // implemented in-line because otherwise it crashes gcc 4.0.1
     return find<C, DynamicBinding>(condition);
   }
+
+//  template <class C, class Token>
+//  auto find(Token &&handler, const std::string& condition = std::string()) {
+//    // implemented in-line because otherwise it crashes gcc 4.0.1
+//    return find<C, DynamicBinding>(std::forward<Token>(handler), condition);
+//  }
 #endif // DOXYGEN_ONLY
 
   /*! \brief Finds database objects.
@@ -330,8 +328,13 @@ public:
     Query< ptr<C>, BindStrategy>
     find(const std::string& condition = std::string());
 
+//  template <class C, typename BindStrategy, class Token>
+//  auto find(Token&& handler, const std::string& condition = std::string());
+
 #ifndef DOXYGEN_ONLY
-  template <class Result> Query<Result> query(const std::string& sql);
+  template <class Result> inline Query<Result> query(const std::string& sql);
+
+  template <class Result, class Token> auto query(const std::string& sql, Token &&hanler);
 #endif // DOXYGEN_ONLY
 
   /*! \brief Creates a query.
@@ -428,6 +431,31 @@ public:
    */
   Call execute(const std::string& sql);
 
+  Call sync_execute(const std::string& sql);
+
+  template <class ResultCallableT>
+  auto execute(const std::string& sql, ResultCallableT&& handler);
+
+//    template <class ResultCallableT>
+//    auto executeSql(const std::string& sql, ResultCallableT&& handler) {
+//        auto initiation = [this](auto&& handler, ::postgrespp::query query) mutable {
+
+//    //        auto wrapped_handler = [handler = std::move(handler)](auto&& result) mutable {
+//    //            if (result.ok()) {
+//    //                handler(std::move(result));
+//    //            } else {
+//    //                handler(std::move(result));
+//    //            }
+//    //        };
+
+//            this->active_conn = co_spawn(*cue::http::detail::engines::get_thread_context(), assign_connection(false), [use_awai]);
+//            co_await this->active_conn->executeSql(query);
+//            handler();
+
+//        };
+//      return boost::asio::async_initiate<ResultCallableT, void()>(initiation, handler, std::move(sql));
+//    }
+
   /*! \brief Creates the database schema.
    *
    * This will create the database schema of the mapped tables. Schema
@@ -439,11 +467,11 @@ public:
    *
    * \sa mapClass(), dropTables()
    */
-  void createTables();
+  awaitable<void> createTables();
 
   /*! \brief Returns database creation SQL.
    */
-  std::string tableCreationSql();
+  awaitable<std::string> tableCreationSql();
 
   /*! \brief Drops the database schema.
    *
@@ -452,7 +480,7 @@ public:
    *
    * \sa createTables()
    */
-  void dropTables();
+  awaitable<void> dropTables();
 
   /*! \brief Flushes the session.
    *
@@ -464,7 +492,17 @@ public:
    * running a query (to be sure to take into account pending
    * modifications).
    */
-  void flush();
+  awaitable<void> flush();
+
+  template<class Token>
+  void flush(Token &&handler) {
+    auto initiator = [this] (auto&& handler) {
+        co_spawn(*thread_context, flush(), [this, handler = std::move(handler)] (auto ec) {
+            handler();
+        });
+    };
+    return asio::async_initiate<Token, void()>(initiator, handler);
+  }
 
   /*! \brief Rereads all objects.
    *
@@ -513,8 +551,39 @@ public:
    *
    * \sa flushMode(), discardUnflushed()
    */
-  void setFlushMode(FlushMode mode) { flush(); flushMode_ = mode; }
+  void setFlushMode(FlushMode mode) { /*flush();*/ flushMode_ = mode; }
 
+  awaitable<Transaction> transaction() {
+    Transaction t(*this);
+
+    //co_await t.impl_->open();
+    co_return std::move(t);
+  }
+  template<class Token>
+  auto transaction(Token&& handler) {
+    auto initiator = [this] (auto&& handler) mutable {
+        Transaction t(*this);
+        handler(std::move(t));
+    };
+    return asio::async_initiate<Token, void(Transaction)>(initiator, handler);
+  }
+
+  template<class ResultcallableT>
+  auto assign_connection(bool transaction, ResultcallableT&& handler)
+  {
+    auto initiator = [this, transaction] (auto&& handler) {
+        //auto ex = cue::http::detail::engines::get_thread_context();
+
+//        connectionPool_->async_connection(transaction, [handler = std::move(handler)] (auto conn) mutable {
+//            handler(conn);
+//        });
+
+        co_spawn(*thread_context, connectionPool_->async_connection(transaction), [handler = std::move(handler)] (auto ec, auto conn) mutable {
+            handler(conn);
+        });
+    };
+    return asio::async_initiate<ResultcallableT, void(sqlConnection*)>(initiator, handler);
+  }
 private:
   mutable std::string longlongType_;
   mutable std::string intType_;
@@ -545,13 +614,11 @@ private:
 
     virtual ~Mapping();
     virtual void init(Session& session) override;
-    virtual void dropTable(Session& session,
-			   std::set<std::string>& tablesDropped) override;
+    virtual void dropTable(Session& session, std::set<std::string>& tablesDropped) override;
     virtual void rereadAll() override;
     virtual MetaDbo<C> *create(Session& session) override;
     virtual void load(Session& session, MetaDboBase *obj) override;
-    virtual MetaDbo<C> *load(Session& session, SqlStatement *statement,
-			     int& column) override;
+    virtual MetaDbo<C>* load(Session& session, SqlStatement *statement, int& column) ;
   };
   
   typedef const std::type_info * const_typeinfo_ptr;
@@ -570,11 +637,14 @@ private:
   mutable LimitQuery limitQueryMethod_;
   mutable bool requireSubqueryAlias_;
 
-  inline thread_local static Impl::MetaDboBaseSet *dirtyObjects_;
+  inline thread_local static Impl::MetaDboBaseSet *dirtyObjects_ = nullptr;
+  //Impl::MetaDboBaseSet *dirtyObjects_ = nullptr;
   std::vector<MetaDboBase*> objectsToAdd_;
-  std::unique_ptr<SqlConnection> connection_;
+  std::unique_ptr<sqlConnection> connection_;
   SqlConnectionPool *connectionPool_;
-  inline thread_local static Transaction::Impl *transaction_;
+  //inline thread_local static Transaction::Impl *transaction_;
+  Transaction::Impl *transaction_ = nullptr;
+  mutable sqlConnection *active_conn = nullptr;
   //std::mutex mutex_;
   FlushMode flushMode_;
 
@@ -582,8 +652,8 @@ private:
   void resolveJoinIds(Impl::MappingInfo *mapping);
   void prepareStatements(Impl::MappingInfo *mapping);
 
-  void executeSql(std::vector<std::string> &sql, std::ostream *sout);
-  void executeSql(std::stringstream &sql, std::ostream *sout);
+  awaitable<void> executeSql(std::vector<std::string> &sql, std::ostream *sout);
+  awaitable<void> executeSql(std::stringstream &sql, std::ostream *sout);
   std::string constraintName(const char *tableName,
                              std::string foreignKeyName);
 
@@ -591,11 +661,11 @@ private:
 				 const std::string& joinId,
 				 bool literalJoinId);
 
-  void createTable(Impl::MappingInfo *mapping,
+  awaitable<void> createTable(Impl::MappingInfo *mapping,
 		   std::set<std::string>& tablesCreated,
                    std::ostream *sout,
                    bool createConstraints);
-  void createRelations(Impl::MappingInfo *mapping,
+  awaitable<void> createRelations(Impl::MappingInfo *mapping,
 		       std::set<std::string>& tablesCreated,
 		       std::ostream *sout);
   std::string constraintString(Impl::MappingInfo *mapping,
@@ -605,7 +675,7 @@ private:
   unsigned findLastForeignKeyField(Impl::MappingInfo *mapping,
                                    const FieldInfo& field,
                                    unsigned index);
-  void createJoinTable(const std::string& joinName,
+  awaitable<void> createJoinTable(const std::string& joinName,
 		       Impl::MappingInfo *mapping1, Impl::MappingInfo *mapping2,
 		       const std::string& joinId1,
 		       const std::string& joinId2,
@@ -617,7 +687,7 @@ private:
 			  Impl::MappingInfo *mapping, const std::string& joinId,
 			  const std::string& foreignKeyName, int fkConstraints,
 			  bool literalJoinId);
-  void createJoinIndex(Impl::MappingInfo& joinTableMapping,
+  awaitable<void> createJoinIndex(Impl::MappingInfo& joinTableMapping,
 		       Impl::MappingInfo *mapping,
 		       const std::string& joinId,
 		       const std::string& foreignKeyName,
@@ -632,15 +702,17 @@ private:
   template <class C> ptr<C> load(SqlStatement *statement, int& column);
 
   template <class C>
-    MetaDbo<C> *loadWithNaturalId(SqlStatement *statement, int& column);
+  MetaDbo<C> *loadWithNaturalId(SqlStatement *statement, int& column);
   template <class C>
-    MetaDbo<C> *loadWithLongLongId(SqlStatement *statement, int& column);
+  MetaDbo<C> *loadWithLongLongId(SqlStatement *statement, int& column);
 
   void discardChanges(MetaDboBase *obj);
   template <class C> void prune(MetaDbo<C> *obj);
 
-  template<class C> void implSave(MetaDbo<C>& dbo);
-  template<class C> void implDelete(MetaDbo<C>& dbo);
+  template<class C> awaitable<void> implSave(MetaDbo<C>& dbo);
+  //template<class C> void implSave(MetaDbo<C>& dbo, std::function<void()> && cb);
+  template<class C> awaitable<void> implDelete(MetaDbo<C>& dbo);
+  //template<class C> void implDelete(MetaDbo<C>& dbo, std::function<void()> && cb);
   template<class C> void implTransactionDone(MetaDbo<C>& dbo, bool success);
   template<class C> void implLoad(MetaDbo<C>& dbo, SqlStatement *statement, int& column);
   template<class C> void implUpdate(MetaDbo<C>& dbo);
@@ -660,9 +732,16 @@ private:
   template <class C> std::string manyToManyJoinId(const std::string& joinName,
 						  const std::string& notId);
 
-  std::unique_ptr<SqlConnection> useConnection();
-  void returnConnection(std::unique_ptr<SqlConnection> connection);
-  SqlConnection *connection(bool openTransaction);
+  std::unique_ptr<sqlConnection> useConnection();
+  void returnConnection(std::unique_ptr<sqlConnection> connection);
+  awaitable<sqlConnection*> connection(bool openTransaction);
+  inline sqlConnection* connection();
+  sqlConnection* get_rconnection();
+
+
+  awaitable<sqlConnection*> assign_connection(bool transaction);
+
+
 
   MetaDboBase *createDbo(Impl::MappingInfo *mapping);
 
@@ -698,7 +777,6 @@ private:
 
   friend struct Transaction::Impl;
 };
-
   }
 }
 

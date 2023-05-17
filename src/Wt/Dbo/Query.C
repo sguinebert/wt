@@ -329,7 +329,7 @@ int AbstractQuery::limit() const
   return limit_;
 }
 
-void AbstractQuery::reset()
+void AbstractQuery::reset_params()
 {
   for (unsigned i = 0; i < parameters_.size(); ++i)
     delete parameters_[i];
@@ -368,7 +368,7 @@ AbstractQuery& AbstractQuery::operator=(const AbstractQuery& other)
   limit_ = other.limit_;
   offset_ = other.offset_;
 
-  reset();
+  reset_params();
 
   for (unsigned i = 0; i < other.parameters_.size(); ++i)
     parameters_.push_back(other.parameters_[i]->clone());

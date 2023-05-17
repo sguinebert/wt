@@ -9,7 +9,13 @@
 
 #include <Wt/Dbo/WDboDllDefs.h>
 #include <string>
-#include <Wt/Dbo/WDboDllDefs.h>
+#include <boost/asio.hpp>
+
+#include <Wt/Dbo/SqlStatement.h>
+#include <Wt/Dbo/SqlTraits.h>
+#include <Wt/Dbo/StdSqlTraits.h>
+
+#include <Wt/Dbo/backend/result.hpp>
 
 namespace Wt {
   namespace Dbo {
@@ -25,6 +31,9 @@ class SqlStatement;
  *
  * \sa Query
  */
+enum class Specifier { Postgres, MySql, MSSql, SQlite };
+
+
 class WTDBO_API Call
 {
 public:
@@ -45,19 +54,33 @@ public:
    *
    * This binds the \p value to the next positional marker.
    */
-  template<typename T> Call& bind(const T& value);
+  //template<typename T> Call& bind(const T& value);
+
+  template<typename T> Call& bind(const T& value)
+  {
+      sql_value_traits<T>::bind(value, statement_, column_++, -1);
+
+      return *this;
+  }
 
   /*! \brief Runs the database call.
    *
    * This may throw an exception if there was a problem with the SQL
    * command.
    */
-  void run();
+  awaitable<result_base> run();
+
+  template<Specifier S>
+  awaitable<postgrespp::result> run() requires(S == Specifier::Postgres);
+
+  template<Specifier S>
+  awaitable<void> run() requires(S == Specifier::MySql);
 
 private:
   bool copied_, run_;
   SqlStatement *statement_;
   int column_;
+  Session& session_;
 
   Call(Session& session, const std::string& sql);
 

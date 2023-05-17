@@ -33,18 +33,19 @@ namespace http {
 
 class cuehttp final : safe_noncopyable {
  public:
-  cuehttp() noexcept {
-    http_handler_ = middlewares_.callback();
-    ws_handler_ = [](context& ctx) -> awaitable<void> { ctx.status(503); co_return; };
-  }
+    cuehttp(detail::engines& engine) noexcept : engine_(engine)
+    {
+        http_handler_ = middlewares_.callback();
+        ws_handler_ = [](context& ctx) -> awaitable<void> { ctx.status(503); co_return; };
+    }
 
-  static void run() { detail::engines::default_engines().run(); }
+  void run() { engine_.run(); }
 
-  static void stop() { detail::engines::default_engines().stop(); }
+  void stop() { engine_.stop(); }
 
   cuehttp& listen(unsigned port) {
     assert(port != 0);
-    server_ = http::create_server(callback());
+    server_ = http::create_server(callback(), &engine_);
     server_.listen(port);
     return *this;
   }
@@ -52,7 +53,7 @@ class cuehttp final : safe_noncopyable {
   template <typename _Host>
   cuehttp& listen(unsigned port, _Host&& host) {
     assert(port != 0);
-    server_ = http::create_server(callback());
+    server_ = http::create_server(callback(), &engine_);
     server_.listen(port, std::forward<_Host>(host));
     return *this;
   }
@@ -83,6 +84,7 @@ class cuehttp final : safe_noncopyable {
   }
 
  private:
+  detail::engines& engine_;
   http_t server_;
   detail::middlewares middlewares_;
   //std::function<void(context&)> http_handler_;

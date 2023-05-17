@@ -51,6 +51,10 @@ namespace {
       return std::string();
     }
   }
+  std::string str(std::string_view sv)
+  {
+    return std::string{sv};
+  }
 }
 
 namespace Wt {
@@ -183,7 +187,7 @@ std::vector<std::string> WebController::sessions(bool onlyRendered)
   return sessionIds;
 }
 
-bool WebController::expireSessions()
+awaitable<bool> WebController::expireSessions()
 {
   std::vector<std::shared_ptr<WebSession>> toExpire;
 
@@ -241,9 +245,10 @@ bool WebController::expireSessions()
     sessions_.erase(session->sessionId());
 
     session->expire();
+    co_await handler.destroy();
   }
 
-  return result;
+  co_return result;
 }
 
 void WebController::addSession(const std::shared_ptr<WebSession>& session)
@@ -523,13 +528,63 @@ bool WebController::requestDataReceived(WebRequest *request,
                                                     std::bind(&WebController::updateResourceProgress,
                                                               this, params));
 
-    if (handleApplicationEvent(event))
-      return !request->postDataExceeded();
-    else
+//    if (co_await handleApplicationEvent(event))
+//      return !request->postDataExceeded();
+//    else
       return false;
   }
 
   return true;
+}
+
+awaitable<bool> WebController::requestDataReceived(http::context *context, uintmax_t current, uintmax_t total)
+{
+#ifdef WT_THREADED
+  std::unique_lock<std::mutex> lock(uploadProgressUrlsMutex_);
+#endif // WT_THREADED
+
+  if (!running_)
+    co_return false;
+
+  if (uploadProgressUrls_.find(std::string(context->querystring()))!= uploadProgressUrls_.end()) {
+#ifdef WT_THREADED
+    lock.unlock();
+#endif // WT_THREADED
+
+    CgiParser cgi(conf_.maxRequestSize(), conf_.maxFormDataSize());
+
+    try {
+      cgi.parse(context, CgiParser::ReadHeadersOnly);
+    } catch (std::exception& e) {
+      LOG_ERROR_S(&server_, "could not parse request: {}", e.what());
+      co_return false;
+    }
+
+    auto wtdE = context->getParameter("wtd");
+    if (wtdE.empty())
+      co_return false;
+
+    std::string sessionId {wtdE};
+
+    UpdateResourceProgressParams params {
+        str(context->getParameter("request")),
+        str(context->getParameter("resource")),
+        context->postDataExceeded(),
+        str(context->pathInfo()),
+        current,
+        total
+    };
+    auto event = std::make_shared<ApplicationEvent>(sessionId,
+                                                    std::bind(&WebController::updateResourceProgress,
+                                                              this, params));
+
+    if (co_await handleApplicationEvent(event))
+      co_return !context->postDataExceeded();
+    else
+      co_return false;
+  }
+
+  co_return true;
 }
 
 void WebController::updateResourceProgress(const UpdateResourceProgressParams &params)
@@ -555,7 +610,7 @@ void WebController::updateResourceProgress(const UpdateResourceProgressParams &p
   }
 }
 
-bool WebController::handleApplicationEvent(const std::shared_ptr<ApplicationEvent>& event)
+awaitable<bool> WebController::handleApplicationEvent(const std::shared_ptr<ApplicationEvent>& event)
 {
   /*
    * This should always be run from within a virgin thread of the
@@ -579,7 +634,7 @@ bool WebController::handleApplicationEvent(const std::shared_ptr<ApplicationEven
   if (!session) {
     if (event->fallbackFunction)
       event->fallbackFunction();
-    return false;
+    co_return false;
   } else
     session->queueEvent(event);
 
@@ -589,9 +644,10 @@ bool WebController::handleApplicationEvent(const std::shared_ptr<ApplicationEven
    */
   {
     WebSession::Handler handler(session, WebSession::Handler::LockOption::TryLock);
+    co_await handler.destroy();
   }
 
-  return true;
+  co_return true;
 }
 
 void WebController::addUploadProgressUrl(const std::string& url)
@@ -826,8 +882,8 @@ void WebController::handleRequest(WebRequest *request)
 
   session.reset();
 
-  if (autoExpire_)
-    expireSessions();
+//  if (autoExpire_)
+//    expireSessions();
 
   if (!handled)
     handleRequest(request);
@@ -1078,7 +1134,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
   session.reset();
 
   if (autoExpire_)
-    expireSessions();
+    co_await expireSessions();
 
   if (!handled)
     co_await handleRequest(context, entryPoint);
@@ -1214,9 +1270,9 @@ EntryPointMatch WebController::getEntryPoint(WebRequest *request)
 std::string
 WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
 {
-//#ifdef WT_THREADED
-//  std::unique_lock<std::recursive_mutex> lock(mutex_);
-//#endif // WT_THREADED
+#ifdef WT_THREADED
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
 
   std::string newSessionId;
   do {
@@ -1229,6 +1285,12 @@ WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
 //    auto node = sessions_.extract(session->sessionId());
 //    node.key() = newSessionId;
 //    sessions_.insert(std::move(node));
+
+//  server_.ioService().dispatchAll([this, session, newSessionId] {
+//      sessions_[newSessionId] = session;
+//      SessionMap::iterator i = sessions_.find(session->sessionId());
+//      sessions_.erase(i);
+//  });
 
   sessions_[newSessionId] = session;
 

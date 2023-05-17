@@ -324,9 +324,9 @@ void WServer::schedule(std::chrono::steady_clock::duration duration,
 {
   auto event = std::make_shared<ApplicationEvent>(sessionId, function, fallbackFunction);
 
-  ioService().schedule(duration, [this, event] () {
-        webController_->handleApplicationEvent(event);
-  });
+//  ioService().schedule(duration, [this, event = std::move(event)] () {
+//      co_spawn(*thread_context, [this, event = std::move(event)] () ->awaitable<void> { co_await webController_->handleApplicationEvent(event); }, detached);
+//  });
 }
 
 std::string WServer::prependDefaultPath(const std::string& path)
@@ -506,9 +506,9 @@ int WServer::waitForShutdown()
 #endif // WT_THREADED
 }
 
-bool WServer::expireSessions()
+awaitable<bool> WServer::expireSessions()
 {
-  return webController_->expireSessions();
+  co_return co_await webController_->expireSessions();
 }
 
 void WServer::scheduleStop()
@@ -551,6 +551,28 @@ std::vector<WServer::SessionInfo> WServer::sessions() const
 void WServer::updateProcessSessionId(const std::string& sessionId) {
   if (updateProcessSessionIdCallback_)
     updateProcessSessionIdCallback_(sessionId);
+}
+
+awaitable<void> WServer::coro_expireSessions()
+{
+    //LOG_DEBUG_S(&wt_, "expireSession() {}", ec.message());
+  auto timer = asio::steady_timer(co_await asio::this_coro::executor, std::chrono::seconds(SESSION_EXPIRE_INTERVAL));
+  for(;;) {
+    auto [ec] = co_await timer.async_wait(use_nothrow_awaitable);
+    if (!ec) {
+        bool haveMoreSessions = co_await webController_->expireSessions();
+        if (!haveMoreSessions &&
+            configuration_->sessionPolicy() == Wt::Configuration::DedicatedProcess &&
+            serverConfiguration_->parentPort() != -1)
+            scheduleStop();
+
+    } else if (ec != asio::error::operation_aborted) {
+        LOG_ERROR_S(&wt_, "session expiration timer got an error: {}", ec.message());
+        break;
+    }
+    else
+        break;
+  }
 }
 
 }

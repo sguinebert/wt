@@ -333,7 +333,7 @@ namespace Wt {
      * query is run only once, and its result is cached so that size() always
      * returns the same value.
      */
-    size_type size() const;
+    awaitable<size_type> size() const;
 
     /*! \brief Returns whether the collection is empty.
      *
@@ -369,7 +369,7 @@ namespace Wt {
      *
      * \sa erase()
      */
-    void clear();
+    awaitable<void> clear();
 
     /*! \brief Returns the whether the collection contains an object.
      *
@@ -384,7 +384,7 @@ namespace Wt {
      *       involved in a ManyToOne or ManyToMany relation, and not for
      *       collections that are used to iterate the result of a query.
      */
-    int count(C c) const;
+    awaitable<int> count(C c) const;
 
     /*! \brief Returns the session to which this %collection is bound.
      */
@@ -451,7 +451,7 @@ namespace Wt {
     void resetActivity();
     void releaseQuery();
 
-    SqlStatement *executeStatement() const;
+    awaitable<SqlStatement *> executeStatement() const;
 
     void iterateDone() const;
   };

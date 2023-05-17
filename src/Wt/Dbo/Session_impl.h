@@ -1,4 +1,4 @@
-// This may look like C code, but it's really -*- C++ -*-
+﻿// This may look like C code, but it's really -*- C++ -*-
 /*
  * Copyright (C) 2008 Emweb bv, Herent, Belgium.
  *
@@ -9,31 +9,29 @@
 
 #include <iostream>
 
-#include <Wt/Dbo/SqlConnection.h>
+#include <Wt/Dbo/backend/connection.hpp> //#include <Wt/Dbo/sqlConnection.h>
 #include <Wt/Dbo/Query.h>
 
 namespace Wt {
   namespace Dbo {
     namespace Impl {
-      template <class C, typename T>
-      struct LoadHelper
-      {
-	static MetaDbo<C> *load(Session *session, SqlStatement *statement,
-				 int& column)
-	{
-	  return session->loadWithNaturalId<C>(statement, column);
-	};
-      };
+        template <class C, typename T>
+        struct LoadHelper
+        {
+            static MetaDbo<C> *load(Session *session, SqlStatement *statement, int& column)
+            {
+                return session->loadWithNaturalId<C>(statement, column);
+            };
+        };
 
-      template <class C>
-      struct LoadHelper<C, long long>
-      {
-	static MetaDbo<C> *load(Session *session, SqlStatement *statement,
-				 int& column)
-	{
-	  return session->loadWithLongLongId<C>(statement, column);
-	}
-      };
+        template <class C>
+        struct LoadHelper<C, long long>
+        {
+            static MetaDbo<C> *load(Session *session, SqlStatement *statement, int& column)
+            {
+                return session->loadWithLongLongId<C>(statement, column);
+            }
+        };
     }
 
 template <class C>
@@ -100,8 +98,7 @@ Session::Mapping<C> *Session::getMapping() const
     Session::Mapping<C> *mapping = dynamic_cast< Mapping<C> *>(i->second);
     return mapping;
   } else
-    throw Exception(std::string("Class ") + typeid(C).name()
-		    + " was not mapped.");
+    throw Exception(std::string("Class ") + typeid(C).name() + " was not mapped.");
 }
 
 template <class C>
@@ -109,12 +106,12 @@ ptr<C> Session::load(SqlStatement *statement, int& column)
 {
   typedef typename std::remove_const<C>::type MutC;
 
-  Impl::MappingInfo *mapping = getMapping<MutC>();
-  MetaDboBase *dbob = mapping->load(*this, statement, column);
+  Mapping<MutC> *mapping = getMapping<MutC>();
+  MetaDbo<MutC> *dbob = mapping->load(*this, statement, column);
 
   if (dbob) {
-    MetaDbo<MutC> *dbo = dynamic_cast<MetaDbo<MutC> *>(dbob);
-    return ptr<C>(dbo);
+    //MetaDbo<MutC> *dbo = dynamic_cast<MetaDbo<MutC> *>(dbob);
+    return ptr<C>(dbob);
   } else
     return ptr<C>();
 }
@@ -185,29 +182,29 @@ MetaDbo<C> *Session::loadWithLongLongId(SqlStatement *statement, int& column)
      * dbo_test4c.
      */
     if (!statement->getResult(column++, &id)) {
-      column += (int)mapping->fields.size()
-	+ (mapping->versionFieldName ? 1 : 0);
-      return nullptr;
+        column += (int)mapping->fields.size()
+                  + (mapping->versionFieldName ? 1 : 0);
+        return nullptr;
     }
 
     typename Mapping<MutC>::Registry::iterator i = mapping->registry_.find(id);
 
     if (i == mapping->registry_.end()) {
-      MetaDboBase *dbob = createDbo(mapping);
-      MetaDbo<MutC> *dbo = dynamic_cast<MetaDbo<MutC> *>(dbob);
-      dbo->setId(id);
-      implLoad<MutC>(*dbo, statement, column);
+        MetaDboBase *dbob = createDbo(mapping);
+        MetaDbo<MutC> *dbo = dynamic_cast<MetaDbo<MutC> *>(dbob);
+        dbo->setId(id);
+        implLoad<MutC>(*dbo, statement, column);
 
-      mapping->registry_[id] = dbo;
+        mapping->registry_[id] = dbo;
 
-      return dbo;
+        return dbo;
     } else {
-      if (!i->second->isLoaded())
-	implLoad<MutC>(*i->second, statement, column);
-      else
-	column += (int)mapping->fields.size() + (mapping->versionFieldName ? 1 : 0);
+        if (!i->second->isLoaded())
+            implLoad<MutC>(*i->second, statement, column);
+        else
+            column += (int)mapping->fields.size() + (mapping->versionFieldName ? 1 : 0);
 
-      return i->second;
+        return i->second;
     }
   } else
     return loadWithNaturalId<C>(statement, column);
@@ -277,22 +274,55 @@ ptr<C> Session::loadLazy(const typename dbo_traits<C>::IdType& id)
 template <class C, typename BindStrategy>
 Query< ptr<C>, BindStrategy > Session::find(const std::string& where)
 {
+  this->active_conn = this->get_rconnection();
   initSchema();
 
   return Query< ptr<C>, BindStrategy >
     (*this, '"' + Impl::quoteSchemaDot(tableName<C>()) + '"', where);
 }
 
+//template <class C, typename BindStrategy, class Token>
+//auto Session::find(Token&& handler, const std::string& where)
+//{
+//  initSchema();
+
+//  auto sqlquery = Query<ptr<C>, BindStrategy>(*this, '"' + Impl::quoteSchemaDot(tableName<C>()) + '"', where);
+//  auto initiator = [this, sqlquery = std::move(sqlquery) ] (auto&& handler) mutable {
+//      assign_connection(false, [this, handler = std::move(handler), query = std::move(sqlquery)] (auto conn) mutable {
+//          this->active_conn = conn;
+//          handler(query);
+//      });
+//  };
+//  return asio::async_initiate<Token, void(Query<ptr<C>, BindStrategy>)>(initiator, handler);
+//}
+
+template <class Result, class Token>
+auto Session::query(const std::string& sql, Token &&handler)
+{
+  auto query = Query<Result, DynamicBinding>(*this, sql);
+  auto initiator = [this, query = std::move(query) ] (auto&& handler) mutable {
+      assign_connection(false, [this, handler = std::move(handler), query = std::move(query)] (auto conn) mutable {
+          this->active_conn = conn;
+          handler(query);
+      });
+  };
+  return asio::async_initiate<Token, void(Query<Result, DynamicBinding>)>(initiator, handler);
+}
+
 template <class Result>
-Query<Result> Session::query(const std::string& sql)
+inline Query<Result> Session::query(const std::string& sql)
 {
   return query<Result, DynamicBinding>(sql);
 }
 
 template <class Result, typename BindStrategy>
-Query<Result, BindStrategy> Session::query(const std::string& sql)
+Query<Result, BindStrategy> Session::query(const std::string& sql) //DO NOT USE outside a transaction (i.e. use async api)
 {
+  this->active_conn = this->get_rconnection();
   initSchema();
+
+//  if (!transaction_) //this method mean you already assigned a connection via a transaction
+//    throw Exception("Dbo execute(): no active transaction");
 
   return Query<Result, BindStrategy>(*this, sql);
 }
@@ -306,30 +336,47 @@ void Session::prune(MetaDbo<C> *obj)
 }
 
 template<class C>
-void Session::implSave(MetaDbo<C>& dbo)
+awaitable<void> Session::implSave(MetaDbo<C>& dbo)
 {
-  if (!transaction_)
-    throw Exception("Dbo save(): no active transaction");
+//  if (!transaction_)
+//    throw Exception("Dbo save(): no active transaction");
 
-  if (!dbo.savedInTransaction())
+  if (transaction_ && !dbo.savedInTransaction())
     transaction_->objects_.push_back(new ptr<C>(&dbo));
 
   Session::Mapping<C> *mapping = getMapping<C>();
 
   SaveDbAction<C> action(dbo, *mapping);
-  action.visit(*dbo.obj());
+  co_await action.visit(*dbo.obj());
 
   mapping->registry_[dbo.id()] = &dbo;
 }
 
+//template<class C>
+//awaitable<void> Session::implSave(MetaDbo<C>& dbo, std::function<void()> && cb)
+//{
+//  //  if (!transaction_)
+//  //    throw Exception("Dbo save(): no active transaction");
+
+//  if (transaction_ && !dbo.savedInTransaction())
+//    transaction_->objects_.push_back(new ptr<C>(&dbo));
+
+//  Session::Mapping<C> *mapping = getMapping<C>();
+
+//  SaveDbAction<C> action(dbo, *mapping);
+//  co_await action.visit(*dbo.obj());
+
+//  mapping->registry_[dbo.id()] = &dbo;
+//}
+
 template<class C>
-void Session::implDelete(MetaDbo<C>& dbo)
+awaitable<void> Session::implDelete(MetaDbo<C>& dbo)
 {
-  if (!transaction_)
-    throw Exception("Dbo save(): no active transaction");
+//  if (!transaction_)
+//    throw Exception("Dbo save(): no active transaction");
 
   // when saved in transaction, we are already in this list
-  if (!dbo.savedInTransaction())
+  if (transaction_ && !dbo.savedInTransaction())
     transaction_->objects_.push_back(new ptr<C>(&dbo));
 
   bool versioned = getMapping<C>()->versionFieldName && dbo.obj() != nullptr;
@@ -350,7 +397,7 @@ void Session::implDelete(MetaDbo<C>& dbo)
     statement->bind(column++, version);
   }
 
-  statement->execute();
+  co_await statement->execute();
 
   if (versioned) {
     int modifiedCount = statement->affectedRowCount();
@@ -383,8 +430,8 @@ void Session::implUpdate(MetaDbo<C>& dbo)
 template <class C>
 void Session::implLoad(MetaDbo<C>& dbo, SqlStatement *statement, int& column)
 {
-  if (!transaction_)
-    throw Exception("Dbo load(): no active transaction");
+//  if (!transaction_)
+//    throw Exception("Dbo load(): no active transaction");
 
   LoadDbAction<C> action(dbo, *getMapping<C>(), statement, column);
 
@@ -396,6 +443,17 @@ void Session::implLoad(MetaDbo<C>& dbo, SqlStatement *statement, int& column)
     delete obj;
     throw;
   }
+}
+
+template<class ResultCallableT>
+auto Session::execute(const std::string &sql, ResultCallableT &&handler) {
+  auto initiation = [this, sql = std::move(sql)](auto&& handler) mutable {
+      assign_connection(false, [this, handler = std::move(handler), sql = std::move(sql)] (auto conn) mutable {
+          this->active_conn = conn;
+          handler(Call(*this, sql));
+      });
+  };
+  return boost::asio::async_initiate<ResultCallableT, void(Call)>(initiation, handler);
 }
 
 template <class C>
@@ -449,13 +507,11 @@ void Session::Mapping<C>::load(Session& session, MetaDboBase *obj)
 }
 
 template <class C>
-MetaDbo<C> *Session::Mapping<C>::load(Session& session, SqlStatement *statement,
-				      int& column)
+MetaDbo<C>* Session::Mapping<C>::load(Session& session, SqlStatement *statement, int& column)
 {
   typedef typename std::remove_const<C>::type MutC;
 
-  return Impl::LoadHelper<C, typename dbo_traits<MutC>::IdType>
-    ::load(&session, statement, column);
+  return Impl::LoadHelper<C, typename dbo_traits<MutC>::IdType>::load(&session, statement, column);
 }
 
 template <class C>

@@ -308,6 +308,30 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
     co_return !!code;
   }
 
+  asio::cancellation_signal timer_cancel_;
+  steady_clock::time_point conn_deadline_;
+  void setDeadline(std::chrono::seconds sec, bool cancel){
+    conn_deadline_ = steady_clock::now() + sec;
+    if(cancel)
+      timer_cancel_.emit(asio::cancellation_type::total);
+  }
+  awaitable<void> watchdog(steady_clock::time_point& deadline)
+  {
+    asio::steady_timer timer(co_await boost::asio::this_coro::executor);
+    deadline = std::max(deadline, steady_clock::now() + 10s);
+
+    auto now = steady_clock::now();
+    while (deadline > now)
+    {
+      timer.expires_at(deadline);
+      co_await timer.async_wait(asio::bind_cancellation_slot(timer_cancel_.slot(), use_nothrow_awaitable));
+      now = steady_clock::now();
+    }
+    //kill
+    co_await close();
+    co_return;
+  }
+
   bool reply_chunk(std::string_view chunk) {
     boost::system::error_code code;
     asio::write(socket_, asio::buffer(chunk), code);

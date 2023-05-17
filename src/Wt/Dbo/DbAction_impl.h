@@ -166,11 +166,11 @@ void InitSchema::actCollection(const CollectionRef<C>& field)
      */
 
 template<class C>
-void DropSchema::visit(C& obj)
+awaitable<void> DropSchema::visit(C& obj)
 {
   persist<C>::apply(obj, *this);
 
-  drop(mapping_.tableName);
+  co_await drop(mapping_.tableName);
 }
 
 template<typename V>
@@ -191,7 +191,7 @@ void DropSchema::actPtr(const PtrRef<C>& /* field */)
 { }
 
 template<class C>
-void DropSchema::actWeakPtr(const WeakPtrRef<C>& /* field */)
+awaitable<void> DropSchema::actWeakPtr(const WeakPtrRef<C>& /* field */)
 { 
   const char *tableName = session_.tableName<C>();
   if (tablesDropped_.count(tableName) == 0) {
@@ -199,12 +199,12 @@ void DropSchema::actWeakPtr(const WeakPtrRef<C>& /* field */)
 		      *session_.getMapping(tableName), 
 		      tablesDropped_);
     C dummy;
-    action.visit(dummy);
+    co_await action.visit(dummy);
   }
 }
 
 template<class C>
-void DropSchema::actCollection(const CollectionRef<C>& field)
+awaitable<void> DropSchema::actCollection(const CollectionRef<C>& field)
 {
   if (field.type() == ManyToMany) {
     const char *joinTableName = session_.tableName<C>();
@@ -215,7 +215,7 @@ void DropSchema::actCollection(const CollectionRef<C>& field)
                                       joinTableName);
 
     if (tablesDropped_.count(joinName) == 0)
-      drop(joinName);
+      co_await drop(joinName);
   } else {
     const char *tableName = session_.tableName<C>();
     if (tablesDropped_.count(tableName) == 0) {
@@ -223,7 +223,7 @@ void DropSchema::actCollection(const CollectionRef<C>& field)
 			*session_.getMapping(tableName), 
 			tablesDropped_);
       C dummy;
-      action.visit(dummy);
+      co_await action.visit(dummy);
     }
   }
 }
@@ -360,7 +360,7 @@ void LoadDbAction<C>::visit(C& obj)
     MetaDboBase *dbo = dynamic_cast<MetaDboBase *>(&dbo_);
     dbo->bindId(statement_, column);
 
-    statement_->execute();
+    //co_await statement_->execute();
 
     if (!statement_->nextRow()) {
       throw ObjectNotFoundException(session->template tableName<C>(),
@@ -420,8 +420,7 @@ void SaveBaseAction::actId(V& value, const std::string& name, int size, int flag
 }
 
 template<class D>
-void SaveBaseAction::actId(ptr<D>& value, const std::string& name, int size,
-			   int fkConstraints)
+void SaveBaseAction::actId(ptr<D>& value, const std::string& name, int size, int fkConstraints)
 { 
   /* Only used from within visitAuxIds() */
 }
@@ -434,7 +433,7 @@ void SaveBaseAction::actPtr(const PtrRef<C>& field)
     {
       MetaDboBase *dbob = field.value().obj();
       if (dbob)
-	dbob->flush();
+        dbob->flush();
     }
 
     break;
@@ -480,10 +479,10 @@ void SaveBaseAction::actWeakPtr(const WeakPtrRef<C>& field)
 }
 
 template<class C>
-void SaveBaseAction::actCollection(const CollectionRef<C>& field)
+awaitable<void> SaveBaseAction::actCollection(const CollectionRef<C>& field)
 {
   if (auxIdOnly_)
-    return;
+    co_return;
 
   switch (pass_) {
   case Dependencies:
@@ -517,7 +516,7 @@ void SaveBaseAction::actCollection(const CollectionRef<C>& field)
 	    MetaDboBase *dbo2 = dynamic_cast<MetaDboBase *>(i->obj());
 
 	    // Make sure it is saved
-	    dbo2->flush();
+        co_await dbo2->flush();
 
 	    statement->reset();
 	    int column = 0;
@@ -526,7 +525,7 @@ void SaveBaseAction::actCollection(const CollectionRef<C>& field)
 	    dbo1->bindId(statement, column);
 	    dbo2->bindId(statement, column);
 
-	    statement->execute();
+        co_await statement->execute();
 	  }
 	}
 
@@ -544,7 +543,7 @@ void SaveBaseAction::actCollection(const CollectionRef<C>& field)
 	    MetaDboBase *dbo2 = dynamic_cast<MetaDboBase *>(i->obj());
 
 	    // Make sure it is saved (?)
-	    dbo2->flush();
+        co_await dbo2->flush();
 
 	    statement->reset();
 	    int column = 0;
@@ -553,7 +552,7 @@ void SaveBaseAction::actCollection(const CollectionRef<C>& field)
 	    dbo1->bindId(statement, column);
 	    dbo2->bindId(statement, column);
 
-	    statement->execute();
+        co_await statement->execute();
 	  }
 	}
 
@@ -578,7 +577,7 @@ SaveDbAction<C>::SaveDbAction(MetaDbo<C>& dbo, Session::Mapping<C>& mapping)
 { }
 
 template<class C>
-void SaveDbAction<C>::visit(C& obj)
+awaitable<void> SaveDbAction<C>::visit(C& obj)
 {
   /*
    * (1) Dependencies
@@ -593,12 +592,10 @@ void SaveDbAction<C>::visit(C& obj)
   {
     ScopedStatementUse use(statement_);
     if (!statement_) {
-      isInsert_ = dbo_.deletedInTransaction()
-	|| (dbo_.isNew() && !dbo_.savedInTransaction());
+      isInsert_ = dbo_.deletedInTransaction() || (dbo_.isNew() && !dbo_.savedInTransaction());
 
-      use(statement_ = isInsert_
-	  ? dbo_.session()->template getStatement<C>(Session::SqlInsert)
-	  : dbo_.session()->template getStatement<C>(Session::SqlUpdate));
+      use(statement_ = isInsert_ ? dbo_.session()->template getStatement<C>(Session::SqlInsert)
+                                 : dbo_.session()->template getStatement<C>(Session::SqlUpdate));
     } else
       isInsert_ = false;
 
@@ -611,13 +608,13 @@ void SaveDbAction<C>::visit(C& obj)
       dbo->bindModifyId(statement_, column_);
 
       if (mapping().versionFieldName) {
-	// when saved in the transaction, we will be at version() + 1
-	statement_->bind(column_++, dbo_.version()
-			 + (dbo_.savedInTransaction() ? 1 : 0));
+        // when saved in the transaction, we will be at version() + 1
+        statement_->bind(column_++, dbo_.version()
+                                        + (dbo_.savedInTransaction() ? 1 : 0));
       }
     }
     
-    exec();
+    co_await exec();
 
     if (!isInsert_) {
       int modifiedCount = statement_->affectedRowCount();
@@ -729,14 +726,13 @@ void TransactionDoneAction::actCollection(const CollectionRef<C>& field)
     if (success_)
       field.value().resetActivity();
     else {
-      typename collection< ptr<C> >::Activity *activity
-	= field.value().activity();
+      typename collection< ptr<C> >::Activity *activity = field.value().activity();
 
       if (activity) {
-	activity->inserted = activity->transactionInserted;
-	activity->transactionInserted.clear();
-	activity->erased = activity->transactionErased;
-	activity->transactionErased.clear();
+        activity->inserted = activity->transactionInserted;
+        activity->transactionInserted.clear();
+        activity->erased = activity->transactionErased;
+        activity->transactionErased.clear();
       }
     }
   }
@@ -759,8 +755,7 @@ void SessionAddAction::actId(V& value, const std::string& name, int size, int fl
 }
 
 template<class C>
-void SessionAddAction::actId(ptr<C>& value, const std::string& name,
-			     int size, int fkConstraints)
+void SessionAddAction::actId(ptr<C>& value, const std::string& name, int size, int fkConstraints)
 { 
   actPtr(PtrRef<C>(value, name, fkConstraints));
 }
@@ -831,9 +826,9 @@ void SetReciproceAction::actCollection(const CollectionRef<C>& /* field */)
 {
 }
 
-    /*
-     * ToAnysAction
-     */
+/*
+ * ToAnysAction
+ */
 
 template<class C>
 void ToAnysAction::visit(const ptr<C>& obj)
@@ -926,15 +921,13 @@ void FromAnyAction::visit(const ptr<C>& obj)
 
   if (dbo_traits<C>::surrogateIdField()) {
     if (index_ == 0)
-      throw Exception("dbo_result_traits::setValues(): cannot set surrogate "
-		      "id.");
+      throw Exception("dbo_result_traits::setValues(): cannot set surrogate id.");
     --index_;
   }
 
   if (dbo_traits<C>::versionField()) {
     if (index_ == 0)
-      throw Exception("dbo_result_traits::setValues(): "
-		      "cannot set version field.");
+      throw Exception("dbo_result_traits::setValues(): cannot set version field.");
     --index_;
   }
 

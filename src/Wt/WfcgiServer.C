@@ -424,9 +424,9 @@ int WfcgiServer::waitForShutdown()
 #endif // WT_THREADED
 }
 
-bool WfcgiServer::expireSessions()
+awaitable<bool> WfcgiServer::expireSessions()
 {
-  return webController_->expireSessions();
+  co_return co_await webController_->expireSessions();
 }
 
 void WfcgiServer::scheduleStop()

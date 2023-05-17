@@ -12,6 +12,7 @@
 #include <Wt/Dbo/SqlStatement.h>
 
 #include <algorithm>
+#include <boost/asio.hpp>
 
 namespace Wt {
   namespace Dbo {
@@ -424,16 +425,16 @@ void collection<C>::iterateDone() const
   if (type_ == QueryCollection)
     data_.query->statement = nullptr;
 }
-
+//inline thread_local result_base vvvvvvvv;
 //[SG] BUG : if transaction commit is called before iterating the results -> connection is already in the pool and 
 // therefore can be used by two threads concurrently -> postgres : throw 2 commands at the same time exception
 template <class C>
-SqlStatement *collection<C>::executeStatement() const
+awaitable<SqlStatement *>collection<C>::executeStatement() const
 {
   SqlStatement *statement = nullptr;
 
   if (session_ && session_->flushMode() == FlushMode::Auto)
-    session_->flush();
+    co_await session_->flush();
 
   if (type_ == QueryCollection)
     statement = data_.query->statement;
@@ -445,16 +446,24 @@ SqlStatement *collection<C>::executeStatement() const
     }
   }
 
-  if (statement) 
-    statement->execute();
+  if (statement) {
+    session_->active_conn = co_await session_->assign_connection(false);
+    auto res = co_await statement->execute();
 
-  return statement;
+    //const auto& result = (postgrespp::result&)res;
+    //std::cerr << result.size() ;
+    //std::cerr << result.columnCount();
+
+
+  }
+
+  co_return statement;
 }
 
 template <class C>
 typename collection<C>::iterator collection<C>::begin() //what if Transaction already committed ()
 {
-  return iterator(*this, executeStatement());
+  return iterator(*this, data_.query->statement); //return iterator(*this, executeStatement());
 }
 
 template <class C>
@@ -466,7 +475,7 @@ typename collection<C>::iterator collection<C>::end()
 template <class C>
 typename collection<C>::const_iterator collection<C>::begin() const
 {
-  return const_iterator(*this, executeStatement());
+  return const_iterator(*this, data_.query->statement); //const_iterator(*this, executeStatement());
 }
 
 template <class C>
@@ -478,7 +487,7 @@ typename collection<C>::const_iterator collection<C>::end() const
 template <class C>
 C collection<C>::front() const
 {
-  return *(const_iterator(*this, executeStatement()));
+  return *(const_iterator(*this, data_.query->statement)); //*(const_iterator(*this, executeStatement()));
 }
 
 template <class C>
@@ -488,15 +497,15 @@ bool collection<C>::empty() const
 }
 
 template <class C>
-typename collection<C>::size_type collection<C>::size() const
+awaitable<typename collection<C>::size_type> collection<C>::size() const
 {
   if (type_ == QueryCollection && data_.query->size != -1)
-    return data_.query->size;
+    co_return data_.query->size;
 
   SqlStatement *countStatement = nullptr;
 
   if (session_ && session_->flushMode() == FlushMode::Auto)
-    session_->flush();
+    co_await session_->flush();
 
   if (type_ == QueryCollection)
     countStatement = data_.query->countStatement;
@@ -515,7 +524,7 @@ typename collection<C>::size_type collection<C>::size() const
   if (countStatement) {
     ScopedStatementUse use(countStatement);
 
-    countStatement->execute();
+    co_await countStatement->execute();
 
     if (!countStatement->nextRow())
       throw Exception("collection<C>::size(): no result?");
@@ -537,17 +546,16 @@ typename collection<C>::size_type collection<C>::size() const
       result -= static_cast<int>(manualModeRemovals_.size());
     }
 
-    return static_cast<typename collection<C>::size_type>(result);
+    co_return static_cast<typename collection<C>::size_type>(result);
   } else
-    return 0;
+    co_return 0;
 }
 
 template <class C>
 Query<C, DynamicBinding> collection<C>::find() const
 {
   if (type_ != RelationCollection)
-    throw Exception("collection<C>::find() "
-		    "only for a many-side relation collection.");
+    throw Exception("collection<C>::find() only for a many-side relation collection.");
 
   if (session_ && data_.relation.sql) {
     const std::string *sql = data_.relation.sql;
@@ -573,14 +581,13 @@ void collection<C>::insert(C c)
   RelationData& relation = data_.relation;
 
   if (type_ != RelationCollection || relation.setInfo == nullptr)
-    throw Exception("collection<C>::insert() only for a relational "
-		    "collection.");
+    throw Exception("collection<C>::insert() only for a relational collection.");
 
   if (session_->flushMode() == FlushMode::Auto) {
     if (relation.dbo) {
       relation.dbo->setDirty();
       if (relation.dbo->session())
-	relation.dbo->session()->add(c);
+        relation.dbo->session()->add(c);
     }
   } else if (session_->flushMode() == FlushMode::Manual) {
     manualModeInsertions_.push_back(c);
@@ -597,7 +604,7 @@ void collection<C>::insert(C c)
       relation.activity->inserted.insert(c);
   } else {
     SetReciproceAction setPtr(session_, relation.setInfo->joinName,
-			      relation.dbo);
+                              relation.dbo);
     setPtr.visit(*c.modify());
   }
 }
@@ -638,7 +645,7 @@ void collection<C>::erase(C c)
 }
 
 template <class C>
-void collection<C>::clear()
+awaitable<void> collection<C>::clear()
 {
   RelationData& relation = data_.relation;
 
@@ -667,31 +674,31 @@ void collection<C>::clear()
       deleteSql = "delete" + sql->substr(f);
     }
 
-    Call call = session_->execute(deleteSql);
+    Call call = co_await session_->execute(deleteSql);
     int column = 0;
     relation.dbo->bindId(call.statement_, column);
-    call.run();
+    co_await call.run();
   }
   manualModeInsertions_.clear();
   manualModeRemovals_.clear();
 }
 
 template <class C>
-int collection<C>::count(C c) const
+awaitable<int> collection<C>::count(C c) const
 {
   if (!session_)
     throw Exception("collection<C>::count() only for a collection "
 		    "that is bound to a session.");
 
   if (session_->flushMode() == FlushMode::Auto)
-    session_->flush();
+    co_await session_->flush();
 
   if (type_ != RelationCollection)
     throw Exception("collection<C>::count() only for a relational "
 		    "relation.");
 
   if (!c)
-    return 0;
+    co_return 0;
 
   const RelationData& relation = data_.relation;
   Impl::MappingInfo *mapping
@@ -699,13 +706,13 @@ int collection<C>::count(C c) const
 
   Query<C, DynamicBinding> q = find().where(mapping->idCondition);
   c.obj()->bindId(q.parameters_);
-  std::size_t result = q.resultList().size();
+  std::size_t result = co_await q.resultList().size();
 
   result += 
     std::count(manualModeInsertions_.begin(), manualModeInsertions_.end(), c);
   result -=
     std::count(manualModeRemovals_.begin(), manualModeRemovals_.end(), c);
-  return static_cast<int>(result);
+  co_return static_cast<int>(result);
 }
 
 template <class C>

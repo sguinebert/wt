@@ -591,7 +591,7 @@ public:
   WT_API bool dedicatedSessionProcess() const;
 #endif // WT_TARGET_JAVA
 
-  WT_API bool expireSessions();
+  WT_API awaitable<bool> expireSessions();
 
   WT_API Configuration& configuration();
 

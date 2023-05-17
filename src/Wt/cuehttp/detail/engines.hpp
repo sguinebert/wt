@@ -58,10 +58,10 @@ class engines final : safe_noncopyable {
     }
   }
 
-  static engines& default_engines() noexcept {
-    static engines engines{std::thread::hardware_concurrency()};
-    return engines;
-  }
+//  static engines& default_engines() noexcept {
+//    static engines engines{std::thread::hardware_concurrency()};
+//    return engines;
+//  }
 
   static asio::io_context* get_thread_context() {
     return thread_context;

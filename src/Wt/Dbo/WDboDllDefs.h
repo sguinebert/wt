@@ -11,6 +11,33 @@
 
 // Source: http://www.nedprod.com/programs/gccvisibility.html
 
+namespace Wt {
+namespace Dbo {
+
+enum class SqlDateTimeType {
+  Date,    //!< Date only
+  DateTime,//!< Date and time
+  Time     //!< Time duration
+};
+
+/*! \brief Enum that defines a limit query type.
+ *
+ * Oracle is using Rownum, Firebird is using RowsFromTo,
+ * and Microsoft SQL Server is using Top instead of limit and
+ * offset in SQL
+ */
+enum class LimitQuery{
+  Limit, //!< Use LIMIT and OFFSET
+  RowsFromTo, //!< Use ROWS ? TO ? (for Firebird)
+  Rownum, //!< Use rownum (for Oracle)
+  OffsetFetch, //!< Use OFFSET (?) ROWS FETCH FIRST (?) ROWS ONLY (adding ORDER BY (SELECT NULL) for SQL Server)
+  NotSupported // !< Not supported
+};
+
+}
+
+}
+
 #ifdef WT_WIN32
   #define WTDBO_IMPORT __declspec(dllimport)
   #define WTDBO_EXPORT __declspec(dllexport)

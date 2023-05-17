@@ -10,18 +10,20 @@
 #include <memory>
 #include <vector>
 #include <Wt/Dbo/WDboDllDefs.h>
-#include "Wt/Dbo/SqlConnection.h"
+#include <Wt/Dbo/backend/connection.hpp>
+#include <Wt/Dbo/backend/work.hpp>
+#include <Wt/Dbo/backend/result.hpp>
 
 namespace Wt {
   namespace Dbo {
 
 class Session;
-//class SqlConnectionBase;
+//class sqlConnection;
 
 class ptr_base;
 
 /*! \class Transaction Wt/Dbo/Transaction.h Wt/Dbo/Transaction.h
- *  \brief A database transaction.
+ *  \brief A database transaction. (use it with parcimony to do better concurrent SQL command [atomic by nature] execution - if you don't need several command to be executed alltogether or rollback don't use it)
  * 
  * This class implements a RAII transaction. Most dbo manipulations
  * require that a transaction is active, and database changes will not
@@ -87,12 +89,12 @@ public:
   virtual ~Transaction() noexcept(false);
 
   // Transactions are not copyable
-  Transaction(const Transaction&) = delete;
-  Transaction& operator=(const Transaction&) = delete;
+//  Transaction(const Transaction&) = delete;
+//  Transaction& operator=(const Transaction&) = delete;
 
   // Transactions are not movable
-  Transaction(Transaction&&) = delete;
-  Transaction& operator=(Transaction&&) = delete;
+//  Transaction(Transaction&&) = delete;
+//  Transaction& operator=(Transaction&&) = delete;
 
   /*! \brief Returns whether the transaction is still active.
    *
@@ -115,6 +117,7 @@ public:
    * \sa rollback()
    */
   bool commit();
+  awaitable<bool> commit(bool);
 
   /*! \brief Rolls back the transaction.
    *
@@ -123,7 +126,8 @@ public:
    *
    * \sa commit()
    */
-  void rollback();
+  bool rollback();
+  awaitable<bool> rollback(bool);
 
   /*! \brief Returns the session associated with this transaction.
    *
@@ -133,7 +137,13 @@ public:
 
   /*! \brief Returns the connection used by this transaction
    */
-  SqlConnection *connection() const;
+  awaitable<sqlConnection *> connection() const;
+
+//  template <class Result, typename BindStrategy>
+//  Query<Result, BindStrategy> query(const std::string& sql)
+//  {
+//      return Query<Result, BindStrategy>(session(), sql);
+//  }
 
 private:
   struct Impl {
@@ -145,13 +155,20 @@ private:
     int transactionCount_;
     std::vector<ptr_base *> objects_;
 
-    std::unique_ptr<SqlConnection> connection_;
+    //std::unique_ptr<sqlConnection> connection_;
+    sqlConnection* connection_ = nullptr;
+    //inline thread_local static sqlConnection* connection_ = nullptr;
+    std::shared_ptr<postgrespp::work> transaction_;
 
-    void open();
-    void commit();
-    void rollback();
+    awaitable<void> open();
+    awaitable<void> commit();
+    awaitable<void> rollback();
+    //void open(std::function<void()> cb);
+    void commit(bool);
+    void rollback(bool);
 
     Impl(Session& session_);
+    awaitable<void> assign_connection();
     ~Impl();
   };
 

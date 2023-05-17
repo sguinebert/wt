@@ -33,7 +33,7 @@ void WebMain::shutdown()
   controller().shutdown();
 }
 
-void WebMain::run()
+awaitable<void> WebMain::run()
 {
   //server_->ioService().start();
 
@@ -44,11 +44,11 @@ void WebMain::run()
   else
     if (!singleSessionId_.empty()) {
       LOG_ERROR("no initial request ?");
-      return;
+      co_return;
     }
 
   for (;;) {
-    bool haveMoreSessions = controller().expireSessions();
+    bool haveMoreSessions = co_await controller().expireSessions();
 
     if (!haveMoreSessions && !singleSessionId_.empty())
       break;
@@ -74,6 +74,7 @@ void WebMain::run()
   }
 
   server_->ioService().stop();
+  co_return;
 }
 
 }

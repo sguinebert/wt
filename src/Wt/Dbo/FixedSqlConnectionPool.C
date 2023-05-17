@@ -6,8 +6,7 @@
 
 #include "Wt/Dbo/Exception.h"
 #include "Wt/Dbo/FixedSqlConnectionPool.h"
-#include "Wt/Dbo/Logger.h"
-#include "Wt/Dbo/SqlConnection.h"
+#include "Wt/Dbo/backend/connection.hpp"//#include "Wt/Dbo/sqlConnection.h"
 #include "Wt/Dbo/StringStream.h"
 
 #ifdef WT_THREADED
@@ -18,18 +17,13 @@
 
 #include <iostream>
 
-#include <Wt/Dbo/backend/Postgres.h>
-#include <Wt/Dbo/backend/Sqlite3.h>
-#include <Wt/Dbo/backend/MySQL.h>
-#include <Wt/Dbo/backend/MSSQLServer.h>
-#include <Wt/Dbo/backend/Firebird.h>
 
 namespace Wt
 {
   namespace Dbo
   {
 
-    LOGGER("Dbo.FixedSqlConnectionPool");
+    //LOGGER("Dbo.FixedSqlConnectionPool");
 
     struct FixedSqlConnectionPool::Impl
     {
@@ -39,17 +33,30 @@ namespace Wt
 #endif // WT_THREADED
 
       std::chrono::steady_clock::duration timeout;
-      std::vector<std::unique_ptr<SqlConnection>> freeList;
+      std::vector<std::unique_ptr<sqlConnection>> freeList;
+
+      static inline thread_local sqlConnection* connection = nullptr;
     };
 
-    FixedSqlConnectionPool::FixedSqlConnectionPool(std::unique_ptr<SqlConnection> connection, int size)
-        : impl_(new Impl)
+    FixedSqlConnectionPool::FixedSqlConnectionPool(std::unique_ptr<sqlConnection> connection,
+                                                   unsigned size, Wt::http::detail::engines& engine)
+        : impl_(new Impl), engine_(engine)
     {
-      SqlConnection *conn = connection.get();
+      sqlConnection *conn = connection.get();
       impl_->freeList.push_back(std::move(connection));
 
-      for (int i = 1; i < size; ++i)
-        impl_->freeList.push_back(std::visit([&] (auto& conn) -> std::unique_ptr<SqlConnection> { return std::make_unique<SqlConnection>(*conn.clone());  }, *conn));
+//      for (unsigned i = 1; i < size; ++i)
+//        impl_->freeList.push_back(conn->clone());
+
+      conn->setCancelSignal(&cancel_signal_);
+
+      for (unsigned i = 1; i < size; ++i) {
+          impl_->freeList.push_back(conn->clone(engine));
+          impl_->freeList.back()->setCancelSignal(&cancel_signal_);
+
+          //init thread_local connection pointer of each context if available
+          asio::post(impl_->freeList.back()->socket().get_executor(), [this] { this->impl_->connection = impl_->freeList.back().get(); });
+      }
     }
 
     FixedSqlConnectionPool::~FixedSqlConnectionPool()
@@ -67,15 +74,15 @@ namespace Wt
       return impl_->timeout;
     }
 
-    std::unique_ptr<SqlConnection> FixedSqlConnectionPool::getConnection()
+    std::unique_ptr<sqlConnection> FixedSqlConnectionPool::getConnection()
     {
 #ifdef WT_THREADED
       std::unique_lock<std::mutex> lock(impl_->mutex);
 
       while (impl_->freeList.empty())
       {
-        LOG_WARN("no free connections, waiting for connection");
-        fmtlog::poll();
+        //LOG_WARN("no free connections, waiting for connection");
+        //fmtlog::poll();
         if (impl_->timeout > std::chrono::steady_clock::duration::zero())
         {
           if (impl_->connectionAvailable.wait_for(lock, impl_->timeout) == std::cv_status::timeout)
@@ -92,10 +99,74 @@ namespace Wt
                         "no connection available but single-threaded build?");
 #endif // WT_THREADED
 
-      std::unique_ptr<SqlConnection> result = std::move(impl_->freeList.back());
+      std::unique_ptr<sqlConnection> result = std::move(impl_->freeList.back());
       impl_->freeList.pop_back();
 
       return result;
+    }
+
+    sqlConnection* FixedSqlConnectionPool::get_rconnection() {
+        if(impl_->connection) {
+          return impl_->connection;
+        }
+        for(unsigned i = 0; i < impl_->freeList.size(); i++)
+        {
+          if(increment++; increment >= impl_->freeList.size())
+            increment = 0;
+          auto& c = impl_->freeList[increment];
+          return c.get();
+        }
+        return nullptr;
+    }
+
+    awaitable<sqlConnection *> FixedSqlConnectionPool::async_connection(bool transaction)
+    {
+      while (true) {
+          if(impl_->connection && !impl_->connection->inTransaction(transaction)) {
+            co_return impl_->connection;
+          }
+          for(unsigned i = 0; i < impl_->freeList.size(); i++)
+          {
+            if(increment++; increment >= impl_->freeList.size())
+                increment = 0;
+            auto& c = impl_->freeList[increment];
+            if(!c->inTransaction(transaction)) {
+              co_return c.get();
+            }
+          }
+          auto timer = asio::steady_timer(co_await asio::this_coro::executor, std::chrono::microseconds::max());
+          co_await timer.async_wait(asio::bind_cancellation_slot(cancel_signal_.slot(), use_nothrow_awaitable));
+      }
+      handleTimeout();
+      co_return nullptr;
+    }
+
+    void FixedSqlConnectionPool::async_connection(bool transaction, std::function<void (sqlConnection *)> cb)
+    {
+
+      //while (true) {
+          if(impl_->connection && !impl_->connection->inTransaction(transaction)) {
+            cb(impl_->connection);
+            return;
+          }
+          for(auto& c : impl_->freeList)
+          {
+            if(!c->inTransaction(transaction)) {
+              cb(c.get());
+              return;
+            }
+          }
+
+
+          auto timer = asio::steady_timer(*http::detail::engines::get_thread_context(), std::chrono::microseconds::max());
+          timer.async_wait(asio::bind_cancellation_slot(cancel_signal_.slot(), [this, transaction, cb = std::move(cb)] (auto ec) {
+              async_connection(transaction, std::move(cb));
+          }));
+
+//          auto timer = asio::steady_timer(co_await asio::this_coro::executor, std::chrono::microseconds::max());
+//          timer.async_wait(asio::bind_cancellation_slot(cancel_signal_.slot(), use_nothrow_awaitable));
+      //}
+      //handleTimeout();
     }
 
     void FixedSqlConnectionPool::handleTimeout()
@@ -103,7 +174,7 @@ namespace Wt
       throw Exception("FixedSqlConnectionPool::getConnection(): timeout");
     }
 
-    void FixedSqlConnectionPool::returnConnection(std::unique_ptr<SqlConnection> connection)
+    void FixedSqlConnectionPool::returnConnection(std::unique_ptr<sqlConnection> connection)
     {
 #ifdef WT_THREADED
       std::unique_lock<std::mutex> lock(impl_->mutex);
@@ -120,7 +191,7 @@ namespace Wt
     void FixedSqlConnectionPool::prepareForDropTables() const
     {
       for (unsigned i = 0; i < impl_->freeList.size(); ++i)
-            std::visit([&] (auto& conn) { conn.prepareForDropTables();  }, *impl_->freeList[i]); //impl_->freeList[i]->prepareForDropTables();
+        impl_->freeList[i]->prepareForDropTables();
     }
 
   }

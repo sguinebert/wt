@@ -674,7 +674,7 @@ void Server::expireSessions(Wt::AsioWrapper::error_code ec)
   LOG_DEBUG_S(&wt_, "expireSession() {}", ec.message());
 
   if (!ec) {
-    bool haveMoreSessions = wt_.expireSessions();
+    bool haveMoreSessions = 0;// wt_.expireSessions();
     if (!haveMoreSessions &&
 	wt_.configuration().sessionPolicy() == Wt::Configuration::DedicatedProcess &&
 	config_.parentPort() != -1)

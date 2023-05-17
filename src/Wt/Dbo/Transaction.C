@@ -8,9 +8,9 @@
 #include <iostream>
 
 #include "Wt/Dbo/Exception.h"
-#include "Wt/Dbo/Logger.h"
+
 #include "Wt/Dbo/Session.h"
-#include "Wt/Dbo/SqlConnection.h"
+#include "Wt/Dbo/backend/connection.hpp"//#include "Wt/Dbo/sqlConnection.h"
 #include "Wt/Dbo/StringStream.h"
 #include "Wt/Dbo/Transaction.h"
 #include "Wt/Dbo/ptr.h"
@@ -18,7 +18,7 @@
 namespace Wt {
   namespace Dbo {
 
-LOGGER("Dbo.Transaction");
+//LOGGER("Dbo.Transaction");
 
 Transaction::Transaction(Session& session)
   : committed_(false),
@@ -46,7 +46,7 @@ Transaction::~Transaction() noexcept(false)
     if (impl_->needsRollback_ || std::uncaught_exceptions()) {
       bool canThrow = std::uncaught_exceptions() == 0;
       try {
-        rollback();
+          impl_->rollback(true);
       }
       catch (...) {
         release();
@@ -56,29 +56,29 @@ Transaction::~Transaction() noexcept(false)
     }
     else {
       try {
-        commit();
+        impl_->commit(true);
       }
       catch (...) {
         try {
           if (impl_->transactionCount_ == 1)
-            rollback();
+            impl_->rollback(true);
         }
         catch (std::exception &e) {
-          LOG_ERROR("Unexpected exception during Transaction::rollback(): {}", e.what());
-          fmtlog::poll();
+          //LOG_ERROR("Unexpected exception during Transaction::rollback(): {}", e.what());
+          //fmtlog::poll();
         }
         catch (...) {
-          LOG_ERROR("Unexpected exception during Transaction::rollback()");
-          fmtlog::poll();
+          //LOG_ERROR("Unexpected exception during Transaction::rollback()");
+          //fmtlog::poll();
         }
 
-        release();
+        //release();
         throw;
       }
     }
   }
 
-  release();
+  //release();
 }
 
 void Transaction::release()
@@ -101,19 +101,35 @@ bool Transaction::commit()
     committed_ = true;
 
     if (impl_->transactionCount_ == 1) {
-      impl_->commit();
+      impl_->commit(true);
 
       return true;
     } else
       return false;
-  } else
-    return false;
+  }
+  return false;
 }
 
-void Transaction::rollback()
+awaitable<bool> Transaction::commit(bool)
+{
+  if (isActive()) {
+    committed_ = true;
+
+    if (impl_->transactionCount_ == 1) {
+      co_await impl_->commit();
+
+      co_return true;
+    } else
+      co_return false;
+  }
+  co_return false;
+}
+
+awaitable<bool> Transaction::rollback(bool)
 {
   if (isActive())
-    impl_->rollback();
+    co_await impl_->rollback();
+  co_return true;
 }
 
 Session& Transaction::session() const
@@ -121,10 +137,11 @@ Session& Transaction::session() const
   return session_;
 }
 
-SqlConnection *Transaction::connection() const
+awaitable<sqlConnection *> Transaction::connection() const
 {
-  impl_->open();
-  return impl_->connection_.get();
+  co_await impl_->open();
+  //co_return impl_->connection_.get();
+  co_return impl_->connection_;
 }
 
 Transaction::Impl::Impl(Session& session)
@@ -134,33 +151,39 @@ Transaction::Impl::Impl(Session& session)
     open_(false),
     transactionCount_(0)
 {
-  connection_ = session_.useConnection();
+  //connection_ = session_.useConnection();
+}
+
+awaitable<void> Transaction::Impl::assign_connection() {
+  connection_ = co_await session_.assign_connection(true);
 }
 
 Transaction::Impl::~Impl()
 {
-  if (connection_)
-    session_.returnConnection(std::move(connection_));
+//  if (connection_)
+//    session_.returnConnection(std::move(connection_));
+    session_.transaction_ = nullptr;
 }
 
-void Transaction::Impl::open()
+awaitable<void> Transaction::Impl::open()
 {
   if (!open_) {
     open_ = true;
-    std::visit([] (auto& conn) { conn.startTransaction(); }, *connection_);
-    //connection_->startTransaction();
+    auto tx = co_await connection_->async_transaction(use_awaitable);
+    transaction_ = std::make_shared<postgrespp::work>(std::move(tx));
   }
 }
 
-void Transaction::Impl::commit()
+awaitable<void> Transaction::Impl::commit()
 {
   needsRollback_ = true;
   if (session_.flushMode() == FlushMode::Auto)
-    session_.flush();
+    co_await session_.flush();
 
-  if (open_)
-    std::visit([] (auto& conn) { conn.commitTransaction(); }, *connection_);
-    //connection_->commitTransaction();
+  if (open_) {
+    //transaction_->commit(use_awaitable);//connection_->commitTransaction();
+    co_await transaction_->commit(use_awaitable);
+  }
 
   for (unsigned i = 0; i < objects_.size(); ++i) {
     objects_[i]->transactionDone(true);
@@ -169,23 +192,26 @@ void Transaction::Impl::commit()
 
   objects_.clear();
 
-  session_.returnConnection(std::move(connection_));
+  //session_.returnConnection(std::move(connection_));
+  connection_ = nullptr;
   session_.transaction_ = nullptr;
   active_ = false;
   needsRollback_ = false;
+  co_return;
 }
 
-void Transaction::Impl::rollback()
+awaitable<void> Transaction::Impl::rollback()
 {
   needsRollback_ = false;
 
   try {
-    if (open_)
-      std::visit([] (auto& conn) { conn.rollbackTransaction(); }, *connection_);
+    if (open_) {
       //connection_->rollbackTransaction();
+      co_await transaction_->rollback(use_awaitable);
+    }
   } catch (const std::exception& e) {
-    LOG_ERROR("Transaction::rollback(): {}", e.what());
-    fmtlog::poll();
+    //LOG_ERROR("Transaction::rollback(): {}", e.what());
+    //fmtlog::poll();
   }
 
   for (unsigned i = 0; i < objects_.size(); ++i) {
@@ -196,7 +222,79 @@ void Transaction::Impl::rollback()
   objects_.clear();
 
 
-  session_.returnConnection(std::move(connection_));
+  //session_.returnConnection(std::move(connection_));
+  connection_ = nullptr;
+  session_.transaction_ = nullptr;
+  active_ = false;
+  co_return;
+}
+
+void Transaction::Impl::commit(bool)
+{
+  needsRollback_ = true;
+  if (session_.flushMode() == FlushMode::Auto)
+    session_.flush([this] () {
+        try {
+            if (open_) {
+                //transaction_->commit(cb);
+                transaction_->commit([this, tr = transaction_] (auto &&res) {
+                    --this->transactionCount_;
+
+                    if (this->transactionCount_ == 0){
+                        delete this;
+                    }
+                });
+            }
+        } catch (const std::exception& e) {
+            //LOG_ERROR("Transaction::rollback(): {}", e.what());
+            //fmtlog::poll();
+        }
+
+        for (unsigned i = 0; i < objects_.size(); ++i) {
+            objects_[i]->transactionDone(false);
+            delete objects_[i];
+        }
+
+        objects_.clear();
+
+        //session_.returnConnection(std::move(connection_));
+        connection_ = nullptr;
+        session_.transaction_ = nullptr;
+        active_ = false;
+
+    });
+
+}
+
+void Transaction::Impl::rollback(bool)
+{
+  needsRollback_ = false;
+
+  try {
+    if (open_) {
+      transaction_->rollback([this, tr = transaction_] (auto &&res) {
+          --this->transactionCount_;
+
+          if (this->transactionCount_ == 0){
+              delete this;
+          }
+      });
+    }
+  } catch (const std::exception& e) {
+    //LOG_ERROR("Transaction::rollback(): {}", e.what());
+    //fmtlog::poll();
+  }
+
+  for (unsigned i = 0; i < objects_.size(); ++i) {
+    objects_[i]->transactionDone(false);
+    delete objects_[i];
+  }
+
+  objects_.clear();
+
+
+  //session_.returnConnection(std::move(connection_));
+  connection_ = nullptr;
   session_.transaction_ = nullptr;
   active_ = false;
 }

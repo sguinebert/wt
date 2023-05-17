@@ -93,7 +93,7 @@ class SqlStatement;
  * template<>
  * struct sql_value_traits<Pet>
  * {
- *   static std::string type(SqlConnection *conn, int size)
+ *   static std::string type(sqlConnection *conn, int size)
  *   {
  *     return sql_value_traits<std::string>::type(conn, size);
  *   }
@@ -137,7 +137,7 @@ struct sql_value_traits
    * type \p T, boost::optional<T> has been specialized to allow for
    * \c null values.
    */
-  static const char *type(SqlConnection *connection, int size);
+  static const char *type(sqlConnection *connection, int size);
 
   /*! \brief Binds a value to a statement parameter.
    *

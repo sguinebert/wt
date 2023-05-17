@@ -428,8 +428,15 @@ public:
     }
 
     try {
-        //impl_->server_ = new http::server::Server(*impl_->serverConfiguration_, *this);
-        server_ = new Wt::http::cuehttp();
+        if (!ioService_) {
+            int numSessionThreads = configuration().numSessionThreads();
+            if (dedicatedProcessEnabled_&& numSessionThreads != -1)
+                ioService_ = new WIOService(numSessionThreads);
+            else
+                ioService_ = new WIOService(configuration().numThreads());
+        }
+
+        server_ = new Wt::http::cuehttp(*ioService_);
 
 #ifndef WT_THREADED
         LOG_WARN("No thread support, running in main thread.");
@@ -437,25 +444,10 @@ public:
 
         webController_->start();
 
-        //cue::http::router router;
-
-        //    router.get("/", [&](cue::http::context& ctx) ->awaitable<void>  {
-        //        webController_->configuration();
-        //        co_return;
-        //    });
+        //co_spawn(http::detail::engines::default_engines().get(), coro_expireSessions(), detached);
 
         auto entrypoints = configuration().entryPoints();
         auto config = serverConfiguration_;
-
-//        router_.all("/resources/themes/default/wt.css", [this] (http::context& ctx) -> awaitable<void> {
-//            ctx.status(404);
-//            co_return;
-//        });
-
-//       router_.all("/resources/webkit-transitions.css", [this] (http::context& ctx) -> awaitable<void> {
-//           ctx.status(404);
-//           co_return;
-//       });
 
         for (auto &ep : entrypoints)
         {
@@ -516,7 +508,6 @@ public:
                             });
                             ctx.websocket().on_message([this, &ctx, epp](std::string&& msg) -> awaitable<void>  {
                                 std::cout << "websocket msg: " << msg << std::endl;
-                                //ctx.websocket().send(std::move(msg));
 
                                 co_await webController_->handleWebSocketMessage(&ctx, epp, msg);
 
@@ -977,7 +968,7 @@ public:
   WT_API bool dedicatedSessionProcess() const;
 #endif // WT_TARGET_JAVA
 
-  WT_API bool expireSessions();
+  WT_API awaitable<bool> expireSessions();
 
   WT_API Configuration& configuration();
 
@@ -1011,7 +1002,7 @@ private:
   std::shared_ptr<WLocalizedStrings> localizedStrings_;
 
   bool ownsIOService_;
-  WIOService *ioService_;
+  WIOService *ioService_ = nullptr;
 
   bool dedicatedProcessEnabled_;
 
@@ -1033,6 +1024,8 @@ private:
   WT_API void destroy();
   WT_API void setCatchSignals(bool catchSignals);
   WT_API std::string prependDefaultPath(const std::string& path);
+  static const int SESSION_EXPIRE_INTERVAL = 30;
+  awaitable<void> coro_expireSessions();
 
 
   WT_API static WServer *instance_;

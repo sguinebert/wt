@@ -15,6 +15,8 @@
 #include <sstream>
 #include <type_traits>
 
+#include <Wt/AsioWrapper/asio.hpp>
+
 namespace Wt
 {
 
@@ -98,7 +100,8 @@ namespace Wt
 
       void transactionDone(bool success);
 
-      virtual void flush() = 0;
+      virtual awaitable<void> flush() = 0;
+      virtual void flush(std::function<void()>&& cb) = 0;
       virtual Impl::MappingInfo *getMapping() = 0;
       virtual void doTransactionDone(bool success) = 0;
       virtual void bindId(SqlStatement *statement, int &column) = 0;
@@ -358,7 +361,7 @@ namespace Wt
   Manages a single object.
  */
     template <class C>
-    class MetaDbo : public MetaDboBase
+    class MetaDbo final : public MetaDboBase
     {
     public:
       typedef typename dbo_traits<C>::IdType IdType;
@@ -367,7 +370,8 @@ namespace Wt
       virtual ~MetaDbo();
 
       virtual Impl::MappingInfo *getMapping() override;
-      virtual void flush() override;
+      virtual awaitable<void> flush() override;
+      virtual void flush(std::function<void()>&& cb) override;
       virtual void bindId(SqlStatement *statement, int &column) override;
       virtual void bindModifyId(SqlStatement *statement, int &column) override;
       virtual void bindId(std::vector<Impl::ParameterBase *> &parameters) override;
@@ -795,7 +799,7 @@ namespace Wt
    * Since this may persist object to the database, you should have an
    * active transaction.
    */
-      void flush() const;
+      awaitable<void> flush() const;
 
       /*! \brief Removes an object from the database.
    *

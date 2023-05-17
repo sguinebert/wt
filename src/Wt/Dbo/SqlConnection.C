@@ -5,7 +5,7 @@
  */
 
 #include "Wt/Dbo/Exception.h"
-#include "Wt/Dbo/Logger.h"
+
 #include "Wt/Dbo/SqlConnection.h"
 #include "Wt/Dbo/SqlStatement.h"
 #include "Wt/Dbo/StringStream.h"
@@ -16,38 +16,42 @@
 namespace Wt {
   namespace Dbo {
 
-LOGGER("Dbo.SqlConnection");
+//LOGGER("Dbo.SqlConnection");
 
-SqlConnectionBase::SqlConnectionBase()
+namespace {
+  static const std::size_t WARN_NUM_STATEMENTS_THRESHOLD = 10;
+}
+
+SqlConnection::SqlConnection()
 { }
 
-SqlConnectionBase::SqlConnectionBase(const SqlConnectionBase& other)
+SqlConnection::SqlConnection(const SqlConnection& other)
   : properties_(other.properties_)
 { }
 
-SqlConnectionBase::~SqlConnectionBase()
+SqlConnection::~SqlConnection()
 {
   assert(statementCache_.empty());
 }
 
-void SqlConnectionBase::clearStatementCache()
+void SqlConnection::clearStatementCache()
 {
   statementCache_.clear();
 }
 
-void SqlConnectionBase::executeSql(const std::string& sql)
+void SqlConnection::executeSql(const std::string& sql)
 {
   std::unique_ptr<SqlStatement> s = prepareStatement(sql);
   s->execute();
 }
 
-void SqlConnectionBase::executeSqlStateful(const std::string& sql)
+void SqlConnection::executeSqlStateful(const std::string& sql)
 {
   statefulSql_.push_back(sql);
   executeSql(sql);
 }
 
-SqlStatement *SqlConnectionBase::getStatement(const std::string& id)
+SqlStatement *SqlConnection::getStatement(const std::string& id)
 {
   StatementMap::const_iterator start;
   StatementMap::const_iterator end;
@@ -61,8 +65,8 @@ SqlStatement *SqlConnectionBase::getStatement(const std::string& id)
   if (result) {
     auto count = statementCache_.count(id);
     if (count >= WARN_NUM_STATEMENTS_THRESHOLD) {
-      LOG_WARN("Warning: number of instances ({}) of prepared statement '{}' for this connection exceeds threshold ({}). This could indicate a programming error.", (count + 1), id, WARN_NUM_STATEMENTS_THRESHOLD);
-      fmtlog::poll();
+      //LOG_WARN("Warning: number of instances ({}) of prepared statement '{}' for this connection exceeds threshold ({}). This could indicate a programming error.", (count + 1), id, WARN_NUM_STATEMENTS_THRESHOLD);
+      //fmtlog::poll();
     }
     auto stmt = prepareStatement(result->sql());
     result = stmt.get();
@@ -71,13 +75,13 @@ SqlStatement *SqlConnectionBase::getStatement(const std::string& id)
   return nullptr;
 }
 
-void SqlConnectionBase::saveStatement(const std::string& id,
-				  std::unique_ptr<SqlStatement> statement)
+void SqlConnection::saveStatement(const std::string& id,
+                  std::unique_ptr<SqlStatement> statement)
 {
   statementCache_.emplace(id, std::move(statement));
 }
 
-std::string SqlConnectionBase::property(const std::string& name) const
+std::string SqlConnection::property(const std::string& name) const
 {
   std::map<std::string, std::string>::const_iterator i = properties_.find(name);
 
@@ -87,43 +91,43 @@ std::string SqlConnectionBase::property(const std::string& name) const
     return std::string();
 }
 
-void SqlConnectionBase::setProperty(const std::string& name,
-				const std::string& value)
+void SqlConnection::setProperty(const std::string& name,
+                const std::string& value)
 {
   properties_[name] = value;
 }
 
-bool SqlConnectionBase::usesRowsFromTo() const
+bool SqlConnection::usesRowsFromTo() const
 {
   return false;
 }
 
-LimitQuery SqlConnectionBase::limitQueryMethod() const
+LimitQuery SqlConnection::limitQueryMethod() const
 {
   return LimitQuery::Limit;
 }
 
-bool SqlConnectionBase::supportAlterTable() const
+bool SqlConnection::supportAlterTable() const
 {
   return false;
 }
 
-bool SqlConnectionBase::supportDeferrableFKConstraint() const
+bool SqlConnection::supportDeferrableFKConstraint() const
 {
   return false;
 }
 
-const char *SqlConnectionBase::alterTableConstraintString() const
+const char *SqlConnection::alterTableConstraintString() const
 {
   return "constraint";
 }
 
-bool SqlConnectionBase::showQueries() const
+bool SqlConnection::showQueries() const
 {
   return property("show-queries") == "true";
 }
 
-std::string SqlConnectionBase::textType(int size) const
+std::string SqlConnection::textType(int size) const
 {
   if (size == -1)
     return "text";
@@ -132,40 +136,39 @@ std::string SqlConnectionBase::textType(int size) const
   }
 }
 
-std::string SqlConnectionBase::longLongType() const
+std::string SqlConnection::longLongType() const
 {
   return "bigint";
 }
 
-const char *SqlConnectionBase::booleanType() const
+const char *SqlConnection::booleanType() const
 {
   return "boolean";
 }
 
-bool SqlConnectionBase::supportUpdateCascade() const
+bool SqlConnection::supportUpdateCascade() const
 {
   return true;
 }
 
-bool SqlConnectionBase::requireSubqueryAlias() const
+bool SqlConnection::requireSubqueryAlias() const
 {
   return false;
 }
 
-std::string SqlConnectionBase::autoincrementInsertInfix(const std::string &) const
+std::string SqlConnection::autoincrementInsertInfix(const std::string &) const
 {
   return "";
 }
 
-void SqlConnectionBase::prepareForDropTables()
+void SqlConnection::prepareForDropTables()
 { }
 
-std::vector<SqlStatement *> SqlConnectionBase::getStatements() const
+std::vector<SqlStatement *> SqlConnection::getStatements() const
 {
   std::vector<SqlStatement *> result;
 
-  for (StatementMap::const_iterator i = statementCache_.begin();
-       i != statementCache_.end(); ++i)
+  for (auto i = statementCache_.begin(); i != statementCache_.end(); ++i)
     result.push_back(i->second.get());
 
   return result;

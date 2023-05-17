@@ -124,8 +124,8 @@ public:
   int sessionCount() const;
 
   // Returns whether we should continue receiving data.
-  bool requestDataReceived(WebRequest *request, std::uintmax_t current,
-			   std::uintmax_t total);
+  bool requestDataReceived(WebRequest *request, std::uintmax_t current, std::uintmax_t total);
+  awaitable<bool> requestDataReceived(http::context *context, std::uintmax_t current, std::uintmax_t total);
 
   void handleRequest(WebRequest *request);
 
@@ -135,11 +135,11 @@ public:
 
 
 #ifndef WT_CNOR
-  bool handleApplicationEvent(const std::shared_ptr<ApplicationEvent>& event);
+  awaitable<bool> handleApplicationEvent(const std::shared_ptr<ApplicationEvent>& event);
 #endif // WT_CNOR
 
   std::vector<std::string> sessions(bool onlyRendered = false);
-  bool expireSessions();
+  awaitable<bool> expireSessions();
   void start();
   void shutdown();
 

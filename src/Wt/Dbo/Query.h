@@ -12,48 +12,53 @@
 #include <Wt/Dbo/SqlTraits.h>
 #include <Wt/Dbo/ptr.h>
 
+//#include <Wt/cuehttp/detail/connection.hpp>
+
+#include <boost/asio.hpp>
+using namespace boost;
+
 namespace Wt {
-  namespace Dbo {
+namespace Dbo {
 
-    template <class C> class collection;
+template <class C> class collection;
 
-    namespace Impl {
+namespace Impl {
 
-      struct SelectField
-      {
-	std::size_t begin, end;
-      };
+struct SelectField
+{
+    std::size_t begin, end;
+};
 
-      typedef std::vector<SelectField> SelectFieldList;
-      typedef std::vector<SelectFieldList> SelectFieldLists;
+typedef std::vector<SelectField> SelectFieldList;
+typedef std::vector<SelectFieldList> SelectFieldLists;
 
-      template <class Result>
-      class QueryBase {
-      protected:
-	std::vector<FieldInfo> fields() const;
-	void fieldsForSelect(const SelectFieldList& list,
-			     std::vector<FieldInfo>& result) const;
-        std::pair<SqlStatement *, SqlStatement *>
-        statements(const std::string& join, const std::string &where,
-		   const std::string &groupBy,
-                   const std::string &having, const std::string &orderBy,
-                   int limit, int offset) const;
-        Session &session() const;
+template <class Result>
+class QueryBase {
+protected:
+    std::vector<FieldInfo> fields() const;
+    void fieldsForSelect(const SelectFieldList& list,
+                         std::vector<FieldInfo>& result) const;
+    std::pair<SqlStatement *, SqlStatement *>
+    statements(const std::string& join, const std::string &where,
+               const std::string &groupBy,
+               const std::string &having, const std::string &orderBy,
+               int limit, int offset) const;
+    Session &session() const;
 
-        QueryBase();
-	QueryBase(Session& session, const std::string& sql);
-	QueryBase(Session& session, const std::string& table,
-		  const std::string& where);
+    QueryBase();
+    QueryBase(Session& session, const std::string& sql);
+    QueryBase(Session& session, const std::string& table,
+              const std::string& where);
 
-	QueryBase& operator=(const QueryBase& other);
+    QueryBase& operator=(const QueryBase& other);
 
-	Result singleResult(const collection<Result>& results) const;
+    Result singleResult(const collection<Result>& results) const;
 
-	Session *session_;
-	std::string sql_;
-	SelectFieldLists selectFieldLists_;
-      };
-    }
+    Session *session_;
+    std::string sql_;
+    SelectFieldLists selectFieldLists_;
+};
+}
 
 /*! \class DirectBinding Wt/Dbo/Query.h Wt/Dbo/Query.h
  *
@@ -82,20 +87,20 @@ class Session;
 class WTDBO_API AbstractQuery
 {
 public:
-  /*! \brief Binds a value to the next positional marker.
+    /*! \brief Binds a value to the next positional marker.
    *
    * This binds the \p value to the next positional marker in the
    * query condition.
    */
-  template<typename T> AbstractQuery& bind(const T& value);
+    template<typename T> AbstractQuery& bind(const T& value);
 
-  /*! \brief Resets bound values.
+    /*! \brief Resets bound values.
    *
    * This undoes all previous calls to bind().
    */
-  void reset();
+    void reset_params();
 
-  /*! \brief Adds a join.
+    /*! \brief Adds a join.
    *
    * This is a convenience method for creating a SQL query, and
    * concatenates a new <i>join</i> to the current query.
@@ -106,9 +111,9 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  AbstractQuery& join(const std::string& other);
+    AbstractQuery& join(const std::string& other);
 
-  /*! \brief Adds a left join.
+    /*! \brief Adds a left join.
    *
    * This is a convenience method for creating a SQL query, and
    * concatenates a new <i>left join</i> to the current query.
@@ -119,9 +124,9 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  AbstractQuery& leftJoin(const std::string& other);
+    AbstractQuery& leftJoin(const std::string& other);
 
-  /*! \brief Adds a right join.
+    /*! \brief Adds a right join.
    *
    * This is a convenience method for creating a SQL query, and
    * concatenates a new <i>right join</i> to the current query.
@@ -132,9 +137,9 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  AbstractQuery& rightJoin(const std::string& other);
-  
-  /*! \brief Adds a query condition.
+    AbstractQuery& rightJoin(const std::string& other);
+
+    /*! \brief Adds a query condition.
    *
    * This is a convenience method for creating a SQL query, and
    * concatenates a new <i>where</i> condition expression to the
@@ -149,9 +154,9 @@ public:
    * As with any part of the SQL query, a condition may contain
    * positional markers '?' to which values may be bound using bind().
    */
-  AbstractQuery& where(const std::string& condition);
+    AbstractQuery& where(const std::string& condition);
 
-  /*! \brief Adds a query condition.
+    /*! \brief Adds a query condition.
    *
    * This is a convenience method for creating a SQL query, and
    * concatenates a new <i>where</i> condition expression to the
@@ -175,9 +180,9 @@ public:
    * As with any part of the SQL query, a condition may contain
    * positional markers '?' to which values may be bound using bind().
    */
-  AbstractQuery& orWhere(const std::string& condition);
+    AbstractQuery& orWhere(const std::string& condition);
 
-  /*! \brief Sets the result order.
+    /*! \brief Sets the result order.
    *
    * This is a convenience method for creating a SQL query, and sets an
    * <i>order by</i> field expression for the current query.
@@ -185,9 +190,9 @@ public:
    * Orders the results based on the given field name (or multiple
    * names, comma-separated).
    */
-  AbstractQuery& orderBy(const std::string& fieldName);
+    AbstractQuery& orderBy(const std::string& fieldName);
 
-  /*! \brief Sets the grouping field(s).
+    /*! \brief Sets the grouping field(s).
    *
    * This is a convenience method for creating a SQL query, and sets a
    * <i>group by</i> field expression for the current query.
@@ -200,9 +205,9 @@ public:
    * query is expanded to all the corresponding fields of that
    * database object (as in the select statement).
    */
-  AbstractQuery& groupBy(const std::string& fields);
+    AbstractQuery& groupBy(const std::string& fields);
 
-  /*! \brief Sets the grouping filter(s).
+    /*! \brief Sets the grouping filter(s).
    *
    * It's like where(), but for aggregate fields.
    *
@@ -222,10 +227,10 @@ public:
    * (and their employee count).
    *
    * \note You must have a group by clause, in order to have a 'having' clause
-   */  
-  AbstractQuery& having(const std::string& fields);
+   */
+    AbstractQuery& having(const std::string& fields);
 
-  /*! \brief Sets a result offset.
+    /*! \brief Sets a result offset.
    *
    * Sets a result offset. This has the effect that the next
    * resultList() call will skip as many results as the offset
@@ -235,15 +240,15 @@ public:
    *
    * \sa limit()
    */
-  AbstractQuery& offset(int count);
+    AbstractQuery& offset(int count);
 
-  /*! \brief Returns an offset set for this query.
+    /*! \brief Returns an offset set for this query.
    *
    * \sa offset(int)
    */
-  int offset() const;
+    int offset() const;
 
-  /*! \brief Sets a result limit.
+    /*! \brief Sets a result limit.
    *
    * Sets a result limit. This has the effect that the next
    * resultList() call will return up to \p count results. Use -1 to
@@ -253,27 +258,27 @@ public:
    *
    * \sa offset()
    */
-  AbstractQuery& limit(int count);
+    AbstractQuery& limit(int count);
 
-  /*! \brief Returns a limit set for this query.
+    /*! \brief Returns a limit set for this query.
    *
    * \sa limit(int)
-   */  
-  int limit() const;
+   */
+    int limit() const;
 
 protected:
-  std::string join_, where_, groupBy_, having_, orderBy_;
-  int limit_, offset_;
+    std::string join_, where_, groupBy_, having_, orderBy_;
+    int limit_, offset_;
 
-  AbstractQuery();
-  ~AbstractQuery();
-  AbstractQuery(const AbstractQuery& other);
-  AbstractQuery& operator= (const AbstractQuery& other);
-  void bindParameters(Session *session, SqlStatement *statement) const;
+    AbstractQuery();
+    ~AbstractQuery();
+    AbstractQuery(const AbstractQuery& other);
+    AbstractQuery& operator= (const AbstractQuery& other);
+    void bindParameters(Session *session, SqlStatement *statement) const;
 
-  std::vector<Impl::ParameterBase *> parameters_;
+    std::vector<Impl::ParameterBase *> parameters_;
 };
-  
+
 /*! \class Query Wt/Dbo/Query.h Wt/Dbo/Query.h
  *  \brief A database query.
  *
@@ -332,50 +337,50 @@ protected:
 template <class Result, typename BindStrategy = DynamicBinding>
 class Query
 #ifdef DOXYGEN_ONLY
-  : public AbstractQuery
+    : public AbstractQuery
 #endif
 {
 #ifdef DOXYGEN_ONLY
 public:
-  /*! \brief Default constructor.
+    /*! \brief Default constructor.
    */
-  Query();
+    Query();
 
-  /*! \brief Destructor.
+    /*! \brief Destructor.
    */
-  ~Query();
+    ~Query();
 
-  /*! \brief Copy constructor.
+    /*! \brief Copy constructor.
    */
-  Query(const Query& other);
+    Query(const Query& other);
 
-  /*! \brief Assignment operator.
+    /*! \brief Assignment operator.
    */
-  Query& operator= (const Query& other);
+    Query& operator= (const Query& other);
 
-  /*! \brief Returns the result fields.
+    /*! \brief Returns the result fields.
    */
-  std::vector<FieldInfo> fields() const;
+    std::vector<FieldInfo> fields() const;
 
-  /*! \brief Returns the session.
+    /*! \brief Returns the session.
    */
-  Session& session() const;
+    Session& session() const;
 
-  /*! \brief Binds a value to the next positional marker.
+    /*! \brief Binds a value to the next positional marker.
    *
    * This binds the \p value to the next positional marker in the
    * query condition.
    */
-  template<typename T>
-  Query<Result, BindStrategy>& bind(const T& value);
+    template<typename T>
+    Query<Result, BindStrategy>& bind(const T& value);
 
-  /*! \brief Resets bound values.
+    /*! \brief Resets bound values.
    *
    * This undoes all previous calls to bind().
    */
-  void reset();
+    void reset();
 
-  /*! \brief Returns a unique result value.
+    /*! \brief Returns a unique result value.
    *
    * You can use this method if you are expecting the query to return
    * at most one result. If the query returns more than one result a
@@ -384,9 +389,9 @@ public:
    * When using a DynamicBinding bind strategy, after a result has
    * been fetched, the query can no longer be used.
    */
-  Result resultValue() const;
+    Result resultValue() const;
 
-  /*! \brief Returns a result list.
+    /*! \brief Returns a result list.
    *
    * This returns a collection which is backed by the underlying query.
    * The query is not actually run until this collection is traversed
@@ -395,24 +400,24 @@ public:
    * When using a DynamicBinding bind strategy, after a result has
    * been fetched, the query can no longer be used.
    */
-  collection< Result > resultList() const;
+    collection< Result > resultList() const;
 
-  /*! \brief Returns a unique result value.
+    /*! \brief Returns a unique result value.
    *
    * This is a convenience conversion operator that calls resultValue().
    */
-  operator Result () const;
+    operator Result () const;
 
-  /*! \brief Returns a result list.
+    /*! \brief Returns a result list.
    *
    * This is a convenience conversion operator that calls resultList().
    */
-  operator collection< Result > () const;
+    operator collection< Result > () const;
 
-  /** @name Methods for composing a query (DynamicBinding only)
+    /** @name Methods for composing a query (DynamicBinding only)
    */
-  //!@{
-  /*! \brief Adds a join.
+    //!@{
+    /*! \brief Adds a join.
    *
    * This is a convenience method for creating a SQL query, and
    * concatenates a new <i>join</i> to the current query.
@@ -423,9 +428,9 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  Query<Result, BindStrategy>& join(const std::string& other);
+    Query<Result, BindStrategy>& join(const std::string& other);
 
-  /*! \brief Adds a left join.
+    /*! \brief Adds a left join.
    *
    * This is a convenience method for creating a SQL query, and
    * concatenates a new <i>left join</i> to the current query.
@@ -436,9 +441,9 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  Query<Result, BindStrategy>& leftJoin(const std::string& other);
+    Query<Result, BindStrategy>& leftJoin(const std::string& other);
 
-  /*! \brief Adds a right join.
+    /*! \brief Adds a right join.
    *
    * This is a convenience method for creating a SQL query, and
    * concatenates a new <i>right join</i> to the current query.
@@ -449,9 +454,9 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  Query<Result, BindStrategy>& rightJoin(const std::string& other);
-  
-  /*! \brief Adds a query condition.
+    Query<Result, BindStrategy>& rightJoin(const std::string& other);
+
+    /*! \brief Adds a query condition.
    *
    * This is a convenience method for creating a SQL query, and
    * concatenates a new <i>where</i> condition expression to the
@@ -469,9 +474,9 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  Query<Result, BindStrategy>& where(const std::string& condition);
+    Query<Result, BindStrategy>& where(const std::string& condition);
 
-  /*! \brief Adds a query condition.
+    /*! \brief Adds a query condition.
    *
    * This is a convenience method for creating a SQL query, and
    * concatenates a new <i>where</i> condition expression to the
@@ -498,9 +503,9 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  Query<Result, BindStrategy>& orWhere(const std::string& condition);
+    Query<Result, BindStrategy>& orWhere(const std::string& condition);
 
-  /*! \brief Sets the result order.
+    /*! \brief Sets the result order.
    *
    * This is a convenience method for creating a SQL query, and sets an
    * <i>order by</i> field expression for the current query.
@@ -511,9 +516,9 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  Query<Result, BindStrategy>& orderBy(const std::string& fieldName);
+    Query<Result, BindStrategy>& orderBy(const std::string& fieldName);
 
-  /*! \brief Sets the grouping field(s).
+    /*! \brief Sets the grouping field(s).
    *
    * This is a convenience method for creating a SQL query, and sets a
    * <i>group by</i> field expression for the current query.
@@ -529,9 +534,9 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  Query<Result, BindStrategy>& groupBy(const std::string& fields);
+    Query<Result, BindStrategy>& groupBy(const std::string& fields);
 
-  /*! \brief Sets the grouping filter(s).
+    /*! \brief Sets the grouping filter(s).
    *
    * It's like where(), but for aggregate fields.
    *
@@ -554,9 +559,9 @@ public:
    *       strategy.
    * \note You must have a group by clause, in order to have a 'having' clause
    */
-  Query<Result, BindStrategy>& having(const std::string& fields);
+    Query<Result, BindStrategy>& having(const std::string& fields);
 
-  /*! \brief Sets a result offset.
+    /*! \brief Sets a result offset.
    *
    * Sets a result offset. This has the effect that the next
    * resultList() call will skip as many results as the offset
@@ -569,15 +574,15 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  Query<Result, BindStrategy>& offset(int count);
+    Query<Result, BindStrategy>& offset(int count);
 
-  /*! \brief Returns an offset set for this query.
+    /*! \brief Returns an offset set for this query.
    *
    * \sa offset(int)
    */
-  int offset() const;
+    int offset() const;
 
-  /*! \brief Sets a result limit.
+    /*! \brief Sets a result limit.
    *
    * Sets a result limit. This has the effect that the next
    * resultList() call will return up to \p count results. Use -1 to
@@ -590,90 +595,97 @@ public:
    * \note This method is not available when using a DirectBinding binding
    *       strategy.
    */
-  Query<Result, BindStrategy>& limit(int count);
+    Query<Result, BindStrategy>& limit(int count);
 
-  /*! \brief Returns a limit set for this query.
+    /*! \brief Returns a limit set for this query.
    *
    * \sa limit(int)
    */
-  int limit() const;
+    int limit() const;
 
-  //!@}
+//!@}
 
 #endif // DOXYGEN_ONLY
- };
+};
 
 template <class Result>
 class Query<Result, DirectBinding> : private Impl::QueryBase<Result>
 {
 public:
-  using Impl::QueryBase<Result>::fields;
-  using Impl::QueryBase<Result>::session;
+    using Impl::QueryBase<Result>::fields;
+    using Impl::QueryBase<Result>::session;
 
-  Query();
-  ~Query();
-  template<typename T> Query<Result, DirectBinding>& bind(const T& value);
-  void reset();
-  Result resultValue() const;
-  collection< Result > resultList() const;
-  operator Result () const;
-  operator collection< Result > () const;
+    Query();
+    ~Query();
+    template<typename T> Query<Result, DirectBinding>& bind(const T& value);
+    void reset();
+    awaitable<Result> resultValue() const;
+    awaitable<collection< Result >> resultList() const;
+    operator Result () const;
+    operator collection< Result > () const;
 
 private:
-  Query(Session& session, const std::string& sql);
-  Query(Session& session, const std::string& table, const std::string& where);
+    Query(Session& session, const std::string& sql);
+    Query(Session& session, const std::string& table, const std::string& where);
 
-  mutable int column_;
-  mutable SqlStatement *statement_, *countStatement_;
+    mutable int column_;
+    mutable SqlStatement *statement_, *countStatement_;
 
-  void prepareStatements() const;
+    void prepareStatements() const;
 
-  friend class Session;
+    friend class Session;
 };
 
 template <class Result>
 class Query<Result, DynamicBinding> : public AbstractQuery, private Impl::QueryBase<Result>
 {
 public:
-  using Impl::QueryBase<Result>::fields;
-  using Impl::QueryBase<Result>::session;
-  using AbstractQuery::limit;
-  using AbstractQuery::offset;
+    using Impl::QueryBase<Result>::fields;
+    using Impl::QueryBase<Result>::session;
+    using AbstractQuery::limit;
+    using AbstractQuery::offset;
 
-  Query();
-  ~Query();
-  Query(const Query& other);
-  Query& operator= (const Query& other);
-  template<typename T> Query<Result, DynamicBinding>& bind(const T& value);
-  Query<Result, DynamicBinding>& join(const std::string& other);
-  Query<Result, DynamicBinding>& leftJoin(const std::string& other);
-  Query<Result, DynamicBinding>& rightJoin(const std::string& other);
-  Query<Result, DynamicBinding>& where(const std::string& condition);
-  Query<Result, DynamicBinding>& orWhere(const std::string& condition);
-  Query<Result, DynamicBinding>& orderBy(const std::string& fieldName);
-  Query<Result, DynamicBinding>& groupBy(const std::string& fields);
-  Query<Result, DynamicBinding>& having(const std::string& fields);
-  Query<Result, DynamicBinding>& offset(int count);
-  Query<Result, DynamicBinding>& limit(int count);
-  Result resultValue() const;
-  collection< Result > resultList() const;
-  operator Result () const;
-  operator collection< Result > () const;
+    Query();
+    ~Query();
+    Query(const Query& other);
+    Query& operator= (const Query& other);
+    template<typename T> Query<Result, DynamicBinding>& bind(const T& value);
+    Query<Result, DynamicBinding>& join(const std::string& other);
+    Query<Result, DynamicBinding>& leftJoin(const std::string& other);
+    Query<Result, DynamicBinding>& rightJoin(const std::string& other);
+    Query<Result, DynamicBinding>& where(const std::string& condition);
+    Query<Result, DynamicBinding>& orWhere(const std::string& condition);
+    Query<Result, DynamicBinding>& orderBy(const std::string& fieldName);
+    Query<Result, DynamicBinding>& groupBy(const std::string& fields);
+    Query<Result, DynamicBinding>& having(const std::string& fields);
+    Query<Result, DynamicBinding>& offset(int count);
+    Query<Result, DynamicBinding>& limit(int count);
+    awaitable<Result> resultValue() const;
+    awaitable<collection< Result >> resultList() const;
+    operator awaitable<Result> () const;
+    operator awaitable<collection< Result >> () const;
+
+    void reset() {
+        reset_params();
+//        if(!this->session_->transaction_)
+//            this->session_->active_conn = co_await this->session_->assign_connection(false);
+//        co_return;
+    }
 
 private:
-  Query(Session& session, const std::string& sql);
-  Query(Session& session, const std::string& table, const std::string& where);
+    Query(Session& session, const std::string& sql);
+    Query(Session& session, const std::string& table, const std::string& where);
 
-  friend class Session;
-  template <class C> friend class collection;
+    friend class Session;
+    template <class C> friend class collection;
 };
 
 template <typename T>
 AbstractQuery& AbstractQuery::bind(const T& value)
 {
-  parameters_.push_back(new Impl::Parameter<T>(value));
+    parameters_.push_back(new Impl::Parameter<T>(value));
 
-  return *this;
+    return *this;
 }
 
 template <class Result>
@@ -681,12 +693,12 @@ template <typename T>
 Query<Result, DynamicBinding>&
 Query<Result, DynamicBinding>::bind(const T& value)
 {
-  AbstractQuery::bind(value);
+    AbstractQuery::bind(value);
 
-  return *this;
+    return *this;
 }
 
-  }
+}
 }
 
 #endif // WT_DBO_QUERY

@@ -11,8 +11,15 @@
 #include <vector>
 #include <chrono>
 
-#include <Wt/Dbo/SqlConnection.h>
+//#include "Dbo/connection.hpp"//#include <Wt/Dbo/sqlConnection.h>
+#include <Wt/Dbo/WDboDllDefs.h>
+//#include <Dbo/connection.hpp>
 #include <Wt/cpp17/any.hpp>
+#include <boost/asio.hpp>
+#include <Wt/Dbo/backend/result.hpp>
+
+#include <Wt/AsioWrapper/asio.hpp>
+//namespace pg = postgrespp;
 
 namespace Wt {
   namespace Dbo {
@@ -26,10 +33,33 @@ namespace Wt {
  * directly. Its interface must be reimplemented for each backend
  * corresponding to a supported database.
  *
- * \sa SqlConnection
+ * \sa sqlConnection
  *
  * \ingroup dbo
  */
+
+
+//  enum class SqlDateTimeType {
+//      Date,    //!< Date only
+//      DateTime,//!< Date and time
+//      Time     //!< Time duration
+//  };
+
+//  /*! \brief Enum that defines a limit query type.
+// *
+// * Oracle is using Rownum, Firebird is using RowsFromTo,
+// * and Microsoft SQL Server is using Top instead of limit and
+// * offset in SQL
+// */
+//  enum class LimitQuery{
+//      Limit, //!< Use LIMIT and OFFSET
+//      RowsFromTo, //!< Use ROWS ? TO ? (for Firebird)
+//      Rownum, //!< Use rownum (for Oracle)
+//      OffsetFetch, //!< Use OFFSET (?) ROWS FETCH FIRST (?) ROWS ONLY (adding ORDER BY (SELECT NULL) for SQL Server)
+//      NotSupported // !< Not supported
+//  };
+
+
 class WTDBO_API SqlStatement
 {
 public:
@@ -85,7 +115,7 @@ public:
   /*! \brief Binds a value to a column.
    */
   virtual void bind(int column, const std::chrono::system_clock::time_point& value,
-		    SqlDateTimeType type) = 0;
+                    SqlDateTimeType type) = 0;
 
   /*! \brief Binds a value to a column.
    */
@@ -102,7 +132,11 @@ public:
 
   /*! \brief Executes the statement.
    */
-  virtual void execute() = 0;
+  virtual awaitable<result_base> execute() = 0;
+
+  virtual result_base sync_execute() = 0;
+
+  virtual void async_execute(std::function<void(result_base)>) = 0;
 
   /*! \brief Returns the id if the statement was an SQL <tt>insert</tt>.
    */
@@ -174,7 +208,7 @@ public:
    * Returns \c true when the value was not \c null.
    */
   virtual bool getResult(int column, std::chrono::system_clock::time_point *value,
-			 SqlDateTimeType type) = 0;
+                         SqlDateTimeType type) = 0;
 
   /*! \brief Fetches a result value.
    *
@@ -200,7 +234,7 @@ protected:
 private:
   SqlStatement(const SqlStatement&); // non-copyable
 
-  bool inuse_;
+  std::atomic_bool inuse_;
 };
 
 class WTDBO_API ScopedStatementUse

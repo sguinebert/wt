@@ -18,6 +18,8 @@ SqlStatement::~SqlStatement()
 
 bool SqlStatement::use()
 {
+    //return inuse_.compare_exchange_weak(false, true);
+
   if (!inuse_) {
     inuse_ = true;
     return true;

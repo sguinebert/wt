@@ -9,12 +9,6 @@
 
 #include <string>
 
-#include <Wt/Dbo/backend/Sqlite3.h>
-#include <Wt/Dbo/backend/Postgres.h>
-#include <Wt/Dbo/backend/MySQL.h>
-#include <Wt/Dbo/backend/MSSQLServer.h>
-#include <Wt/Dbo/backend/Firebird.h>
-
 #ifndef DOXYGEN_ONLY
 
 namespace Wt {
@@ -23,16 +17,14 @@ namespace Wt {
   /*
    * std::string
    */
-std::string sql_value_traits<std::string>::type(SqlConnection *conn, int size)
+std::string sql_value_traits<std::string>::type(sqlConnection *conn, int size)
 {
-    return std::visit([&] (auto& conn) -> std::string { return conn.textType(size); }, *conn) + " not null";
-
-  //return std::string(conn->textType(size)) + " not null";
+  return std::string(conn->textType(size)) + " not null";
 }
 
 void sql_value_traits<std::string>::bind(const std::string& v,
-                                         SqlStatement *statement, int column,
-                                         int size)
+					 SqlStatement *statement, int column,
+					 int size)
 {
   statement->bind(column, v);
 }
@@ -52,21 +44,21 @@ bool sql_value_traits<std::string>::read(std::string& v,
    * long long 
    */
 
-std::string sql_value_traits<long long>::type(SqlConnection *conn, int size)
+std::string sql_value_traits<long long>::type(sqlConnection *conn, int size)
 {
-  return std::visit([] (auto& conn) -> std::string { return conn.longLongType(); }, *conn) + " not null";
+  return conn->longLongType() + " not null";
 }
 
 void sql_value_traits<long long>::bind(long long v,
-                                       SqlStatement *statement, int column,
-                                       int size)
+				       SqlStatement *statement, int column,
+				       int size)
 {
   statement->bind(column, v);
 }
 
 bool sql_value_traits<long long>::read(long long& v,
-                                       SqlStatement *statement, int column,
-                                       int size)
+				       SqlStatement *statement, int column,
+				       int size)
 {
   return statement->getResult(column, &v);
 }
@@ -76,17 +68,17 @@ bool sql_value_traits<long long>::read(long long& v,
    * long
    */
 
-std::string sql_value_traits<long>::type(SqlConnection *conn, int size)
+std::string sql_value_traits<long>::type(sqlConnection *conn, int size)
 {
   if (sizeof(long) == 4)
     return "integer not null";
   else
-    return std::visit([] (auto& conn) -> std::string { return conn.longLongType(); }, *conn) + " not null";//return conn->longLongType() + " not null";
+    return conn->longLongType() + " not null";
 }
 
 void sql_value_traits<long>::bind(long v,
-                                  SqlStatement *statement, int column,
-                                  int size)
+				  SqlStatement *statement, int column,
+				  int size)
 {
   if (sizeof(long) == 4)
     statement->bind(column, (int)v);
@@ -95,8 +87,8 @@ void sql_value_traits<long>::bind(long v,
 }
 
 bool sql_value_traits<long>::read(long& v,
-                                  SqlStatement *statement, int column,
-                                  int size)
+				  SqlStatement *statement, int column,
+				  int size)
 {
   if (sizeof(long) == 4) {
     int v2;
@@ -115,7 +107,7 @@ bool sql_value_traits<long>::read(long& v,
    * int
    */
 
-const char *sql_value_traits<int>::type(SqlConnection *conn, int size)
+const char *sql_value_traits<int>::type(sqlConnection *conn, int size)
 {
   return "integer not null";
 }
@@ -136,7 +128,7 @@ bool sql_value_traits<int>::read(int& v, SqlStatement *statement, int column,
    * short
    */
 
-const char *sql_value_traits<short>::type(SqlConnection *conn,
+const char *sql_value_traits<short>::type(sqlConnection *conn,
 					  int size)
 {
   return "smallint not null";
@@ -158,18 +150,19 @@ bool sql_value_traits<short>::read(short& v, SqlStatement *statement,
    * bool
    */
 
-std::string sql_value_traits<bool>::type(SqlConnection *conn, int size)
+std::string sql_value_traits<bool>::type(sqlConnection *conn, int size)
 {
-  return std::visit([&] (auto& conn) -> std::string { return conn.booleanType(); }, *conn) + " not null";
-  //return std::string(conn->booleanType()) + " not null";
+  return std::string(conn->booleanType()) + " not null";
 }
 
-void sql_value_traits<bool>::bind(bool v, SqlStatement *statement, int column, int size)
+void sql_value_traits<bool>::bind(bool v, SqlStatement *statement, int column,
+				  int size)
 {
   statement->bind(column, v ? 1 : 0);
 }
 
-bool sql_value_traits<bool>::read(bool& v, SqlStatement *statement, int column, int size)
+bool sql_value_traits<bool>::read(bool& v, SqlStatement *statement, int column,
+				  int size)
 {
   int intValue;
   bool result = statement->getResult(column, &intValue);
@@ -183,17 +176,19 @@ bool sql_value_traits<bool>::read(bool& v, SqlStatement *statement, int column, 
    * float
    */
 
-const char *sql_value_traits<float>::type(SqlConnection *conn, int size)
+const char *sql_value_traits<float>::type(sqlConnection *conn, int size)
 {
   return "real not null";
 }
 
-void sql_value_traits<float>::bind(float v, SqlStatement *statement, int column, int size)
+void sql_value_traits<float>::bind(float v, SqlStatement *statement,
+				   int column, int size)
 {
   statement->bind(column, v);
 }
 
-bool sql_value_traits<float>::read(float& v, SqlStatement *statement, int column, int size)
+bool sql_value_traits<float>::read(float& v, SqlStatement *statement,
+				   int column, int size)
 {
   return statement->getResult(column, &v);
 }
@@ -202,19 +197,19 @@ bool sql_value_traits<float>::read(float& v, SqlStatement *statement, int column
    * double
    */
 
-const char *sql_value_traits<double>::type(SqlConnection *conn, int size)
+const char *sql_value_traits<double>::type(sqlConnection *conn, int size)
 {
   return "double precision not null";
 }
 
 void sql_value_traits<double>::bind(double v, SqlStatement *statement,
-                                    int column, int size)
+				    int column, int size)
 {
   statement->bind(column, v);
 }
 
 bool sql_value_traits<double>::read(double& v, SqlStatement *statement,
-                                    int column, int size)
+				    int column, int size)
 {
   return statement->getResult(column, &v);
 }
@@ -224,9 +219,9 @@ bool sql_value_traits<double>::read(double& v, SqlStatement *statement,
    */
 
 const char *sql_value_traits<std::chrono::system_clock::time_point>
-::type(SqlConnection *conn, int size)
+::type(sqlConnection *conn, int size)
 {
-  return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::DateTime); }, *conn); // conn->dateTimeType(SqlDateTimeType::DateTime);
+  return conn->dateTimeType(SqlDateTimeType::DateTime);
 }
 
 void sql_value_traits<std::chrono::system_clock::time_point>
@@ -248,10 +243,9 @@ bool sql_value_traits<std::chrono::system_clock::time_point>
    */
 
 const char *sql_value_traits<std::chrono::duration<int, std::milli>>
-::type(SqlConnection *conn, int size)
+::type(sqlConnection *conn, int size)
 {
-  return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::Time); }, *conn);
-  //return conn->dateTimeType(SqlDateTimeType::Time);
+  return conn->dateTimeType(SqlDateTimeType::Time);
 }
 
 void sql_value_traits<std::chrono::duration<int, std::milli>>
@@ -273,10 +267,9 @@ bool sql_value_traits<std::chrono::duration<int, std::milli>>
     */
 
 const char *sql_value_traits<std::vector<unsigned char> >
-::type(SqlConnection *conn, int size)
+::type(sqlConnection *conn, int size)
 {
-  return std::visit([] (auto& conn) -> const char* { return conn.blobType(); }, *conn);
-  //return conn->blobType();
+  return conn->blobType();
 }
 
 void sql_value_traits<std::vector<unsigned char> >

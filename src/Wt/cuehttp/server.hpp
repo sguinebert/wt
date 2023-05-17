@@ -40,10 +40,11 @@ namespace http {
 template <typename _Socket, typename _Ty>
 class base_server : safe_noncopyable {
 public:
-    base_server() noexcept {
-    }
+    base_server() noexcept = default;
 
-    explicit base_server(std::function<awaitable<void>(context&)> handler) noexcept : handler_{std::move(handler)} {
+    explicit base_server(std::function<awaitable<void>(context&)> handler, detail::engines* engine) noexcept
+        : handler_{std::move(handler)}, engine_{engine}
+    {
     }
 
     virtual ~base_server() = default;
@@ -61,6 +62,7 @@ public:
         if (this != std::addressof(rhs)) {
             std::swap(handler_, rhs.handler_);
             std::swap(acceptor_, rhs.acceptor_);
+            std::swap(engine_, rhs.engine_);
         }
     }
 
@@ -77,15 +79,35 @@ public:
         return *this;
     }
 
-    void run() {
-        detail::engines::default_engines().run();
-    }
+//    void run() {
+//        detail::engines::default_engines().run();
+//    }
+
+//    void expireSessions(Wt::AsioWrapper::error_code ec)
+//    {
+//        //LOG_DEBUG_S(&wt_, "expireSession() {}", ec.message());
+
+//        if (!ec) {
+//            bool haveMoreSessions = 0;// wt_.expireSessions();
+//            if (!haveMoreSessions &&
+//                wt_.configuration().sessionPolicy() == Wt::Configuration::DedicatedProcess &&
+//                config_.parentPort() != -1)
+//                wt_.scheduleStop();
+//            else {
+//                expireSessionsTimer_.expires_from_now
+//                    (std::chrono::seconds(SESSION_EXPIRE_INTERVAL));
+//                expireSessionsTimer_.async_wait
+//                    (std::bind(&Server::expireSessions, this, std::placeholders::_1));
+//            }
+//        } else if (ec != asio::error::operation_aborted) {
+//            //LOG_ERROR_S(&wt_, "session expiration timer got an error: {}", ec.message());
+//        }
+//    }
 
 protected:
     void listen_impl(asio::ip::tcp::resolver::query&& query) {
-        auto& engines = detail::engines::default_engines();
-        asio::ip::tcp::endpoint endpoint{*asio::ip::tcp::resolver{engines.get()}.resolve(query)};
-        acceptor_ = std::make_unique<asio::ip::tcp::acceptor>(engines.get());
+        asio::ip::tcp::endpoint endpoint{*asio::ip::tcp::resolver{engine_->get()}.resolve(query)};
+        acceptor_ = std::make_unique<asio::ip::tcp::acceptor>(engine_->get());
         acceptor_->open(endpoint.protocol());
         acceptor_->set_option(asio::ip::tcp::acceptor::reuse_address(true));
         acceptor_->bind(endpoint);
@@ -98,6 +120,7 @@ protected:
     }
 
     std::unique_ptr<asio::ip::tcp::acceptor> acceptor_;
+    detail::engines* engine_ = nullptr;
 
 #ifndef CONNECT_NO_CORO
     std::function<awaitable<void>(context&)> handler_;
@@ -111,8 +134,8 @@ class server final : public base_server<_Socket, server<_Socket>>, safe_noncopya
 public:
     server() noexcept = default;
 
-    explicit server(std::function<awaitable<void>(context&)> handler) noexcept
-        : base_server<_Socket, server<_Socket>>{std::move(handler)} {
+    explicit server(std::function<awaitable<void>(context&)> handler, detail::engines* engine) noexcept
+        : base_server<_Socket, server<_Socket>>{std::move(handler), engine} {
     }
 
     server(server&& rhs) noexcept {
@@ -134,7 +157,7 @@ public:
 
     void do_accept_real() {
         auto connection =
-            std::make_shared<detail::connection<_Socket>>(this->handler_, detail::engines::default_engines().get());
+            std::make_shared<detail::connection<_Socket>>(this->handler_, this->engine_->get());
         this->acceptor_->async_accept(connection->socket(), [this, connection](const boost::system::error_code& code) {
             if (!code) {
                 connection->socket().set_option(asio::ip::tcp::no_delay{true});

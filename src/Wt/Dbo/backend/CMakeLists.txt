@@ -121,6 +121,28 @@ IF(ENABLE_POSTGRES AND POSTGRES_FOUND)
 
   ADD_LIBRARY(wtdbopostgres
     Postgres.h Postgres.C
+    async_exec.hpp
+    async_exec_prepared.hpp
+    basic_connection.hpp
+    basic_transaction.hpp
+    builtin_type_decoders.hpp
+    builtin_type_encoders.hpp
+    connection.hpp connection.cpp
+    field.hpp
+    field_type.hpp
+    postgresStatement.h
+    postgrespp.hpp
+    query.hpp
+    result.hpp
+    result_iterator.hpp
+    row.hpp
+    socket_operations.hpp
+    statement_name.hpp
+    type_decoder.hpp
+    type_encoder.hpp
+    use_future.hpp
+    utility.hpp
+    work.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${postgres_SRCS}
     )

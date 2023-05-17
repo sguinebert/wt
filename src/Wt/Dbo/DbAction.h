@@ -21,6 +21,8 @@
 #include "Wt/WString.h"
 #include "Wt/WAny.h"
 
+#include <Wt/AsioWrapper/asio.hpp>
+
 namespace Wt {
   namespace Dbo {
 
@@ -44,8 +46,7 @@ public:
 
   void actMapping(Impl::MappingInfo *mapping);
   template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
-  template<class C> void actId(ptr<C>& value, const std::string& name, int size,
-			       int fkConstraints);
+  template<class C> void actId(ptr<C>& value, const std::string& name, int size, int fkConstraints);
   template<typename V> void act(const FieldRef<V>& field);
   template<class C> void actPtr(const PtrRef<C>& field);
   template<class C> void actWeakPtr(const WeakPtrRef<C>& field);
@@ -76,7 +77,7 @@ public:
 	     Impl::MappingInfo& mapping,
 	     std::set<std::string>& tablesCreated);
 
-  template<class C> void visit(C& obj);
+  template<class C> awaitable<void> visit(C& obj);
 
   void actMapping(Impl::MappingInfo *mapping);
   template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
@@ -84,8 +85,8 @@ public:
 			       int fkConstraints);
   template<typename V> void act(const FieldRef<V>& field);
   template<class C> void actPtr(const PtrRef<C>& field);
-  template<class C> void actWeakPtr(const WeakPtrRef<C>& field);
-  template<class C> void actCollection(const CollectionRef<C>& field);
+  template<class C> awaitable<void> actWeakPtr(const WeakPtrRef<C>& field);
+  template<class C> awaitable<void> actCollection(const CollectionRef<C>& field);
 
   bool getsValue() const;
   bool setsValue() const;
@@ -100,7 +101,7 @@ private:
   Impl::MappingInfo& mapping_;
   std::set<std::string>& tablesDropped_;
 
-  void drop(const std::string& tableName);
+  awaitable<void> drop(const std::string& tableName);
 };
 
 class WTDBO_API DboAction
@@ -209,7 +210,7 @@ public:
   template<typename V> void act(const FieldRef<V>& field);
   template<class C> void actPtr(const PtrRef<C>& field);
   template<class C> void actWeakPtr(const WeakPtrRef<C>& field);
-  template<class C> void actCollection(const CollectionRef<C>& field);
+  template<class C> awaitable<void> actCollection(const CollectionRef<C>& field);
   template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class D> void actId(ptr<D>& value, const std::string& name, int size,
 			       int fkConstraints);
@@ -244,7 +245,7 @@ protected:
   void startSelfPass();
   void startSetsPass();
 
-  void exec();
+  awaitable<void> exec();
 };
 
 template <class C>
@@ -253,7 +254,7 @@ class SaveDbAction : public SaveBaseAction
 public:
   SaveDbAction(MetaDbo<C>& dbo, Session::Mapping<C>& mapping);
 
-  void visit(C& obj);
+  awaitable<void> visit(C& obj);
 
   template<typename V> void actId(V& value, const std::string& name, int size, int flags = 0);
   template<class D> void actId(ptr<D>& value, const std::string& name, int size,

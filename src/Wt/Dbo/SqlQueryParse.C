@@ -6,7 +6,6 @@
 #include "Query.h"
 #include "Query_impl.h"
 #include "Exception.h"
-#include "Logger.h"
 #include "StringStream.h"
 #include "ptr.h"
 
@@ -60,7 +59,7 @@
 namespace Wt {
   namespace Dbo {
 
-LOGGER("Dbo.SqlQueryParse");
+//LOGGER("Dbo.SqlQueryParse");
 
     namespace Impl {
 
@@ -234,10 +233,10 @@ struct sql_query_grammar : qi::grammar<Iterator, ascii::space_type>
             Iterator const&,
             qi::info const&> args,
        qi::unused_type, qi::unused_type) {
-      if (Wt::Dbo::logging("error", Wt::Dbo::logger)) {
+      if (Wt::Dbo:://LOGGing("error", Wt::Dbo:://LOGGer)) {
         boost::spirit::operator<<(
                   Wt::Dbo::log("error") <<
-                  Wt::Dbo::logger << ": "
+                  Wt::Dbo:://LOGGer << ": "
                   << "Error parsing SQL query: expected ",
                   boost::fusion::at_c<3>(args))
                   << " here: \""
@@ -426,8 +425,8 @@ void parseSql(const std::string &sql,
   bool success = x3::phrase_parse(iter, end, parser, x3::ascii::space, result);
 
   if (!err_s.str().empty()) {
-    LOG_ERROR(fmt::runtime(err_s.str()));
-    fmtlog::poll();
+    //LOG_ERROR(fmt::runtime(err_s.str()));
+    //fmtlog::poll();
   }
 
   if (success) {

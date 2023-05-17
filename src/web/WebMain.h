@@ -28,7 +28,7 @@ public:
 
   WebController& controller() { return *server_->controller(); }
 
-  void run();
+  awaitable<void> run();
   void shutdown();
 
 private:

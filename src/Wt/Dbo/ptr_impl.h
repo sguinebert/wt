@@ -8,6 +8,10 @@
 #ifndef WT_DBO_DBO_PTR_IMPL_H_
 #define WT_DBO_DBO_PTR_IMPL_H_
 
+#include <Wt/AsioWrapper/asio.hpp>
+
+using namespace boost;
+
 namespace Wt {
   namespace Dbo {
     namespace Impl {
@@ -62,7 +66,7 @@ Impl::MappingInfo *MetaDbo<C>::getMapping()
 }
 
 template <class C>
-void MetaDbo<C>::flush()
+awaitable<void> MetaDbo<C>::flush()
 {
   checkNotOrphaned();
 
@@ -70,7 +74,7 @@ void MetaDbo<C>::flush()
     state_ &= ~NeedsDelete;
 
     try {
-      session()->implDelete(*this);
+      co_await session()->implDelete(*this);
       setTransactionState(DeletedInTransaction);
     } catch (...) {
       setTransactionState(DeletedInTransaction);
@@ -81,7 +85,48 @@ void MetaDbo<C>::flush()
     state_ |= Saving;
 
     try {
-      session()->implSave(*this);
+      co_await session()->implSave(*this);
+      setTransactionState(SavedInTransaction);
+    } catch (...) {
+      setTransactionState(SavedInTransaction);
+      throw;
+    }
+  } else if (state_ & Saving) {
+    /*
+     * This must be because of a circular relational dependency:
+     *  A belongsTo(B)
+     *  B belongsTo(A)
+     *
+     * Could also be because of A belongsTo(A) which could be perfectly
+     * if the ptr is assigned after the object itself has been saved first.
+     */
+    // throw Exception("Wt::Dbo::ptr::flush(): circular dependency detected!");
+  }
+  co_return;
+}
+
+template<class C>
+void MetaDbo<C>::flush(std::function<void ()>&& cb)
+{
+  checkNotOrphaned();
+
+  if (state_ & NeedsDelete) {
+    state_ &= ~NeedsDelete;
+
+    try {
+      co_spawn(*thread_context, session()->implDelete(*this), [cb = std::move(cb)] (auto ec) { cb(); });
+      setTransactionState(DeletedInTransaction);
+    } catch (...) {
+      setTransactionState(DeletedInTransaction);
+      throw;
+    }
+  } else if (state_ & NeedsSave) {
+    state_ &= ~NeedsSave;
+    state_ |= Saving;
+
+    try {
+      //co_await session()->implSave(*this);
+      co_spawn(*thread_context, session()->implSave(*this), [cb = std::move(cb)] (auto ec) { cb(); });
       setTransactionState(SavedInTransaction);
     } catch (...) {
       setTransactionState(SavedInTransaction);
@@ -169,14 +214,14 @@ void MetaDbo<C>::doTransactionDone(bool success)
       session()->needsFlush(this);
     } else if (savedInTransaction()) {
       if (isNew()) {
-	prune();
+          prune();
       } else {
-	/*
-	 * If we support changing the Id, then we need to restore the old
-	 * Id here.
-	 */
-	state_ |= NeedsSave;
-	session()->needsFlush(this);
+          /*
+          * If we support changing the Id, then we need to restore the old
+          * Id here.
+          */
+          state_ |= NeedsSave;
+          session()->needsFlush(this);
       }
     }
   }
@@ -538,10 +583,10 @@ ptr<C>::operator bool() const
 }
 
 template <class C>
-void ptr<C>::flush() const
+awaitable<void> ptr<C>::flush() const
 {
   if (obj_)
-    obj_->flush();
+    co_await obj_->flush();
 }
 
 template <class C>
