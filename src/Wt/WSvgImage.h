@@ -46,7 +46,7 @@ class ServerSideFontMetrics;
  *
  * \ingroup painting
  */
-class WT_API WSvgImage : public WResource, public WVectorImage
+class WT_API WSvgImage final : public WResource, public WVectorImage
 {
 public:
   /*! \brief Create an SVG paint device.
@@ -89,8 +89,9 @@ public:
   virtual WLength width() const override { return width_; }
   virtual WLength height() const override { return height_; }
 
-  virtual void handleRequest(const Http::Request& request,
-			     Http::Response& response) override;
+  virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
+
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
 
 protected:
   virtual WPainter *painter() const override { return painter_; }

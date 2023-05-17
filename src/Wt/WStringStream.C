@@ -128,6 +128,14 @@ WStringStream& WStringStream::operator<< (const std::string& s)
 
   return *this;
 }
+
+WStringStream& WStringStream::operator<< (std::string_view s)
+{
+  append(s.data(), s.length());
+
+  return *this;
+}
+
 //benchmark from https://github.com/fmtlib/fmt#speed-tests
 WStringStream& WStringStream::operator<< (int v)
 {

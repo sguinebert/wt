@@ -59,10 +59,9 @@ public:
 
   virtual ~OidcUserInfoEndpoint();
 
-  virtual void handleRequest(const Http::Request& request,
-                             Http::Response& response) override;
+  virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
 
-
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
   /*! \brief Maps the given scope token to the given set of claims.
    *
    * The value of these claims will be retrieved from the

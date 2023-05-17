@@ -41,8 +41,7 @@ public:
   void setCurrentFile(File *file) { currentFile_ = file; }
 
 protected:
-  virtual void handleRequest(const Http::Request &request,
-			     Http::Response &response) override
+  virtual void handleRequest(const Http::Request &request, Http::Response &response) override
   {
     // In JWt we still have the update lock
 #ifndef WT_TARGET_JAVA
@@ -89,6 +88,56 @@ protected:
     }
 
     response.setMimeType("text/plain"); // else firefox complains
+  }
+
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
+  {
+      // In JWt we still have the update lock
+#ifndef WT_TARGET_JAVA
+    /**
+     * Taking the update-lock (rather than posting to the event loop):
+     *   - guarantee that the updates to WFileDropWidget happen immediately,
+     *     before any application-code is called by the finished upload.
+     *   - only Wt-code is executed within this lock
+     */
+    WApplication::UpdateLock lock(WApplication::instance());
+#endif // WT_TARGET_JAVA
+
+    auto fileId = request.getParameter("file-id");
+    if (fileId.empty()) {
+      response.status(404);
+      co_return;
+    }
+    int id = boost::lexical_cast<int>(fileId);
+    bool validId = parent_->incomingIdCheck(id);
+    if (!validId) {
+      response.status(404);
+      co_return;
+    }
+
+    std::vector<Http::UploadedFile> files;
+    Utils::find(request.uploadedFiles(), "data", files);
+    if (files.empty()) {
+      response.status(404);
+      co_return;
+    }
+
+    // check is js filter was used
+    auto filtFlag = request.getParameter("filtered");
+    currentFile_->setIsFiltered(filtFlag == "true");
+
+    // add data to currentFile_
+    auto lastFlag = request.getParameter("last");
+    bool isLast = (lastFlag.empty()) || // if not present, assume not chunked
+                  (!lastFlag.empty() && lastFlag == "true");
+    currentFile_->handleIncomingData(files[0], isLast);
+
+    if (isLast) {
+      parent_->proceedToNextFile();
+    }
+
+    response.setContentType("text/plain"); // else firefox complains
+    co_return;
   }
 
 private:

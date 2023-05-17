@@ -85,6 +85,42 @@ void OidcUserInfoEndpoint::handleRequest(const Http::Request& request, Http::Res
 #endif
 }
 
+awaitable<void> OidcUserInfoEndpoint::handleRequest(http::request &request, http::response &response)
+{
+  auto authHeader = request.get("Authorization");
+  if (!boost::starts_with(authHeader, AUTH_TYPE)) {
+    response.status(400);
+    response.addHeader("WWW-Authenticate", "error=\"invalid_request\"");
+    LOG_INFO("error=\"invalid_request\": Authorization header missing");
+    co_return;
+  }
+  std::string tokenValue { authHeader.substr(AUTH_TYPE.length()) };
+  IssuedToken accessToken = db_->idpTokenFindWithValue("access_token", tokenValue);
+  if (!accessToken.checkValid() || WDateTime::currentDateTime() > accessToken.expirationTime()) {
+    response.status(401);
+    response.addHeader("WWW-Authenticate", "error=\"invalid_token\"");
+    LOG_INFO("error=\"invalid_token\" {}", authHeader);
+    co_return;
+  }
+  response.setContentType("application/json");
+  response.status(200);
+  User user = accessToken.user();
+  std::string scope = accessToken.scope();
+  std::set<std::string> scopeSet;
+  boost::split(scopeSet, scope, boost::is_any_of(" "));
+#ifdef WT_TARGET_JAVA
+  try {
+#endif
+    response.out() << Json::serialize(generateUserInfo(user, scopeSet)) << std::endl;
+    LOG_INFO("Response sent for {}({})", user.id(), db_->email(user));
+#ifdef WT_TARGET_JAVA
+  } catch (std::io_exception ioe) {
+    LOG_ERROR(ioe.message());
+  }
+#endif
+  co_return;
+}
+
 Json::Object OidcUserInfoEndpoint::generateUserInfo(const User& user, const std::set<std::string>& scope)
 {
   Json::Object root;

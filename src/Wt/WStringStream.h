@@ -126,6 +126,8 @@ public:
    */
   WStringStream& operator<< (const std::string& s);
 
+  WStringStream& operator<< (std::string_view s);
+
   /*! \brief Appends a boolean.
    *
    * This is written to the stream as <tt>true</tt> or <tt>false</tt>.

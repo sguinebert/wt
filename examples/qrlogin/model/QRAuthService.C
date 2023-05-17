@@ -39,8 +39,7 @@ public:
     beingDeleted();
   }
 
-  virtual void handleRequest(const Http::Request &request,
-                             Http::Response &response)
+  virtual void handleRequest(const Wt::Http::Request &request, Wt::Http::Response &response) override
   {
     WApplication *app = WApplication::instance();
 
@@ -49,6 +48,17 @@ public:
 
     response.setMimeType("plain/text");
     response.out() << "ok";
+  }
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
+  {
+    WApplication *app = WApplication::instance();
+
+    app->environment().server()
+        ->post(app->sessionId(), bindSafe(&QRLoginResource::doLogin));
+
+    response.setContentType("plain/text");
+    response.out() << "ok";
+    co_return;
   }
 
 private:

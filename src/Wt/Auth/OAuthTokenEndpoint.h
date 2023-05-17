@@ -73,6 +73,8 @@ public:
 
   virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
 
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
+
   /*! \brief Sets the amount of seconds after which generated access
    * tokens expire.
    *

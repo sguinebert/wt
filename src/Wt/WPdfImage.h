@@ -156,12 +156,12 @@ public:
   virtual void drawLine(double x1, double y1, double x2, double y2) override;
   virtual void drawRect(const WRectF& rect) override;
   virtual void drawPath(const WPainterPath& path) override;
-  virtual void drawText(const WRectF& rect, 
-			WFlags<AlignmentFlag> alignmentFlags, TextFlag textFlag,
-			const WString& text, const WPointF *clipPoint)
-    override;
-  virtual WTextItem measureText(const WString& text, double maxWidth = -1,
-				bool wordWrap = false) override;
+  virtual void drawText(const WRectF& rect,
+                        WFlags<AlignmentFlag> alignmentFlags,
+                        TextFlag textFlag,
+                        const WString& text,
+                        const WPointF *clipPoint) override;
+  virtual WTextItem measureText(const WString& text, double maxWidth = -1, bool wordWrap = false) override;
   virtual WFontMetrics fontMetrics() override;
   virtual void init() override;
   virtual void done() override;
@@ -172,9 +172,8 @@ public:
 
   void errorHandler(HPDF_STATUS error_no, HPDF_STATUS detail_no);
 
-  virtual void handleRequest(const Http::Request& request,
-			     Http::Response& response) override;
-
+  virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
 protected:
   virtual WPainter *painter() const override { return painter_; }
   virtual void setPainter(WPainter *painter) override { painter_ = painter; }

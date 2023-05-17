@@ -97,8 +97,9 @@ public:
    * \endcode
    * \endif
    */
-  virtual void handleRequest(const Http::Request& request,
-			     Http::Response& response) override;
+  virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
+
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
 
 private:
   std::string fileName_;

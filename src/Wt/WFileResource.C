@@ -47,4 +47,9 @@ void WFileResource::handleRequest(const Http::Request& request,
   handleRequestPiecewise(request, response, r);
 }
 
+awaitable<void> WFileResource::handleRequest(http::request &request, http::response &response)
+{
+  co_return;
+}
+
 }

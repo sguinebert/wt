@@ -374,9 +374,9 @@ public:
    */
   virtual void handleRequest(const Http::Request& request, Http::Response& response) = 0;
 
-  virtual awaitable<void> handleRequest(Wt::http::request& request, Wt::http::response& response) { co_return; };
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) = 0;
 
-  virtual awaitable<void> handleRequest(Wt::http::context& ctx) { co_return; };
+  virtual awaitable<void> handleRequest(Wt::http::context* ctx) { co_return; };
 
   void setLocale(Wt::http::request& request);
 

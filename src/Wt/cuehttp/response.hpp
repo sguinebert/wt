@@ -40,6 +40,12 @@
 namespace Wt {
 namespace http {
 
+enum class ResponseType {
+    Page,
+    Script,
+    Update
+};
+
 static constexpr std::string_view chunked_end = "0\r\n\r\n";
 
 using namespace std::literals;
@@ -51,16 +57,10 @@ class response final : safe_noncopyable {
         ResponseFlush
     };
 
-    enum class ResponseType {
-        Page,
-        Script,
-        Update
-    };
-
-  response(cookies& cookies, detail::reply_handler handler) noexcept
+  response(cookies& cookies, detail::reply_handler handler, detail::reply_handler_sg handler2) noexcept
       : cookies_{cookies}, ostream_(&buffer_),
         last_gmt_date_str_{detail::utils::to_gmt_date_string(std::time(nullptr))},
-        reply_handler_{std::move(handler)} {}
+        reply_handler_{std::move(handler)}, reply_handler_sg_{std::move(handler2)} {}
 
   void minor_version(unsigned version) noexcept { minor_version_ = version; }
 
@@ -137,10 +137,6 @@ class response final : safe_noncopyable {
     }
   }
 
-  ResponseType responseType_;
-  void setResponseType(ResponseType responseType) { responseType_ = responseType; }
-  ResponseType responseType() const { return responseType_; }
-
   template <typename _ContentType>
   void type(_ContentType&& content_type) {
     addHeader("Content-Type", std::forward<_ContentType>(content_type));
@@ -185,6 +181,77 @@ class response final : safe_noncopyable {
   }
   std::ostream& out() {
     return ostream_;
+  }
+
+  /* flush data manually for chunked transfers
+  */
+  awaitable<void> chunk_flush(bool deflate = false)
+  {
+    assert(reply_handler_ && is_chunked_);
+
+    auto rawbody = dump_body();
+    if (!is_stream_) {
+      //is_chunked_ = true;
+      is_stream_ = true;
+      if(deflate || rawbody.size() > detail::threshold) {
+        is_gzip_ = true;
+        addHeader("Content-Encoding", "gzip");
+      }
+
+      //co_await reply_handler_(header_to_string());
+
+      std::vector<asio::const_buffer> buffers;
+      auto cv = header_to_string();
+      buffers.push_back(asio::buffer(cv));
+
+      std::string_view corr;
+      if(is_gzip_) {
+
+        body_.append(10, '\0');
+        detail::gzip::compress(rawbody, body_);
+        body_.append("\r\n");
+
+        corr = corrected(body_.data(), body_);
+      }
+      else {
+        ostream_  << "\r\n";
+
+        auto chunk_sv = dump_body();
+        auto data = boost::asio::buffer_cast<const char*>(buffer_.data());
+        corr = corrected((char*)data, chunk_sv);
+      }
+
+      buffers.push_back(asio::buffer(corr));
+      co_await reply_handler_sg_(buffers);
+      body_.clear();
+      co_return;
+    }
+
+    if(is_gzip_) {
+
+      body_.append(10, '\0');
+      detail::gzip::compress(rawbody, body_);
+      body_.append("\r\n");
+
+      auto corr = corrected(body_.data(), body_);
+      co_await reply_handler_(corr);
+      body_.clear();
+    }
+    else {
+      ostream_  << "\r\n";
+
+      auto chunk_sv = dump_body();
+      auto data = boost::asio::buffer_cast<const char*>(buffer_.data());
+      auto corr = corrected((char*)data, chunk_sv);
+
+      co_await reply_handler_(corr);
+    }
+
+    buffer_.consume(buffer_.size());
+
+    /* reserve space for chunk size + CRLF */
+    buffer_.prepare(10);
+    buffer_.commit(10);
   }
 
   void reset() {
@@ -424,6 +491,10 @@ class response final : safe_noncopyable {
     return str;
   }
 
+  void setResponseType(ResponseType responseType) { responseType_ = responseType; }
+  ResponseType responseType() const { return responseType_; }
+
+private:
   std::vector<std::pair<std::string, std::string>> headers_;
   unsigned minor_version_{1};
   unsigned status_{404};
@@ -431,6 +502,7 @@ class response final : safe_noncopyable {
   std::uint64_t content_length_{0};
   cookies& cookies_;
 
+  ResponseType responseType_;
   std::string body_;
   std::string response_str_;
 
@@ -445,7 +517,10 @@ class response final : safe_noncopyable {
   std::chrono::steady_clock::time_point last_time_{std::chrono::steady_clock::now()};
   std::string last_gmt_date_str_;
   detail::reply_handler reply_handler_;
+  detail::reply_handler_sg reply_handler_sg_;
   std::shared_ptr<std::ostream> stream_{nullptr};
+
+  friend class context;
 };
 
 }  // namespace http

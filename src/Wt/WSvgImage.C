@@ -914,6 +914,20 @@ void WSvgImage::handleRequest(const Http::Request& request,
   streamResourceData(o);
 }
 
+awaitable<void> WSvgImage::handleRequest(http::request &request, http::response &response)
+{
+  response.setContentType("image/svg+xml");
+
+#ifndef WT_TARGET_JAVA
+  std::ostream& o = response.out();
+#else
+  std::ostream o(response.out());
+#endif // WT_TARGET_JAVA
+
+  streamResourceData(o);
+  co_return;
+}
+
 void WSvgImage::streamResourceData(std::ostream& stream)
 {
   finishPath();

@@ -516,10 +516,10 @@ void WebRenderer::serveResponse(Wt::http::context *context)
   session_.setTriggerUpdate(false);
 
   switch (context->responseType()) {
-  case Wt::http::response::ResponseType::Update:
+  case Wt::http::ResponseType::Update:
     serveJavaScriptUpdate(context);
     break;
-  case Wt::http::response::ResponseType::Page:
+  case Wt::http::ResponseType::Page:
     initialStyleRendered_ = false;
     ++pageId_;
     if (session_.app())
@@ -527,7 +527,7 @@ void WebRenderer::serveResponse(Wt::http::context *context)
     else
       serveBootstrap(context);
     break;
-  case Wt::http::response::ResponseType::Script:
+  case Wt::http::ResponseType::Script:
     bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
     if (!hybridPage)
       setRendered(false);
@@ -775,7 +775,7 @@ void WebRenderer::serveError(int status, WebResponse& response, const std::strin
 
 void WebRenderer::serveError(int status, Wt::http::context *context, const std::string &message)
 {
-  bool js = context->responseType() != Wt::http::response::ResponseType::Page;
+  bool js = context->responseType() != Wt::http::ResponseType::Page;
 
   WApplication *app = session_.app();
   if (!js || !app) {

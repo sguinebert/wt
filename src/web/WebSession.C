@@ -896,7 +896,7 @@ void WebSession::init(Wt::http::context *context)
     bookmarkUrl_ = applicationUrl_;
   }
 
-  auto path = context->pathInfo();// request.pathInfo();
+  auto path = context->pathInfo(basePath_);// request.pathInfo();
   if (path.empty() && !hashE.empty())
     path = hashE;
 
@@ -915,7 +915,7 @@ awaitable<bool> WebSession::start(http::context *context, EntryPoint *ep)
     //app_ = co_await ep->appCallback()(this->env()).release();
     app_ = (co_await ep->appCallback()(this->env())).release(); // controller_->doCreateApplication(this, ep).release();
     if (!app_->internalPathValid_)
-      if (context->res().responseType() == http::response::ResponseType::Page)
+      if (context->responseType() == http::ResponseType::Page)
         context->status(404);
   } catch (std::exception& e) {
     app_ = nullptr;
@@ -1664,7 +1664,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
   }
 
 
-  context->setResponseType(http::response::ResponseType::Page);
+  context->setResponseType(http::ResponseType::Page);
 
   /*
    * Only handle GET, POST and OPTIONS requests, unless a resource is
@@ -1752,7 +1752,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
                 requestE == "jserror" ||
                 requestE == "script")
             {
-                context->setResponseType(http::response::ResponseType::Update);
+                context->setResponseType(http::ResponseType::Update);
                 LOG_INFO("signal from dead session, sending reload.");
                 renderer_.letReloadJS(context, true);
 
@@ -1827,7 +1827,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
 
             kill();
           } else {
-            context->setResponseType(http::response::ResponseType::Script);
+            context->setResponseType(http::ResponseType::Script);
 
             init(context); // env, url/internalpath, initial query parameters
             env_->enableAjax(context);
@@ -1862,9 +1862,9 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
         if (!requestE.empty())
         {
           if (requestE == "jsupdate" || requestE == "jserror")
-            context->setResponseType(http::response::ResponseType::Update);
+            context->setResponseType(http::ResponseType::Update);
           else if (requestE == "script") {
-            context->setResponseType(http::response::ResponseType::Script);
+            context->setResponseType(http::ResponseType::Script);
             if (state_ == State::Loaded)
                 setExpectLoad();
           } else if (requestE == "style") {
@@ -1944,7 +1944,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
           //const std::string *resourceE = request.getParameter("resource");
           auto resourceE = context->getParameter("resource");
 
-          if (handler.context()->responseType() == http::response::ResponseType::Script)
+          if (handler.context()->responseType() == http::ResponseType::Script)
           {
             if (request.get("skeleton").empty())
             {
@@ -2008,7 +2008,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
             if (env_->ajax()) {
                 if (state_ != State::ExpectLoad &&
                     state_ != State::Suspended &&
-                    handler.context()->responseType() == http::response::ResponseType::Update) {
+                    handler.context()->responseType() == http::ResponseType::Update) {
                     setLoaded();
                 }
             } else if (state_ != State::ExpectLoad &&
@@ -2369,7 +2369,7 @@ void WebSession::pushUpdates()
 
   if (asyncResponse_)
   {
-    asyncResponse_->setResponseType(http::response::ResponseType::Update);
+    asyncResponse_->setResponseType(http::ResponseType::Update);
     //co_await app_->notify(WEvent(WEvent::Impl(asyncResponse_)));
     {
         try
@@ -2707,7 +2707,7 @@ awaitable<void> WebSession::notify(const WEvent& event)
     {
       //WebResponse *response = handler.response();
       auto context = handler->context();
-      if (context && context->responseType() == http::response::ResponseType::Page)
+      if (context && context->responseType() == http::ResponseType::Page)
         context->status(404);
     }
   }
@@ -2770,7 +2770,7 @@ awaitable<void> WebSession::notify(const WEvent& event)
      * Excluding resources here ?
      */
     if (((requestE != "resource"))
-        && context->responseType() == http::response::ResponseType::Page) {
+        && context->responseType() == http::ResponseType::Page) {
       /*
        * Prevent a session fixation attack and a session stealing attack:
        * - user agent has changed: close the session
@@ -2827,7 +2827,7 @@ awaitable<void> WebSession::notify(const WEvent& event)
       sessionIdCookieChanged_ = false;
     }
 
-    if (context->responseType() == http::response::ResponseType::Script) {
+    if (context->responseType() == http::ResponseType::Script) {
       auto sidE = context->getParameter("sid");
       if (sidE != std::to_string(renderer_.scriptId())) {
         throw WException("Script id mismatch");
@@ -3064,7 +3064,7 @@ awaitable<void> WebSession::notify(const WEvent& event)
 	}
 
     if (handler->context()
-        && handler->context()->responseType() == http::response::ResponseType::Page
+        && handler->context()->responseType() == http::ResponseType::Page
 	    && (!env_->ajax() ||
         !controller_->configuration().reloadIsNewSession()))
     {
@@ -3119,7 +3119,7 @@ void WebSession::changeInternalPath(const std::string &path, http::context *cont
 {
   if (!app_->internalPathIsChanged_)
     if (!app_->changedInternalPath(path))
-      if (context->res().responseType() == http::response::ResponseType::Page)
+      if (context->responseType() == http::ResponseType::Page)
         context->status(404);
 }
 
@@ -3151,7 +3151,7 @@ EventType WebSession::getEventType(const WEvent& event) const
   case State::ExpectLoad:
   case State::Loaded:
   case State::Suspended:
-    if (context->responseType() == http::response::ResponseType::Script) {
+    if (context->responseType() == http::ResponseType::Script) {
       return EventType::Other;
     } else if (resourceRequest(context)) {
       return EventType::Resource;
@@ -3303,7 +3303,7 @@ void WebSession::serveResponse(Handler& handler)
 {
   auto context = handler.context();
 
-  if (context->res().responseType() == http::response::ResponseType::Page)
+  if (context->responseType() == http::ResponseType::Page)
   {
     pagePathInfo_ = context->pathInfo();
     auto wtdE = context->getParameter("wtd");
@@ -3322,7 +3322,7 @@ void WebSession::serveResponse(Handler& handler)
      * In any case, flush the style request when we are serving a new
      * page (without Ajax) or the main script (with Ajax).
      */
-    if (context->responseType() == http::response::ResponseType::Script && context->getParameter("skeleton").empty())
+    if (context->responseType() == http::ResponseType::Script && context->getParameter("skeleton").empty())
     {
 #ifndef WT_TARGET_JAVA
       if (bootStyleResponse_) {

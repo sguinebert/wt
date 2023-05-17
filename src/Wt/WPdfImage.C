@@ -716,8 +716,7 @@ WTextItem WPdfImage::measureText(const WString& text, double maxWidth,
   }
 }
 
-void WPdfImage::handleRequest(const Http::Request& request,
-			      Http::Response& response)
+void WPdfImage::handleRequest(const Http::Request& request, Http::Response& response)
 {
   HPDF_SaveToStream(pdf_);
 
@@ -735,6 +734,27 @@ void WPdfImage::handleRequest(const Http::Request& request,
 
     response.out().write((const char *)buf, siz);
   }
+}
+
+awaitable<void> WPdfImage::handleRequest(http::request &request, http::response &response)
+{
+  HPDF_SaveToStream(pdf_);
+
+  HPDF_ResetStream(pdf_);
+
+  response.setContentType("application/pdf");
+
+  for (;;) {
+    HPDF_BYTE buf[4096];
+    HPDF_UINT32 siz = 4096;
+    HPDF_ReadFromStream (pdf_, buf, &siz);
+
+    if (siz == 0)
+        break;
+
+    response.out().write((const char *)buf, siz);
+  }
+  co_return;
 }
 
 void WPdfImage::errorHandler(HPDF_STATUS error_no,

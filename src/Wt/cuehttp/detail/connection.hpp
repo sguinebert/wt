@@ -100,7 +100,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
   template <typename Socket = _Socket, typename = std::enable_if_t<std::is_same_v<std::decay_t<Socket>, http_socket>>>
   base_connection(std::function<awaitable<void>(context&)> handler, asio::io_service& io_service) noexcept
       : socket_{io_service},
-        context_{std::bind(&base_connection::coro_reply_chunk, this, std::placeholders::_1), std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), false,
+        context_{std::bind(&base_connection::coro_reply_chunk, this, std::placeholders::_1), std::bind(&base_connection::coro_reply_chunk_sg, this, std::placeholders::_1), false,
                  std::bind(&base_connection::spawn_coro_ws_send, this, std::placeholders::_1)},
         handler_{std::move(handler)} {}
 
@@ -300,6 +300,11 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 
   awaitable<bool> coro_reply_chunk(std::string_view chunk) {
     auto [code, bytes_transferred] = co_await asio::async_write(socket_, asio::buffer(chunk), use_nothrow_awaitable);
+    co_return !!code;
+  }
+
+  awaitable<bool> coro_reply_chunk_sg(std::vector<asio::const_buffer>& chunk) {
+    auto [code, bytes_transferred] = co_await asio::async_write(socket_, chunk, use_nothrow_awaitable);
     co_return !!code;
   }
 

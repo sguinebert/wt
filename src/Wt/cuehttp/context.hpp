@@ -39,12 +39,11 @@ namespace http {
 class context final : safe_noncopyable {
     friend class CgiParser;
  public:
-    context(detail::reply_handler handler, detail::reply_handler2 handler2, bool https, detail::ws_send_handler ws_send_handler) noexcept
-         : handler2_{std::move(handler2)}, response_{cookies_, std::move(handler)},
+    context(detail::reply_handler handler,  detail::reply_handler_sg handler2, bool https, detail::ws_send_handler ws_send_handler) noexcept
+         : response_{cookies_, std::move(handler), std::move(handler2)},
         request_{https, response_, cookies_},
         ws_send_handler_{std::move(ws_send_handler)} {}
 
-  detail::reply_handler2 handler2_;
   request& req() noexcept { return request_; }
 
   response& res() noexcept { return response_; }
@@ -84,7 +83,7 @@ class context final : safe_noncopyable {
 
   std::string_view path() const noexcept { return request_.path(); }
 
-  std::string_view pathInfo() const noexcept { return request_.pathInfo(); }
+  std::string_view pathInfo(std::string_view base = ""sv) const noexcept { return request_.pathInfo(base); }
 
   std::string_view querystring() const noexcept { return request_.querystring(); }
 
@@ -94,28 +93,13 @@ class context final : safe_noncopyable {
 
   //const UploadedFileMap& uploadedFiles() const { return request_.files(); }
 
-//  std::string_view urlScheme(const Configuration &conf) const
-//  {
-//    if (conf.behindReverseProxy() || conf.isTrustedProxy(host())) {
-//        auto forwardedProto = getHeader("X-Forwarded-Proto");
-//        if (!forwardedProto.empty()) {
-//            if (auto i = forwardedProto.rfind(','); i == std::string::npos)
-//                return forwardedProto;
-//            else
-//                return forwardedProto.substr(i+1);
-//        }
-//    }
-
-//    return request_.scheme();
-//  }
-
   // response
   unsigned status() const noexcept { return response_.status(); }
 
   void status(unsigned status) noexcept { response_.status(status); }
 
-  void setResponseType(response::ResponseType responseType) { response_.setResponseType(responseType); }
-  response::ResponseType responseType() const { return response_.responseType(); }
+  void setResponseType(ResponseType responseType) { response_.setResponseType(responseType); }
+  ResponseType responseType() const { return response_.responseType(); }
 
   template <typename _Url>
   void redirect(_Url&& url) {
@@ -215,20 +199,19 @@ class context final : safe_noncopyable {
     writecallback_ = nullptr;
   }
 
-  void flush_r() {
-    flush_ = true;
+//  void flush_r() {
+//    flush_ = true;
+//    if(websocket_) {
+//        websocket_->send(std::string(response_.dump_body()));
+//        response_.reset();
+//        return;
+//    }
+//    std::string buffers;
+//    response_.to_strbuffers(buffers);
+//    handler2_(buffers);
 
-    if(websocket_) {
-        websocket_->send(std::string(response_.dump_body()));
-        response_.reset();
-        return;
-    }
-    std::string buffers;
-    response_.to_strbuffers(buffers);
-    handler2_(buffers);
-
-    response_.reset();
-  }
+//    response_.reset();
+//  }
 
   std::shared_ptr<Wt::WebSession> websession() { return websession_; }
   void websession(std::shared_ptr<Wt::WebSession> wsession) { websession_ = wsession; }

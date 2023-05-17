@@ -23,7 +23,7 @@ public:
     WDropZoneResource(WDropZone *fileDropWidget, File *file)
         : WResource(),
         parent_(fileDropWidget)
-        //, currentFile_(file)
+    //, currentFile_(file)
     {
         setUploadProgress(true);
     }
@@ -100,6 +100,71 @@ protected:
         // }
 
         response.setMimeType("text/plain"); // else firefox complains
+    }
+    virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
+    {
+        // In JWt we still have the update lock
+#ifndef WT_TARGET_JAVA
+        /**
+     * Taking the update-lock (rather than posting to the event loop):
+     *   - guarantee that the updates to WFileDropWidget happen immediately,
+     *     before any application-code is called by the finished upload.
+     *   - only Wt-code is executed within this lock
+     */
+        //  WApplication::UpdateLock lock(WApplication::instance());
+#endif // WT_TARGET_JAVA
+
+        // const std::string *fileId = request.getParameter("file-id");
+        // if (fileId == 0 || (*fileId).empty()) {
+        //     response.setStatus(404);
+        //     return;
+        // }
+        // bool validId = parent_->incomingIdCheck(*fileId);
+        // if (!validId) {
+        //     response.setStatus(404);
+        //     return;
+        // }
+
+        std::vector<std::string> uuids;
+        std::vector<Http::UploadedFile> files;
+        for(auto &[uuid, file] : request.uploadedFiles()) {
+            //std::cout << "received uuid : " << uuid << std::endl;
+            uuids.push_back(uuid);
+            files.push_back(file);
+        }
+
+        //Utils::find(request.uploadedFiles(), "file", files);
+        if (files.empty()) {
+            response.status(404);
+            co_return;
+        }
+
+        // check is js filter was used
+        //const std::string *filtFlag = request.getParameter("filtered");
+        //currentFile_->setIsFiltered((filtFlag != 0) && ((*filtFlag) == "true"));
+
+
+        for(unsigned i(0); i < uuids.size(); i++) {
+            auto currentFile = parent_->incomingIdCheck(uuids[i]);
+            if (!currentFile) {
+                response.status(404);
+                co_return;
+            }
+            currentFile->handleIncomingData(files[i], false);
+        }
+
+        // add data to currentFile_
+        // const std::string *lastFlag = request.getParameter("last");
+        // bool isLast = (lastFlag == 0) || // if not present, assume not chunked
+        //               (lastFlag != 0 && (*lastFlag) == "true");
+        // currentFile_->handleIncomingData(files[0], isLast);
+
+        // if (isLast) {
+        //     parent_->proceedToNextFile();
+        // }
+
+        response.setContentType("text/plain"); // else firefox complains
+        co_return;
     }
 
 private:

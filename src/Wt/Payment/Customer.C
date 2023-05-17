@@ -53,7 +53,7 @@ namespace Wt {
     locale_ = locale;
   }
 
-  void Customer::setPayerId(const std::string& payerId)
+  void Customer::setPayerId(std::string_view payerId)
   {
     payerId_ = payerId;
   }

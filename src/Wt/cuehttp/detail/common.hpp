@@ -61,6 +61,7 @@ struct ws_frame;
 
 // types
 using reply_handler = std::function<awaitable<bool>(std::string_view)>;
+using reply_handler_sg = std::function<awaitable<bool>(std::vector<asio::const_buffer>&)>;
 using reply_handler2 = std::function<bool(std::string_view)>;
 using http_socket = asio::ip::tcp::socket; //asio::basic_stream_socket<asio::ip::tcp, asio::io_context::executor_type>; //asio::ip::tcp::socket;
 #ifdef ENABLE_HTTPS

@@ -110,4 +110,23 @@ void WMemoryResource::handleRequest(const Http::Request& request,
     response.out().put((*data)[i]);
 }
 
+awaitable<void> WMemoryResource::handleRequest(http::request &request, http::response &response)
+{
+  DataPtr data;
+  {
+#ifdef WT_THREADED
+    std::unique_lock<std::mutex> l(*dataMutex_);
+#endif
+    data = data_;
+  }
+
+  if (!data)
+    co_return;
+
+  response.setContentType(mimeType_);
+
+  for (unsigned int i = 0; i < (*data).size(); ++i)
+    response.out().put((*data)[i]);
+}
+
 }

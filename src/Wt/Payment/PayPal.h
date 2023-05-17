@@ -200,7 +200,7 @@ private:
   std::string paymentUrl() const;
 
   JSignal<int>& redirected();
-  void setPaymentAccepted(bool accepted, const std::string& payerId);
+  void setPaymentAccepted(bool accepted, std::string_view payerId);
   void onRedirect(int result);
 
   void handleInternalPath(const std::string& internalPath);

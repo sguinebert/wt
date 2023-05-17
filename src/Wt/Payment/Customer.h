@@ -106,7 +106,7 @@ public:
    *
    * Not all payment brokers support (or need this).
    */
-  void setPayerId(const std::string& payerId);
+  void setPayerId(std::string_view payerId);
 
   /*! \brief Returns payerId
    *

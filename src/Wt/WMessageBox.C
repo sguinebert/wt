@@ -258,15 +258,15 @@ void WMessageBox::setHidden(bool hidden, const WAnimation& animation)
   WDialog::setHidden(hidden, animation);
 }
 
-StandardButton WMessageBox::show(const WString& caption,
-				 const WString& text,
-				 WFlags<StandardButton> buttons,
-				 const WAnimation& animation)
+awaitable<StandardButton> WMessageBox::show(const WString& caption,
+                                            const WString& text,
+                                            WFlags<StandardButton> buttons,
+                                            const WAnimation& animation)
 {
   WMessageBox box(caption, text, Icon::Information, buttons);
   box.buttonClicked().connect(&box, &WMessageBox::accept);
-  box.exec(animation);
-  return box.buttonResult();
+  co_await box.exec(animation);
+  co_return box.buttonResult();
 }
 
 WString WMessageBox::standardButtonText(StandardButton button)

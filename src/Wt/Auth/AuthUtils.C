@@ -85,9 +85,9 @@ std::string encodeState(const std::string &secret, const std::string &url)
   return b;
 }
 
-std::string decodeState(const std::string &secret, const std::string &state)
+std::string decodeState(const std::string &secret, std::string_view state)
 {
-  std::string s = state;
+  std::string s{state};
   s = Wt::Utils::replace(s, "-", "+");
   s = Wt::Utils::replace(s, "_", "/");
   s = Wt::Utils::replace(s, ".", "=");

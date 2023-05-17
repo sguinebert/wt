@@ -217,10 +217,10 @@ public:
    * servlet containers.</i>
    * \endif
    */
-  static StandardButton show(const WString& caption,
-			     const WString& text,
-			     WFlags<StandardButton> buttons,
-			     const WAnimation& animation = WAnimation());
+  static awaitable<StandardButton> show(const WString& caption,
+                                        const WString& text,
+                                        WFlags<StandardButton> buttons,
+                                        const WAnimation& animation = WAnimation());
 
   /*! \brief %Signal emitted when a button is clicked.
    */

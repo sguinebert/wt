@@ -353,11 +353,12 @@ public:
 
   std::string_view path() const noexcept { return path_; }
 
-  std::string_view pathInfo() const noexcept { return pathInfo_; }
+  std::string_view pathInfo(std::string_view base) const noexcept { return pathInfo_; }
 
   std::string_view querystring() const noexcept { return querystring_; }
 
   UploadedFileMap& files() { return files_; }
+  UploadedFileMap& uploadedFiles() { return files_; }
 
   std::multimap<std::string, std::string>& query() const noexcept {
     if (!querystring_.empty() && query_.empty()) {

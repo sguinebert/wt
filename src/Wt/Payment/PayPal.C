@@ -54,8 +54,7 @@ public:
     beingDeleted();
   }
 
-  virtual void handleRequest(const Wt::Http::Request& request,
-                             Wt::Http::Response& response) override
+  virtual void handleRequest(const Wt::Http::Request& request, Wt::Http::Response& response) override
   {
 #ifndef WT_TARGET_JAVA
     std::ostream& o = response.out();
@@ -95,6 +94,49 @@ public:
       "}\n"
       "</script></head>"
       "<body onload=\"load();\"></body></html>";
+  }
+
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
+  {
+#ifndef WT_TARGET_JAVA
+    std::ostream& o = response.out();
+#else
+    std::ostream o(response.out());
+#endif // WT_TARGET_JAVA
+
+    auto result = request.getParameter("result");
+    auto payerId = request.getParameter("PayerID");
+
+    if (result == "ok" && !payerId.empty())
+      checkout_->setPaymentAccepted(true, payerId);
+    else
+      checkout_->setPaymentAccepted(false, std::string_view());
+
+    /*
+     * Parse request parameters here and set them in the checkout_
+     *   we can already make the call for the details while the window
+     *   is being closed ?
+     */
+
+    WApplication *app = WApplication::instance();
+    std::string appJs = app->javaScriptClass();
+
+    o <<
+        "<!DOCTYPE html>"
+        "<html lang=\"en\" dir=\"ltr\">\n"
+        "<head><title></title>\n"
+        "<script type=\"text/javascript\">\n"
+        "function load() { "
+        """if (window.opener." << appJs << ") {"
+                  ""  "var " << appJs << "= window.opener." << appJs << ";"
+      <<  checkout_->redirected().createCall({"-1"}) << ";"
+                                                       ""  "window.closedAfterRedirect=true;"
+                                                       ""  "window.close();"
+                                                       "}\n"
+                                                       "}\n"
+                                                       "</script></head>"
+                                                       "<body onload=\"load();\"></body></html>";
+    co_return;
   }
 
 private:
@@ -402,8 +444,7 @@ void PayPalExpressCheckout::startPayment()
   }
 }
 
-void PayPalExpressCheckout::setPaymentAccepted(bool accepted,
-					       const std::string& payerId)
+void PayPalExpressCheckout::setPaymentAccepted(bool accepted, std::string_view payerId)
 {
   impl_->accepted_ = accepted;
   impl_->customer_.setPayerId(payerId);
