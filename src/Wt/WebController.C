@@ -221,9 +221,15 @@ bool WebController::expireSessions()
     std::unique_lock<std::recursive_mutex> lock(mutex_);
 #endif // WT_THREADED
 
+//    server_.ioService().dispatchAll([this, session] () {
+//        sessions_.erase(session->sessionId());
+//    });
+
     // Another thread might have already removed it
     if (sessions_.find(session->sessionId()) == sessions_.end())
       continue;
+//    if (!sessions_.erase(session->sessionId()))
+//      continue;
 
     if (session->env().ajax())
       --ajaxSessions_;
@@ -242,6 +248,10 @@ bool WebController::expireSessions()
 
 void WebController::addSession(const std::shared_ptr<WebSession>& session)
 {
+//  server_.ioService().dispatchAll([this, session] () {
+//      sessions_[session->sessionId()] = session;
+//  });
+
 #ifdef WT_THREADED
   std::unique_lock<std::recursive_mutex> lock(mutex_);
 #endif // WT_THREADED
@@ -256,6 +266,10 @@ void WebController::removeSession(const std::string& sessionId)
 #endif // WT_THREADED
 
   LOG_INFO("Removing session {}", sessionId);
+
+  //    server_.ioService().dispatchAll([this, sessionId] () {
+  //        sessions_.erase(sessionId);
+  //    });
 
   SessionMap::iterator i = sessions_.find(sessionId);
   if (i != sessions_.end()) {
@@ -1004,6 +1018,10 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
                                         (session->env().urlScheme() == "https" ? " secure;" : ""));
               context->res().addHeader("Set-Cookie", cookie);
         }
+
+//        server_.ioService().dispatchAll([this, session, sessionId] () {
+//            sessions_[sessionId] = session;
+//        });
 
         sessions_[sessionId] = session;
         context->websession(session);
