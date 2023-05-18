@@ -538,7 +538,8 @@ public:
 
         server_->use(router_);
         server_->ws().use(ws_router_);
-        //server_->use(cue::http::use_compress());
+        //server_->use(http::use_static("C:/Users/xcyl/Desktop"));
+        server_->use(http::use_static(config->docRoot().c_str()));
 
         server_->listen(std::stoi(serverConfiguration_->httpPort()), serverConfiguration_->httpAddress());
 

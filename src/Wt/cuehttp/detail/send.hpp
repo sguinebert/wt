@@ -29,6 +29,8 @@
 #include "../context.hpp"
 #include "mime.hpp"
 
+#include <Wt/AsioWrapper/asio.hpp>
+
 namespace Wt {
 namespace http {
 
@@ -53,7 +55,7 @@ struct options final {
 namespace detail {
 
 template <typename _Path, typename _Options>
-inline void send_file(context& ctx, _Path&& path, _Options&& options) {
+inline awaitable<void> send_file(context& ctx, _Path&& path, _Options&& options) {
   std::string temp_path = std::forward<_Path>(path);
   assert(!temp_path.empty());
 
@@ -66,7 +68,7 @@ inline void send_file(context& ctx, _Path&& path, _Options&& options) {
     fs::path real_path{options.root};
     real_path += temp_path;
     if (!options.hidden && real_path.filename().string()[0] == '.') {
-      return;
+      co_return;
     }
 
     if (!real_path.has_extension()) {
@@ -81,34 +83,78 @@ inline void send_file(context& ctx, _Path&& path, _Options&& options) {
     }
 
     if (!fs::exists(real_path) || !fs::is_regular_file(real_path)) {
-      return;
+      co_return;
     }
+#if defined(BOOST_ASIO_HAS_FILE) || defined(ASIO_HAS_FILE)
+    {
+      asio::random_access_file file(co_await asio::this_coro::executor,
+                                    real_path,
+                                    asio::random_access_file::read_only);
 
+      if (!file.is_open()) {
+        co_return;
+      }
+
+      auto file_size = file.size();
+
+      if (file_size == 0) {
+        co_return;
+      }
+      if (options.cross_domain) {
+        ctx.addHeader("Access-Control-Allow-Origin", "*");
+        ctx.addHeader("Access-Control-Allow-Headers", "X-Requested-With");
+        ctx.addHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+      }
+      if (!ctx.res().has("Content-Type")) {
+        const auto ext_str = real_path.extension().string();
+        const auto it = options.mime_types.find(utils::to_lower(ext_str));
+        if (it != options.mime_types.end()) {
+          ctx.type(it->second);
+        } else {
+          ctx.type(get_mime(ext_str));
+        }
+      }
+      ctx.status(200);
+      if (static_cast<std::uint64_t>(file_size) >= options.chunked_threshold) {
+        ctx.chunked();
+        std::size_t tellg, read_bytes = 0;
+        do  {
+          auto mutb = ctx.prepare(options.chunked_threshold);
+          read_bytes = co_await file.async_read_some_at(tellg, mutb, use_awaitable);
+          ctx.commit(read_bytes);
+          tellg += options.chunked_threshold;
+          co_await ctx.res().chunk_flush();
+        } while (read_bytes);
+
+      } else {
+        ctx.length(file_size);
+
+        auto mutb = ctx.prepare(file_size);
+        auto read_bytes = co_await file.async_read_some_at(0, mutb, use_awaitable);
+        ctx.commit(read_bytes);
+
+      }
+
+      ctx.flush();
+
+    }
+  } catch (...) {
+    co_return;
+  }
+
+    co_return;
+#else
     std::ifstream file{real_path.string(), std::ios_base::binary};
     if (!file.is_open()) {
-      return;
+      co_return;
     }
 
     file.seekg(0, std::ios_base::end);
     auto file_size = file.tellg();
     if (file_size == -1) {
-      return;
+      co_return;
     }
     file.seekg(std::ios_base::beg);
-#ifdef ENABLE_GZIP
-    std::string data;
-    if (static_cast<std::uint64_t>(file_size) >= options.gzip_threshold &&
-        options.gzip) {
-      std::ostringstream tmp;
-      tmp << file.rdbuf();
-      std::string dst;
-      if (compress::deflate(tmp.str(), dst)) {
-        data = std::move(dst);
-        ctx.set("Content-Encoding", "gzip");
-      }
-      file_size = data.size();
-    }
-#endif  // ENABLE_GZIP
     if (options.cross_domain) {
       ctx.addHeader("Access-Control-Allow-Origin", "*");
       ctx.addHeader("Access-Control-Allow-Headers", "X-Requested-With");
@@ -126,21 +172,24 @@ inline void send_file(context& ctx, _Path&& path, _Options&& options) {
     ctx.status(200);
     if (static_cast<std::uint64_t>(file_size) >= options.chunked_threshold) {
       ctx.chunked();
+      auto buffer = ctx.prepare(options.chunked_threshold);
+      while(!file.eof()) {
+        auto mutb = ctx.prepare(options.chunked_threshold);
+        file.read(buffer.begin(), options.chunked_threshold);
+        ctx.commit(file.gcount());
+        //tellg += options.chunked_threshold;
+        co_await ctx.res().chunk_flush();
+      }
     } else {
       ctx.length(file_size);
-    }
-#ifdef ENABLE_GZIP
-    if (data.empty()) {
       ctx.body() << file.rdbuf();
-    } else {
-      ctx.body() << data;
     }
-#else
-    ctx.body() << file.rdbuf();
-#endif  // ENABLE_GZIP
   } catch (...) {
-    return;
+    co_return;
   }
+  co_return;
+
+#endif
 }
 
 template <typename _Path>

@@ -129,6 +129,9 @@ class context final : safe_noncopyable {
 
   void length(std::uint64_t content_length) noexcept { response_.length(content_length); }
 
+  auto prepare(std::size_t n) { return response_.buffer_.prepare(n); }
+  void commit(std::size_t n) { response_.buffer_.commit(n); }
+
   class cookies& cookies() noexcept {
     return cookies_;
   }

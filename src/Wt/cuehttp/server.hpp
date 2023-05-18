@@ -79,31 +79,6 @@ public:
         return *this;
     }
 
-//    void run() {
-//        detail::engines::default_engines().run();
-//    }
-
-//    void expireSessions(Wt::AsioWrapper::error_code ec)
-//    {
-//        //LOG_DEBUG_S(&wt_, "expireSession() {}", ec.message());
-
-//        if (!ec) {
-//            bool haveMoreSessions = 0;// wt_.expireSessions();
-//            if (!haveMoreSessions &&
-//                wt_.configuration().sessionPolicy() == Wt::Configuration::DedicatedProcess &&
-//                config_.parentPort() != -1)
-//                wt_.scheduleStop();
-//            else {
-//                expireSessionsTimer_.expires_from_now
-//                    (std::chrono::seconds(SESSION_EXPIRE_INTERVAL));
-//                expireSessionsTimer_.async_wait
-//                    (std::bind(&Server::expireSessions, this, std::placeholders::_1));
-//            }
-//        } else if (ec != asio::error::operation_aborted) {
-//            //LOG_ERROR_S(&wt_, "session expiration timer got an error: {}", ec.message());
-//        }
-//    }
-
 protected:
     void listen_impl(asio::ip::tcp::resolver::query&& query) {
         asio::ip::tcp::endpoint endpoint{*asio::ip::tcp::resolver{engine_->get()}.resolve(query)};

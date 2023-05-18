@@ -48,34 +48,36 @@ namespace detail {
 template <typename _Root, typename _Options>
 inline auto use_static(_Root&& root, _Options&& options) noexcept {
   return [root = std::forward<_Root>(root), options = std::forward<_Options>(options)](context& ctx,
-                                                                                       std::function<void()> next) {
-    static const auto handler = [](context& ctx, std::string&& root, const static_file::options& static_options) {
-      if (ctx.method() != "GET" && ctx.method() != "HEAD") {
-        return;
-      }
-      send::options send_options;
-      send_options.root = std::move(root);
-      send_options.index = static_options.index.empty() ? "index.html" : std::move(static_options.index);
-      send_options.extensions = std::move(static_options.extensions);
-      send_options.hidden = static_options.hidden;
-      send_options.cross_domain = static_options.cross_domain;
+                                                                                       std::function<awaitable<void>()> next) -> awaitable<void> {
+      static const auto handler = [](context& ctx, std::string&& root, const static_file::options& static_options) -> awaitable<void> {
+          if (ctx.method() != "GET" && ctx.method() != "HEAD") {
+              co_return;
+          }
+          send::options send_options;
+          send_options.root = std::move(root);
+          send_options.index = static_options.index.empty() ? "index.html" : std::move(static_options.index);
+          send_options.extensions = std::move(static_options.extensions);
+          send_options.hidden = static_options.hidden;
+          send_options.cross_domain = static_options.cross_domain;
 #ifdef ENABLE_GZIP
-      send_options.gzip = static_options.gzip;
-      send_options.gzip_threshold = static_options.gzip_threshold;
+          send_options.gzip = static_options.gzip;
+          send_options.gzip_threshold = static_options.gzip_threshold;
 #endif  // ENABLE_GZIP
-      send_file(ctx, std::string{ctx.path()}, std::move(send_options));
-    };
+          co_await send_file(ctx, std::string{ctx.path()}, std::move(send_options));
+          co_return;
+      };
 
-    if (options.delay) {
-      next();
-      if (ctx.status() != 404 || ctx.has_body()) {
-        return;
+      if (options.delay) {
+          co_await next();
+          if (ctx.status() != 404 || ctx.has_body()) {
+              co_return;
+          }
+          co_await handler(ctx, std::move(root), options);
+      } else {
+          co_await handler(ctx, std::move(root), options);
+          co_await next();
       }
-      handler(ctx, std::move(root), options);
-    } else {
-      handler(ctx, std::move(root), options);
-      next();
-    }
+      co_return;
   };
 }
 

@@ -10,6 +10,13 @@ add_definitions(-DFMT_HEADER_ONLY)
 #add_definitions(-DFMT_EXPORT)
 #add_definitions(-DBUILD_SHARED_LIBS)
 add_definitions(-DBOOST_JSON_STANDALONE)
+add_definitions(-DBOOST_ASIO_HAS_IO_URING)
+add_definitions(-DBOOST_ASIO_DISABLE_EPOLL)
+
+#define ASIO_HAS_IO_URING
+#define BOOST_ASIO_HAS_IO_URING
+#define ASIO_DISABLE_EPOLL
+#define BOOST_ASIO_DISABLE_EPOLL
 
 INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_SOURCE_DIR}/web
