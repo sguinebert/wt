@@ -77,6 +77,8 @@ class context final : safe_noncopyable {
 
   std::string_view url() const noexcept { return request_.url(); }
 
+  boost::url_view& urlv() noexcept { return request_.urlv(); }
+
   std::string_view origin() const noexcept { return request_.origin(); }
 
   std::string_view href() const noexcept { return request_.href(); }

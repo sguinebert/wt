@@ -163,10 +163,11 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 //    std::cout << "second test async_wait" << std::endl;
 //    co_await timer.async_wait(asio::bind_cancellation_slot(cancel_signal_.slot(), use_nothrow_awaitable));
 //    std::cout << "test async_wait" << std::endl;
-
+    bool continuing = false;
     for(;;) {
       auto buffer = context_.req().buffer();
       auto [code, bytes_transferred] = co_await socket_.async_read_some(asio::buffer(buffer.first, buffer.second), use_nothrow_awaitable);
+      //std::cout << "waiting for : " << context_.req().length() << " - received : " << bytes_transferred << std::endl;
       if (code) {
           //std::cerr << "error : async_read_some = " << code.what() << std::endl;
           if (code == asio::error::eof) {
@@ -176,7 +177,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
           co_return;
       }
 
-      reply_str_.reserve(4096);
+      //reply_str_.reserve(4096);
       //const auto finished = parse(bytes_transferred);
       auto finished = true;
 
@@ -192,25 +193,35 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
           finished = true;
           break;
       case -3:
+          std::cerr << "case -3 ------------------------" << std::endl;
           co_await handle();
           for (;;) {
               const auto code = context_.req().parse(0);
               if (code == 0) {
                   co_await handle();
                   finished = true;
+                  break;
               } else if (code == -1) {
                   reply_str_.append(make_reply_str(400));
                   finished = true;
+                  break;
               } else if (code == -2) {
                   co_await handle();
                   finished = false;
+                  break;
               } else {
                   co_await handle();
+                  break;
               }
           }
+          if(!finished)
+              continue;
           break;
       case -2:
           finished = false;
+          continuing = true;
+          //std::cerr << "not finished : continue reading..." << std::endl;
+          continue;
           break;
       default:
           //        do_read();
@@ -218,6 +229,11 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
           continue;
           break;
       }
+
+//      if(!finished) {
+//          std::cerr << "not finished : terminate()..." << std::endl;
+//          std::terminate();
+//      }
 
       if(!context_.flush_) {
           co_await context_.wait_flush(use_awaitable);
@@ -250,8 +266,8 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
               //do_read(); --> go to start
           }
       }
+      continuing = false;
     }
-
     co_return;
   }
 

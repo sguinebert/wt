@@ -177,7 +177,7 @@ class session final {
     }
 
     using namespace nlohmann;
-    const auto root = json::parse(json);
+    const auto root = nlohmann::json::parse(json);
     if (!root.empty() && root.count("_expire") == 1 && root["_expire"].get<std::int64_t>() < detail::utils::now()) {
       return false;
     }

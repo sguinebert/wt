@@ -398,7 +398,7 @@ namespace Wt
     if (readOption != ReadHeadersOnly &&
         meth == "POST" &&
         ((!type.empty() && type.find("application/x-www-form-urlencoded") != std::string_view::npos) ||
-         (queryString.find("&contentType=x-www-form-urlencoded") != std::string::npos)))
+         (queryString.find("&contentType=x-www-form-urlencoded") != std::string_view::npos)))
     {
       /*
           * TODO: parse this stream-based to avoid the malloc here. For now
@@ -620,7 +620,7 @@ namespace Wt
       if (!currentKey_.empty())
       {
         LOG_DEBUG("value: \"{}\"", value);
-        context->req().getParameters()[currentKey_].push_back(value);
+        context->req().query().emplace(currentKey_, value);
         //context->req().query().
         //request_->parameters_[currentKey_].push_back(value);
       }

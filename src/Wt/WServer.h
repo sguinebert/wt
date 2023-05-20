@@ -13,7 +13,6 @@
 #include <Wt/WLogger.h>
 #include <Wt/WIOService.h>
 #include <Wt/cuehttp.hpp>
-#include <Wt/cuehttp/compress.hpp>
 
 #include <Wt/Http/Configuration.h>
 #include <Wt/Configuration.h>
@@ -488,6 +487,7 @@ public:
             router_.post(ep.path(), [this, config, &ep] (Wt::http::context& ctx) -> awaitable<void>
                         {
                             ctx.status(200);
+                            auto expect = ctx.getHeader("expect");
                             co_await this->webController_->handleRequest(&ctx, &ep);
                             //std::cerr << "---------rest post------- " << std::endl << std::endl;
                             //streply->send(res, http::server::Reply::status_type::not_found);

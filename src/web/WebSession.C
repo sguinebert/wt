@@ -2901,6 +2901,7 @@ awaitable<void> WebSession::notify(const WEvent& event)
             try {
               co_await resource->handle(context);
               handler->setRequest(nullptr, nullptr);
+              handler->setRequest(nullptr);
             } catch (std::exception& e) {
               LOG_ERROR("Exception while streaming resource {}", e.what());
               RETHROW(e);

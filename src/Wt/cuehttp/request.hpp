@@ -31,6 +31,7 @@
 #include "response.hpp"
 
 #include <Wt/Http/Request.h>
+#include <boost/url.hpp>
 //#include <Wt/Configuration.h>
 
 namespace Wt {
@@ -331,6 +332,8 @@ public:
 
   std::string_view url() const noexcept { return url_; }
 
+  boost::url_view& urlv() noexcept { return urlv_; }
+
   std::string_view origin() const noexcept {
     if (origin_.empty()) {
       origin_ = https_ ? "https://" : "http://";
@@ -424,7 +427,7 @@ public:
 
   std::string_view body() const noexcept { return body_; }
 
-  void read(char* buf, unsigned size) { std::copy(buffer_.begin(), buffer_.begin() + size, buf);  }
+  void read(char* buf, unsigned size) { std::copy(body_.begin(), body_.begin() + size, buf);  }
 
   void reset() noexcept {
     data_size_ = 0;
@@ -434,6 +437,7 @@ public:
     field_ = {};
     value_ = {};
     url_ = {};
+    internalPath_.clear();
     origin_.clear();
     href_.clear();
     path_ = {};
@@ -457,8 +461,11 @@ public:
     data_size_ += size;
     int code{0};
     if (continue_parse_body_) {
-      body_ = {body_.data(),
-               std::min(content_length_, static_cast<std::uint64_t>(data_size_ - (body_.data() - buffer_.data())))};
+//      body_ = {body_.data(),
+//               std::min(content_length_, static_cast<std::uint64_t>(data_size_ - (body_.data() - buffer_.data())))};
+      body_ = {buffer_.data() + parse_size_,
+               std::min(content_length_, static_cast<std::uint64_t>(data_size_ - parse_size_))};
+      //std::cout << "__________-----> " << body_ << std::endl;
       if (body_.length() < content_length_) {
         expand();
         continue_parse_body_ = true;
@@ -558,7 +565,7 @@ public:
     auto sv = get("Accept-Language");
     if (sv.empty())
       return ""sv;
-
+    return ""sv;
 //    std::vector<ValueListParser::Value> values;
 
 //    ValueListParser valueListParser(values);
@@ -619,80 +626,29 @@ public:
     return false;
   }
 
-//  std::string_view clientAddress(const Wt::Configuration &conf) const
-//  {
-//    //std::string remoteAddr = str(envValue("REMOTE_ADDR"));
-//    auto remoteAddr = envValue("REMOTE_ADDR");
-//    if (conf.behindReverseProxy()) {
-//      // Old, deprecated behavior
-//      auto clientIp = get("Client-IP");
-
-//      std::vector<std::string_view> ips;
-//      if (!clientIp.empty())
-//        boost::split(ips, clientIp, boost::is_any_of(","));
-
-//      auto forwardedFor = get("X-Forwarded-For");
-
-//      std::vector<std::string_view> forwardedIps;
-//      if (!forwardedFor.empty())
-//        boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
-
-//      //Utils::insert(ips, forwardedIps);
-//      ips.insert(ips.end(), forwardedIps.begin(), forwardedIps.end());
-
-//      for (auto &ip : ips) {
-//        ip = boost::trim_copy(ip);
-
-//        if (!ip.empty() && !isPrivateIP(ip)) {
-//          return ip;
-//        }
-//      }
-
-//      return remoteAddr;
-//    } else {
-//      if (conf.isTrustedProxy(remoteAddr)) {
-//        auto forwardedFor = get(conf.originalIPHeader());
-//        forwardedFor = boost::trim_copy(forwardedFor);
-//        std::vector<std::string_view> forwardedIps;
-//        boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));
-//        for (auto it = forwardedIps.rbegin(); it != forwardedIps.rend(); ++it) {
-//          *it = boost::trim_copy(*it);
-//          if (!it->empty()) {
-//            if (!conf.isTrustedProxy(*it)) {
-//              return *it;
-//            } else {
-//              /*
-//             * When the left-most address in a forwardedHeader is contained
-//             * within a trustedProxy subnet, it should be returned as the clientAddress
-//             */
-//              remoteAddr = *it;
-//            }
-//          }
-//        }
-//      }
-//      return remoteAddr;
-//    }
-//  }
 
  private:
-  void parse_url() {
-    const auto pos = url_.find('?');
-    if (pos == std::string_view::npos) {
-      path_ = url_;
-    } else {
-      path_ = url_.substr(0, pos);
-      querystring_ = url_.substr(pos + 1, url_.length() - pos - 1);
-      search_ = url_.substr(pos, url_.length() - pos);
 
-//      const auto pos = url_.find('#');
-//      pathInfo_ = url_.substr(pos + 1);
-      //pathInfo_ = path_;
-    }
+  void parse_url() {
+    urlv_= boost::url_view { url_ };
+
+    path_ = urlv_.encoded_path();
+    querystring_ = urlv_.encoded_query();
+
+//        const auto pos = url_.find('?');
+//        if (pos == std::string_view::npos) {
+//          path_ = url_;
+//        } else {
+//          path_ = url_.substr(0, pos);
+//          querystring_ = url_.substr(pos + 1, url_.length() - pos - 1);
+//          search_ = url_.substr(pos, url_.length() - pos);
+//        }
   }
+  void setInternalPath(std::string_view internalPath) { internalPath_ = internalPath; }
 
   void expand() {
     const char* data{buffer_.data()};
-    buffer_offset_ = buffer_.size();
+    buffer_offset_ = data_size_;//buffer_.size();
     buffer_.resize(buffer_.size() * 2);
 
     for (std::size_t i{0}; i < phr_num_headers_; ++i) {
@@ -707,6 +663,7 @@ public:
 
     if (!url_.empty()) {
       url_ = {buffer_.data() + (url_.data() - data), url_.length()};
+      urlv_= boost::url_view { url_ };
     }
 
     if (!path_.empty()) {
@@ -741,6 +698,8 @@ public:
   std::string_view value_;
   unsigned minor_version_{1};
   std::string_view url_;
+  boost::url_view urlv_;
+  std::string internalPath_;
   mutable std::string origin_;
   mutable std::string href_;
   std::string_view path_, pathInfo_;

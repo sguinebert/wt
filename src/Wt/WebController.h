@@ -16,7 +16,7 @@
 //#include <Wt/WServer.h>
 #include <Wt/WSocketNotifier.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/cuehttp.hpp>
+#include <Wt/cuehttp/context.hpp>
 
 #include "web/EntryPoint.h"
 #include "web/SocketNotifier.h"

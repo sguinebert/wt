@@ -136,8 +136,8 @@ protected:
     Utils::find(request.uploadedFiles(), "data", files);
 
 //    if (!request.tooLarge())
-//      if (!files.empty() || !request.getParameter("data").empty())
-//        triggerUpdate = true;
+      if (!files.empty() || !request.getParameter("data").empty())
+        triggerUpdate = true;
 
     response.setContentType("text/html; charset=utf-8");
     response.addHeader("Expires", "Sun, 14 Jun 2020 00:00:00 GMT");

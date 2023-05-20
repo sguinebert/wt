@@ -358,7 +358,7 @@ Wt/Json/simdjson.h Wt/Json/simdjson.cpp
 Wt/Json/Parser.h Wt/Json/Parser.C
 Wt/Json/Serializer.h Wt/Json/Serializer.C
 
-Wt/cuehttp.hpp Wt/cuehttp/compress.hpp Wt/cuehttp/context.hpp Wt/cuehttp/cookies.hpp Wt/cuehttp/cuehttp.hpp
+Wt/cuehttp/compress.hpp Wt/cuehttp/context.hpp Wt/cuehttp/cookies.hpp Wt/cuehttp/cuehttp.hpp
 
 
 Wt/WebController.h Wt/WebController.C
