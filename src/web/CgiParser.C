@@ -917,7 +917,7 @@ namespace Wt
                                                     static_cast<::int64_t>(BUFSIZE + (int)MAXBOUND - buflen_)));
 
 
-      context->req().read(buf_ + buflen_, buflen_, amt);
+      context->req().read(buf_ + buflen_, offset_, amt);
 
 //      context->req().body().substr(buf_ + buflen_, amt)
 
@@ -927,6 +927,7 @@ namespace Wt
 
       left_ -= amt;
       buflen_ += amt;
+      offset_ += amt;
     }
 
     if (resultString)

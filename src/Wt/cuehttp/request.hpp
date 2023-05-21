@@ -430,7 +430,7 @@ public:
 
   std::string_view body() const noexcept { return body_; }
 
-  void read(char* buf, unsigned offset, unsigned size) { std::copy(body_.begin() + offset, body_.begin() + size, buf);  }
+  void read(char* buf, unsigned offset, unsigned size) { std::copy(body_.begin() + offset, body_.begin() + offset + size, buf);  }
 
   void reset() noexcept {
     data_size_ = 0;
@@ -469,7 +469,7 @@ public:
 //               std::min(content_length_, static_cast<std::uint64_t>(data_size_ - (body_.data() - buffer_.data())))};
       body_ = {buffer_.data() + parse_size_,
                std::min(content_length_, static_cast<std::uint64_t>(data_size_ - parse_size_))};
-      std::cout << "__________-----> " << body_ << std::endl;
+      //std::cout << "__________-----> " << body_ << std::endl;
       if (body_.length() < content_length_) {
         expand();
         continue_parse_body_ = true;

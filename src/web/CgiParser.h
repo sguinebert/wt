@@ -73,6 +73,7 @@ private:
   enum {MAXBOUND = 100};
 
   int buflen_;
+  unsigned offset_ = 0;
   char buf_[BUFSIZE + (int)MAXBOUND];
 };
 
