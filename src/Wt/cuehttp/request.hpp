@@ -424,7 +424,7 @@ public:
 
   std::uint64_t length() const noexcept { return content_length_; }
 
-  std::uint64_t postDataExceeded() noexcept { return postDataExceeded_; }
+  ::int64_t postDataExceeded() noexcept { return postDataExceeded_; }
 
   bool websocket() const noexcept { return websocket_; }
 

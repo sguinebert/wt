@@ -257,10 +257,8 @@ class context final : safe_noncopyable {
   std::shared_ptr<Wt::WebSession> websession() { return websession_; }
   void websession(std::shared_ptr<Wt::WebSession> wsession) { websession_ = wsession; }
 
-  //std::string ws_querystring() { return "wtd=" + websession_.lock()->sessionId() + "&request=jsupdate"; }
-
   bool flush_ = false;
-  std::uint64_t postDataExceeded() noexcept { return request_.postDataExceeded_; }
+  ::int64_t postDataExceeded() noexcept { return request_.postDataExceeded_; }
 
  private:
   void make_ws() {
