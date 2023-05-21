@@ -124,7 +124,7 @@ protected:
       fileUpload_->setFiles(files);
   }
 
-#warning "not completely implemented"
+#warning "need test fileupload"
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
   {
     bool triggerUpdate = false;
@@ -135,7 +135,7 @@ protected:
 #endif
     Utils::find(request.uploadedFiles(), "data", files);
 
-//    if (!request.tooLarge())
+    if (!request.postDataExceeded())
       if (!files.empty() || !request.getParameter("data").empty())
         triggerUpdate = true;
 
@@ -154,7 +154,7 @@ protected:
          "<head><script type=\"text/javascript\">\n"
          "function load() { ";
 
-    if (triggerUpdate /*|| request.tooLarge()*/) {
+    if (triggerUpdate || request.postDataExceeded()) {
       UserAgent agent = WApplication::instance()->environment().agent();
 
       if (triggerUpdate) {
@@ -176,27 +176,27 @@ protected:
             << "}), '*');";
         }
       }
-//      else if (request.tooLarge())
-//      {
-//        LOG_DEBUG("Resource handleRequest(): signaling file-too-large");
+      else if (request.postDataExceeded())
+      {
+        LOG_DEBUG("Resource handleRequest(): signaling file-too-large");
 
-//        // FIXME this should use postMessage() all the same
+        // FIXME this should use postMessage() all the same
 
-//        std::string s = std::to_string(request.tooLarge());
+        std::string s = std::to_string(request.postDataExceeded());
 
-//        // postMessage does not work for IE6,7
-//        if (agent == UserAgent::IE6 ||
-//            agent == UserAgent::IE7) {
-//#ifndef WT_TARGET_JAVA
-//          o << fileUpload_->fileTooLarge().createCall({s});
-//#else
-//          o << fileUpload_->fileTooLarge().createCall(s);
-//#endif
-//        } else
-//          o << " window.parent.postMessage("
-//            << "JSON.stringify({" << "fileTooLargeSize: '" << s
-//            << "',type: 'file_too_large'" << "'}), '*');";
-//      }
+        // postMessage does not work for IE6,7
+        if (agent == UserAgent::IE6 ||
+            agent == UserAgent::IE7) {
+#ifndef WT_TARGET_JAVA
+          o << fileUpload_->fileTooLarge().createCall({s});
+#else
+          o << fileUpload_->fileTooLarge().createCall(s);
+#endif
+        } else
+          o << " window.parent.postMessage("
+            << "JSON.stringify({" << "fileTooLargeSize: '" << s
+            << "',type: 'file_too_large'" << "'}), '*');";
+      }
     } else {
       LOG_DEBUG("Resource handleRequest(): no signal");
     }

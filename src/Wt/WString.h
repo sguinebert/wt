@@ -165,6 +165,9 @@ public:
   WString(const char *value,
 	  CharEncoding encoding = CharEncoding::Default);
 
+  WString(const char *value, std::size_t size,
+          CharEncoding encoding = CharEncoding::Default);
+
   /*! \brief Creates a %WString from a C string.
    *
    * The C string is implicitly converted to unicode. The
@@ -187,6 +190,9 @@ public:
    */
   WString(const std::string& value,
 	  CharEncoding encoding = CharEncoding::Default);
+
+//  WString(std::string_view sv,
+//          CharEncoding encoding = CharEncoding::Default);
 
   /*! \brief Creates a %WString from a C++ string.
    *
@@ -800,6 +806,10 @@ private:
  * \relates WString
  */
 extern WT_API WString utf8(const char *value);
+
+extern WT_API WString utf8(const char *value, std::size_t size);
+
+extern WT_API WString utf8(std::string_view value);
 
 /*! \brief Short hand for WString(const std::string& value, CharEncoding::UTF8)
  *

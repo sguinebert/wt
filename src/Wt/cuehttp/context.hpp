@@ -85,15 +85,17 @@ class context final : safe_noncopyable {
 
   std::string_view path() const noexcept { return request_.path(); }
 
-  std::string_view pathInfo(std::string_view base = ""sv) const noexcept { return request_.pathInfo(base); }
+  std::string_view pathInfo(std::string_view base) noexcept { return request_.pathInfo(base); }
+  std::string_view pathInfo() const noexcept { return request_.pathInfo(); }
 
   std::string_view querystring() const noexcept { return request_.querystring(); }
 
   UploadedFileMap& uploadedFiles() { return request_.files(); }
 
-  ::int64_t postDataExceeded() const { return postDataExceeded_; }
-
   //const UploadedFileMap& uploadedFiles() const { return request_.files(); }
+//#ifdef HTTP_WITH_SSL
+//  void registerSslHandle(SSL *ssl) { request_.ssl = ssl; }
+//#endif
 
   // response
   unsigned status() const noexcept { return response_.status(); }
@@ -204,18 +206,52 @@ class context final : safe_noncopyable {
     writecallback_ = nullptr;
   }
 
-//  void flush_r() {
-//    flush_ = true;
-//    if(websocket_) {
-//        websocket_->send(std::string(response_.dump_body()));
-//        response_.reset();
-//        return;
-//    }
-//    std::string buffers;
-//    response_.to_strbuffers(buffers);
-//    handler2_(buffers);
+//#ifdef HTTP_WITH_SSL
+//  SSL *ssl;
+//#endif
+//  std::unique_ptr<Wt::WSslInfo> sslInfo()
+//  {
+//#ifdef HTTP_WITH_SSL
+//  if (!ssl)
+//    return nullptr;
 
-//    response_.reset();
+//#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+//  X509 *x509 = SSL_get1_peer_certificate(ssl);
+//#else
+//  X509 *x509 = SSL_get_peer_certificate(ssl);
+//#endif
+//  if (x509) {
+//    Wt::WSslCertificate clientCert = Wt::Ssl::x509ToWSslCertificate(x509);
+
+//    X509_free(x509);
+
+//    std::vector<Wt::WSslCertificate> clientCertChain;
+//    STACK_OF(X509) *certChain = SSL_get_peer_cert_chain(ssl);
+//    if (certChain) {
+//        for (int i = 0; i < sk_X509_num(certChain); ++i) {
+//            X509 *x509_i = sk_X509_value(certChain, i);
+//            clientCertChain.push_back(Wt::Ssl::x509ToWSslCertificate(x509_i));
+//        }
+//    }
+
+//    Wt::ValidationState state = Wt::ValidationState::Invalid;
+//    std::string info;
+
+//    long SSL_state = SSL_get_verify_result(ssl);
+//    if (SSL_state == X509_V_OK) {
+//        state = Wt::ValidationState::Valid;
+//    } else {
+//        state = Wt::ValidationState::Invalid;
+//        info = X509_verify_cert_error_string(SSL_state);
+//    }
+//    Wt::WValidator::Result clientVerificationResult(state, info);
+
+//    return std::make_unique<Wt::WSslInfo>(clientCert,
+//                                          clientCertChain,
+//                                          clientVerificationResult);
+//  }
+//#endif
+//  return nullptr;
 //  }
 
   std::shared_ptr<Wt::WebSession> websession() { return websession_; }
@@ -224,7 +260,7 @@ class context final : safe_noncopyable {
   //std::string ws_querystring() { return "wtd=" + websession_.lock()->sessionId() + "&request=jsupdate"; }
 
   bool flush_ = false;
-  ::int64_t postDataExceeded_ = 0;
+  std::uint64_t postDataExceeded() noexcept { return request_.postDataExceeded_; }
 
  private:
   void make_ws() {

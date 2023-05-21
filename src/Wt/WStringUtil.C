@@ -27,7 +27,7 @@ namespace Wt
     static const std::size_t stack_buffer_size = 512;
 
     template <typename OutStrT>
-    OutStrT do_widen(const std::string &s, const std::locale &loc)
+    OutStrT do_widen(std::string_view s, const std::locale &loc)
     {
       typedef typename OutStrT::value_type OutCharT;
 
@@ -41,8 +41,8 @@ namespace Wt
       std::mbstate_t mystate = std::mbstate_t();
 
       wchar_t stack_buffer[stack_buffer_size + 1];
-      const char *next_to_convert = s.c_str();
-      const char *const to_convert_end = s.c_str() + s.length();
+      const char *next_to_convert = s.data();
+      const char *const to_convert_end = s.data() + s.length();
 
       bool error = false;
 
@@ -322,10 +322,10 @@ namespace Wt
     }
   }
 
-  std::wstring widen(const std::string &s, const std::locale &loc)
-  {
-    return do_widen<std::wstring>(s, loc);
-  }
+    std::wstring widen(std::string_view s, const std::locale &loc)
+    {
+      return do_widen<std::wstring>(s, loc);
+    }
 
   std::u16string toUTF16(const std::string &s, const std::locale &loc)
   {
@@ -416,6 +416,11 @@ namespace Wt
     return toUTF8(widen(s, loc));
   }
 
+  std::string toUTF8(const char *s, std::size_t size, const std::locale &loc)
+  {
+    return toUTF8(widen(std::string(s, size), loc));
+  }
+
   std::u16string toUTF16(const std::wstring &s)
   {
 #ifdef TWO_BYTE_CHAR
@@ -503,5 +508,7 @@ namespace Wt
       return s.substr(beginPos, std::string::npos);
     }
   }
+
+
 
 }

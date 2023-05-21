@@ -382,7 +382,7 @@ namespace Wt
     auto type = request.type();
     auto meth = request.method();
 
-    context->postDataExceeded_ = (len > maxRequestSize_ ? len : 0);
+    context->req().postDataExceeded_ = (len > maxRequestSize_ ? len : 0);
 
     auto queryString = request.querystring();
 
@@ -467,7 +467,7 @@ namespace Wt
         throw WException("Invalid method for multipart/form-data: " + std::string(meth));
       }
 
-      if (!context->postDataExceeded_)
+      if (!context->postDataExceeded())
         readMultipartData(context, type, len);
       else if (readOption == ReadBodyAnyway)
       {
@@ -510,7 +510,7 @@ namespace Wt
     //auto queryString_ = "wtd=" + session_->sessionId() + "&request=jsupdate";
     //auto queryString = context->ws_querystring();
 
-    context->postDataExceeded_ = (len > maxRequestSize_ ? len : 0);
+    context->req().postDataExceeded_ = (len > maxRequestSize_ ? len : 0);
 
     LOG_DEBUG("queryString (len={}): {}", len, message);
 
@@ -673,7 +673,7 @@ namespace Wt
 
     if (!fn.empty())
     {
-      if (!context->postDataExceeded_)
+      if (!context->postDataExceeded())
       {
         /*
        * It is not easy to create a std::ostream pointing to a

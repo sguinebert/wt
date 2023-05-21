@@ -82,12 +82,12 @@ namespace http {
  * This is the type used to aggregate all values for a single parameter.
  */
 #ifndef WT_TARGET_JAVA
-typedef std::vector<std::string_view> ParameterValues;
+typedef std::vector<std::string> ParameterValues;
 #else
 typedef std::string ParameterValues[];
 #endif
 
-typedef std::unordered_map<std::string_view, ParameterValues> ParameterMap;
+typedef std::unordered_map<std::string, ParameterValues> ParameterMap;
 
 /*! \brief A file parameter map.
  *
@@ -356,7 +356,8 @@ public:
 
   std::string_view path() const noexcept { return path_; }
 
-  std::string_view pathInfo(std::string_view base) const noexcept { return pathInfo_; }
+  std::string_view pathInfo(std::string_view base) noexcept { if(pathInfo_.empty() && path_.size() != base.size()) pathInfo_ = path_.substr(base.size() + 1); return pathInfo_; }
+  std::string_view pathInfo() const noexcept { return pathInfo_; }
 
   std::string_view querystring() const noexcept { return querystring_; }
 
@@ -391,8 +392,8 @@ public:
     if (!querystring_.empty() && parameters_.empty()) {
       for (auto it = mm.begin(); it != mm.end(); ++it) {
         auto aRange = mm.equal_range(it->first);
-        std::vector<std::string_view> aVector;
-        std::transform(aRange.first, aRange.second,std::back_inserter(aVector), [](auto element){ return std::string_view(element.second);});
+        std::vector<std::string> aVector;
+        std::transform(aRange.first, aRange.second,std::back_inserter(aVector), [](auto element){ return std::string(element.second);});
         parameters_[it->first] = aVector;
       }
     }
@@ -423,6 +424,8 @@ public:
 
   std::uint64_t length() const noexcept { return content_length_; }
 
+  std::uint64_t postDataExceeded() noexcept { return postDataExceeded_; }
+
   bool websocket() const noexcept { return websocket_; }
 
   std::string_view body() const noexcept { return body_; }
@@ -447,6 +450,7 @@ public:
     search_ = {};
     method_ = {};
     content_length_ = 0;
+    postDataExceeded_ = 0;
     websocket_ = false;
     res_.reset();
     cookies_.reset();
@@ -590,19 +594,19 @@ public:
   }
   std::string_view envValue(std::string_view name) const
   {
-    if (name == "CONTENT_TYPE") {
+    if (name == "CONTENT_TYPE"sv) {
       return get("Content-Type");
-    } else if (name == "CONTENT_LENGTH") {
+    } else if (name == "CONTENT_LENGTH"sv) {
       return get("Content-Length");
-    } else if (name == "SERVER_SIGNATURE") {
+    } else if (name == "SERVER_SIGNATURE"sv) {
       return "<address>Wt httpd server</address>"sv;
-    } else if (name == "SERVER_SOFTWARE") {
+    } else if (name == "SERVER_SOFTWARE"sv) {
       return "Wthttpd/" WT_VERSION_STR ;
-    } else if (name == "SERVER_ADMIN") {
+    } else if (name == "SERVER_ADMIN"sv) {
       return "webmaster@localhost"sv;
-    } else if (name == "REMOTE_ADDR") {
+    } else if (name == "REMOTE_ADDR"sv) {
       return "";//remoteAddr().c_str();
-    } else if (name == "DOCUMENT_ROOT") {
+    } else if (name == "DOCUMENT_ROOT"sv) {
       return ""sv;// reply_->configuration().docRoot().c_str();
     } else
       return ""sv;
@@ -626,7 +630,7 @@ public:
     return false;
   }
 
-
+  std::uint64_t postDataExceeded_{0};
  private:
 
   void parse_url() {

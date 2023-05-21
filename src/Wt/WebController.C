@@ -981,7 +981,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
 //  std::cerr << "sessionId : " << sessionId << std::endl;
 
   std::shared_ptr<WebSession> session = context->websession();
-  if(!session || sessionId.empty())
+  //if(!session || sessionId.empty())
   {
 #ifdef WT_THREADED
     std::unique_lock<std::recursive_mutex> lock(mutex_);

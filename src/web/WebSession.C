@@ -903,7 +903,7 @@ void WebSession::init(Wt::http::context *context)
   std::cout << "env_->setInternalPath " << path << std::endl;
 
   env_->setInternalPath(std::string(path));
-  pagePathInfo_ = context->pathInfo(); //request.pathInfo();
+  pagePathInfo_ = context->pathInfo(basePath_); //request.pathInfo();
 
   // Cache document root
   docRoot_ = getCgiValue("DOCUMENT_ROOT");
@@ -2830,6 +2830,7 @@ awaitable<void> WebSession::notify(const WEvent& event)
     if (context->responseType() == http::ResponseType::Script) {
       auto sidE = context->getParameter("sid");
       if (sidE != std::to_string(renderer_.scriptId())) {
+        std::cerr << "sidE : " << sidE << "ded " << renderer_.scriptId() << std::endl;
         throw WException("Script id mismatch");
       }
 
@@ -2864,8 +2865,8 @@ awaitable<void> WebSession::notify(const WEvent& event)
 
       WResource *resource = nullptr;
       if (requestE.empty()) {
-        if (!context->pathInfo().empty())
-          resource = app_->decodeExposedResource("/path/" + Utils::prepend(std::string(context->pathInfo()), '/'));
+        if (auto subpath = context->pathInfo(basePath_); !subpath.empty())
+          resource = app_->decodeExposedResource("/path/" + Utils::prepend(std::string(subpath), '/'));
 
         if (!resource && !hashE.empty())
           resource = app_->decodeExposedResource("/path/" + hashE);
@@ -3075,8 +3076,8 @@ awaitable<void> WebSession::notify(const WEvent& event)
 
       if (!hashE.empty())
         changeInternalPath(hashE, context);
-      else if (!context->pathInfo().empty()) {
-        changeInternalPath(std::string(context->pathInfo()), context);
+      else if (auto subpath = context->pathInfo(basePath_); !subpath.empty()) {
+        changeInternalPath(std::string(subpath), context);
 	  } else
         changeInternalPath("", context);
 	}
@@ -3240,8 +3241,8 @@ bool WebSession::resourceRequest(Wt::http::context *context) const
     if (requestE == "resource" && !resourceE.empty()) {
       return true;
     } else if (requestE.empty() && app_) { // check if resource is deployed on internal path
-      if (!context->pathInfo().empty() /*pathInfo().empty()*/ &&
-          app_->decodeExposedResource("/path/" + Utils::prepend(std::string(context->pathInfo()), '/')) != nullptr)
+      if (auto subpath = context->pathInfo(basePath_); !subpath.empty() /*pathInfo().empty()*/ &&
+          app_->decodeExposedResource("/path/" + Utils::prepend(std::string(subpath), '/')) != nullptr)
         return true;
 
       auto hashE = context->getParameter("_");// request.getParameter("_");
@@ -3306,7 +3307,7 @@ void WebSession::serveResponse(Handler& handler)
 
   if (context->responseType() == http::ResponseType::Page)
   {
-    pagePathInfo_ = context->pathInfo();
+    pagePathInfo_ = context->pathInfo(basePath_);
     auto wtdE = context->getParameter("wtd");
     if (!wtdE.empty() && wtdE == sessionId_)
       sessionIdInUrl_ = true;

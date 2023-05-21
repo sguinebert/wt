@@ -102,6 +102,17 @@ WString::WString(const char *value, CharEncoding encoding)
   }
 }
 
+WString::WString(const char *value, std::size_t size, CharEncoding encoding)
+: impl_(nullptr)
+{
+  if (value) {
+    if (realEncoding(encoding) == CharEncoding::UTF8)
+      utf8_.assign(value, size);
+    else
+      utf8_ = Wt::toUTF8(value, size);
+  }
+}
+
 WString::WString(const std::string& value, CharEncoding encoding)
   : impl_(nullptr)
 { 
@@ -110,6 +121,14 @@ WString::WString(const std::string& value, CharEncoding encoding)
   else
     utf8_ = Wt::toUTF8(value);
 }
+
+//WString::WString(std::string_view sv, CharEncoding encoding)
+//{
+//  if (realEncoding(encoding) == CharEncoding::UTF8)
+//    utf8_ = sv;
+//  else
+//    utf8_ = Wt::toUTF8(widen(sv));
+//}
 
 WString::WString(std::string&& value, CharEncoding encoding)
   : impl_(nullptr)
@@ -773,6 +792,18 @@ WString utf8(const char *value)
   return WString(value, CharEncoding::UTF8);
 }
 
+WString utf8(const char *value, std::size_t size)
+{
+  return WString(value, size, CharEncoding::UTF8);
+}
+
+
+WString utf8(std::string_view value)
+{
+  return WString(value.data(), value.size(), CharEncoding::UTF8);
+}
+
+
 WString utf8(const std::string& value)
 {
   return WString(value, CharEncoding::UTF8);
@@ -996,6 +1027,7 @@ std::ostream& operator<< (std::ostream& lhs, const WString& rhs)
 {
   return lhs << rhs.narrow();
 }
+
 
 }
 

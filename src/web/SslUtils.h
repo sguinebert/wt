@@ -21,29 +21,30 @@
 #include <Wt/AsioWrapper/asio.hpp>
 #include <Wt/AsioWrapper/ssl.hpp>
 
-
-
-namespace Wt {
-  namespace Ssl {
-
 #ifdef WT_ASIO_IS_BOOST_ASIO
 namespace asio = boost::asio;
 #endif // WT_ASIO_IS_BOOST_ASIO
 
-    std::vector<Wt::WSslCertificate::DnAttribute>
-    getDnAttributes(struct X509_name_st *sn);
+namespace Wt {
+    namespace Ssl {
+        std::vector<Wt::WSslCertificate::DnAttribute>
+        getDnAttributes(struct X509_name_st *sn);
 
-    WT_API extern WSslCertificate x509ToWSslCertificate(X509 *x);
+        WT_API extern WSslCertificate x509ToWSslCertificate(X509 *x);
 
-    Wt::WDateTime dateToWDate(struct asn1_string_st *date);
+        Wt::WDateTime dateToWDate(const struct asn1_string_st *date);
 
-    std::string exportToPem(struct x509_st *x509);
+        std::string exportToPem(struct x509_st *x509);
 
-    WT_API struct x509_st *readFromPem(const std::string &pem);
+        WT_API struct x509_st *readFromPem(const std::string &pem);
 
-    extern asio::ssl::context createSslContext(asio::io_service &io_service,
-                                               bool addCACerts);
-  }
+        extern asio::ssl::context createSslContext(asio::io_service &io_service,
+                                                   bool addCACerts);
+
+        WT_API EVP_PKEY* readPrivateKeyFromFile(const std::string& path);
+
+        WT_API std::string rs256(EVP_PKEY* pkey, const std::string& message);
+    }
 }
 #endif //WT_WITH_SSL
 

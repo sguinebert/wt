@@ -23,7 +23,7 @@ namespace Wt {
    *
    * \relates WString
    */
-  extern WT_API std::wstring widen(const std::string& s,
+extern WT_API std::wstring widen(std::string_view s,
       const std::locale &loc = std::locale());
 
 #ifndef WT_TARGET_JAVA
@@ -224,6 +224,9 @@ namespace Wt {
    */
   extern WT_API std::string toUTF8(const std::string& s,
       const std::locale &loc = std::locale());
+
+  extern WT_API std::string toUTF8(const char* s, std::size_t size,
+                                   const std::locale &loc = std::locale());
 
 #ifndef WT_TARGET_JAVA
   /*! \brief Convert a wide string to UTF-16.

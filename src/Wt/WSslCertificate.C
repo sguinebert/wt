@@ -107,9 +107,9 @@ std::string WSslCertificate::DnAttribute::longName() const
 }
 
 std::vector<WSslCertificate::DnAttribute>
-WSslCertificate::dnFromString(const std::string &dn)
+WSslCertificate::dnFromString(std::string_view dn)
 {
-  std::vector<std::string> rdns;
+  std::vector<std::string_view> rdns;
   boost::split(rdns, dn, boost::is_any_of(","));
 
   std::vector<DnAttribute> result;
@@ -119,11 +119,11 @@ WSslCertificate::dnFromString(const std::string &dn)
     auto eqPos = rdn.find('=');
     if (eqPos == std::string::npos)
       return std::vector<DnAttribute>();
-    std::string attr = rdn.substr(0, eqPos);
+    auto attr = rdn.substr(0, eqPos);
     for (int i = 0; i < DnAttributeNameCount; ++i) {
       if (boost::iequals(attr, DN_ATTR_SHORT_NAMES[i]) ||
           boost::iequals(attr, DN_ATTR_LONG_NAMES[i])) {
-        std::string value = rdn.substr(eqPos + 1);
+          std::string value { rdn.substr(eqPos + 1)};
         result.push_back(DnAttribute(static_cast<DnAttributeName>(i), value));
         break;
       }

@@ -25,8 +25,8 @@
 
 #ifndef WT_TARGET_JAVA
 #ifdef WT_WITH_SSL
-#include <openssl/sha.h>
-#include <openssl/ssl.h> // NID_sha256
+#include <openssl/evp.h>
+#include "web/SslUtils.h"
 #endif // WT_WITH_SSL
 #endif // WT_TARGET_JAVA
 
@@ -49,7 +49,7 @@ OAuthTokenEndpoint::OAuthTokenEndpoint(AbstractUserDatabase& db,
     iss_(issuer)
 #ifndef WT_TARGET_JAVA
 #ifdef WT_WITH_SSL
-   ,privateKey(NULL)
+    , privateKey_(nullptr)
 #endif // WT_WITH_SSL
 #endif // WT_TARGET_JAVA
 {
@@ -57,11 +57,12 @@ OAuthTokenEndpoint::OAuthTokenEndpoint(AbstractUserDatabase& db,
 
 OAuthTokenEndpoint::~OAuthTokenEndpoint()
 {
-  beingDeleted();
+    beingDeleted();
 #ifndef WT_TARGET_JAVA
 #ifdef WT_WITH_SSL
-  if (privateKey)
-    RSA_free(privateKey);
+    if (privateKey_) {
+        EVP_PKEY_free(privateKey_);
+    }
 #endif // WT_WITH_SSL
 #endif // WT_TARGET_JAVA
 }
@@ -183,7 +184,7 @@ void OAuthTokenEndpoint::handleRequest(const Http::Request &request, Http::Respo
     std::string payload = Utils::base64Encode(idTokenPayload(authClient.clientId(), scope, user), false);
 #ifndef WT_TARGET_JAVA
 #ifdef WT_WITH_SSL
-    if (privateKey) {
+    if (privateKey_) {
       header    = Utils::base64Encode("{\n\"typ\": \"JWT\",\n\"alg\": \"RS256\"\n}", false);
       signature = Utils::base64Encode(rs256(header + "." + payload), false);
     } else {
@@ -326,7 +327,7 @@ awaitable<void> OAuthTokenEndpoint::handleRequest(http::request &request, http::
     std::string payload = Utils::base64Encode(idTokenPayload(authClient.clientId(), scope, user), false);
 #ifndef WT_TARGET_JAVA
 #ifdef WT_WITH_SSL
-    if (privateKey) {
+    if (privateKey_) {
       header    = Utils::base64Encode("{\n\"typ\": \"JWT\",\n\"alg\": \"RS256\"\n}", false);
       signature = Utils::base64Encode(rs256(header + "." + payload), false);
     } else {
@@ -350,6 +351,7 @@ awaitable<void> OAuthTokenEndpoint::handleRequest(http::request &request, http::
   LOG_ERROR(fmt::runtime(ioe.message()));
   }
 #endif
+  co_return;
 }
 
 const std::string OAuthTokenEndpoint::idTokenPayload(const std::string &clientId,
@@ -395,28 +397,18 @@ std::string OAuthTokenEndpoint::methodToString(ClientSecretMethod method)
 #ifdef WT_WITH_SSL
 std::string OAuthTokenEndpoint::rs256(const std::string &token )
 {
-  // sha256
-  unsigned char hash[SHA256_DIGEST_LENGTH];
-  SHA256_CTX sha256;
-  SHA256_Init(&sha256);
-  SHA256_Update(&sha256, token.c_str(), token.size());
-  SHA256_Final(hash, &sha256);
-  unsigned int len;
-  unsigned char buff[512]; // size 256 should be ok
-
-  // rsa sign
-  int status = RSA_sign(NID_sha256, hash, SHA256_DIGEST_LENGTH, buff, &len, privateKey);
-  return std::string((const char *) buff, len);
+  return Wt::Ssl::rs256(privateKey_, token);
 }
 
 void OAuthTokenEndpoint::setRSAKey(const std::string &path)
 {
-  if (privateKey)
-    RSA_free(privateKey);
-  RSA* rsa = RSA_new();
-  privateKey = PEM_read_RSAPrivateKey(fopen(path.c_str(), "rb"), &rsa, NULL, NULL);
-  if (!privateKey) {
-    throw WException("OAuthTokenEndpoint: invalid RSA key \"" + path + "\"");
+  if (privateKey_) {
+      EVP_PKEY_free(privateKey_);
+      privateKey_ = nullptr;
+  }
+  privateKey_ = Wt::Ssl::readPrivateKeyFromFile(path);
+  if (!privateKey_) {
+      throw WException("OAuthTokenEndpoint: invalid RSA key \"" + path + "\"");
   }
 }
 #endif // WT_WITH_SSL
