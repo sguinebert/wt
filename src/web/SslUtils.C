@@ -175,6 +175,48 @@ namespace Wt {
       return retval;
     }
 
+    Wt::WDateTime dateToWDate(const ASN1_TIME *date)
+    {
+      // Got my wisdom from ITU-T rec X.680 (07/2002) and RFC 3280
+      Wt::WDateTime retval;
+
+      if (!date)
+    return retval;
+
+      switch (date->type) {
+      case V_ASN1_UTCTIME:
+      {
+    // decode asn.1 Universal time string
+    // Format further restricted by RFC 3280, section 4.1.2.5.1
+    int len = date->length;
+    const char *v = (const char *)date->data;
+    if (len == 13) {
+        retval =
+            Wt::WDateTime::fromString(std::string(v, v + 12),
+                                      "yyMMddHHmmss");
+    }
+      }
+      break;
+      case V_ASN1_GENERALIZEDTIME:
+      {
+    // decode asn.1 Universal time string
+    // Format further restricted by RFC 3280, section 4.1.2.5.1
+    int len = date->length;
+    const char *v = (const char *)date->data;
+    if (len == 15) {
+        retval =
+            Wt::WDateTime::fromString(std::string(v, v + 12),
+                                      "yyyyMMddHHmmss");
+    }
+      }
+      break;
+      default:
+    break;
+      }
+
+      return retval;
+    }
+
     std::string exportToPem(X509 *x509)
     {
       std::string bio;

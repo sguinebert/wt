@@ -471,13 +471,15 @@ namespace Wt
         readMultipartData(context, type, len);
       else if (readOption == ReadBodyAnyway)
       {
+        unsigned offset = 0;
         for (; len > 0;)
         {
           ::int64_t toRead = std::min(::int64_t(BUFSIZE), len);
-          context->req().read(buf_, toRead);
+          context->req().read(buf_, offset, toRead);
 //          if (context->req().gcount() != (::int64_t)toRead)
 //            throw WException("CgiParser: short read");
           len -= toRead;
+          offset += toRead;
         }
       }
     }
@@ -800,13 +802,13 @@ namespace Wt
       buflen_ = 0;
   }
 
-  int CgiParser::index(const std::string search)
+  int CgiParser::index(std::string_view search)
   {
-    std::string bufS = std::string(buf_, buflen_);
+    std::string_view bufS(buf_, buflen_);
 
-    std::string::size_type i = bufS.find(search);
+    auto i = bufS.find(search);
 
-    if (i == std::string::npos)
+    if (i == std::string_view::npos)
       return -1;
     else
       return i;
@@ -915,7 +917,7 @@ namespace Wt
                                                     static_cast<::int64_t>(BUFSIZE + (int)MAXBOUND - buflen_)));
 
 
-      context->req().read(buf_ + buflen_, amt);
+      context->req().read(buf_ + buflen_, buflen_, amt);
 
 //      context->req().body().substr(buf_ + buflen_, amt)
 

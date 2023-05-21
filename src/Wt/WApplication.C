@@ -1412,9 +1412,8 @@ WLogEntry WApplication::log(const std::string& type) const
 void WApplication::enableUpdates(bool enabled)
 {
   if (enabled) {
-    if (serverPush_ == 0 && !WebSession::Handler::instance()->request())
-      LOG_WARN("WApplication::enableUpdates(true): "
-	       "should be called from within event loop");
+    if (serverPush_ == 0 && !WebSession::Handler::instance()->context())
+      LOG_WARN("WApplication::enableUpdates(true): should be called from within event loop");
     ++serverPush_;
   } else
     --serverPush_;

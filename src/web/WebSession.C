@@ -100,6 +100,7 @@ static WebSession::Handler * threadHandler_ = nullptr;
 
 WebSession::WebSession(WebController *controller,
                        const std::string& sessionId,
+                       std::string_view EntryPointUrl,
                        EntryPointType type,
                        const std::string& favicon,
                        Wt::http::context *context,
@@ -166,7 +167,7 @@ WebSession::WebSession(WebController *controller,
    * Obtain the applicationName_ as soon as possible for log().
    */
   if (context)
-      applicationUrl_ = context->path(); //->scriptName();
+      applicationUrl_ = EntryPointUrl; //->scriptName();
   else
     applicationUrl_ = "/";
 
@@ -896,14 +897,14 @@ void WebSession::init(Wt::http::context *context)
     bookmarkUrl_ = applicationUrl_;
   }
 
-  auto path = context->pathInfo(basePath_);// request.pathInfo();
+  auto path = context->pathInfo(applicationUrl_);// request.pathInfo();
   if (path.empty() && !hashE.empty())
     path = hashE;
 
   std::cout << "env_->setInternalPath " << path << std::endl;
 
   env_->setInternalPath(std::string(path));
-  pagePathInfo_ = context->pathInfo(basePath_); //request.pathInfo();
+  pagePathInfo_ = context->pathInfo(applicationUrl_); //request.pathInfo();
 
   // Cache document root
   docRoot_ = getCgiValue("DOCUMENT_ROOT");
@@ -2865,7 +2866,7 @@ awaitable<void> WebSession::notify(const WEvent& event)
 
       WResource *resource = nullptr;
       if (requestE.empty()) {
-        if (auto subpath = context->pathInfo(basePath_); !subpath.empty())
+        if (auto subpath = context->pathInfo(applicationUrl_); !subpath.empty())
           resource = app_->decodeExposedResource("/path/" + Utils::prepend(std::string(subpath), '/'));
 
         if (!resource && !hashE.empty())
@@ -3076,7 +3077,7 @@ awaitable<void> WebSession::notify(const WEvent& event)
 
       if (!hashE.empty())
         changeInternalPath(hashE, context);
-      else if (auto subpath = context->pathInfo(basePath_); !subpath.empty()) {
+      else if (auto subpath = context->pathInfo(applicationUrl_); !subpath.empty()) {
         changeInternalPath(std::string(subpath), context);
 	  } else
         changeInternalPath("", context);
@@ -3241,7 +3242,7 @@ bool WebSession::resourceRequest(Wt::http::context *context) const
     if (requestE == "resource" && !resourceE.empty()) {
       return true;
     } else if (requestE.empty() && app_) { // check if resource is deployed on internal path
-      if (auto subpath = context->pathInfo(basePath_); !subpath.empty() /*pathInfo().empty()*/ &&
+      if (auto subpath = context->pathInfo(applicationUrl_); !subpath.empty() /*pathInfo().empty()*/ &&
           app_->decodeExposedResource("/path/" + Utils::prepend(std::string(subpath), '/')) != nullptr)
         return true;
 
@@ -3307,7 +3308,7 @@ void WebSession::serveResponse(Handler& handler)
 
   if (context->responseType() == http::ResponseType::Page)
   {
-    pagePathInfo_ = context->pathInfo(basePath_);
+    pagePathInfo_ = context->pathInfo(applicationUrl_);
     auto wtdE = context->getParameter("wtd");
     if (!wtdE.empty() && wtdE == sessionId_)
       sessionIdInUrl_ = true;

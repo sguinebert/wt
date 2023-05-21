@@ -70,6 +70,7 @@ public:
   };
 
     WebSession(WebController *controller, const std::string& sessionId,
+               std::string_view EntryPointUrl,
                EntryPointType type, const std::string& favicon,
                Wt::http::context *ctx, WEnvironment *env = nullptr);
   ~WebSession();

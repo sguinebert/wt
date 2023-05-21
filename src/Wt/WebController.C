@@ -1051,11 +1051,13 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
               } while (sessionId.empty());
         }
 
+
         std::string favicon = entryPoint->favicon();
         if (favicon.empty())
             conf_.readConfigurationProperty("favicon", favicon);
 
         session.reset(new WebSession(this, sessionId,
+                                     entryPoint->path(),
                                      entryPoint->type(),
                                      favicon, context));
 
