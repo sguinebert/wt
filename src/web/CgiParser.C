@@ -814,6 +814,16 @@ namespace Wt
       return i;
   }
 
+  int CgiParser::index(std::string_view source, std::string_view search)
+  {
+    auto i = source.find(search);
+
+    if (i == std::string_view::npos)
+      return -1;
+    else
+      return i;
+  }
+
   bool CgiParser::parseHead(WebRequest &request)
   {
     std::string head;
@@ -886,6 +896,22 @@ namespace Wt
                                     std::string *resultString,
                                     std::ostream *resultFile)
   {
+//    auto body = context->req().body();
+
+//    if(auto bpos = body.find(boundary); bpos != std::string_view::npos) {
+//      if(auto epos = body.find(boundary, bpos + boundary.size()); epos != std::string_view::npos) {
+//        auto extract = body.substr(bpos + boundary.size(), body.size() - bpos - boundary.size() - epos);
+//        if (resultString)
+//          *resultString += std::string(extract);
+//        if (resultFile)
+//          resultFile->write(extract.data(), extract.size());
+//        return;
+//      }
+//    }
+//    throw WException("CgiParser: reached end of input while seeking end of "
+//                     "headers or content. Format of CGI input is wrong");
+
+
     int bpos;
 
     while ((bpos = index(boundary)) == -1)
@@ -918,12 +944,6 @@ namespace Wt
 
 
       context->req().read(buf_ + buflen_, offset_, amt);
-
-//      context->req().body().substr(buf_ + buflen_, amt)
-
-//      request.in().read(buf_ + buflen_, amt);
-//      if (request.in().gcount() != (int)amt)
-//        throw WException("CgiParser: short read");
 
       left_ -= amt;
       buflen_ += amt;

@@ -108,12 +108,12 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 
 #ifdef ENABLE_HTTPS
   template <typename Socket = _Socket, typename = std::enable_if_t<!std::is_same_v<std::decay_t<Socket>, http_socket>>>
-  base_connection(std::function<void(context&)> handler, asio::io_service& io_service,
+  base_connection(std::function<awaitable<void>(context&)> handler, asio::io_service& io_service,
                   asio::ssl::context& ssl_context) noexcept
       : socket_{io_service, ssl_context},
         context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), true,
                  std::bind(&base_connection::send_ws_frame, this, std::placeholders::_1)},
-        handler_{std::move(handler)} {}
+      handler_{std::move(handler)} { }
 #endif  // ENABLE_HTTPS
 
   asio::ip::tcp::socket& socket() noexcept { return static_cast<_Ty&>(*this).socket(); }

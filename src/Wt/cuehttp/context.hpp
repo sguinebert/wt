@@ -211,6 +211,40 @@ class context final : safe_noncopyable {
 //#endif
 //  std::unique_ptr<Wt::WSslInfo> sslInfo()
 //  {
+
+//  SSL_CTX* ssl =  ssl_context.native_handle();
+
+//#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+//  X509 *x509 = SSL_CTX_get0_certificate(ssl);
+//#else
+//  X509 *x509 = SSL_get_peer_certificate(ssl);
+//#endif
+
+//  if (x509) {
+//    Wt::WSslCertificate clientCert = Wt::Ssl::x509ToWSslCertificate(x509);
+
+//    X509_free(x509);
+
+//    std::vector<Wt::WSslCertificate> clientCertChain;
+//    STACK_OF(X509)* certChain = ssl->extra_certs;
+//    if (certChain) {
+//        for (int i = 0; i < sk_X509_num(certChain); ++i) {
+//            X509 *x509_i = sk_X509_value(certChain, i);
+//            clientCertChain.push_back(Wt::Ssl::x509ToWSslCertificate(x509_i));
+//        }
+//    }
+
+//    Wt::ValidationState state = Wt::ValidationState::Invalid;
+//    std::string info;
+
+//    long SSL_state = SSL_get_verify_result(ssl);
+//    if (SSL_state == X509_V_OK) {
+//        state = Wt::ValidationState::Valid;
+//    } else {
+//        state = Wt::ValidationState::Invalid;
+//        info = X509_verify_cert_error_string(SSL_state);
+//    }
+//    Wt::WValidator::Result clientVerificationResult(state, info);
 //#ifdef HTTP_WITH_SSL
 //  if (!ssl)
 //    return nullptr;

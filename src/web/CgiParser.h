@@ -68,6 +68,7 @@ private:
                          std::ostream *resultFile);
   void windBuffer(int offset);
   int index(std::string_view search);
+  int index(std::string_view source, std::string_view search);
 
   enum {BUFSIZE = 8192};
   enum {MAXBOUND = 100};

@@ -11,6 +11,7 @@
 #ifdef WT_ASIO_IS_BOOST_ASIO
 
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include <boost/asio/stream_file.hpp>
 #define ASIO_HAS_IO_URING 1
 #define BOOST_ASIO_HAS_IO_URING 1
@@ -46,7 +47,8 @@ using std::chrono::steady_clock;
 #else // WT_ASIO_IS_STANDALONE_ASIO
 
 #include <asio.hpp>
-#include <boost/asio/stream_file.hpp>
+#include <asio/ssl.hpp>
+#include <asio/stream_file.hpp>
 
 #if defined(ASIO_HAS_CO_AWAIT)
 #include <asio/experimental/as_tuple.hpp>
