@@ -165,6 +165,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 //    std::cout << "test async_wait" << std::endl;
     bool continuing = false;
     for(;;) {
+      //setDeadline();
       auto buffer = context_.req().buffer();
       auto [code, bytes_transferred] = co_await socket_.async_read_some(asio::buffer(buffer.first, buffer.second), use_nothrow_awaitable);
       //std::cout << "waiting for : " << context_.req().length() << " - received : " << bytes_transferred << std::endl;
@@ -230,11 +231,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
           break;
       }
 
-//      if(!finished) {
-//          std::cerr << "not finished : terminate()..." << std::endl;
-//          std::terminate();
-//      }
-
+      //setDeadline();
       if(!context_.flush_) {
           co_await context_.wait_flush(use_awaitable);
       }
@@ -243,11 +240,11 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
       context_.res().to_buffers(buffers);
 
       { //reply(finished);
-          auto [code2, bytes_transferred2] = co_await asio::async_write(socket_, buffers, use_nothrow_awaitable);
-          detail::unused(bytes_transferred2);
-          if (code2) {
+          auto [code, bytes_transferred] = co_await asio::async_write(socket_, buffers, use_nothrow_awaitable);
+          detail::unused(bytes_transferred);
+          if (code) {
               //continue;
-              std::cerr << "error async_write: " << code2.what() << std::endl;
+              std::cerr << "error async_write: " << code.what() << std::endl;
               co_return;
           }
 
@@ -324,13 +321,12 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
     co_return !!code;
   }
 
-  asio::cancellation_signal timer_cancel_;
-  steady_clock::time_point conn_deadline_;
-  void setDeadline(std::chrono::seconds sec, bool cancel){
-    conn_deadline_ = steady_clock::now() + sec;
+  void setDeadline(std::chrono::seconds sec = 5min, bool cancel = false){
+    deadline_ = steady_clock::now() + sec;
     if(cancel)
       timer_cancel_.emit(asio::cancellation_type::total);
   }
+
   awaitable<void> watchdog(steady_clock::time_point& deadline)
   {
     asio::steady_timer timer(co_await boost::asio::this_coro::executor);
@@ -356,7 +352,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 
   awaitable<void> coro_ws(auto /*sft*/) {
 
-    std::cerr << "start websocket coro_ws" << std::endl;
+    //std::cerr << "start websocket coro_ws" << std::endl;
     //co_await coro_do_read_ws_header();
     co_await(coro_do_read_ws_header() || coro_do_send_ws_frame()); // todo watchdog
 
@@ -916,6 +912,8 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
   std::string reply_str_;
   bool ws_handshake_{false};
   std::unique_ptr<ws_helper> ws_helper_;
+  asio::cancellation_signal timer_cancel_;
+  steady_clock::time_point deadline_;
   asio::cancellation_signal cancel_signal_;
 };
 
@@ -928,10 +926,8 @@ class connection final : public base_connection<_Socket, connection<_Socket>>, s
   asio::ip::tcp::socket& socket() noexcept { return this->socket_; }
 
   void do_read_real() {
+    //co_spawn(this->socket_.get_executor(),(this->coro_http(this->shared_from_this()) || this->watchdog(this->deadline_)), detached);
     co_spawn(this->socket_.get_executor(), this->coro_http(this->shared_from_this()), detached);
-    //co_spawn(this->socket_.get_executor(), this->cancel_slot(), detached);
-
-    //this->do_read_some();
   }
 };
 
