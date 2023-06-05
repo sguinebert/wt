@@ -169,7 +169,7 @@ private:
   awaitable<void> handleClick() {
     for (unsigned i = 0; i < config_->states().size(); ++i)
       if (boost::ends_with(styleClass().toUTF8(), config_->states()[i])) {
-        co_await(dynamic_cast<Signal<> *>(signals_[i].get()))->emit();
+        co_await (dynamic_cast<Signal<> *>(signals_[i].get()))->emit();
         break;
       }
     co_return;

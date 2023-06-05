@@ -51,7 +51,9 @@ class Observer : private MT_Policy
         auto begin = std::begin(connections);
         auto end = std::end(connections);
 
-        connections.emplace(std::upper_bound(begin, end, key, Z_Order()), key, obs);
+        /*auto it = */connections.emplace(std::upper_bound(begin, end, key, Z_Order()), key, obs);
+
+//        return *it;
     }
 
     void insert(Delegate_Key const& key, Observer* obs)
@@ -178,7 +180,7 @@ class Observer : private MT_Policy
         nolock_disconnect_all();
     }
 
-    bool is_empty() const noexcept
+    bool isConnected() const noexcept
     {
         [[maybe_unused]]
         auto lock = MT_Policy::lock_guard();

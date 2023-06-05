@@ -65,7 +65,7 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
         observer::insert(function::template bind(instance), this);
     }
     template <typename L>
-    void connect(L& instance)
+    void connect(L&& instance)
     {
         connect(std::addressof(instance));
     }
@@ -171,7 +171,24 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     }
 
     template <typename... Uref>
-    std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>> emit(Uref&&... args)
+    //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
+    boost::asio::awaitable<void>
+    emit(Uref&&... args) /*-> requires(is_asio_awaitable_v<RT>)*/
+    {
+        co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
+    }
+
+    template <typename... Uref>
+    requires(!is_asio_awaitable_v<RT>)
+    void operator()(Uref&&... args)
+    {
+        observer::template for_each<function>(std::forward<Uref>(args)...);
+    }
+
+    template <typename... Uref>
+    //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
+    boost::asio::awaitable<void>
+    operator()(Uref&&... args) /*-> requires(is_asio_awaitable_v<RT>)*/
     {
         co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
     }
