@@ -490,8 +490,7 @@ std::unique_ptr<WWidget> WCompositeWidget::takeImplementation()
   return std::move(impl_);
 }
 
-void WCompositeWidget::getSDomChanges(std::vector<DomElement *>& result,
-				      WApplication *app)
+void WCompositeWidget::getSDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   if (needsToBeRendered())
     render(impl_->isRendered() || !WWebWidget::canOptimizeUpdates()

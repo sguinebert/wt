@@ -123,16 +123,17 @@ void WButtonGroup::setFormData(const FormData& formData)
   if (!Utils::isEmpty(formData.values)) {
     const std::string& value = formData.values[0];
 
-    for (unsigned i = 0; i < buttons_.size(); ++i) {
-      if (value == buttons_[i].button->id()) {
-	if (buttons_[i].button->flags_.test
-	    (WAbstractToggleButton::BIT_STATE_CHANGED))
-	  return;
+    for (unsigned i = 0; i < buttons_.size(); ++i)
+    {
+      if (value == buttons_[i].button->id())
+      {
+        if (buttons_[i].button->flags_.test(WAbstractToggleButton::BIT_STATE_CHANGED))
+          return;
 
-	uncheckOthers(buttons_[i].button);
-	buttons_[i].button->state_ = CheckState::Checked;
+        uncheckOthers(buttons_[i].button);
+        buttons_[i].button->state_ = CheckState::Checked;
 
-	return;
+        return;
       }
     }
   } else {
@@ -142,6 +143,7 @@ void WButtonGroup::setFormData(const FormData& formData)
      * there were actually none checked to start with ?
      */
   }
+  return;
 }
 
 void WButtonGroup::uncheckOthers(WRadioButton *button)
@@ -174,9 +176,9 @@ Signal<WRadioButton *>& WButtonGroup::checkedChanged()
   return checkedChanged_;
 }
 
-void WButtonGroup::onButtonChange()
+awaitable<void> WButtonGroup::onButtonChange()
 {
-  checkedChanged_.emit(checkedButton());
+  co_await checkedChanged_.emit(checkedButton());
 }
 
 }

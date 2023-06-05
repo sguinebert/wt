@@ -967,9 +967,9 @@ public:
   }
 
   virtual void newValue(const WDataSeries& series, double x, double y,
-			double stackY,
-			int xRow, int xColumn,
-			int yRow, int yColumn) override
+                        double stackY,
+                        int xRow, int xColumn,
+                        int yRow, int yColumn) override
   {
     if (Utils::isNaN(x) || Utils::isNaN(y))
       return;
@@ -1012,7 +1012,7 @@ public:
       }
 
       WCartesianChart &chart = const_cast<WCartesianChart &>(chart_);
-      WPen oldPen = WPen(chart.textPen_);
+      WPen oldPen(chart.textPen_);
       chart.textPen_.setColor(series.labelColor());
       WTransform t = chart_.zoomRangeTransform(chart_.xAxis(series.xAxis()), chart_.yAxis(series.yAxis()));
       WTransform ct;
@@ -1982,8 +1982,8 @@ std::unique_ptr<WWidget> WCartesianChart::createLegendItemWidget(int index)
 }
 
 void WCartesianChart::addDataPointArea(const WDataSeries& series,
-				       int xRow, int xColumn,
-				       std::unique_ptr<WAbstractArea> area)
+                                       int xRow, int xColumn,
+                                       std::unique_ptr<WAbstractArea> area)
 {
   if (areas().empty())
     addAreaMask();
@@ -5182,60 +5182,65 @@ void WCartesianChart::addAreaMask()
   }
 }
 
-void WCartesianChart::xTransformChanged(int xAxis)
+awaitable<void> WCartesianChart::xTransformChanged(int xAxis)
 {
   if (onDemandLoadingEnabled()) {
     update();
   }
 
   // setFormData() already assigns the right values
-  this->xAxis(xAxis).zoomRangeChanged().emit(this->xAxis(xAxis).zoomMinimum(),
-                                             this->xAxis(xAxis).zoomMaximum());
+  co_await this->xAxis(xAxis).zoomRangeChanged().emit(this->xAxis(xAxis).zoomMinimum(),
+                                                      this->xAxis(xAxis).zoomMaximum());
 }
 
-void WCartesianChart::yTransformChanged(int yAxis)
+awaitable<void> WCartesianChart::yTransformChanged(int yAxis)
 {
   if (onDemandLoadingEnabled()) {
     update();
   }
 
   // setFormData() already assigns the right values
-  this->yAxis(yAxis).zoomRangeChanged().emit(this->yAxis(yAxis).zoomMinimum(),
-                                             this->yAxis(yAxis).zoomMaximum());
+  co_await this->yAxis(yAxis).zoomRangeChanged().emit(this->yAxis(yAxis).zoomMinimum(),
+                                                      this->yAxis(yAxis).zoomMaximum());
 }
 
-void WCartesianChart::jsSeriesSelected(double x, double y)
+awaitable<void> WCartesianChart::jsSeriesSelected(double x, double y)
 {
   if (!seriesSelectionEnabled())
-    return;
+    co_return;
   double smallestSqDistance = std::numeric_limits<double>::infinity();
   const WDataSeries *closestSeries = nullptr;
   WPointF closestPointPx;
   WPointF closestPointBeforeSeriesTransform;
-  for (std::size_t i = 0; i < series_.size(); ++i) {
+  for (std::size_t i = 0; i < series_.size(); ++i)
+  {
     const WDataSeries &series = *series_[i];
-    if (!series.isHidden() && (series.type() == SeriesType::Line || series.type() == SeriesType::Curve)) {
+    if (!series.isHidden() && (series.type() == SeriesType::Line || series.type() == SeriesType::Curve))
+    {
       WTransform transform = zoomRangeTransform(xAxes_[series.xAxis()].transformHandle.value(),
                                                 yAxes_[series.yAxis()].transformHandle.value());
       WPointF p = transform.inverted().map(WPointF(x,y));
       WPainterPath path = pathForSeries(series);
       WTransform t = curveTransform(series);
-      for (std::size_t j = 0; j < path.segments().size(); ++j) {
-	const WPainterPath::Segment &seg = path.segments()[j];
-	if (seg.type() != CubicC1 &&
-	    seg.type() != CubicC2 &&
-	    seg.type() != QuadC) {
-	  WPointF segP = t.map(WPointF(seg.x(), seg.y()));
-	  double dx = p.x() - segP.x();
-	  double dy = p.y() - segP.y();
+      for (std::size_t j = 0; j < path.segments().size(); ++j)
+      {
+        const WPainterPath::Segment &seg = path.segments()[j];
+        if (seg.type() != CubicC1 &&
+            seg.type() != CubicC2 &&
+            seg.type() != QuadC)
+        {
+          WPointF segP = t.map(WPointF(seg.x(), seg.y()));
+          double dx = p.x() - segP.x();
+          double dy = p.y() - segP.y();
           double d2 = dx * dx + dy * dy;
-          if (d2 < smallestSqDistance) {
-            smallestSqDistance = d2;
-	    closestSeries = &series;
-            closestPointPx = segP;
-            closestPointBeforeSeriesTransform = WPointF(seg.x(), seg.y());
-	  }
-	}
+          if (d2 < smallestSqDistance)
+          {
+              smallestSqDistance = d2;
+              closestSeries = &series;
+              closestPointPx = segP;
+              closestPointBeforeSeriesTransform = WPointF(seg.x(), seg.y());
+          }
+        }
       }
     }
   }
@@ -5247,16 +5252,17 @@ void WCartesianChart::jsSeriesSelected(double x, double y)
     double dy = closestDisplayPoint.y() - y;
     double d2 = dx * dx + dy * dy;
     if (d2 > CURVE_SELECTION_DISTANCE_SQUARED) {
-      return;
+      co_return;
     }
   }
   setSelectedSeries(closestSeries);
   if (closestSeries) {
-    seriesSelected_.emit(closestSeries,
+    co_await seriesSelected_.emit(closestSeries,
                    mapFromDeviceWithoutTransform(closestPointBeforeSeriesTransform, closestSeries->axis()));
   } else {
-    seriesSelected_.emit(0, mapFromDeviceWithoutTransform(closestPointBeforeSeriesTransform, Axis::Y));
+    co_await seriesSelected_.emit(0, mapFromDeviceWithoutTransform(closestPointBeforeSeriesTransform, Axis::Y));
   }
+  co_return;
 }
 
 void WCartesianChart::loadTooltip(double x, double y)

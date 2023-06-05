@@ -28,16 +28,16 @@ cpp17::any WAbstractProxyModel::data(const WModelIndex& index, ItemDataRole role
   return sourceModel_->data(mapToSource(index), role);
 }
 
-bool WAbstractProxyModel::setData(const WModelIndex& index,
-                                  const cpp17::any& value, ItemDataRole role)
+awaitable<bool> WAbstractProxyModel::setData(const WModelIndex& index,
+                                             const cpp17::any& value, ItemDataRole role)
 {
-  return sourceModel_->setData(mapToSource(index), value, role);
+  co_return co_await sourceModel_->setData(mapToSource(index), value, role);
 }
 
-bool WAbstractProxyModel::setItemData(const WModelIndex& index,
-				      const DataMap& values)
+awaitable<bool> WAbstractProxyModel::setItemData(const WModelIndex& index,
+                                                 const DataMap& values)
 {
-  return sourceModel_->setItemData(mapToSource(index), values);
+  co_return co_await sourceModel_->setItemData(mapToSource(index), values);
 }
 
 WFlags<ItemFlag> WAbstractProxyModel::flags(const WModelIndex& index) const
@@ -67,9 +67,9 @@ std::vector<std::string> WAbstractProxyModel::acceptDropMimeTypes() const
   return sourceModel_->acceptDropMimeTypes();
 }
 
-void WAbstractProxyModel::dropEvent(const WDropEvent& e, DropAction action,
-				    int row, int column,
-				    const WModelIndex& parent)
+awaitable<void> WAbstractProxyModel::dropEvent(const WDropEvent& e, DropAction action,
+                                               int row, int column,
+                                               const WModelIndex& parent)
 {
   WModelIndex sourceParent = mapToSource(parent);
 
@@ -79,7 +79,7 @@ void WAbstractProxyModel::dropEvent(const WDropEvent& e, DropAction action,
   if (sourceRow != -1)
     sourceRow = mapToSource(index(row, 0, parent)).row();
 
-  sourceModel_->dropEvent(e, action, sourceRow, sourceColumn, sourceParent);
+  co_await sourceModel_->dropEvent(e, action, sourceRow, sourceColumn, sourceParent);
 }
 
 void *WAbstractProxyModel::toRawIndex(const WModelIndex& index) const

@@ -157,9 +157,9 @@ public:
    * The default implementation assumes a read-only delegate does
    * nothing.
    */
-  virtual void setModelData(const cpp17::any& editState,
-			    WAbstractItemModel *model,
-			    const WModelIndex& index) const;
+  virtual awaitable<void> setModelData(const cpp17::any& editState,
+                                       WAbstractItemModel *model,
+                                       const WModelIndex& index) const;
 
   /*! \brief %Signal which indicates that an editor needs to be closed.
    *

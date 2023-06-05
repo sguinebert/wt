@@ -40,30 +40,30 @@ OAuthAuthorizationEndpointProcess::OAuthAuthorizationEndpointProcess(
 {
 }
 
-void OAuthAuthorizationEndpointProcess::processEnvironment()
+awaitable<void> OAuthAuthorizationEndpointProcess::processEnvironment()
 {
   const WEnvironment& env = WApplication::instance()->environment();
   const std::string *redirectUri = env.getParameter("redirect_uri");
   if (!redirectUri) {
     LOG_ERROR("The client application did not pass a redirection URI.");
-    return;
+    co_return;
   }
   redirectUri_ = *redirectUri;
 
   const std::string *clientId = env.getParameter("client_id");
   if (!clientId) {
     LOG_ERROR("Missing client_id parameter.");
-    return;
+    co_return;
   }
   client_ = db_->idpClientFindWithId(*clientId);
   if (!client_.checkValid()) {
     LOG_ERROR("Unknown or invalid client_id {}", *clientId);
-    return;
+    co_return;
   }
   std::set<std::string> redirectUris = client_.redirectUris();
   if (redirectUris.find(redirectUri_) == redirectUris.end()) {
     LOG_ERROR("The client application passed the  unregistered redirection URI {}", redirectUri_);
-    return;
+    co_return;
   }
   const std::string *scope = env.getParameter("scope");
   const std::string *responseType = env.getParameter("response_type");
@@ -71,7 +71,7 @@ void OAuthAuthorizationEndpointProcess::processEnvironment()
   if (!scope || !responseType || *responseType != "code") {
     sendResponse("error=invalid_request");
     LOG_INFO("error=invalid_request: scope: {} response_type: {}", (scope ? *scope : "NULL"), (responseType ? *responseType : "NULL"));
-    return;
+    co_return;
   }
   validRequest_ = true;
   scope_ = *scope;
@@ -82,13 +82,14 @@ void OAuthAuthorizationEndpointProcess::processEnvironment()
   login_.changed().connect(this, &OAuthAuthorizationEndpointProcess::authEvent);
   const std::string *prompt = WApplication::instance()->environment().getParameter("prompt");
   if (login_.loggedIn()) {
-    authorized_.emit(scope_);
-    return;
+    co_await authorized_.emit(scope_);
+    co_return;
   } else if (prompt && *prompt == "none") {
     sendResponse("error=login_required");
     LOG_INFO("error=login_required but prompt == none");
-    return;
+    co_return;
   }
+  co_return;
 }
 
 void OAuthAuthorizationEndpointProcess::authorizeScope(const std::string& scope)
@@ -105,10 +106,10 @@ void OAuthAuthorizationEndpointProcess::authorizeScope(const std::string& scope)
   }
 }
 
-void OAuthAuthorizationEndpointProcess::authEvent()
+awaitable<void> OAuthAuthorizationEndpointProcess::authEvent()
 {
   if (login_.loggedIn()) {
-    authorized_.emit(scope_);
+    co_await authorized_.emit(scope_);
   } else {
     sendResponse("error=login_required");
   }

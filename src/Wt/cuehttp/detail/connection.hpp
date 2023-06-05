@@ -907,7 +907,6 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 
   _Socket socket_;
   context context_;
-  //std::function<void(context&)> handler_;
   std::function<awaitable<void>(context&)> handler_;
   std::string reply_str_;
   bool ws_handshake_{false};

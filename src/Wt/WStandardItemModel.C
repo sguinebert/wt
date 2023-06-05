@@ -160,10 +160,10 @@ std::vector<std::unique_ptr<WStandardItem> > WStandardItemModel
   return invisibleRootItem_->takeRow(row);
 }
 
-std::unique_ptr<WStandardItem> WStandardItemModel
-::takeItem(int row, int column)
+awaitable<std::unique_ptr<WStandardItem>>
+WStandardItemModel::takeItem(int row, int column)
 {
-  return invisibleRootItem_->takeChild(row, column);
+  co_return co_await invisibleRootItem_->takeChild(row, column);
 }
 
 WFlags<ItemFlag> WStandardItemModel::flags(const WModelIndex& index) const
@@ -322,7 +322,7 @@ void WStandardItemModel::beginRemoveRows(const WModelIndex& parent,
 		   first, last - first + 1);
 }
 
-void WStandardItemModel::copyData(const WModelIndex& sIndex,
+awaitable<void> WStandardItemModel::copyData(const WModelIndex& sIndex,
                                   const WModelIndex& dIndex)
 {
   if (dIndex.model() != this)
@@ -333,9 +333,9 @@ void WStandardItemModel::copyData(const WModelIndex& sIndex,
     auto *sItem = source->itemFromIndex(sIndex);
     auto *dItem = itemFromIndex(dIndex);
 
-    dItem->setFlags(sItem->flags());
+    co_await dItem->setFlags(sItem->flags());
   }
-  WAbstractItemModel::copyData(sIndex, dIndex);
+  co_await WAbstractItemModel::copyData(sIndex, dIndex);
 }
 
 void WStandardItemModel::insertHeaderData(std::vector<HeaderData>& headerData,
@@ -361,19 +361,19 @@ void WStandardItemModel::removeHeaderData(std::vector<HeaderData>& headerData,
   }
 }
 
-bool WStandardItemModel::setData(const WModelIndex& index,
+awaitable<bool> WStandardItemModel::setData(const WModelIndex& index,
                                  const cpp17::any& value, ItemDataRole role)
 {
   WStandardItem *item = itemFromIndex(index);
 
   if (item)
-    item->setData(value, role);
+    co_await item->setData(value, role);
 
-  return item;
+  co_return item;
 }
 
-bool WStandardItemModel::setHeaderData(int section, Orientation orientation,
-                                       const cpp17::any& value, ItemDataRole role)
+awaitable<bool> WStandardItemModel::setHeaderData(int section, Orientation orientation,
+                                                  const cpp17::any& value, ItemDataRole role)
 {
   std::vector<HeaderData>& header
     = (orientation == Orientation::Horizontal)
@@ -386,9 +386,9 @@ bool WStandardItemModel::setHeaderData(int section, Orientation orientation,
 
   d[role] = value;
 
-  headerDataChanged().emit(orientation, section, section);
+  co_await headerDataChanged().emit(orientation, section, section);
 
-  return true;
+  co_return true;
 }
 
 void WStandardItemModel::setHeaderFlags(int section, Orientation orientation,
@@ -430,23 +430,23 @@ void WStandardItemModel::setSortRole(ItemDataRole role)
   sortRole_ = role;
 }
 
-void WStandardItemModel::sort(int column, SortOrder order)
+awaitable<void> WStandardItemModel::sort(int column, SortOrder order)
 {
-  invisibleRootItem_->sortChildren(column, order);
+  co_await invisibleRootItem_->sortChildren(column, order);
 }
 
-void WStandardItemModel::dropEvent(const WDropEvent& e, DropAction action,
-				   int row, int column,
-				   const WModelIndex& parent)
+awaitable<void> WStandardItemModel::dropEvent(const WDropEvent& e, DropAction action,
+                                              int row, int column,
+                                              const WModelIndex& parent)
 {
   // In case of a move within the model, we simply move the WStandardItem,
   // this preserves the item-flags
-  WItemSelectionModel *selectionModel
-    = dynamic_cast<WItemSelectionModel *>(e.source());
+  WItemSelectionModel *selectionModel = dynamic_cast<WItemSelectionModel *>(e.source());
   if (selectionModel != 0 &&
       selectionModel->model().get() == this &&
       selectionModel->selectionBehavior() == SelectionBehavior::Rows &&
-      action == DropAction::Move) {
+      action == DropAction::Move)
+  {
     WModelIndexSet selection = selectionModel->selectedIndexes();
     int r = row;
     if (r < 0)
@@ -454,14 +454,13 @@ void WStandardItemModel::dropEvent(const WDropEvent& e, DropAction action,
     WStandardItem *targetParentItem = itemFromIndex(parent);
 
     std::vector< std::vector<std::unique_ptr<WStandardItem> > > rows;
-    for (WModelIndexSet::const_iterator i = selection.begin();
-	 i != selection.end(); ++i) {
+    for (auto i = selection.begin(); i != selection.end(); ++i)
+    {
       WModelIndex sourceIndex = *i;
 
       // remove the row
-      if (sourceIndex.parent() == parent &&
-	  sourceIndex.row() < r)
-	r--;
+      if (sourceIndex.parent() == parent && sourceIndex.row() < r)
+        r--;
       WStandardItem* parentItem = itemFromIndex(sourceIndex.parent());
       rows.push_back(parentItem->takeRow(sourceIndex.row()));
     }
@@ -469,9 +468,12 @@ void WStandardItemModel::dropEvent(const WDropEvent& e, DropAction action,
     for (unsigned i=0; i < rows.size(); i++) {
       targetParentItem->insertRow(r+i, std::move(rows[i]));
     }
-  } else {
-    WAbstractItemModel::dropEvent(e, action, row, column, parent);
   }
+  else
+  {
+    co_await WAbstractItemModel::dropEvent(e, action, row, column, parent);
+  }
+  co_return;
 }
 
 }

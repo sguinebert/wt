@@ -93,8 +93,7 @@ public:
     void handleIncomingData(const Http::UploadedFile& file, bool last);
     void cancel();
     bool cancelled() const;
-    void emitDataReceived(::uint64_t current, ::uint64_t total,
-			  bool filterSupported);
+    awaitable<void> emitDataReceived(::uint64_t current, ::uint64_t total, bool filterSupported);
     void setIsFiltered(bool filtered);
     
   private:
@@ -261,13 +260,13 @@ protected:
 
 private:
   void setup();
-  void handleDrop(const std::string& newDrops);
-  void handleTooLarge(::uint64_t size);
-  void handleSendRequest(int id);
-  void emitUploaded(int id);
-  void stopReceiving();
-  void onData(::uint64_t current, ::uint64_t total);
-  void onDataExceeded(::uint64_t dataExceeded);
+  awaitable<void> handleDrop(const std::string& newDrops);
+  awaitable<void> handleTooLarge(::uint64_t size);
+  awaitable<void> handleSendRequest(int id);
+  awaitable<void> emitUploaded(int id);
+  awaitable<void> stopReceiving();
+  awaitable<void> onData(::uint64_t current, ::uint64_t total);
+  awaitable<void> onDataExceeded(::uint64_t dataExceeded);
   void createWorkerResource();
   void disableJavaScriptFilter();
 

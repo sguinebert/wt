@@ -128,86 +128,86 @@ bool WIdentityProxyModel::removeRows(int row, int count,
   return sourceModel()->removeRows(row, count, mapToSource(parent));
 }
 
-bool WIdentityProxyModel::setHeaderData(int section,
+awaitable<bool> WIdentityProxyModel::setHeaderData(int section,
 					Orientation orientation,
 					const cpp17::any& value, ItemDataRole role)
 {
-  return sourceModel()->setHeaderData(section, orientation, value, role);
+  co_return co_await sourceModel()->setHeaderData(section, orientation, value, role);
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceColumnsAboutToBeInserted(const WModelIndex &parent, int start, int end)
 {
-  beginInsertColumns(mapFromSource(parent), start, end);
+  co_await beginInsertColumns(mapFromSource(parent), start, end);
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceColumnsInserted(const WModelIndex &parent, int start, int end)
 {
-  endInsertColumns();
+  co_await endInsertColumns();
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceColumnsAboutToBeRemoved(const WModelIndex &parent, int start, int end)
 {
-  beginRemoveColumns(mapFromSource(parent), start, end);
+  co_await beginRemoveColumns(mapFromSource(parent), start, end);
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceColumnsRemoved(const WModelIndex &parent, int start, int end)
 {
-  endRemoveColumns();
+  co_await endRemoveColumns();
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceRowsAboutToBeInserted(const WModelIndex &parent, int start, int end)
 {
-  beginInsertRows(mapFromSource(parent), start, end);
+  co_await beginInsertRows(mapFromSource(parent), start, end);
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceRowsInserted(const WModelIndex &parent, int start, int end)
 {
-  endInsertRows();
+  co_await endInsertRows();
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceRowsAboutToBeRemoved(const WModelIndex &parent, int start, int end)
 {
-  beginRemoveRows(mapFromSource(parent), start, end);
+  co_await beginRemoveRows(mapFromSource(parent), start, end);
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceRowsRemoved(const WModelIndex &parent, int start, int end)
 {
-  endRemoveRows();
+  co_await endRemoveRows();
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceDataChanged(const WModelIndex &topLeft, const WModelIndex &bottomRight)
 {
-  dataChanged().emit(mapFromSource(topLeft), mapFromSource(bottomRight));
+  co_await dataChanged().emit(mapFromSource(topLeft), mapFromSource(bottomRight));
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceHeaderDataChanged(Orientation orientation, int start, int end)
 {
-  headerDataChanged().emit(orientation, start, end);
+  co_await headerDataChanged().emit(orientation, start, end);
 }
 
-void WIdentityProxyModel::sourceLayoutAboutToBeChanged()
+awaitable<void> WIdentityProxyModel::sourceLayoutAboutToBeChanged()
 {
-  layoutAboutToBeChanged().emit();
+  co_await layoutAboutToBeChanged().emit();
 }
 
-void WIdentityProxyModel::sourceLayoutChanged()
+awaitable<void> WIdentityProxyModel::sourceLayoutChanged()
 {
-  layoutChanged().emit();
+  co_await layoutChanged().emit();
 }
 
-void WIdentityProxyModel::sourceModelReset()
+awaitable<void> WIdentityProxyModel::sourceModelReset()
 {
-  modelReset().emit();
+  co_await modelReset().emit();
 }
 
 } // namespace Wt

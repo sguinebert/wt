@@ -102,7 +102,7 @@ void WSelectionBox::updateDom(DomElement& element, bool all)
 			  selectionMode_ == SelectionMode::Extended
 			  ? "true" : "false");
       if (!all)
-	selectionChanged_ = true;
+        selectionChanged_ = true;
     }
 
     configChanged_ = false;
@@ -111,8 +111,8 @@ void WSelectionBox::updateDom(DomElement& element, bool all)
   if (selectionMode_ == SelectionMode::Extended) {
     if (selectionChanged_ && !all) {
       for (int i = 0; i < count(); ++i) {
-	element.callMethod("options[" + std::to_string(i) + "].selected="
-			   + (isSelected(i) ? "true" : "false"));
+        element.callMethod("options[" + std::to_string(i) + "].selected="
+                   + (isSelected(i) ? "true" : "false"));
       }
     }
     selectionChanged_ = false;
@@ -142,12 +142,12 @@ void WSelectionBox::setFormData(const FormData& formData)
     for (int j = 0; j < Utils::size(formData.values); ++j) {
       const std::string& v = formData.values[j];
       if (!v.empty()) {
-	try {
-	  int i = Utils::stoi(v);
-	  selection_.insert(i);
-	} catch (std::exception& e) {
-	  LOG_ERROR("received illegal form value: '{}'", v);
-	}
+        try {
+            int i = Utils::stoi(v);
+            selection_.insert(i);
+        } catch (std::exception& e) {
+            LOG_ERROR("received illegal form value: '{}'", v);
+        }
       }
     }
   }

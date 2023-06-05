@@ -13,11 +13,11 @@ Login::Login()
   : state_(LoginState::LoggedOut)
 { }
 
-void Login::login(const User& user, LoginState state)
+awaitable<void> Login::login(const User& user, LoginState state)
 {
   if (state == LoginState::LoggedOut || !user.isValid()) {
-    logout();
-    return;
+    co_await logout();
+    co_return;
   } else {
     if (state != LoginState::Disabled && user.status() == AccountStatus::Disabled)
       state = LoginState::Disabled;
@@ -25,21 +25,23 @@ void Login::login(const User& user, LoginState state)
     if (user != user_) {
       user_ = user;
       state_ = state;
-      changed_.emit();
+      co_await changed_.emit();
     } else if (state != state_) {
       state_ = state;
-      changed_.emit();
+      co_await changed_.emit();
     }
   }
+  co_return;
 }
 
-void Login::logout()
+awaitable<void> Login::logout()
 {
   if (user_.isValid()) {
     user_ = User();
     state_ = LoginState::LoggedOut;
-    changed_.emit();
+    co_await changed_.emit();
   }
+  co_return;
 }
 
 LoginState Login::state() const

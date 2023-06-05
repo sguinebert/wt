@@ -21,12 +21,13 @@ MyCaptcha::MyCaptcha(const int width, const int height)
   regenerate();
 }
   
-void MyCaptcha::handleClick(const WMouseEvent& me)
+awaitable<void> MyCaptcha::handleClick(const WMouseEvent& me)
 {
   if (shapesWidget_->correctlyClicked(me)) 
-    completed_.emit();
+    co_await completed_.emit();
   else
     regenerate();
+  co_return;
 }
 
 void MyCaptcha::regenerate()

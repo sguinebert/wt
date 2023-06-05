@@ -277,7 +277,7 @@ private:
     }
   }
 
-  void handleHandshake(const AsioWrapper::error_code& err)
+  awaitable<void> handleHandshake(const AsioWrapper::error_code& err)
   {
     /* Within strand */
 
@@ -297,11 +297,12 @@ private:
         err_ = asio::error::operation_aborted;
       else
         err_ = err;
-      complete();
+      co_await complete();
     }
+    co_return;
   }
 
-  void handleWriteRequest(const AsioWrapper::error_code& err,
+  awaitable<void> handleWriteRequest(const AsioWrapper::error_code& err,
 			  const std::size_t&)
   {
     /* Within strand */
@@ -323,8 +324,9 @@ private:
         err_ = asio::error::operation_aborted;
       else
         err_ = err;
-      complete();
+      co_await complete();
     }
+    co_return;
   }
 
   bool addResponseSize(std::size_t s)
@@ -339,17 +341,19 @@ private:
     return true;
   }
 
-  void handleReadStatusLine(const AsioWrapper::error_code& err,
+  awaitable<void> handleReadStatusLine(const AsioWrapper::error_code& err,
 			    const std::size_t& s)
   {
     /* Within strand */
 
     cancelTimer();
 
-    if (!err && !aborted_) {
-      if (!addResponseSize(s)) {
-        complete();
-	return;
+    if (!err && !aborted_)
+    {
+      if (!addResponseSize(s))
+      {
+        co_await complete();
+        co_return;
       }
 
       // Check that response is OK.
@@ -367,8 +371,8 @@ private:
 #else
 	err_ = std::make_error_code(std::errc::protocol_error);
 #endif
-	complete();
-	return;
+        co_await complete();
+        co_return;
       }
 
       LOG_DEBUG("{} {}", status_code, status_message);
@@ -384,17 +388,19 @@ private:
 		      shared_from_this(),
 		      std::placeholders::_1,
 		      std::placeholders::_2)));
-    } else {
+    }
+    else
+    {
       if (aborted_)
         err_ = asio::error::operation_aborted;
       else
         err_ = err;
-      complete();
+      co_await complete();
     }
+    co_return;
   }
 
-  void handleReadHeaders(const AsioWrapper::error_code& err,
-			 const std::size_t& s)
+  awaitable<void> handleReadHeaders(const AsioWrapper::error_code& err, const std::size_t& s)
   {
     /* Within strand */
 
@@ -402,8 +408,8 @@ private:
 
     if (!err && !aborted_) {
       if (!addResponseSize(s)) {
-        complete();
-	return;
+        co_await complete();
+        co_return;
       }
 
       chunkedResponse_ = false;
@@ -412,25 +418,27 @@ private:
       // Process the response headers.
       std::istream response_stream(&responseBuf_);
       std::string header;
-      while (std::getline(response_stream, header) && header != "\r") {
-	std::size_t i = header.find(':');
-	if (i != std::string::npos) {
-	  std::string name = boost::trim_copy(header.substr(0, i));
-	  std::string value = boost::trim_copy(header.substr(i+1));
-	  response_.addHeader(name, value);
+      while (std::getline(response_stream, header) && header != "\r")
+      {
+        std::size_t i = header.find(':');
+        if (i != std::string::npos)
+        {
+          std::string name = boost::trim_copy(header.substr(0, i));
+          std::string value = boost::trim_copy(header.substr(i+1));
+          response_.addHeader(name, value);
 
-	  if (boost::iequals(name, "Transfer-Encoding") &&
-	      boost::iequals(value, "chunked")) {
-	    chunkedResponse_ = true;
-	    chunkState_.size = 0;
-	    chunkState_.parsePos = 0;
-	    chunkState_.state = ChunkState::State::Size;
-	  } else if (method_ != Http::Method::Head &&
-                     boost::iequals(name, "Content-Length")) {
-	    std::stringstream ss(value);
-	    ss >> contentLength_;
-	  }
-	}
+          if (boost::iequals(name, "Transfer-Encoding") &&
+              boost::iequals(value, "chunked")) {
+            chunkedResponse_ = true;
+            chunkState_.size = 0;
+            chunkState_.parsePos = 0;
+            chunkState_.state = ChunkState::State::Size;
+          } else if (method_ != Http::Method::Head &&
+                         boost::iequals(name, "Content-Length")) {
+            std::stringstream ss(value);
+            ss >> contentLength_;
+          }
+        }
       }
 
       if (postSignals_) {
@@ -442,39 +450,39 @@ private:
                                  shared_from_this()));
         }
       } else {
-        emitHeadersReceived();
+        co_await emitHeadersReceived();
       }
 
       bool done = method_ == Http::Method::Head || response_.status() == STATUS_NO_CONTENT || contentLength_ == 0;
       // Write whatever content we already have to output.
       if (responseBuf_.size() > 0) {
-	std::stringstream ss;
-	ss << &responseBuf_;
-        done = addBodyText(ss.str());
+        std::stringstream ss;
+        ss << &responseBuf_;
+        done = co_await addBodyText(ss.str());
       }
 
-      if (!done) {
-	// Start reading remaining data until EOF.
-	startTimer();
-	asyncRead(strand_.wrap
-	    (std::bind(&Impl::handleReadContent,
-		       shared_from_this(),
-		       std::placeholders::_1,
-		       std::placeholders::_2)));
+      if (!done)
+      {
+        // Start reading remaining data until EOF.
+        startTimer();
+        asyncRead(strand_.wrap
+            (std::bind(&Impl::handleReadContent,
+                   shared_from_this(),
+                   std::placeholders::_1,
+                   std::placeholders::_2)));
       } else {
-	complete();
+        co_await complete();
       }
     } else {
       if (!aborted_)
         err_ = asio::error::operation_aborted;
       else
         err_ = err;
-      complete();
+      co_await complete();
     }
   }
 
-  void handleReadContent(const AsioWrapper::error_code& err,
-			 const std::size_t& s)
+  awaitable<void> handleReadContent(const AsioWrapper::error_code& err, const std::size_t& s)
   {
     /* Within strand */
 
@@ -482,26 +490,25 @@ private:
 
     if (!err && !aborted_) {
       if (!addResponseSize(s)) {
-        complete();
-	return;
+        co_await complete();
+        co_return;
       }
 
       std::stringstream ss;
       ss << &responseBuf_;
 
-      bool done = addBodyText(ss.str());
+      bool done = co_await addBodyText(ss.str());
 
       if (!done) {
-	// Continue reading remaining data until EOF.
-	startTimer();
-	asyncRead
-	  (strand_.wrap
-	   (std::bind(&Impl::handleReadContent,
-		      shared_from_this(),
-		      std::placeholders::_1,
-		      std::placeholders::_2)));
+        // Continue reading remaining data until EOF.
+        startTimer();
+        asyncRead(strand_.wrap
+                  (std::bind(&Impl::handleReadContent,
+                             shared_from_this(),
+                             std::placeholders::_1,
+                             std::placeholders::_2)));
       } else {
-	complete();
+        co_await complete();
       }
     } else if (!aborted_
                && err != asio::error::eof
@@ -510,39 +517,39 @@ private:
 	       && err != asio::error::operation_aborted
 	       && err.value() != 335544539) {
       err_ = err;
-      complete();
+      co_await complete();
     } else {
       if (aborted_)
         err_ = asio::error::operation_aborted;
-      complete();
+      co_await complete();
     }
+    co_return;
   }
 
   // Returns whether we're done (caller must call complete())
-  bool addBodyText(const std::string& text)
+  awaitable<bool> addBodyText(const std::string& text)
   {
     if (chunkedResponse_) {
-      chunkedDecode(text);
+      co_await chunkedDecode(text);
       if (chunkState_.state == ChunkState::State::Error) {
-	protocolError();
-	return true;
+        protocolError();
+        co_return true;
       } else if (chunkState_.state == ChunkState::State::Complete) {
-	return true;
+        co_return true;
       } else
-	return false;
+        co_return false;
     } else {
       if (maximumResponseSize_)
-	response_.addBodyText(text);
+        response_.addBodyText(text);
 
       LOG_DEBUG("Data: {}", text);
-      haveBodyData(text);
+      co_await haveBodyData(text);
 
-      return (contentLength_ >= 0) &&
-	(response_.body().size() >= contentLength_);
+      co_return (contentLength_ >= 0) && (response_.body().size() >= contentLength_);
     }
   }
 
-  void chunkedDecode(const std::string& text)
+  awaitable<void> chunkedDecode(const std::string& text)
   {
     std::string::const_iterator pos = text.begin();
     while (pos != text.end()) {
@@ -553,7 +560,7 @@ private:
 	switch (chunkState_.parsePos) {
 	case -2:
 	  if (ch != '\r') {
-	    chunkState_.state = ChunkState::State::Error; return;
+        chunkState_.state = ChunkState::State::Error; co_return;
 	  }
 
 	  chunkState_.parsePos = -1;
@@ -561,7 +568,7 @@ private:
 	  break;
 	case -1:
 	  if (ch != '\n') {
-	    chunkState_.state = ChunkState::State::Error; return;
+        chunkState_.state = ChunkState::State::Error; co_return;
 	  }
 
 	  chunkState_.parsePos = 0;
@@ -582,7 +589,7 @@ private:
 	  } else if (ch == ';') {
 	    chunkState_.parsePos = 1;
 	  } else {
-	     chunkState_.state = ChunkState::State::Error; return;
+         chunkState_.state = ChunkState::State::Error; co_return;
 	  }
 
 	  break;
@@ -594,11 +601,11 @@ private:
 	  break;
 	case 2:
 	  if (ch != '\n') {
-	    chunkState_.state = ChunkState::State::Error; return;
+        chunkState_.state = ChunkState::State::Error; co_return;
 	  }
 
 	  if (chunkState_.size == 0) {
-	    chunkState_.state = ChunkState::State::Complete; return;
+        chunkState_.state = ChunkState::State::Complete; co_return;
 	  }
 	    
 	  chunkState_.state = ChunkState::State::Data;
@@ -614,7 +621,7 @@ private:
 	  response_.addBodyText(text);
 
 	LOG_DEBUG("Chunked data: {}", text);
-	haveBodyData(text);
+    co_await haveBodyData(text);
 	chunkState_.size -= thisChunk;
 	pos += thisChunk;
 
@@ -628,6 +635,7 @@ private:
 	assert(false); // Illegal state
       }
     }
+    co_return;
   }
 
   void protocolError()
@@ -638,9 +646,9 @@ private:
 #else
     err_ = std::make_error_code(std::errc::protocol_error);
 #endif
-  } 
+  }
 
-  void complete()
+  awaitable<void> complete()
   {
     stop();
     if (postSignals_) {
@@ -651,11 +659,12 @@ private:
                      std::bind(&Impl::emitDone, shared_from_this()));
       }
     } else {
-      emitDone();
+      co_await emitDone();
     }
+    co_return;
   }
 
-  void haveBodyData(std::string text)
+  awaitable<void> haveBodyData(std::string text)
   {
     if (postSignals_) {
       auto session = session_.lock();
@@ -665,43 +674,47 @@ private:
                      std::bind(&Impl::emitBodyReceived, shared_from_this(), text));
       }
     } else {
-      emitBodyReceived(text);
+      co_await emitBodyReceived(text);
     }
+    co_return;
   }
 
-  void emitDone()
+  awaitable<void> emitDone()
   {
 #ifdef WT_THREADED
     std::lock_guard<std::mutex> lock(clientMutex_);
 #endif // WT_THREADED
     if (client_) {
       if (client_->followRedirect()) {
-        client_->handleRedirect(method_,
+        co_await client_->handleRedirect(method_,
                                 err_,
                                 response_,
                                 request_);
       } else {
-        client_->emitDone(err_, response_);
+        co_await client_->emitDone(err_, response_);
       }
     }
+    co_return;
   }
 
-  void emitHeadersReceived() {
+  awaitable<void> emitHeadersReceived() {
 #ifdef WT_THREADED
     std::lock_guard<std::mutex> lock(clientMutex_);
 #endif // WT_THREADED
     if (client_) {
-      client_->emitHeadersReceived(response_);
+      co_await client_->emitHeadersReceived(response_);
     }
+    co_return;
   }
 
-  void emitBodyReceived(const std::string& text) {
+  awaitable<void> emitBodyReceived(const std::string& text) {
 #ifdef WT_THREADED
     std::lock_guard<std::mutex> lock(clientMutex_);
 #endif // WT_THREADED
     if (client_) {
-      client_->emitBodyReceived(text);
+      co_await client_->emitBodyReceived(text);
     }
+    co_return;
   }
 
 protected:
@@ -1065,7 +1078,7 @@ void Client::setMaxRedirects(int maxRedirects)
   maxRedirects_ = maxRedirects;
 }
 
-void Client::handleRedirect(Http::Method method,
+awaitable<void> Client::handleRedirect(Http::Method method,
 			    AsioWrapper::error_code err,
 			    const Message& response, const Message& request)
 {
@@ -1077,33 +1090,37 @@ void Client::handleRedirect(Http::Method method,
                status == STATUS_SEE_OTHER)) {
     const std::string *newUrl = response.getHeader("Location");
     ++ redirectCount_;
-    if (newUrl) {
-      if (redirectCount_ <= maxRedirects_) {
-	get(*newUrl, request.headers());
-	return;
-      } else {
-	LOG_WARN("Redirect count of {} exceeded! Redirect URL: {}", maxRedirects_, *newUrl);
+    if (newUrl)
+    {
+      if (redirectCount_ <= maxRedirects_)
+      {
+        get(*newUrl, request.headers());
+        co_return;
+      }
+      else
+      {
+        LOG_WARN("Redirect count of {} exceeded! Redirect URL: {}", maxRedirects_, *newUrl);
       }
     }
   }
-  emitDone(err, response);
+  co_await emitDone(err, response);
 }
 
-void Client::emitDone(AsioWrapper::error_code err, const Message& response)
+awaitable<void> Client::emitDone(AsioWrapper::error_code err, const Message& response)
 {
   impl_.reset();
   redirectCount_ = 0;
-  done_.emit(err, response);
+  co_await done_.emit(err, response);
 }
 
-void Client::emitHeadersReceived(const Message& response)
+awaitable<void> Client::emitHeadersReceived(const Message& response)
 {
-  headersReceived_.emit(response);
+  co_await headersReceived_.emit(response);
 }
 
-void Client::emitBodyReceived(const std::string& data)
+awaitable<void> Client::emitBodyReceived(const std::string& data)
 {
-  bodyDataReceived_.emit(data);
+  co_await bodyDataReceived_.emit(data);
 }
 
 bool Client::parseUrl(const std::string &url, URL &parsedUrl)

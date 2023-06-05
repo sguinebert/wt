@@ -114,7 +114,7 @@ public:
 
   /*! \brief Activates the tab at <i>index</i>.
    */
-  void setCurrentIndex(int index);
+  awaitable<void> setCurrentIndex(int index);
 
   /*! \brief Returns the index of the activated tab.
    */
@@ -122,7 +122,7 @@ public:
 
   /*! \brief Activates the tab showing the given <i>widget</i>
    */
-  void setCurrentWidget(WWidget *widget);
+  awaitable<void> setCurrentWidget(WWidget *widget);
 
   /*! \brief Returns the widget of the activated tab.
    */
@@ -197,7 +197,7 @@ public:
    *
    * \copydetails WMenu::setInternalPathEnabled
    */
-  void setInternalPathEnabled(const std::string& basePath = "");
+  awaitable<void> setInternalPathEnabled(const std::string& basePath = "");
 
   /*! \brief Returns whether internal paths are enabled.
    *
@@ -209,7 +209,7 @@ public:
    *
    * \copydetails WMenu::setInternalBasePath
    */
-  void setInternalBasePath(const std::string& path);
+  awaitable<void> setInternalBasePath(const std::string& path);
 
   /*! \brief Returns the internal base path.
    *
@@ -230,7 +230,7 @@ public:
    *
    * \sa removeTab(), setTabHidden()
    */
-  void closeTab(int index);
+  awaitable<void> closeTab(int index);
 
   /*! \brief %Signal emitted when the user closes a tab.
    *
@@ -264,8 +264,8 @@ private:
   std::vector<WWidget *> contentsWidgets_;
 
   void create();
-  void onItemSelected(WMenuItem *item);
-  void onItemClosed(WMenuItem *item);
+  awaitable<void> onItemSelected(WMenuItem *item);
+  awaitable<void> onItemClosed(WMenuItem *item);
 
   void setJsSize();
 };

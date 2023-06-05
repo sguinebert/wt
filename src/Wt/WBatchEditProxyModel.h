@@ -58,7 +58,7 @@ public:
    *
    * \sa revertAll()
    */
-  void commitAll();
+  awaitable<void> commitAll();
 
   /*! \brief Reverts changes.
    *
@@ -66,7 +66,7 @@ public:
    *
    * \sa commitAll()
    */
-  void revertAll();
+  awaitable<void> revertAll();
 
   /*! \brief Sets default data for a newly inserted row.
    *
@@ -116,22 +116,18 @@ public:
   virtual void setSourceModel
     (const std::shared_ptr<WAbstractItemModel>& sourceModel) override;
 
-  virtual int columnCount(const WModelIndex& parent = WModelIndex())
-    const override;
-  virtual int rowCount(const WModelIndex& parent = WModelIndex())
-    const override;
+  virtual int columnCount(const WModelIndex& parent = WModelIndex()) const override;
+  virtual int rowCount(const WModelIndex& parent = WModelIndex()) const override;
 
   virtual WModelIndex parent(const WModelIndex& index) const override;
   virtual WModelIndex index(int row, int column,
-			    const WModelIndex& parent = WModelIndex())
-    const override;
+                            const WModelIndex& parent = WModelIndex()) const override;
 
   using WAbstractItemModel::setData;
   using WAbstractItemModel::data;
   using WAbstractItemModel::setHeaderData;
 
-  virtual cpp17::any data(const WModelIndex& index, ItemDataRole role = ItemDataRole::Display)
-    const override;
+  virtual cpp17::any data(const WModelIndex& index, ItemDataRole role = ItemDataRole::Display) const override;
 
   /*! \brief Sets item data.
    *
@@ -139,31 +135,29 @@ public:
    * Wt::ItemDataRole::Display. You may want to specialize the model to provide
    * a more specialized editing behaviour.
    */
-  virtual bool setData(const WModelIndex& index, const cpp17::any& value,
-                       ItemDataRole role = ItemDataRole::Edit) override;
+  virtual awaitable<bool> setData(const WModelIndex& index, const cpp17::any& value,
+                                  ItemDataRole role = ItemDataRole::Edit) override;
 
   virtual WFlags<ItemFlag> flags(const WModelIndex& index) const override;
 
   virtual cpp17::any headerData(int section,
-			     Orientation orientation = Orientation::Horizontal,
-                             ItemDataRole role = ItemDataRole::Display) const override;
+                                Orientation orientation = Orientation::Horizontal,
+                                ItemDataRole role = ItemDataRole::Display) const override;
 
   virtual bool insertRows(int row, int count,
-			  const WModelIndex& parent = WModelIndex()) override;
+                          const WModelIndex& parent = WModelIndex()) override;
 
   virtual bool removeRows(int row, int count,
-			  const WModelIndex& parent = WModelIndex()) override;
+                          const WModelIndex& parent = WModelIndex()) override;
 
   virtual bool insertColumns(int column, int count,
-			     const WModelIndex& parent = WModelIndex())
-    override;
+                             const WModelIndex& parent = WModelIndex()) override;
 
   virtual bool removeColumns(int column, int count,
-			     const WModelIndex& parent = WModelIndex())
-    override;
+                             const WModelIndex& parent = WModelIndex()) override;
 
-  virtual void sort(int column, 
-		    SortOrder order = SortOrder::Ascending) override;
+  virtual awaitable<void> sort(int column,
+                               SortOrder order = SortOrder::Ascending) override;
 
 private:
   struct Cell {
@@ -205,36 +199,29 @@ private:
   std::vector<Wt::Signals::connection> modelConnections_;
   mutable ItemMap mappedIndexes_;
 
-  void sourceColumnsAboutToBeInserted(const WModelIndex& parent,
-				      int start, int end);
-  void sourceColumnsInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceColumnsInserted(const WModelIndex& parent, int start, int end);
 
-  void sourceColumnsAboutToBeRemoved(const WModelIndex& parent,
-				     int start, int end);
-  void sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
 
-  void sourceRowsAboutToBeInserted(const WModelIndex& parent,
-				   int start, int end);
-  void sourceRowsInserted(const WModelIndex& parent, int start, int end);
+  void sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceRowsInserted(const WModelIndex& parent, int start, int end);
 
-  void sourceRowsAboutToBeRemoved(const WModelIndex& parent,
-				  int start, int end);
+  awaitable<void> sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   void sourceRowsRemoved(const WModelIndex& parent, int start, int end);
 
-  void sourceDataChanged(const WModelIndex& topLeft,
-			 const WModelIndex& bottomRight);
+  awaitable<void> sourceDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight);
 
-  void sourceHeaderDataChanged(Orientation orientation, int start, int end);
+  awaitable<void> sourceHeaderDataChanged(Orientation orientation, int start, int end);
 
-  void sourceLayoutAboutToBeChanged();
-  void sourceLayoutChanged();
+  awaitable<void> sourceLayoutAboutToBeChanged();
+  awaitable<void> sourceLayoutChanged();
 
-  void sourceModelReset();
+  awaitable<void> sourceModelReset();
 
-  Item *itemFromSourceIndex(const WModelIndex& sourceIndex,
-			    bool autoCreate = true) const;
-  Item *itemFromInsertedRow(Item *parentItem, const WModelIndex& index,
-			    bool autoCreate = true) const;
+  Item *itemFromSourceIndex(const WModelIndex& sourceIndex, bool autoCreate = true) const;
+  Item *itemFromInsertedRow(Item *parentItem, const WModelIndex& index, bool autoCreate = true) const;
   Item *parentItemFromIndex(const WModelIndex& index) const;
   Item *itemFromIndex(const WModelIndex& index, bool autoCreate = true) const;
   bool isRemoved(const WModelIndex& sourceIndex) const;

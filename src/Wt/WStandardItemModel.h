@@ -318,7 +318,7 @@ public:
    *
    * \sa takeItem(), WStandardItem::takeRow(), WStandardItem::takeColumn()
    */
-  std::unique_ptr<WStandardItem> takeItem(int row, int column = 0);
+  awaitable<std::unique_ptr<WStandardItem>> takeItem(int row, int column = 0);
 
   /*! \brief Sets header flags.
    *
@@ -333,9 +333,7 @@ public:
   using WAbstractItemModel::data;
   using WAbstractItemModel::setHeaderData;
 
-  virtual WFlags<HeaderFlag> headerFlags
-    (int section, Orientation orientation = Orientation::Horizontal) 
-    const override;
+  virtual WFlags<HeaderFlag> headerFlags(int section, Orientation orientation = Orientation::Horizontal) const override;
   virtual WFlags<ItemFlag> flags(const WModelIndex& index) const override;
 
   virtual WModelIndex parent(const WModelIndex& index) const override;
@@ -343,46 +341,30 @@ public:
   virtual cpp17::any data(const WModelIndex& index,
                        ItemDataRole role = ItemDataRole::Display)
     const override;
-  virtual cpp17::any headerData(int section,
-			     Orientation orientation = Orientation::Horizontal,
-                             ItemDataRole role = ItemDataRole::Display)
-    const override;
+  virtual cpp17::any headerData(int section, Orientation orientation = Orientation::Horizontal,
+                             ItemDataRole role = ItemDataRole::Display) const override;
 
-  virtual WModelIndex index(int row, int column,
-			    const WModelIndex& parent = WModelIndex())
-    const override;
+  virtual WModelIndex index(int row, int column, const WModelIndex& parent = WModelIndex()) const override;
 
-  virtual int columnCount(const WModelIndex& parent = WModelIndex())
-    const override;
+  virtual int columnCount(const WModelIndex& parent = WModelIndex()) const override;
 
-  virtual int rowCount(const WModelIndex& parent = WModelIndex())
-    const override;
+  virtual int rowCount(const WModelIndex& parent = WModelIndex()) const override;
 
-  virtual bool insertColumns(int column, int count,
-			     const WModelIndex& parent = WModelIndex())
-    override;
-  virtual bool insertRows(int row, int count,
-			  const WModelIndex& parent = WModelIndex())
-    override;
-  virtual bool removeColumns(int column, int count,
-			     const WModelIndex& parent = WModelIndex())
-    override;
-  virtual bool removeRows(int row, int count,
-			  const WModelIndex& parent = WModelIndex())
-    override;
-  virtual bool setData(const WModelIndex& index, const cpp17::any& value,
-                       ItemDataRole role = ItemDataRole::Edit)
-    override;
-  virtual bool setHeaderData(int section, Orientation orientation,
-			     const cpp17::any& value,
-                             ItemDataRole role = ItemDataRole::Edit)
-    override;
+  virtual bool insertColumns(int column, int count, const WModelIndex& parent = WModelIndex()) override;
+  virtual bool insertRows(int row, int count, const WModelIndex& parent = WModelIndex()) override;
+  virtual bool removeColumns(int column, int count, const WModelIndex& parent = WModelIndex()) override;
+  virtual bool removeRows(int row, int count, const WModelIndex& parent = WModelIndex()) override;
+  virtual awaitable<bool> setData(const WModelIndex& index, const cpp17::any& value,
+                                  ItemDataRole role = ItemDataRole::Edit) override;
+  virtual awaitable<bool> setHeaderData(int section, Orientation orientation,
+                                        const cpp17::any& value,
+                                        ItemDataRole role = ItemDataRole::Edit) override;
 
   virtual void *toRawIndex(const WModelIndex& index) const override;
   virtual WModelIndex fromRawIndex(void *rawIndex) const override;
 
-  virtual void dropEvent(const WDropEvent& e, DropAction action,
-			 int row, int column, const WModelIndex& parent) override;
+  virtual awaitable<void> dropEvent(const WDropEvent& e, DropAction action,
+                                    int row, int column, const WModelIndex& parent) override;
 
 #endif // DOXYGEN_ONLY
 
@@ -400,8 +382,7 @@ public:
    */
   ItemDataRole sortRole() const { return sortRole_; }
 
-  virtual void sort(int column, SortOrder order = SortOrder::Ascending)
-    override;
+  virtual awaitable<void> sort(int column, SortOrder order = SortOrder::Ascending) override;
 
   /*! \brief %Signal emitted when an item is changed.
    *
@@ -420,8 +401,7 @@ protected:
   void beginRemoveRows(const WModelIndex& parent, int first, int last);
 #endif // DOXYGEN_ONLY
 
-  virtual void copyData(const WModelIndex& sIndex,
-                        const WModelIndex& dIndex) override;
+  virtual awaitable<void> copyData(const WModelIndex& sIndex, const WModelIndex& dIndex) override;
 
 private:
   typedef std::map<ItemDataRole, cpp17::any> HeaderData;

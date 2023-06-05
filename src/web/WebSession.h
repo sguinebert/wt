@@ -267,8 +267,8 @@ public:
 #endif // WT_TARGET_JAVA
 #endif
 
-  void setExpectLoad();
-  void setLoaded();
+  awaitable<void> setExpectLoad();
+  awaitable<void> setLoaded();
 
   void generateNewSessionId();
   void queueEvent(const std::shared_ptr<ApplicationEvent>& event);
@@ -290,7 +290,7 @@ private:
   static void webSocketReady(std::weak_ptr<WebSession> session, WebWriteEvent event);
 #endif
 
-  void checkTimers();
+  awaitable<void> checkTimers();
   void hibernate();
 
   bool resourceRequest(const WebRequest& request) const;
@@ -379,11 +379,11 @@ private:
                           AutoLearnStateless = 1,
                           Dynamic = 2 };
   void processSignal(EventSignalBase *s, const std::string& se, const WebRequest& request, SignalKind kind);
-  void processSignal(EventSignalBase *s, const std::string& se, http::context *context, SignalKind kind);
+  awaitable<void> processSignal(EventSignalBase *s, const std::string& se, http::context *context, SignalKind kind);
 
   std::vector<unsigned int> getSignalProcessingOrder(const WEvent& e) const;
-  void notifySignal(const WEvent& e);
-  void propagateFormValues(const WEvent& e, const std::string& se);
+  awaitable<void> notifySignal(const WEvent& e);
+  awaitable<void> propagateFormValues(const WEvent& e, const std::string& se);
 
   const std::string *getSignal(const WebRequest& request, const std::string& se) const;
   std::string_view getSignal(Wt::http::context *context, const std::string& se) const;
@@ -396,8 +396,8 @@ private:
 
   std::string sessionQuery() const;
   void flushBootStyleResponse();
-  void changeInternalPath(const std::string& path, WebResponse *response);
-  void changeInternalPath(const std::string& path, http::context *context);
+  awaitable<void> changeInternalPath(const std::string& path, WebResponse *response);
+  awaitable<void> changeInternalPath(const std::string& path, http::context *context);
 
   awaitable<void> processQueuedEvents(WebSession::Handler& handler);
   std::shared_ptr<ApplicationEvent> popQueuedEvent();

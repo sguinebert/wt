@@ -41,7 +41,7 @@ private:
 
   int                        badGuesses_;
   
-  void registerGuess(char c);
+  awaitable<void> registerGuess(char c);
 
   void newGame();
 };

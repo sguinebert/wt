@@ -24,7 +24,6 @@
 #include <unordered_map>
 
 #include "context.hpp"
-//#include "cuehttp/deps/fmt/fmt.h"
 #include <Wt/fmt/format.h>
 #include "detail/common.hpp"
 #include "detail/noncopyable.hpp"
@@ -41,44 +40,6 @@ using namespace std::string_view_literals;
 class router final : safe_noncopyable {
 public:
     router() noexcept = default;
-
-    //     /* The matching tree */
-    //     struct Node {
-    //         std::string name_;
-    //         std::vector<std::string_view> segments_;
-    //         std::vector<std::unique_ptr<Node>> children;
-    //         //std::vector<uint32_t> handlers;
-    //         bool isHighPriority = false;
-    //         std::function<awaitable<void>(context&)> handler_;
-
-    //         Node* match(url_view& u) const
-    //         {
-    //             Node *target = nullptr;
-    //             auto segs = u.encoded_segments();
-    //             auto ccc = segs.size();
-    //             auto ccc2 = segments_.size();
-
-    //             if(segs.size() < segments_.size())
-    //                 return nullptr;
-    //             bool mc = std::equal(segments_.begin(),
-    //                                  segments_.end(),
-    //                                  segs.begin());
-    //             if(mc) {
-    //                 target = (Node*)this;
-    //                 for(auto& child : children) {
-    //                     if(auto mcc = child->match(u); mcc != nullptr)
-    //                         return mcc;
-    //                 }
-    //             }
-    //             return target;
-    //         }
-
-    //         Node(std::string name) : name_(name) {
-    //             urls::url_view uv(name_);
-    //             for(auto v : uv.encoded_segments())
-    //                 segments_.push_back(v);
-    //         }
-    //     } root_ {prefix_};
 
     template <typename _Prefix, typename = std::enable_if_t<!std::is_same_v<std::decay_t<_Prefix>, router>>>
     explicit router(_Prefix&& prefix) noexcept : prefix_{std::forward<_Prefix>(prefix)} {}
@@ -124,9 +85,7 @@ public:
     template <typename... _Args>
     router& all(std::string_view path, _Args&&... args) {
         static std::vector<std::string_view> methods{"DEL"sv, "GET"sv, "HEAD"sv, "POST"sv, "PUT"sv};
-        //for (const auto& method : methods) {
         register_impl(methods, path, std::forward<_Args>(args)...);
-        //}
         return *this;
     }
 
@@ -276,7 +235,7 @@ private:
     template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>>
     void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
                            _Func (_Ty::*func)(context&), _Self self) {
-        handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
+        handlers.emplace_back([func, self](context& ctx, std::function<void()> /*next*/) {
             if (self) {
                 (self->*func)(ctx);
             }
@@ -286,7 +245,7 @@ private:
     template <typename _Ty, typename _Func>
     void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
                            _Func (_Ty::*func)(context&)) {
-        handlers.emplace_back([func](context& ctx, std::function<void()> next) { (_Ty{}.*func)(ctx); });
+        handlers.emplace_back([func](context& ctx, std::function<void()> /*next*/) { (_Ty{}.*func)(ctx); });
     }
 
     template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer_v<_Func>>>
@@ -352,11 +311,6 @@ private:
             const auto next = []() {};
             co_await func(ctx, std::move(next));
         });
-
-        //    handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func = std::forward<_Func>(func)](context& ctx) -> awaitable<void> {
-        //      const auto next = []() {};
-        //      co_await func(ctx, std::move(next));
-        //    });
     }
 
     template <typename _Ty, typename _Func, typename _Self>
@@ -370,14 +324,6 @@ private:
             }
             co_return;
         });
-        //    handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func, self](context& ctx) -> awaitable<void> {
-        //      const auto next = []() {};
-        //      if (self) {
-        //        (self->*func)(ctx, std::move(next));
-        //      } else {
-        //        (_Ty{}.*func)(ctx, std::move(next));
-        //      }
-        //    });
     }
 
     /* without next()
@@ -400,14 +346,6 @@ private:
             }
             co_return;
         });
-
-        //    handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func, self](context& ctx) -> awaitable<void> {
-        //      if (self) {
-        //        (self->*func)(ctx);
-        //      } else {
-        //        (_Ty{}.*func)(ctx);
-        //      }
-        //    });
     }
 
     /* classic function (not a coroutine) without next()
@@ -419,10 +357,6 @@ private:
             func(ctx);
             co_return;
         });
-        //      handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), [func = std::move(func)](context& ctx) -> awaitable<void> {
-        //        func(ctx);
-        //        co_return;
-        //      });
     }
 
     /* redirect
@@ -503,18 +437,11 @@ private:
             }
 
             co_return;
-
-            //      const auto it = handlers_.find(fmt::format("{}+{}{}", ctx.method(), prefix_, ctx.path()));
-            //      if (it != handlers_.end()) {
-            //        co_await it->second(ctx);
-            //      }
-            //      co_return;
         };
     }
 
 
     std::string prefix_ {""};
-    //std::unordered_map<std::string, std::function<void(context&)>> handlers_;
     std::unordered_map<std::string, std::function<awaitable<void>(context&)>> handlers_;
 
     /* These are public for now */

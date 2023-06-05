@@ -25,9 +25,11 @@
 #include <vector>
 #include <type_traits>
 
-#include <boost/asio.hpp>
+//#include <boost/asio.hpp>
+#include <Wt/AsioWrapper/asio.hpp>
 #ifdef ENABLE_HTTPS
-#include <boost/asio/ssl.hpp>
+//#include <boost/asio/ssl.hpp>
+#include <Wt/AsioWrapper/ssl.hpp>
 #endif // ENABLE_HTTPS
 #include "context.hpp"
 #include "detail/connection.hpp"
@@ -96,12 +98,7 @@ protected:
 
     std::unique_ptr<asio::ip::tcp::acceptor> acceptor_;
     detail::engines* engine_ = nullptr;
-
-#ifndef CONNECT_NO_CORO
     std::function<awaitable<void>(context&)> handler_;
-#else
-    std::function<void(context&)> handler_;
-#endif
 };
 
 template <typename _Socket = detail::http_socket>

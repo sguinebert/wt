@@ -139,7 +139,7 @@ bool AttachmentEdit::uploadNow()
     return false;
 }
 
-void AttachmentEdit::uploaded()
+awaitable<void> AttachmentEdit::uploaded()
 {
   std::vector<Http::UploadedFile> files = upload_->uploadedFiles();
 
@@ -165,7 +165,7 @@ void AttachmentEdit::uploaded()
   /*
    * Signal to the Composer that a new asynchronous file upload was processed.
    */
-  uploadDone_.emit();
+  co_await uploadDone_.emit();
 }
 
 void AttachmentEdit::remove()
@@ -173,7 +173,7 @@ void AttachmentEdit::remove()
   composer_->removeAttachment(this);
 }
 
-void AttachmentEdit::fileTooLarge(::int64_t size)
+awaitable<void> AttachmentEdit::fileTooLarge(::int64_t size)
 {
   error_->setText(tr("msg.file-too-large")
 		  .arg(size / 1024)
@@ -183,7 +183,7 @@ void AttachmentEdit::fileTooLarge(::int64_t size)
   /*
    * Signal to the Composer that a new asyncrhonous file upload was processed.
    */
-  uploadDone_.emit();
+  co_await uploadDone_.emit();
 }
 
 std::vector<Attachment> AttachmentEdit::attachments()

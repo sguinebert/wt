@@ -285,7 +285,7 @@ void WDropZone::setup()
     addStyleClass("dropzone");
 }
 
-void WDropZone::handleDrop(const std::string& newDrops)
+awaitable<void> WDropZone::handleDrop(const std::string& newDrops)
 {
 #ifndef WT_TARGET_JAVA
     Json::Array dropdata;
@@ -330,11 +330,11 @@ void WDropZone::handleDrop(const std::string& newDrops)
         drops.push_back(file);
         uploads_.push_back(file);
     }
-    dropEvent_.emit(drops);
+    co_await dropEvent_.emit(drops);
     doJavaScript(this->jsRef() + ".processFiles();"); //.item(0).processQueue();
 }
 
-void WDropZone::handleSendRequest(std::string& id)
+awaitable<void> WDropZone::handleSendRequest(std::string& id)
 {
     /* When something invalid is dropped, the upload can fail (eg. a folder).
    * We simply proceed to the next and consider this upload as 'cancelled'
@@ -342,7 +342,7 @@ void WDropZone::handleSendRequest(std::string& id)
    * A cancelled upload will also be skipped in this way.
    */
 
-    return;
+    co_return;
 
 
 //    bool fileFound = false;
@@ -374,32 +374,33 @@ void WDropZone::handleSendRequest(std::string& id)
 //    }
 }
 
-void WDropZone::handleTooLarge(::uint64_t size)
+awaitable<void> WDropZone::handleTooLarge(::uint64_t size)
 {
     if (currentFileIdx_ >= uploads_.size()) {
         // This shouldn't happen, but a mischievous client might emit
         // this signal a few times, causing currentFileIdx_
         // to go out of bounds
-        return;
+        co_return;
     }
-    tooLarge_.emit(uploads_[currentFileIdx_], size);
+    co_await tooLarge_.emit(uploads_[currentFileIdx_], size);
     currentFileIdx_++;
 }
 
-void WDropZone::handleErrorUpload(std::string uuid, std::string error)
+awaitable<void> WDropZone::handleErrorUpload(std::string uuid, std::string error)
 {
     for (unsigned i = 0; i < uploads_.size(); i++) {
         if(uploads_[i]->id() == uuid)
-            uploadFailed_.emit(uploads_[i], error);
+            co_await uploadFailed_.emit(uploads_[i], error);
     }
+    co_return;
 }
 
-void WDropZone::stopReceiving()
+awaitable<void> WDropZone::stopReceiving()
 {
     if (currentFileIdx_ < uploads_.size()) {
         for (unsigned i=currentFileIdx_; i < uploads_.size(); i++)
             if (!uploads_[i]->cancelled())
-                uploadFailed_.emit(uploads_[i], "stopped");
+                co_await uploadFailed_.emit(uploads_[i], "stopped");
         // std::cerr << "ERROR: file upload was still listening, "
         // 	      << "cancelling expected uploads"
         // 	      << std::endl;
@@ -409,6 +410,7 @@ void WDropZone::stopReceiving()
             updatesEnabled_ = false;
         }
     }
+    co_return;
 }
 
 // Note: args by value, since this is handled after handleRequest is finished
@@ -430,15 +432,17 @@ void WDropZone::proceedToNextFile()
     }
 }
 
-void WDropZone::emitUploaded(std::string id)
+awaitable<void> WDropZone::emitUploaded(std::string id)
 {
-    for (unsigned i=0; i < currentFileIdx_ && i < uploads_.size(); i++) {
+    for (unsigned i=0; i < currentFileIdx_ && i < uploads_.size(); i++)
+    {
         File *f = uploads_[i];
         if (f->uploadId() == id) {
-            f->uploaded().emit();
-            uploaded().emit(f);
+            co_await f->uploaded().emit();
+            co_await uploaded().emit(f);
         }
     }
+    co_return;
 }
 
 bool WDropZone::incomingIdCheck(const std::string& id)
@@ -472,29 +476,29 @@ bool WDropZone::remove(File *file)
     return false;
 }
 
-void WDropZone::onData(::uint64_t current, ::uint64_t total)
+awaitable<void> WDropZone::onData(::uint64_t current, ::uint64_t total)
 {
     if (currentFileIdx_ >= uploads_.size()) {
         // This shouldn't happen, but a mischievous client might emit
         // the filetoolarge signal too many times, causing currentFileIdx_
         // to go out of bounds
-        return;
+        co_return;
     }
     File *file = uploads_[currentFileIdx_];
-    file->emitDataReceived(current, total, filterSupported_);
+    co_await file->emitDataReceived(current, total, filterSupported_);
 
     WApplication::instance()->triggerUpdate();
 }
 
-void WDropZone::onDataExceeded(::uint64_t dataExceeded)
+awaitable<void> WDropZone::onDataExceeded(::uint64_t dataExceeded)
 {
     if (currentFileIdx_ >= uploads_.size()) {
         // This shouldn't happen, but a mischievous client might emit
         // the filetoolarge signal too many times, causing currentFileIdx_
         // to go out of bounds
-        return;
+        co_return;
     }
-    tooLarge_.emit(uploads_[currentFileIdx_], dataExceeded);
+    co_await tooLarge_.emit(uploads_[currentFileIdx_], dataExceeded);
 
     WApplication *app = WApplication::instance();
     app->triggerUpdate();
@@ -532,7 +536,7 @@ void WDropZone::updateDom(DomElement& element, bool all)
         updateFlags_.reset();
     }
 
-    WContainerWidget::updateDom(element, all);
+    co_await WContainerWidget::updateDom(element, all);
 }
 
 std::string WDropZone::renderRemoveJs(bool recursive) {
@@ -746,10 +750,10 @@ bool WDropZone::File::cancelled() const
     return cancelled_;
 }
 
-void WDropZone::File::emitDataReceived(uint64_t current, uint64_t total, bool filterSupported)
+awaitable<void> WDropZone::File::emitDataReceived(uint64_t current, uint64_t total, bool filterSupported)
 {
     if (!filterEnabled_ || !filterSupported || chunkSize_ == 0) {
-        dataReceived_.emit(current, total);
+        co_await dataReceived_.emit(current, total);
     } else {
         ::uint64_t currentChunkSize = chunkSize_;
         unsigned nbChunks = (unsigned)(size_ / chunkSize_);
@@ -758,8 +762,9 @@ void WDropZone::File::emitDataReceived(uint64_t current, uint64_t total, bool fi
 
         ::uint64_t progress = nbReceivedChunks_*chunkSize_
                               + ::uint64_t( (double(current)/double(total)) * currentChunkSize );
-        dataReceived_.emit(progress, size_);
+        co_await dataReceived_.emit(progress, size_);
     }
+    co_return;
 }
 
 void WDropZone::File::setIsFiltered(bool filtered)

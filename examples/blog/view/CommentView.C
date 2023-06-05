@@ -70,15 +70,16 @@ void CommentView::edit()
   t.commit();
 }
 
-void CommentView::cancel()
+awaitable<void> CommentView::cancel()
 {
   if (isNew())
     removeFromParent();
   else {
     dbo::Transaction t(session_);
-    renderView();
+    co_await renderView();
     t.commit();
   }
+  co_return;
 }
 
 void CommentView::renderTemplate(std::ostream& result)
@@ -107,7 +108,7 @@ void CommentView::resolveString(const std::string& varName,
     WTemplate::resolveString(varName, args, result);
 }
 
-void CommentView::renderView()
+awaitable<void> CommentView::renderView()
 {
   clear();
 
@@ -154,7 +155,7 @@ void CommentView::renderView()
   CommentVector comments;
   {
     dbo::collection<dbo::ptr<Comment> > cmts
-      = comment_->children.find().orderBy("date");
+      = co_await comment_->children.find().orderBy("date").resultList();
     comments.insert(comments.end(), cmts.begin(), cmts.end());
   }
 
@@ -166,7 +167,7 @@ void CommentView::renderView()
   bindWidget("children", std::move(children));
 }
 
-void CommentView::save()
+awaitable<void> CommentView::save()
 {
   dbo::Transaction t(session_);
 
@@ -180,10 +181,10 @@ void CommentView::save()
     session_.add(comment_);
     comment->date = Wt::WDateTime::currentDateTime();
     comment->author = session_.user();
-    session_.commentsChanged().emit(comment_);
+    co_await session_.commentsChanged().emit(comment_);
   }
 
-  renderView();
+  co_await renderView();
 
   t.commit();
 }

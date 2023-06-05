@@ -148,7 +148,7 @@ public:
    *
    * This calls \p registerNewUser(0).
    */
-  void registerNewUser();
+  awaitable<void> registerNewUser();
 
   /*! \brief Starts a new registration process.
    *
@@ -162,7 +162,7 @@ public:
    * createRegistrationView(), and shows it in a dialog using
    * showDialog().
    */
-  virtual void registerNewUser(const Identity& oauth);
+  virtual awaitable<void> registerNewUser(const Identity& oauth);
 
   /*! \brief Processes the (initial) environment.
    *
@@ -183,7 +183,7 @@ public:
    *
    * \sa letUpdatePassword() 
    */
-  virtual void processEnvironment();
+  virtual awaitable<void> processEnvironment();
 
   /*! \brief Lets the user update his password.
    *
@@ -232,7 +232,7 @@ public:
    *
    * \sa registerNewUser()
    */
-  virtual std::unique_ptr<WWidget> createRegistrationView(const Identity& id);
+  virtual awaitable<std::unique_ptr<WWidget>> createRegistrationView(const Identity& id);
 
   /*! \brief Creates a view to update a user's password.
    *
@@ -258,7 +258,7 @@ public:
    */
   virtual std::unique_ptr<WDialog> createPasswordPromptDialog(Login& login);
 
-  void attemptPasswordLogin();
+  awaitable<void> attemptPasswordLogin();
 
   /*! \brief Displays the error message.
    *
@@ -354,8 +354,7 @@ protected:
    *
    * When the central widget is deleted, it deletes the dialog.
    */
-  virtual WDialog *showDialog(const WString& title,
-			      std::unique_ptr<WWidget> contents);
+  virtual WDialog *showDialog(const WString& title, std::unique_ptr<WWidget> contents);
 
   /*! \brief Creates a registration model.
    *
@@ -368,8 +367,7 @@ protected:
    */
   virtual std::unique_ptr<RegistrationModel> createRegistrationModel();
 
-  virtual std::unique_ptr<WWidget> createFormWidget(AuthModel::Field field)
-    override;
+  virtual std::unique_ptr<WWidget> createFormWidget(AuthModel::Field field) override;
 
   virtual void render(WFlags<RenderFlag> flags) override;
 
@@ -385,17 +383,17 @@ private:
   std::unique_ptr<WMessageBox> messageBox_;
 
   void init();
-  void logout();
+  awaitable<void> logout();
   void loginThrottle(int delay);
-  void closeDialog();
+  awaitable<void> closeDialog();
   void onLoginChange();
-  void onPathChange(const std::string& path);
-  bool handleRegistrationPath(const std::string& path);
+  awaitable<void> onPathChange(const std::string& path);
+  awaitable<bool> handleRegistrationPath(const std::string& path);
 
   void oAuthStateChange(OAuthProcess *process);
-  void oAuthDone(OAuthProcess *process, const Identity& identity);
+  awaitable<void> oAuthDone(OAuthProcess *process, const Identity& identity);
 #ifdef WT_HAS_SAML
-  void samlDone(Saml::Process *process, const Identity& identity);
+  awaitable<void> samlDone(Saml::Process *process, const Identity& identity);
 #endif // WT_HAS_SAML
   void updatePasswordLoginView();
 };

@@ -283,7 +283,7 @@ public:
     }
     using txn_t = basic_transaction<void, void>;
     awaitable<txn_t> startTransaction() {
-//        co_return co_await async_transaction(use_awaitable);
+        co_return co_await async_transaction(use_awaitable);
 //        co_return;
     }
     awaitable<void> commitTransaction() {

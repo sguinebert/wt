@@ -117,9 +117,9 @@ void WDoubleSpinBox::signalConnectionsChanged()
   WAbstractSpinBox::signalConnectionsChanged();
 }
 
-void WDoubleSpinBox::onChange()
+awaitable<void> WDoubleSpinBox::onChange()
 {
-  valueChanged_.emit(value());
+  co_await valueChanged_.emit(value());
 }
 
 std::unique_ptr<WValidator> WDoubleSpinBox::createValidator()

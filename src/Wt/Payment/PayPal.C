@@ -386,8 +386,7 @@ std::string PayPalExpressCheckout::toString(PaymentAction action)
 }
 
 
-void PayPalExpressCheckout::handleSetup(AsioWrapper::error_code err,
-					const Http::Message& response)
+awaitable<void> PayPalExpressCheckout::handleSetup(AsioWrapper::error_code err, const Http::Message& response)
 {
   Result result;
 
@@ -395,7 +394,7 @@ void PayPalExpressCheckout::handleSetup(AsioWrapper::error_code err,
 
   result = testMessage(err, response);
 
-  impl_->setupSignal_.emit(result);
+  co_await impl_->setupSignal_.emit(result);
 }
 
 void PayPalExpressCheckout::setToken(const std::string& token)
@@ -450,7 +449,7 @@ void PayPalExpressCheckout::setPaymentAccepted(bool accepted, std::string_view p
   impl_->customer_.setPayerId(payerId);
 }
 
-void PayPalExpressCheckout::onRedirect(int result)
+awaitable<void> PayPalExpressCheckout::onRedirect(int result)
 {
   ApprovalOutcome outcome;
 
@@ -461,7 +460,7 @@ void PayPalExpressCheckout::onRedirect(int result)
     outcome = ApprovalOutcome::Interrupted;
   }
 
-  paymentApproved().emit(Approval(outcome));
+  co_await paymentApproved().emit(Approval(outcome));
 }
 
 Signal<Result>& PayPalExpressCheckout::updateCustomerDetails()
@@ -497,9 +496,8 @@ Signal<Result>& PayPalExpressCheckout::updateCustomerDetails()
   return impl_->updatedCustomerDetailsSignal_;
 }
 
-void PayPalExpressCheckout::handleCustomerDetails(
-  AsioWrapper::error_code err,
-  const Http::Message& response)
+awaitable<void> PayPalExpressCheckout::handleCustomerDetails(AsioWrapper::error_code err,
+                                                             const Http::Message& response)
 {
   Result result;
   Http::ParameterMap params;
@@ -512,7 +510,7 @@ void PayPalExpressCheckout::handleCustomerDetails(
     saveCustomerDetails(params);
   }
 
-  impl_->updatedCustomerDetailsSignal_.emit(result);
+  co_await impl_->updatedCustomerDetailsSignal_.emit(result);
 }
 
 std::string PayPalExpressCheckout::prameterValue(
@@ -590,7 +588,7 @@ Signal<Result>& PayPalExpressCheckout::completePayment(const Money& totalAmount)
   return impl_->completePaymentSignal_;
 }
 
-void PayPalExpressCheckout::handleCompletePayment(
+awaitable<void> PayPalExpressCheckout::handleCompletePayment(
   AsioWrapper::error_code err, const Http::Message& response)
 {
 
@@ -602,7 +600,7 @@ void PayPalExpressCheckout::handleCompletePayment(
   std::cout<< messageToString(params);
 
   Result result = testMessage(err, response);
-  impl_->completePaymentSignal_.emit(result);
+  co_await impl_->completePaymentSignal_.emit(result);
 }
 
 

@@ -96,7 +96,7 @@ public:
    *
    * \sa setRootIndex()
    */
-  virtual void setModel(const std::shared_ptr<WAbstractItemModel>& model);
+  virtual awaitable<void> setModel(const std::shared_ptr<WAbstractItemModel>& model);
 
   /*! \brief Returns the model.
    *
@@ -152,8 +152,7 @@ public:
    *
    * \sa setItemDelegate()
    */
-  void setItemDelegateForColumn
-    (int column, const std::shared_ptr<WAbstractItemDelegate>& delegate);
+  void setItemDelegateForColumn(int column, const std::shared_ptr<WAbstractItemDelegate>& delegate);
   
   /*! \brief Returns the delegate that was set for a column.
    *
@@ -161,15 +160,13 @@ public:
    *
    * \sa setItemDelegateForColumn()
    */
-  std::shared_ptr<WAbstractItemDelegate> itemDelegateForColumn(int column)
-    const;
+  std::shared_ptr<WAbstractItemDelegate> itemDelegateForColumn(int column) const;
 
   /*! \brief Returns the delegate for rendering an item.
    *
    * \sa setItemDelegateForColumn(), setItemDelegate()
    */
-  std::shared_ptr<WAbstractItemDelegate> itemDelegate(const WModelIndex& index)
-    const;
+  std::shared_ptr<WAbstractItemDelegate> itemDelegate(const WModelIndex& index) const;
 
   /*! \brief Returns the delegate for a column.
    *
@@ -197,8 +194,7 @@ public:
    *
    * The default item delegate is a WItemDelegate.
    */
-  void setHeaderItemDelegate(const std::shared_ptr<WAbstractItemDelegate>&
-			     delegate);
+  void setHeaderItemDelegate(const std::shared_ptr<WAbstractItemDelegate>& delegate);
 
   /*! \brief Returns the header item delegate.
    *
@@ -286,7 +282,7 @@ public:
    *
    * \sa WAbstractItemModel::sort()
    */
-  void sortByColumn(int column, SortOrder order);
+  virtual awaitable<void> sortByColumn(int column, SortOrder order);
 
   /*! \brief Returns the current sorting columm.
    *
@@ -401,7 +397,7 @@ public:
    *
    * \sa select(), selectionModel()
    */
-  void setSelectedIndexes(const WModelIndexSet& indexes);
+  awaitable<void> setSelectedIndexes(const WModelIndexSet& indexes);
 
   /*! \brief Clears the selection.
    *
@@ -413,8 +409,7 @@ public:
    *
    * \sa setSelectedIndexes(), selectionModel()
    */
-  void select(const WModelIndex& index,
-	      SelectionFlag option = SelectionFlag::Select);
+  awaitable<void> select(const WModelIndex& index, SelectionFlag option = SelectionFlag::Select);
 
   /*! \brief Returns wheter an item is selected.
    *
@@ -627,8 +622,7 @@ public:
    * \note Currently only implemented to scroll to the correct row, not
    *       taking into account the column.
    */
-  virtual void scrollTo(const WModelIndex& index,
-			ScrollHint hint = ScrollHint::EnsureVisible) = 0;
+  virtual void scrollTo(const WModelIndex& index, ScrollHint hint = ScrollHint::EnsureVisible) = 0;
 
   /*! \brief Configures what actions should trigger editing.
    *
@@ -663,7 +657,7 @@ public:
    *
    * \sa setEditTriggers(), setEditOptions(), closeEditor()
    */
-  void edit(const WModelIndex& index);
+  awaitable<void> edit(const WModelIndex& index);
 
   /*! \brief Closes the editor for the given index.
    *
@@ -672,7 +666,7 @@ public:
    *
    * \sa edit()
    */
-  void closeEditor(const WModelIndex& index, bool saveData = true);
+  awaitable<void> closeEditor(const WModelIndex& index, bool saveData = true);
 
   /*! \brief Closes all open editors.
    *
@@ -681,7 +675,7 @@ public:
    *
    * \sa closeEditor()
    */
-  void closeEditors(bool saveData = true);
+  awaitable<void> closeEditors(bool saveData = true);
 
   /*! \brief Validates the editor for the given index.
    * 
@@ -907,6 +901,11 @@ public:
    * \sa keyWentDown()
    */
   EventSignal<WKeyEvent>& keyWentUp();
+
+  std::function<void()> PageTabCallBack_;
+  void setPageTabCallBack(std::function<void()>&& cb) {
+    PageTabCallBack_ = std::move(cb);
+  }
  
 protected:
   /*! \brief Creates a new item view.
@@ -929,7 +928,7 @@ protected:
    *
    * \sa WAbstractItemModel::dropEvent()
    */
-  virtual void dropEvent(const WDropEvent& event, const WModelIndex& target);
+  virtual awaitable<void> dropEvent(const WDropEvent& event, const WModelIndex& target);
 
   /*! \brief Handles a drop event (drag & drop).
    *
@@ -949,7 +948,7 @@ protected:
    *
    * \sa WAbstractItemModel::dropEvent()
    */
-  virtual void dropEvent(const WDropEvent& event, const WModelIndex& index,
+  virtual awaitable<void> dropEvent(const WDropEvent& event, const WModelIndex& index,
                          Wt::Side side);
 
   using WWidget::dropEvent;
@@ -1036,9 +1035,9 @@ protected:
   virtual void modelDataChanged(const WModelIndex& topLeft,
 				const WModelIndex& bottomRight) = 0;
   virtual void modelLayoutAboutToBeChanged();
-  virtual void modelLayoutChanged();
+  virtual awaitable<void> modelLayoutChanged();
   void modelHeaderDataChanged(Orientation orientation, int start, int end);
-  void modelReset();
+  awaitable<void> modelReset();
 
   ColumnInfo& columnInfo(int column) const;
   int columnById(int columnid) const;
@@ -1062,7 +1061,7 @@ protected:
    * You may want to override this signal to override the built-in
    * selection or editing behaviour.
    */
-  virtual void handleClick(const WModelIndex& index,
+  virtual awaitable<void> handleClick(const WModelIndex& index,
 			   const WMouseEvent& event);
 
   /*! \brief Handles a double click event.
@@ -1073,41 +1072,41 @@ protected:
    * You may want to override this signal to override the built-in
    * editing behaviour.
    */
-  virtual void handleDoubleClick(const WModelIndex& index,
+  virtual awaitable<void> handleDoubleClick(const WModelIndex& index,
 				 const WMouseEvent& event);
 
   /*! \brief Handles a mouse down event.
    *
    * This emits the mouseWentDown() signal.
    */
-  virtual void handleMouseDown(const WModelIndex& index,
+  virtual awaitable<void> handleMouseDown(const WModelIndex& index,
 			       const WMouseEvent& event);
 
   /*! \brief Handles a mouse up event.
    *
    * This emits the mouseWentUp() signal.
    */
-  virtual void handleMouseUp(const WModelIndex& index,
+  virtual awaitable<void> handleMouseUp(const WModelIndex& index,
 			     const WMouseEvent& event);
 
   /*! \brief Handles a touch select event.
    */
-  virtual void handleTouchSelect(const std::vector<WModelIndex>& indices,
+  virtual awaitable<void> handleTouchSelect(const std::vector<WModelIndex>& indices,
 				 const WTouchEvent& event);
 
   /*! \brief Handles a touch started event.
    */
-  virtual void handleTouchStart(const std::vector<WModelIndex>& indices,
+  virtual awaitable<void> handleTouchStart(const std::vector<WModelIndex>& indices,
 				const WTouchEvent& event);
 
   /*! \brief Handles a touch moved event.
    */
-  virtual void handleTouchMove(const std::vector<WModelIndex>& indices,
+  virtual awaitable<void> handleTouchMove(const std::vector<WModelIndex>& indices,
                                const WTouchEvent& event);
 
   /*! \brief Handles a touch ended event.
    */
-  virtual void handleTouchEnd(const std::vector<WModelIndex>& indices,
+  virtual awaitable<void> handleTouchEnd(const std::vector<WModelIndex>& indices,
 			      const WTouchEvent& event);
 
   virtual bool internalSelect(const WModelIndex& index, SelectionFlag option);
@@ -1122,10 +1121,8 @@ protected:
 
   void bindObjJS(JSlot& slot, const std::string& jsMethod);
   void connectObjJS(EventSignalBase& s, const std::string& jsMethod);
-  bool shiftEditorRows(const WModelIndex& parent, int start, int count,
-		       bool persistWhenShifted);
-  bool shiftEditorColumns(const WModelIndex& parent, int start, int count,
-			  bool persistWhenShifted);
+  awaitable<bool> shiftEditorRows(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
+  awaitable<bool> shiftEditorColumns(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
   void persistEditor(const WModelIndex& index);
 
 private:
@@ -1191,38 +1188,37 @@ private:
 
   bool touchRegistered_;
 
-  void closeEditorWidget(WWidget *editor, bool saveData);
-  void saveEditedValue(const WModelIndex& index, Editor& editor);
+  awaitable<void> closeEditorWidget(WWidget *editor, bool saveData);
+  awaitable<void> saveEditedValue(const WModelIndex& index, Editor& editor);
   void persistEditor(const WModelIndex& index, Editor& editor);
 
   virtual WWidget *headerWidget(int column, bool contentsOnly = true) = 0;
   virtual WText *headerSortIconWidget(int column);
 
-  void selectionHandleClick(const WModelIndex& index,
+  awaitable<void> selectionHandleClick(const WModelIndex& index,
 			    WFlags<KeyboardModifier> modifiers);
-  void selectionHandleTouch(const std::vector<WModelIndex>& indices, const WTouchEvent& event);
-  void extendSelection(const WModelIndex& index);
-  void extendSelection(const std::vector<WModelIndex>& index);
-  virtual void selectRange(const WModelIndex& first, const WModelIndex& last)
-    = 0;
+  awaitable<void> selectionHandleTouch(const std::vector<WModelIndex>& indices, const WTouchEvent& event);
+  awaitable<void> extendSelection(const WModelIndex& index);
+  awaitable<void> extendSelection(const std::vector<WModelIndex>& index);
+  virtual void selectRange(const WModelIndex& first, const WModelIndex& last) = 0;
 
   void checkDragSelection();
   void configureModelDragDrop();
 
-  void handleHeaderMouseDown(int columnid, WMouseEvent event);
-  void handleHeaderMouseUp(int columnid, WMouseEvent event);
-  void handleHeaderClicked(int columnid, WMouseEvent event);
-  void handleHeaderDblClicked(int columnid, WMouseEvent event);
-  void toggleSortColumn(int columnid);
-  void updateColumnWidth(int columnId, int width);
+  awaitable<void> handleHeaderMouseDown(int columnid, WMouseEvent event);
+  awaitable<void> handleHeaderMouseUp(int columnid, WMouseEvent event);
+  awaitable<void> handleHeaderClicked(int columnid, WMouseEvent event);
+  awaitable<void> handleHeaderDblClicked(int columnid, WMouseEvent event);
+  awaitable<void> toggleSortColumn(int columnid);
+  awaitable<void> updateColumnWidth(int columnId, int width);
 
   virtual WContainerWidget* headerContainer() = 0;
 
   int headerLevel(int column) const;
   int headerLevelCount() const;
 
-  void expandColumn(int columnid);
-  void collapseColumn(int columnid);
+  awaitable<void> expandColumn(int columnid);
+  awaitable<void> collapseColumn(int columnid);
 
   void initDragDrop();
 };

@@ -240,7 +240,7 @@ DomElementType WTable::domElementType() const
   return DomElementType::TABLE;
 }
 
-DomElement *WTable::createDomElement(WApplication *app)
+DomElement * WTable::createDomElement(WApplication *app)
 {
   bool withIds = !app->environment().agentIsSpiderBot();
 
@@ -338,8 +338,7 @@ DomElement *WTable::createRowDomElement(int row, bool withIds, WApplication *app
   return tr;
 }
 
-void WTable::getDomChanges(std::vector<DomElement *>& result,
-			   WApplication *app)
+void WTable::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   DomElement *e = DomElement::getForUpdate(this, domElementType());
 
@@ -347,8 +346,8 @@ void WTable::getDomChanges(std::vector<DomElement *>& result,
     DomElement *newE = createDomElement(app);
     e->replaceWith(newE);
   } else {
-    for (std::set<WTableRow *>::iterator i = rowsChanged_.begin();
-	 i != rowsChanged_.end(); ++i) {
+    for (auto i = rowsChanged_.begin(); i != rowsChanged_.end(); ++i)
+    {
       DomElement *e2 = DomElement::getForUpdate(*i, DomElementType::TR);
       (*i)->updateDom(*e2, false);
       result.push_back(e2);
@@ -356,13 +355,13 @@ void WTable::getDomChanges(std::vector<DomElement *>& result,
 
     rowsChanged_.clear();
 
-    if (rowsAdded_) {
-      DomElement *etb = DomElement::getForUpdate(id() + "tb",
-						 DomElementType::TBODY);
-      for (unsigned i = 0; i < static_cast<unsigned>(rowsAdded_); ++i) {
-        DomElement *tr = createRowDomElement(rowCount() - rowsAdded_ + i,
-					     true, app);
-	etb->addChild(tr);
+    if (rowsAdded_)
+    {
+      DomElement *etb = DomElement::getForUpdate(id() + "tb", DomElementType::TBODY);
+      for (unsigned i = 0; i < static_cast<unsigned>(rowsAdded_); ++i)
+      {
+        DomElement *tr = createRowDomElement(rowCount() - rowsAdded_ + i, true, app);
+        etb->addChild(tr);
       }
 
       result.push_back(etb);
@@ -372,8 +371,7 @@ void WTable::getDomChanges(std::vector<DomElement *>& result,
 
     if (flags_.test(BIT_COLUMNS_CHANGED)) {
 	for (unsigned i = 0; i < columns_.size(); ++i) {
-	  DomElement *e2
-	    = DomElement::getForUpdate(columns_[i].get(), DomElementType::COL);
+      DomElement *e2 = DomElement::getForUpdate(columns_[i].get(), DomElementType::COL);
 	  columns_[i]->updateDom(*e2, false);
 	  result.push_back(e2);
 	}
@@ -462,6 +460,20 @@ void WTable::iterateChildren(const HandleWidgetMethod &method) const
 #endif
     }
   }
+}
+
+awaitable<void> WTable::iterateChildren(AsyncHandleWidgetMethod &&method) const
+{
+  for (const auto &row : rows_) {
+    for (const auto &cell : row->cells_) {
+#ifndef WT_TARGET_JAVA
+      co_await method(cell.get());
+#else
+      co_await method.handle(cell.get());
+#endif
+    }
+  }
+  co_return;
 }
 
 }

@@ -125,7 +125,7 @@ public:
    *
    * \sa expand(), collapse()
    */
-  void setExpanded(const WModelIndex&, bool expanded);
+  awaitable<void> setExpanded(const WModelIndex&, bool expanded);
 
   /*! \brief Returns whether a node is expanded.
    *
@@ -141,19 +141,19 @@ public:
    *       were collapsed. This (inconsistent) behavior has been
    *       removed in 3.3.4.
    */
-  void collapse(const WModelIndex& index);
+  awaitable<void> collapse(const WModelIndex& index);
 
   /*! \brief Collapse all expanded nodes.
    *
    * \sa collapse(), expand()
    */
-  void collapseAll();
+  awaitable<void> collapseAll();
 
   /*! \brief Expands a node.
    *
    * \sa setExpanded(), collapse()
    */
-  void expand(const WModelIndex& index);
+  awaitable<void> expand(const WModelIndex& index);
 
   /*! \brief Expands all nodes to a depth.
    *
@@ -162,7 +162,7 @@ public:
    *
    * \sa expand()
    */
-  void expandToDepth(int depth);
+  awaitable<void> expandToDepth(int depth);
 
   /*! \brief Sets whether toplevel items are decorated.
    *
@@ -196,8 +196,7 @@ public:
   Signal<WModelIndex>& expanded() { return expanded_; }
 
   virtual WWidget *itemWidget(const WModelIndex& index) const override;
-  virtual void setModel(const std::shared_ptr<WAbstractItemModel>& model)
-    override;
+  virtual awaitable<void> setModel(const std::shared_ptr<WAbstractItemModel>& model) override;
 
   /*! \brief Sets the column width.
    *
@@ -226,8 +225,7 @@ public:
   virtual int currentPage() const override;
   virtual void setCurrentPage(int page) override;
 
-  virtual void scrollTo(const WModelIndex& index,
-			ScrollHint hint = ScrollHint::EnsureVisible) override;
+  virtual void scrollTo(const WModelIndex& index, ScrollHint hint = ScrollHint::EnsureVisible) override;
   virtual EventSignal<WScrollEvent>& scrolled() override;
 
   virtual void setId(const std::string &id) override;
@@ -303,22 +301,22 @@ private:
   void modelColumnsAboutToBeRemoved(const WModelIndex& parent,
 				    int start, int end);
   void modelColumnsRemoved(const WModelIndex& parent, int start, int end);
-  void modelRowsInserted(const WModelIndex& parent, int start, int end);
-  void modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
-  void modelRowsRemoved(const WModelIndex& parent, int start, int end);
-  virtual void modelDataChanged(const WModelIndex& topLeft,
-				const WModelIndex& bottomRight) override;
+  awaitable<void> modelRowsInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  awaitable<void> modelRowsRemoved(const WModelIndex& parent, int start, int end);
+  virtual void modelDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight) override;
   virtual void modelLayoutAboutToBeChanged() override;
-  virtual void modelLayoutChanged() override;
+  virtual awaitable<void> modelLayoutChanged() override;
 
   void onViewportChange(WScrollEvent event);
   void contentsSizeChanged(int width, int height);
-  void onItemEvent(std::string nodeAndColumnId, std::string type,
-		   std::string extra1, std::string extra2, WMouseEvent event);
-  void onRowDropEvent(std::string nodeAndColumnId, std::string sourceId,
-                      std::string mimeType, std::string side,
-                      WMouseEvent event);
-  void onItemTouchEvent(std::string nodeAndColumnId, std::string type, WTouchEvent event);
+  awaitable<void> onItemEvent(std::string nodeAndColumnId, std::string type, std::string extra1, std::string extra2, WMouseEvent event);
+  awaitable<void> onRowDropEvent(std::string nodeAndColumnId,
+                                 std::string sourceId,
+                                 std::string mimeType,
+                                 std::string side,
+                                 WMouseEvent event);
+  awaitable<void> onItemTouchEvent(std::string nodeAndColumnId, std::string type, WTouchEvent event);
   WModelIndex calculateModelIndex(std::string nodeAndColumnId);
   void setRootNodeStyle();
   void setCollapsed(const WModelIndex& index);
@@ -326,10 +324,10 @@ private:
   int calcOptimalFirstRenderedRow() const;
   int calcOptimalRenderedRowCount() const;
 
-  void shiftModelIndexes(const WModelIndex& parent, int start, int count);
+  awaitable<void> shiftModelIndexes(const WModelIndex& parent, int start, int count);
   static int shiftModelIndexes(const WModelIndex& parent, int start, int count,
-			       const std::shared_ptr<WAbstractItemModel>& model,
-			       WModelIndexSet& set);
+                               const std::shared_ptr<WAbstractItemModel>& model,
+                               WModelIndexSet& set);
   static int shiftModelIndexes(const WModelIndex& parent, int start, int count,
                                const std::shared_ptr<WAbstractItemModel>& model,
                                std::unordered_set<WModelIndex>& set);
@@ -373,7 +371,7 @@ private:
 
   bool isExpandedRecursive(const WModelIndex& index) const;
 
-  void expandChildrenToDepth(const WModelIndex& index, int depth);
+  awaitable<void> expandChildrenToDepth(const WModelIndex& index, int depth);
 
   void updateColumnWidth(int columnId, int width);
 

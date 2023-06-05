@@ -189,7 +189,7 @@ private:
 
   void uncheckOthers(WRadioButton *button);
   int  generateId() const;
-  void onButtonChange();
+  awaitable<void> onButtonChange();
   virtual void setFormData(const FormData& formData) override;
 
   friend class WRadioButton;

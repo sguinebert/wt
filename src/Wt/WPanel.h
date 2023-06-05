@@ -125,7 +125,7 @@ public:
    * but collapsing and expanding from C++, and the accompanying signals
    * is not supported.
    */
-  void setCollapsed(bool on);
+  awaitable<void> setCollapsed(bool on);
 
   /*! \brief Returns if the panel is collapsed.
    *
@@ -149,7 +149,7 @@ public:
    * but collapsing and expanding from C++, and the accompanying signals
    * is not supported.
    */
-  void collapse();
+  awaitable<void> collapse();
 
   /*! \brief Collapses the panel.
    *
@@ -162,7 +162,7 @@ public:
    * but collapsing and expanding from C++, and the accompanying signals
    * is not supported.
    */
-  void expand();
+  awaitable<void> expand();
 
   /*! \brief Sets an animation.
    *
@@ -246,14 +246,14 @@ private:
   bool isCollapsible_;
 
   void setJsSize();
-  void toggleCollapse();
-  void doExpand();
-  void doCollapse();
-  void undoExpand();
-  void undoCollapse();
+  awaitable<void> toggleCollapse();
+  awaitable<void> doExpand();
+  awaitable<void> doCollapse();
+  awaitable<void> undoExpand();
+  awaitable<void> undoCollapse();
 
-  virtual void onExpand();
-  virtual void onCollapse();
+  virtual awaitable<void> onExpand();
+  virtual awaitable<void> onCollapse();
 
   WContainerWidget *centralArea() const;
 };

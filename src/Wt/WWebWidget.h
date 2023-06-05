@@ -190,8 +190,7 @@ public:
    * or be overridden!
    */
 #endif
-  virtual void getDomChanges(std::vector<DomElement *>& result,
-			     WApplication *app);
+  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app);
   virtual DomElementType domElementType() const = 0;
 
   DomElement *createStubElement(WApplication *app);
@@ -303,11 +302,13 @@ protected:
   typedef std::map<std::string, WObject *> FormObjectsMap;
 #ifndef WT_TARGET_JAVA
   typedef std::function<void (WWidget *)> HandleWidgetMethod;
+  typedef std::function<awaitable<void> (WWidget *)> AsyncHandleWidgetMethod;
 #endif
 
   void repaint(WFlags<RepaintFlag> flags = None);
 
   virtual void iterateChildren(const HandleWidgetMethod& method) const;
+  virtual awaitable<void> iterateChildren(AsyncHandleWidgetMethod&& method) const;
   virtual void getFormObjects(FormObjectsMap& formObjects);
   virtual void doneRerender();
   virtual void updateDom(DomElement& element, bool all);
@@ -530,8 +531,7 @@ private:
   void calcZIndex();
 
   virtual bool needsToBeRendered() const override;
-  virtual void getSDomChanges(std::vector<DomElement *>& result,
-			      WApplication *app) override;
+  virtual void getSDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   void getSFormObjects(FormObjectsMap& formObjects);
 
   WWebWidget *parentWebWidget() const;
@@ -554,9 +554,9 @@ private:
   WString storedToolTip() const;
   void undoSetFocus();
 
-  void jsScrollVisibilityChanged(bool visible);
+  awaitable<void> jsScrollVisibilityChanged(bool visible);
 
-  void emitChildrenChanged();
+  awaitable<void> emitChildrenChanged();
 
 protected:
   virtual void setParentWidget(WWidget *parent) override;

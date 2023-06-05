@@ -161,7 +161,7 @@ public:
    *
    * \sa value()
    */
-  virtual void setValue(int value);
+  virtual awaitable<void> setValue(int value);
 
   /*! \brief Returns the current slider value.
    *
@@ -300,7 +300,7 @@ private:
   std::unique_ptr<PaintedSlider> paintedSlider_;
 
   void update();
-  void onChange();
+  awaitable<void> onChange();
 
   friend class PaintedSlider;
 };

@@ -51,7 +51,7 @@ public:
    * \sa dataChanged()
    * \sa addString()
    */
-  void setStringList(const std::vector<WString>& strings);
+  awaitable<void> setStringList(const std::vector<WString>& strings);
 
   /*! \brief Inserts a string.
    *
@@ -77,7 +77,7 @@ public:
    * ItemFlag::Selectable\endlink | \link Wt::ItemFlag::Editable
    * ItemFlag::Editable\endlink.
    */
-  void setFlags(int index, WFlags<ItemFlag> flags);
+  awaitable<void> setFlags(int index, WFlags<ItemFlag> flags);
 
   /*! \brief Returns the flags for an item.
    *
@@ -88,8 +88,8 @@ public:
   virtual WFlags<ItemFlag> flags(const WModelIndex& index) const override;
 
   using WAbstractListModel::setData;
-  virtual bool setData(const WModelIndex& index, const cpp17::any& value,
-                       ItemDataRole role = ItemDataRole::Edit) override;
+  virtual awaitable<bool> setData(const WModelIndex& index, const cpp17::any& value,
+                                  ItemDataRole role = ItemDataRole::Edit) override;
 
   virtual cpp17::any data(const WModelIndex& index, ItemDataRole role = ItemDataRole::Display)
     const override;
@@ -97,14 +97,11 @@ public:
   virtual int rowCount(const WModelIndex& parent = WModelIndex())
     const override;
 
-  virtual bool insertRows(int row, int count,
-			  const WModelIndex& parent = WModelIndex()) override;
+  virtual bool insertRows(int row, int count, const WModelIndex& parent = WModelIndex()) override;
 
-  virtual bool removeRows(int row, int count,
-			  const WModelIndex& parent = WModelIndex()) override;
+  virtual bool removeRows(int row, int count, const WModelIndex& parent = WModelIndex()) override;
 
-  virtual void sort(int column,
-		    SortOrder order = SortOrder::Ascending) override;
+  virtual awaitable<void> sort(int column, SortOrder order = SortOrder::Ascending) override;
 
 private:
 #ifndef WT_TARGET_JAVA

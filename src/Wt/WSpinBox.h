@@ -135,7 +135,7 @@ private:
 
   Signal<int> valueChanged_;
 
-  void onChange();
+  awaitable<void> onChange();
 };
 
 }

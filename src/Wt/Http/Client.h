@@ -515,12 +515,12 @@ private:
   class TcpImpl;
   class SslImpl;
 
-  void handleRedirect(Http::Method method, Wt::AsioWrapper::error_code err,
+  awaitable<void> handleRedirect(Http::Method method, Wt::AsioWrapper::error_code err,
 		      const Message& response, const Message& request);
 
-  void emitDone(Wt::AsioWrapper::error_code err, const Message& response);
-  void emitHeadersReceived(const Message& response);
-  void emitBodyReceived(const std::string& data);
+  awaitable<void> emitDone(Wt::AsioWrapper::error_code err, const Message& response);
+  awaitable<void> emitHeadersReceived(const Message& response);
+  awaitable<void> emitBodyReceived(const std::string& data);
 };
 
   }

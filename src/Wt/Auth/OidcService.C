@@ -20,13 +20,13 @@ LOGGER("Auth.OidcService");
     : OAuthProcess(service, scope)
   { }
 
-  void OidcProcess::getIdentity(const OAuthAccessToken& token)
+  awaitable<void> OidcProcess::getIdentity(const OAuthAccessToken& token)
   {
     if (!token.idToken().empty()) {
       Identity id = parseIdToken(token.idToken());
       if (id.isValid()) { // else fall back to userinfo
-        authenticated().emit(parseIdToken(token.idToken()));
-        return;
+        co_await authenticated().emit(parseIdToken(token.idToken()));
+        co_return;
       }
     }
 
@@ -58,7 +58,7 @@ LOGGER("Auth.OidcService");
     return Identity(providerName, id, name, email, emailVerified);
   }
 
-  void OidcProcess::handleResponse(AsioWrapper::error_code err, const Http::Message& response)
+  awaitable<void> OidcProcess::handleResponse(AsioWrapper::error_code err, const Http::Message& response)
   {
 #ifndef WT_TARGET_JAVA
     WApplication::instance()->resumeRendering();
@@ -82,10 +82,10 @@ LOGGER("Auth.OidcService");
 
       if (!ok) {
         LOG_ERROR("could not parse Json: '{}'", response.body());
-	setError(ERROR_MSG("badjson"));
-	authenticated().emit(Identity::Invalid);
+        setError(ERROR_MSG("badjson"));
+        co_await authenticated().emit(Identity::Invalid);
       } else {
-        authenticated().emit(parseClaims(userInfo));
+        co_await authenticated().emit(parseClaims(userInfo));
       }
     } else {
       LOG_ERROR(fmt::runtime(ERROR_MSG("badresponse").toUTF8()));
@@ -96,8 +96,9 @@ LOGGER("Auth.OidcService");
         LOG_ERROR("with: {}", response.body());
       }
 
-      authenticated().emit(Identity::Invalid);
+      co_await authenticated().emit(Identity::Invalid);
     }
+    co_return;
   }
 
 Identity OidcProcess::parseIdToken(const std::string& idToken)

@@ -29,10 +29,10 @@ void WAbstractItemDelegate::setEditState(WWidget *widget,
 					 const cpp17::any& value) const
 { }
 
-void WAbstractItemDelegate::setModelData(const cpp17::any& editState,
-					 WAbstractItemModel *model,
-					 const WModelIndex& index) const
-{ }
+awaitable<void> WAbstractItemDelegate::setModelData(const cpp17::any& editState,
+                                                    WAbstractItemModel *model,
+                                                    const WModelIndex& index) const
+{ co_return; }
 
 ValidationState WAbstractItemDelegate::validate(const WModelIndex& index,
 						const cpp17::any& editState)

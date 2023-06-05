@@ -327,18 +327,19 @@ void WTreeNode::descendantAdded(WTreeNode *node)
   WTreeNode *parent = parentNode();
 
   if (parent)
-    parent->descendantAdded(node);  
+    parent->descendantAdded(node);
 }
 
-void WTreeNode::descendantRemoved(WTreeNode *node)
+awaitable<void> WTreeNode::descendantRemoved(WTreeNode *node)
 {
   WTreeNode *parent = parentNode();
 
   if (parent)
-    parent->descendantRemoved(node);
+    co_await parent->descendantRemoved(node);
+  co_return;
 }
 
-WTreeNode *WTreeNode::addChildNode(std::unique_ptr<WTreeNode> node)
+WTreeNode * WTreeNode::addChildNode(std::unique_ptr<WTreeNode> node)
 {
   auto result = node.get();
   insertChildNode(childCount(), std::move(node));
@@ -354,8 +355,7 @@ void WTreeNode::insertChildNode(int index, std::unique_ptr<WTreeNode> node)
   if (childrenLoaded_)
     childContainer()->insertWidget(index, std::move(node));
   else
-    notLoadedChildren_.insert(notLoadedChildren_.begin() + index,
-			      std::move(node));
+    notLoadedChildren_.insert(notLoadedChildren_.begin() + index, std::move(node));
 
   descendantAdded(added);
 
@@ -377,7 +377,7 @@ void WTreeNode::insertChildNode(int index, std::unique_ptr<WTreeNode> node)
   resetLearnedSlots();
 }
 
-std::unique_ptr<WTreeNode> WTreeNode::removeChildNode(WTreeNode *node)
+awaitable<std::unique_ptr<WTreeNode>> WTreeNode::removeChildNode(WTreeNode *node)
 {
   node->parentNode_ = nullptr;
 
@@ -387,11 +387,11 @@ std::unique_ptr<WTreeNode> WTreeNode::removeChildNode(WTreeNode *node)
   else
     result = Utils::take(notLoadedChildren_, node);
 
-  descendantRemoved(node);
+  co_await descendantRemoved(node);
 
   updateChildren();
 
-  return result;
+  co_return result;
 }
 
 void WTreeNode::updateChildren(bool recursive)
@@ -526,11 +526,11 @@ void WTreeNode::setLabelIcon(std::unique_ptr<WIconPair> labelIcon)
   }
 }
 
-void WTreeNode::renderSelected(bool isSelected)
+awaitable<void> WTreeNode::renderSelected(bool isSelected)
 {
   layout_->bindString("selected", isSelected ?
 		      WApplication::instance()->theme()->activeClass() : "");
-  selected().emit(isSelected);
+  co_await selected().emit(isSelected);
 }
 
 void WTreeNode::update()

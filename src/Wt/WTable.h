@@ -230,11 +230,12 @@ protected:
   virtual void updateDom(DomElement& element, bool all) override;
   virtual DomElementType domElementType() const override;
   virtual DomElement *createDomElement(WApplication *app) override;
-  virtual void getDomChanges(std::vector<DomElement *>& result,
-			     WApplication *app) override;
+  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   virtual void propagateRenderOk(bool deep) override;
 
   virtual void iterateChildren(const HandleWidgetMethod &method) const override;
+
+  virtual awaitable<void> iterateChildren(AsyncHandleWidgetMethod&& method) const override;
 
 private:
   DomElement *createRowDomElement(int row, bool withIds, WApplication *app);

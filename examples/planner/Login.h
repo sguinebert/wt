@@ -23,10 +23,10 @@ public:
   Signal<WString>& loggedIn() { return loggedIn_; }
 
 private:
-  void captchaCompleted();
-  void userNameEnterPressed();
-  void loginClicked(const WMouseEvent& me);
-  void login();
+  awaitable<void> captchaCompleted();
+  awaitable<void> userNameEnterPressed();
+  awaitable<void> loginClicked(const WMouseEvent& me);
+  awaitable<void> login();
 
 private:
   Signal<WString>   loggedIn_;

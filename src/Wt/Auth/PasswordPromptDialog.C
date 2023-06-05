@@ -65,19 +65,20 @@ PasswordPromptDialog
   }
 }
 
-void PasswordPromptDialog::check()
+awaitable<void> PasswordPromptDialog::check()
 {
   impl_->updateModelField(model_.get(), AuthModel::PasswordField);
 
   if (model_->validate()) {
     Login *login = &login_;
-    accept();
-    login->login(login->user(), LoginState::Strong);    
+    co_await accept();
+    co_await login->login(login->user(), LoginState::Strong);
   } else {
     impl_->updateViewField(model_.get(), AuthModel::PasswordField);
     WPushButton *okButton = impl_->resolve<WPushButton *>("ok-button");
     model_->updateThrottling(okButton);
   }
+  co_return;
 }
 
   }

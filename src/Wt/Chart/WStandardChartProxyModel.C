@@ -167,9 +167,9 @@ int WStandardChartProxyModel::rowCount() const
   return sourceModel_->rowCount();
 }
 
-void WStandardChartProxyModel::sourceModelModified()
+awaitable<void> WStandardChartProxyModel::sourceModelModified()
 {
-  changed().emit();
+  co_await changed().emit();
 }
 
   }

@@ -115,7 +115,7 @@ const WString& WInPlaceEdit::placeholderText() const
   return placeholderText_;
 }
 
-void WInPlaceEdit::save()
+awaitable<void> WInPlaceEdit::save()
 {
   editing_->hide();
   text_->show();
@@ -125,13 +125,13 @@ void WInPlaceEdit::save()
   if (cancel_)
     cancel_->enable();
 
-  bool changed
-    = empty_ ? !edit_->text().empty() : edit_->text() != text_->text();
+  bool changed = empty_ ? !edit_->text().empty() : edit_->text() != text_->text();
 
   if (changed) {
     setText(edit_->text());
-    valueChanged().emit(edit_->text());
+    co_await valueChanged().emit(edit_->text());
   }
+  co_return;
 }
 
 void WInPlaceEdit::cancel()

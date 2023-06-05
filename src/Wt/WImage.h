@@ -231,8 +231,7 @@ private:
   void resourceChanged();
 
 protected:
-  virtual void getDomChanges(std::vector<DomElement *>& result,
-                             WApplication *app) override;
+  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   virtual void updateDom(DomElement& element, bool all) override;
   virtual void defineJavaScript();
   virtual void render(WFlags<RenderFlag> flags) override;

@@ -358,11 +358,10 @@ private:
   bool validateInputMask() const;
 
 protected:
-  virtual void           updateDom(DomElement& element, bool all) override;
+  virtual void updateDom(DomElement& element, bool all) override;
   virtual DomElementType domElementType() const override;
-  virtual void           propagateRenderOk(bool deep) override;
-  virtual void           getDomChanges(std::vector<DomElement *>& result,
-                                       WApplication *app) override;
+  virtual void propagateRenderOk(bool deep) override;
+  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   virtual void setFormData(const FormData& formData) override;
 
   virtual int boxPadding(Orientation orientation) const override;

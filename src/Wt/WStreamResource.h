@@ -77,7 +77,7 @@ public:
 
   /*! \brief Sets the mime-type.
    */
-  void setMimeType(const std::string& mimeType);
+  awaitable<void> setMimeType(const std::string& mimeType);
 
   /*! \brief Returns the mime-type.
    */

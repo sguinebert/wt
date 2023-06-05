@@ -43,10 +43,10 @@ LettersWidget::~LettersWidget()
     connection.disconnect();
 }
 
-void LettersWidget::processButton(WPushButton *b)
+awaitable<void> LettersWidget::processButton(WPushButton *b)
 {
   b->disable();
-  letterPushed_.emit(b->text().toUTF8()[0]);
+  co_await letterPushed_.emit(b->text().toUTF8()[0]);
 }
 
 void LettersWidget::processButtonPushed(const WKeyEvent &e, WPushButton *b)

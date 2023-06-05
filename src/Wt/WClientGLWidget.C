@@ -551,10 +551,10 @@ void WClientGLWidget::bufferDatafv(WGLWidget::GLenum target,
 				   bool binary)
 {
   if (binary) {
-    std::unique_ptr<WMemoryResource> res
-      (new WMemoryResource("application/octet"));
+    auto begin = Utils::toCharPointer(v);
+    std::unique_ptr<WMemoryResource> res(new WMemoryResource("application/octet", std::vector<unsigned char>(begin, begin + v.size()*sizeof(float))));
     auto resPtr = res.get();
-    res->setData(Utils::toCharPointer(v), v.size()*sizeof(float));
+    //res->setData(Utils::toCharPointer(v), v.size()*sizeof(float));
     binaryResources_.push_back(std::move(res));
     preloadArrayBuffers_.push_back(PreloadArrayBuffer(currentlyBoundBuffer_.jsRef(), resPtr->url()));
 
@@ -603,9 +603,9 @@ void WClientGLWidget::bufferDataiv(WGLWidget::GLenum target, IntBuffer &buffer, 
 void WClientGLWidget::bufferSubDatafv(WGLWidget::GLenum target, unsigned offset, const FloatBuffer &buffer, bool binary)
 {
   if (binary) {
-    std::unique_ptr<WMemoryResource> res
-      (new WMemoryResource("application/octet"));
-    res->setData(Utils::toCharPointer(buffer), buffer.size()*sizeof(float));
+      auto begin = Utils::toCharPointer(buffer);
+      std::unique_ptr<WMemoryResource> res(new WMemoryResource("application/octet", std::vector<unsigned char>(begin, begin + buffer.size()*sizeof(float))));
+    //res->setData(Utils::toCharPointer(buffer), buffer.size()*sizeof(float));
     preloadArrayBuffers_.push_back(PreloadArrayBuffer(currentlyBoundBuffer_.jsRef(), res->url()));
     binaryResources_.push_back(std::move(res));
 
@@ -1358,9 +1358,8 @@ std::unique_ptr<WResource> WClientGLWidget::rpdToMemResource(WRasterImage *rpd)
 {
   std::stringstream ss;
   rpd->write(ss);
-  std::unique_ptr<WMemoryResource> mr(new WMemoryResource("image/png"));
-  mr->setData(reinterpret_cast<const unsigned char*>(ss.str().c_str()),
-	      ss.str().size());
+  std::unique_ptr<WMemoryResource> mr(new WMemoryResource("image/png", std::vector<unsigned char>(ss.view().begin(), ss.view().end())));
+  //mr->setData(reinterpret_cast<const unsigned char*>(ss.str().c_str()), ss.str().size());
   return std::move(mr);
 }
 #endif

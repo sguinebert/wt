@@ -31,12 +31,13 @@ void CountDownWidget::cancel()
   timer_->stop();
 }
 
-void CountDownWidget::timerTick()
+awaitable<void> CountDownWidget::timerTick()
 {
   setText(std::to_string(--current_));
 
   if (current_ <= stop_) {
     timer_->stop();
-    done_.emit();
+    co_await done_.emit();
   }
+  co_return;
 }

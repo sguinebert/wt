@@ -854,7 +854,7 @@ public:
    *       to use WString in the future).
    * \endif
    */
-  void setInternalPath(const std::string& path, bool emitChange = false);
+  awaitable<void> setInternalPath(const std::string& path, bool emitChange = false);
 
   /*! \brief Sets whether an internal path is valid by default.
    *
@@ -2363,8 +2363,8 @@ private:
   /*
    * Methods for application state handling
    */
-  bool changeInternalPath(const std::string& path);
-  bool changedInternalPath(const std::string& path);
+  awaitable<bool> changeInternalPath(const std::string& path);
+  awaitable<bool> changedInternalPath(const std::string& path);
 
   /*
    * Methods for accessing javaScript, which may have erase-on-read

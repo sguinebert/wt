@@ -113,39 +113,39 @@ void WTextEdit::init()
 WTextEdit::~WTextEdit()
 { }
 
-void WTextEdit::propagateOnChange()
+awaitable<void> WTextEdit::propagateOnChange()
 {
-  changed().emit();
+  co_await changed().emit();
 }
 
-void WTextEdit::propagateOnClick(WMouseEvent evt)
+awaitable<void> WTextEdit::propagateOnClick(WMouseEvent evt)
 {
-  clicked().emit(evt);
+  co_await clicked().emit(evt);
 }
 
-void WTextEdit::propagateOnDoubleClick(WMouseEvent evt)
+awaitable<void> WTextEdit::propagateOnDoubleClick(WMouseEvent evt)
 {
-  doubleClicked().emit(evt);
+  co_await doubleClicked().emit(evt);
 }
 
-void WTextEdit::propagateOnMouseWentDown(WMouseEvent evt)
+awaitable<void> WTextEdit::propagateOnMouseWentDown(WMouseEvent evt)
 {
-  mouseWentDown().emit(evt);
+  co_await mouseWentDown().emit(evt);
 }
 
-void WTextEdit::propagateOnMouseWentUp(WMouseEvent evt)
+awaitable<void> WTextEdit::propagateOnMouseWentUp(WMouseEvent evt)
 {
-   mouseWentUp().emit(evt);
+   co_await mouseWentUp().emit(evt);
 }
 
-void WTextEdit::propagateOnFocusIn()
+awaitable<void> WTextEdit::propagateOnFocusIn()
 {
-  focussed().emit();
+  co_await focussed().emit();
 }
 
-void WTextEdit::propagateOnFocusOut()
+awaitable<void> WTextEdit::propagateOnFocusOut()
 {
-   blurred().emit();
+   co_await blurred().emit();
 }
 void WTextEdit::setStyleSheet(const std::string& uri)
 {
@@ -364,8 +364,7 @@ void WTextEdit::updateDom(DomElement& element, bool all)
   }
 }
 
-void WTextEdit::getDomChanges(std::vector<DomElement *>& result,
-			      WApplication *app)
+void WTextEdit::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   /*
    * We apply changes directly to the table element, except of the textarea
@@ -386,8 +385,7 @@ void WTextEdit::getDomChanges(std::vector<DomElement *>& result,
    * New version of tinyMCE uses divs instead of table and removing the _tbl 
    * makes it work on all version
    */
-  DomElement *e = DomElement::getForUpdate(formName()/* + "_tbl" */ ,
-					   DomElementType::TABLE);
+  DomElement *e = DomElement::getForUpdate(formName()/* + "_tbl" */ , DomElementType::TABLE);
   updateDom(*e, false);
 
   WTextArea::getDomChanges(result, app);

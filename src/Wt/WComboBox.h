@@ -77,7 +77,7 @@ public:
    * \link insertItem(int, const WString&) insertItem\endlink (count(),
    * \p text).
    */
-  void addItem(const WString& text);
+  awaitable<void> addItem(const WString& text);
 
   /*! \brief Returns the number of items
    */
@@ -98,7 +98,7 @@ public:
    *
    * \sa addItem(const WString&), removeItem(int)
    */
-  void insertItem(int index, const WString& text);
+  awaitable<void> insertItem(int index, const WString& text);
 
   /*! \brief Removes the item at the specified position.
    *
@@ -107,7 +107,7 @@ public:
    *
    * \sa insertItem(int index, const WString&), clear()
    */
-  void removeItem(int index);
+  awaitable<void> removeItem(int index);
 
   /*! \brief Changes the current selection.
    *
@@ -122,7 +122,7 @@ public:
    * The text for the item at position \p index is changed. This requires
    * that the model() is editable.
    */
-  void setItemText(int index, const WString& text);
+  awaitable<void> setItemText(int index, const WString& text);
 
   /*! \brief Returns the text of the currently selected item.
    *
@@ -259,7 +259,7 @@ private:
 
   void layoutChanged();
   void itemsChanged();
-  void propagateChange();
+  awaitable<void> propagateChange();
 
   void rowsInserted(const WModelIndex &index, int from, int to);
   void rowsRemoved(const WModelIndex &index, int from, int to);

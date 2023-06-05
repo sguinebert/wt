@@ -401,17 +401,14 @@ void WItemDelegate::updateModelIndex(WWidget *widget, const WModelIndex& index)
   }
 }
 
-void WItemDelegate::onCheckedChange(IndexCheckBox *cb) const
+awaitable<void> WItemDelegate::onCheckedChange(IndexCheckBox *cb) const
 {
-  WAbstractItemModel *model
-    = const_cast<WAbstractItemModel *>(cb->index().model());
+  WAbstractItemModel *model = const_cast<WAbstractItemModel *>(cb->index().model());
 
   if (cb->isTristate())
-    model->setData(cb->index(), cpp17::any(cb->checkState()),
-                   ItemDataRole::Checked);
+    co_await model->setData(cb->index(), cpp17::any(cb->checkState()), ItemDataRole::Checked);
   else
-    model->setData(cb->index(), cpp17::any(cb->isChecked()),
-                   ItemDataRole::Checked);
+    co_await model->setData(cb->index(), cpp17::any(cb->isChecked()), ItemDataRole::Checked);
 }
 
 std::unique_ptr<WWidget> WItemDelegate
@@ -440,16 +437,15 @@ std::unique_ptr<WWidget> WItemDelegate
   return std::move(result);
 }
 
-void WItemDelegate::doCloseEditor(WWidget *editor, bool save) const
+awaitable<void> WItemDelegate::doCloseEditor(WWidget *editor, bool save) const
 {
-  closeEditor().emit(editor, save);
+  co_await closeEditor().emit(editor, save);
 }
 
 cpp17::any WItemDelegate::editState(WWidget *editor, const WModelIndex& index)
   const
 {
-  IndexContainerWidget *w =
-      dynamic_cast<IndexContainerWidget *>(editor);
+  IndexContainerWidget *w = dynamic_cast<IndexContainerWidget *>(editor);
   WLineEdit *lineEdit = dynamic_cast<WLineEdit *>(w->widget(0));
 
   return cpp17::any(lineEdit->text());
@@ -465,11 +461,11 @@ void WItemDelegate::setEditState(WWidget *editor, const WModelIndex& index,
   lineEdit->setText(cpp17::any_cast<WT_USTRING>(value));
 }
 
-void WItemDelegate::setModelData(const cpp17::any& editState,
-                                 WAbstractItemModel *model,
-                                 const WModelIndex& index) const
+awaitable<void> WItemDelegate::setModelData(const cpp17::any& editState,
+                                            WAbstractItemModel *model,
+                                            const WModelIndex& index) const
 {
-  model->setData(index, editState, ItemDataRole::Edit);
+  co_await model->setData(index, editState, ItemDataRole::Edit);
 }
 
 }

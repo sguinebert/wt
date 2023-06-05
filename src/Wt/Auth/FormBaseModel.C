@@ -80,10 +80,10 @@ void FormBaseModel::setValid(Field field, const Wt::WString& message)
 				   WString::tr("Wt.Auth.valid") : message));
 }
 
-bool FormBaseModel::loginUser(Login& login, User& user, LoginState state)
+awaitable<bool> FormBaseModel::loginUser(Login& login, User& user, LoginState state)
 {
   if (!user.isValid())
-    return false;
+    co_return false;
 
   if (user.status() == AccountStatus::Disabled) {
     setValidation
@@ -91,9 +91,9 @@ bool FormBaseModel::loginUser(Login& login, User& user, LoginState state)
        WValidator::Result(ValidationState::Invalid,
 			  WString::tr("Wt.Auth.account-disabled")));
 
-    login.login(user, LoginState::Disabled);
+    co_await login.login(user, LoginState::Disabled);
 
-    return false;
+    co_return false;
   } else if (baseAuth()->emailVerificationRequired() &&
 	     user.email().empty()) {
     setValidation
@@ -101,14 +101,12 @@ bool FormBaseModel::loginUser(Login& login, User& user, LoginState state)
        WValidator::Result(ValidationState::Invalid,
 			  WString::tr("Wt.Auth.email-unverified")));
 
-    login.login(user, LoginState::Disabled);
+    co_await login.login(user, LoginState::Disabled);
 
-    return false;
-  } else {
-    login.login(user, state);
-
-    return true;
-  }  
+    co_return false;
+  }
+  co_await login.login(user, state);
+  co_return true;
 }
 
   }

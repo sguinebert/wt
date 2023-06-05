@@ -29,7 +29,6 @@
 #include "session.hpp"
 #include "websocket.hpp"
 #include "detail/MoveOnlyFunction.hpp"
-//#include "detail/connection.hpp"
 
 #include <Wt/Http/Request.h>
 

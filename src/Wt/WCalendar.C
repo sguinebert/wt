@@ -249,25 +249,23 @@ void WCalendar::render(WFlags<RenderFlag> flags)
 	if (rw != w)
 	  impl_->bindWidget(cell, std::unique_ptr<WWidget>(rw));
 
-	if (iw && iw != w) {
-	  if (clicked().isConnected()
-	      || (selectionMode_ == SelectionMode::Extended)
-	      || (selectionMode_ != SelectionMode::Extended && 
-		  singleClickSelect_ && activated().isConnected())) {
-            const Coordinate c(i, j);
-	    iw->clicked().connect
-	      (this,
-	       std::bind(&WCalendar::cellClicked, this, c));
-          }
+    if (iw && iw != w) {
+      if (clicked().isConnected()
+          || (selectionMode_ == SelectionMode::Extended)
+          || (selectionMode_ != SelectionMode::Extended &&
+              singleClickSelect_ && activated().isConnected()))
+      {
+          const Coordinate c(i, j);
+          iw->clicked().connect(this, std::bind(&WCalendar::cellClicked, this, c));
+      }
 
-	  if ((selectionMode_ != SelectionMode::Extended &&
-	       !singleClickSelect_ && (activated().isConnected() ||
-		   selectionChanged().isConnected()))) {
-            const Coordinate c(i, j);
-	    iw->doubleClicked().connect
-	      (this,
-	       std::bind(&WCalendar::cellDblClicked, this, c));
-          }
+      if ((selectionMode_ != SelectionMode::Extended &&
+           !singleClickSelect_ && (activated().isConnected() ||
+                                   selectionChanged().isConnected())))
+      {
+          const Coordinate c(i, j);
+          iw->doubleClicked().connect(this, std::bind(&WCalendar::cellDblClicked, this, c));
+      }
 	}
 
     d = d.addDays(1);
@@ -357,7 +355,7 @@ void WCalendar::browseTo(const WDate& date)
   }
 
   if (rerender) {
-    emitCurrentPageChanged();
+    //co_await emitCurrentPageChanged();
     renderMonth();
   }
 }
@@ -375,7 +373,7 @@ void WCalendar::select(const std::set<WDate>& dates)
   }
 }
 
-void WCalendar::selectInCurrentMonth(const WDate& d)
+awaitable<void> WCalendar::selectInCurrentMonth(const WDate& d)
 {
   if (d.month() == currentMonth_ &&
       selectionMode_ != SelectionMode::None) {
@@ -390,8 +388,9 @@ void WCalendar::selectInCurrentMonth(const WDate& d)
     }
 
     renderMonth();
-    selectionChanged().emit();
+    co_await selectionChanged().emit();
   }
+  co_return;
 }
 
 bool WCalendar::isInvalid(const WDate& dt)
@@ -400,31 +399,29 @@ bool WCalendar::isInvalid(const WDate& dt)
           (!top_.isNull() && dt > top_));
 }
 
-void WCalendar::cellClicked(Coordinate weekday)
+awaitable<void> WCalendar::cellClicked(Coordinate weekday)
 {
   WDate dt = dateForCell(weekday.i, weekday.j);
   if (isInvalid(dt))
-    return;
+    co_return;
 
-  selectInCurrentMonth(dt);
-  clicked().emit(dt);
+  co_await selectInCurrentMonth(dt);
+  co_await clicked().emit(dt);
   
-  if (selectionMode_ != SelectionMode::Extended && 
-      singleClickSelect_)
-    activated().emit(dt);
+  if (selectionMode_ != SelectionMode::Extended && singleClickSelect_)
+    co_await activated().emit(dt);
 }
 
-void WCalendar::cellDblClicked(Coordinate weekday)
+awaitable<void> WCalendar::cellDblClicked(Coordinate weekday)
 {
   WDate dt = dateForCell(weekday.i, weekday.j);
   if (isInvalid(dt))
-    return;
+    co_return;
 
-  selectInCurrentMonth(dt);
+  co_await selectInCurrentMonth(dt);
 
-  if (selectionMode_ != SelectionMode::Extended &&
-      !singleClickSelect_)
-    activated().emit(dt);
+  if (selectionMode_ != SelectionMode::Extended && !singleClickSelect_)
+    co_await activated().emit(dt);
 }
 
 WDate WCalendar::dateForCell(int week, int dayOfWeek)
@@ -436,16 +433,16 @@ WDate WCalendar::dateForCell(int week, int dayOfWeek)
   return d;
 }
 
-void WCalendar::emitCurrentPageChanged()
-{
-  currentPageChanged().emit(currentYear_, currentMonth_);
-}
+//awaitable<void> WCalendar::emitCurrentPageChanged()
+//{
+//  co_await currentPageChanged().emit(currentYear_, currentMonth_);
+//}
 
 void WCalendar::browseToPreviousYear()
 {
   --currentYear_;
 
-  emitCurrentPageChanged();
+  //co_await emitCurrentPageChanged();
   renderMonth();
 }
 
@@ -456,7 +453,7 @@ void WCalendar::browseToPreviousMonth()
     --currentYear_;
   }
 
-  emitCurrentPageChanged();
+  //co_await emitCurrentPageChanged();
   renderMonth();
 }
 
@@ -464,7 +461,7 @@ void WCalendar::browseToNextYear()
 {
   ++currentYear_;
 
-  emitCurrentPageChanged();
+  //co_await emitCurrentPageChanged();
   renderMonth();
 }
 
@@ -475,7 +472,7 @@ void WCalendar::browseToNextMonth()
     ++currentYear_;
   }
 
-  emitCurrentPageChanged();
+  //co_await emitCurrentPageChanged();
   renderMonth();
 }
 
@@ -488,7 +485,7 @@ void WCalendar::monthChanged(int newMonth)
 
     currentMonth_ = newMonth;
 
-    emitCurrentPageChanged();
+    //co_await emitCurrentPageChanged();
     renderMonth();
   }
 }
@@ -502,7 +499,7 @@ void WCalendar::yearChanged(WString yearStr)
 	(year >= 1900 && year <= 2200)) { // ??
       currentYear_ = year;
 
-      emitCurrentPageChanged();
+      //co_await emitCurrentPageChanged();
       renderMonth();
     }
   } catch (std::exception& e) {

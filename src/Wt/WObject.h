@@ -11,6 +11,7 @@
 #include <Wt/WGlobal.h>
 #include <Wt/Core/observable.hpp>
 #include <Wt/Http/Request.h>
+#include <Wt/AsioWrapper/asio.hpp>
 
 #ifdef WT_THREADED
 #include <atomic>
@@ -87,6 +88,8 @@ public:
   /*! \brief Typedef for a %WObject method without arguments.
    */
   typedef void (WObject::*Method)();
+  typedef awaitable<void>(WObject::*AsyncMethod)();
+  //typedef std::function<awaitable<void>()> AsyncMethod;
 
   WObject();
   WObject(const WObject&) = delete;
@@ -305,6 +308,8 @@ public:
 
   WStatelessSlot* isStateless(Method method) const;
 
+ // WStatelessSlot* isStateless(AsyncMethod method) const;
+
 protected:
   virtual void signalConnectionsChanged();
 
@@ -317,7 +322,7 @@ protected:
   };
 
   virtual void setFormData(const FormData& formData);
-  virtual void setRequestTooLarge(::int64_t size);
+  virtual awaitable<void> setRequestTooLarge(::int64_t size);
 
   /*! \brief On-demand stateless slot implementation.
    *

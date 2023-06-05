@@ -114,8 +114,7 @@ public:
    *
    * Returns whether the user could be logged in.
    */
-  virtual bool loginUser(Login& login, User& user, 
-			 LoginState state = LoginState::Strong);
+  virtual awaitable<bool> loginUser(Login& login, User& user, LoginState state = LoginState::Strong);
 
 protected:
   void setValid(Field field);

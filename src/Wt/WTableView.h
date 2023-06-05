@@ -91,8 +91,7 @@ public:
   virtual ~WTableView();
 
   virtual WWidget *itemWidget(const WModelIndex& index) const override;
-  virtual void setModel(const std::shared_ptr<WAbstractItemModel>& model)
-    override;
+  virtual awaitable<void> setModel(const std::shared_ptr<WAbstractItemModel>& model) override;
 
   virtual void setColumnWidth(int column, const WLength& width) override;
   virtual void setAlternatingRowColors(bool enable) override;
@@ -110,8 +109,7 @@ public:
   virtual int currentPage() const override;
   virtual void setCurrentPage(int page) override;
 
-  virtual void scrollTo(const WModelIndex& index,
-			ScrollHint hint = ScrollHint::EnsureVisible) override;
+  virtual void scrollTo(const WModelIndex& index, ScrollHint hint = ScrollHint::EnsureVisible) override;
 
   /*! \brief Scrolls the view x px left and y px top.
    */
@@ -234,16 +232,16 @@ private:
 
   ColumnWidget *columnContainer(int renderedColumn) const;
 
-  void modelColumnsInserted(const WModelIndex& parent, int start, int end);
-  void modelColumnsAboutToBeRemoved(const WModelIndex& parent,
+  awaitable<void> modelColumnsInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> modelColumnsAboutToBeRemoved(const WModelIndex& parent,
 				    int start, int end);
-  void modelRowsInserted(const WModelIndex& parent, int start, int end);
-  void modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  awaitable<void> modelRowsInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   void modelRowsRemoved(const WModelIndex& parent, int start, int end);
   virtual void modelDataChanged(const WModelIndex& topLeft,
 				const WModelIndex& bottomRight) override;
 
-  virtual void modelLayoutChanged() override;
+  virtual awaitable<void> modelLayoutChanged() override;
 
   std::unique_ptr<WWidget> renderWidget(WWidget* w, const WModelIndex& index);
 
@@ -276,21 +274,21 @@ private:
   void onColumnResize();
   void resetGeometry();
   
-  void handleSingleClick(bool headerColumns, const WMouseEvent& event);
-  void handleDblClick(bool headerColumns, const WMouseEvent& event);
-  void handleMouseWentDown(bool headerColumns, const WMouseEvent& event);
-  void handleMouseWentUp(bool headerColumns, const WMouseEvent& event);
-  void handleTouchSelected(const WTouchEvent& event);
-  void handleTouchStarted(const WTouchEvent& event);
-  void handleTouchMoved(const WTouchEvent& event);
-  void handleTouchEnded(const WTouchEvent& event);
+  awaitable<void> handleSingleClick(bool headerColumns, const WMouseEvent& event);
+  awaitable<void> handleDblClick(bool headerColumns, const WMouseEvent& event);
+  awaitable<void> handleMouseWentDown(bool headerColumns, const WMouseEvent& event);
+  awaitable<void> handleMouseWentUp(bool headerColumns, const WMouseEvent& event);
+  awaitable<void> handleTouchSelected(const WTouchEvent& event);
+  awaitable<void> handleTouchStarted(const WTouchEvent& event);
+  awaitable<void> handleTouchMoved(const WTouchEvent& event);
+  awaitable<void> handleTouchEnded(const WTouchEvent& event);
   WModelIndex translateModelIndex(bool headerColumns, const WMouseEvent& event);
   WModelIndex translateModelIndex(const Touch& touch);
 
-  void handleRootSingleClick(int u, const WMouseEvent& event);
-  void handleRootDoubleClick(int u, const WMouseEvent& event);
-  void handleRootMouseWentDown(int u, const WMouseEvent& event);
-  void handleRootMouseWentUp(int u, const WMouseEvent& event);
+  awaitable<void> handleRootSingleClick(int u, const WMouseEvent& event);
+  awaitable<void> handleRootDoubleClick(int u, const WMouseEvent& event);
+  awaitable<void> handleRootMouseWentDown(int u, const WMouseEvent& event);
+  awaitable<void> handleRootMouseWentUp(int u, const WMouseEvent& event);
 
   void updateItem(const WModelIndex& index,
 		  int renderedRow, int renderedColumn);
@@ -299,8 +297,8 @@ private:
     override;
   virtual void selectRange(const WModelIndex& first, const WModelIndex& last)
     override;
-  void shiftModelIndexRows(int start, int count);
-  void shiftModelIndexColumns(int start, int count);
+  awaitable<void> shiftModelIndexRows(int start, int count);
+  awaitable<void> shiftModelIndexColumns(int start, int count);
   void renderSelected(bool selected, const WModelIndex& index);
   int renderedColumnsCount() const;
 
@@ -313,10 +311,10 @@ private:
   void updateModelIndex(const WModelIndex& index,
 			int renderedRow, int renderedColumn);
 
-  void onDropEvent(int renderedRow, int columnId,
+  awaitable<void> onDropEvent(int renderedRow, int columnId,
 		   std::string sourceId, std::string mimeType,
 		   WMouseEvent event);
-  void onRowDropEvent(int renderedRow, int columnId,
+  awaitable<void> onRowDropEvent(int renderedRow, int columnId,
                       std::string sourceId, std::string mimeType,
                       std::string side, WMouseEvent event);
 

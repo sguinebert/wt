@@ -224,14 +224,16 @@ public:
    * object inherits from WObject (or Wt::Signals::trackable).
    */
   template<class F> Wt::Signals::connection connect(F function);
-  template<class F> Wt::Signals::connection connect(const WObject *target,
-						    F function);
+  template<class F> Wt::Signals::connection connect(const WObject *target, F function);
 
   /*! \brief Connect a slot that takes no arguments.
    */
 #ifndef WT_CNOR
   template<class T, class V, class... B>
     Wt::Signals::connection connect(T *target, void (V::*method)(B...));
+
+  template<class T, class V, class... B>
+  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(B...));
 #else // WT_CNOR
   template<class T, class V>
     Wt::Signals::connection connect(T *target, void (V::*method)());
@@ -294,7 +296,7 @@ public:
    * arguments.
    */
 #ifndef WT_CNOR
-  void emit(A... args) const;
+  awaitable<void> emit(A... args) const;
 #else // WT_CNOR
   void emit(A1 a1 = NoClass::none, A2 a2 = NoClass::none,
 	    A3 a3 = NoClass::none, A4 a4 = NoClass::none,
@@ -308,15 +310,16 @@ public:
    * \sa emit
    */
 #ifndef WT_CNOR
-  void operator()(A... args) const;
+  awaitable<void> operator()(A... args) const;
 #else // WT_CNOR
   void operator()(A1 a1 = NoClass::none, A2 a2 = NoClass::none,
 		  A3 a3 = NoClass::none, A4 a4 = NoClass::none,
 		  A5 a5 = NoClass::none, A6 a6 = NoClass::none);
 #endif // WT_CNOR
 
-  virtual Wt::Signals::connection connect(WObject *target,
-					  void (WObject::*method)()) override;
+  virtual Wt::Signals::connection connect(WObject *target, void (WObject::*method)()) override;
+
+  virtual Wt::Signals::connection connect(WObject *target, WObject::AsyncMethod method) override;
 
 protected:
   virtual int argumentCount() const override;
@@ -331,7 +334,7 @@ private:
   SignalType impl_;
 #endif // WT_CNOR
 
-  virtual void processDynamic(const JavaScriptEvent& e) const override;
+  virtual awaitable<void> processDynamic(const JavaScriptEvent& e) const override;
 };
 
 #ifdef WT_CNOR
@@ -430,6 +433,17 @@ Wt::Signals::connection JSignal<A...>
     ::connect(impl_, target, method);
 }
 
+template <class... A>
+template <class T, class V, class... B>
+Wt::Signals::connection JSignal<A...>
+    ::connect(T *target, awaitable<void> (V::*method)(B...))
+{
+  exposeSignal();
+
+  return Signals::Impl::ConnectHelper<sizeof...(B), A...>
+      ::connect(impl_, target, method);
+}
+
 /* Oops how to do that?
 template <typename A1, typename A2, typename A3,
 	  typename A4, typename A5, typename A6>
@@ -500,15 +514,27 @@ Wt::Signals::connection JSignal<A...>::connect(WObject *target,
 }
 
 template <typename... A>
-void JSignal<A...>::emit(A... args) const
+Wt::Signals::connection JSignal<A...>::connect(WObject *target,
+                                               WObject::AsyncMethod method)
 {
-  impl_.emit(args...);
+  exposeSignal();
+//  WStatelessSlot *s = target->isStateless(method);
+//  if (canAutoLearn() && s)
+//    return EventSignalBase::connectStateless(method, target, s);
+//  else
+    return impl_.connect(std::bind(method, target), target);
 }
 
 template <typename... A>
-void JSignal<A...>::operator()(A... args) const
+awaitable<void> JSignal<A...>::emit(A... args) const
 {
-  emit(args...);
+  co_await impl_.emit(args...);
+}
+
+template <typename... A>
+awaitable<void> JSignal<A...>::operator()(A... args) const
+{
+  co_await emit(args...);
 }
 
 template <typename... A>
@@ -587,24 +613,25 @@ struct Holder {
 
   Holder(const JSignal<A...>& s) : signal(s) { }
 
-  void dispatch() {
-    doEmit(typename gens<sizeof...(A)>::type());
+  awaitable<void> dispatch() {
+    co_await doEmit(typename gens<sizeof...(A)>::type());
   }
 
   template<int ...S>
-  void doEmit(seq<S...>) {
-    signal.emit(std::get<S>(args)...);
+  awaitable<void> doEmit(seq<S...>) {
+    co_await signal.emit(std::get<S>(args)...);
   }
 };
 
 }
 
 template <typename... A>
-void JSignal<A...>::processDynamic(const JavaScriptEvent& jse) const
+awaitable<void> JSignal<A...>::processDynamic(const JavaScriptEvent& jse) const
 {
   Impl::Holder<A...> h(*this);
   Impl::unMarshal(jse, h.args);
-  h.dispatch();
+  co_await h.dispatch();
+  co_return;
 }
 
 #endif // WT_CNOR

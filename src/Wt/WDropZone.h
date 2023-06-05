@@ -51,6 +51,8 @@ public:
      */
         Signal< ::uint64_t, ::uint64_t >& dataReceived() { return dataReceived_; }
 
+        Signal<>& uploaded() { return uploaded_;};
+
         /*! \brief This signal is triggered when the upload is finished.
      *
      * This is also signalled using the WFileDropWidget
@@ -69,7 +71,7 @@ public:
         void handleIncomingData(const Http::UploadedFile& file, bool last);
         void cancel();
         bool cancelled() const;
-        void emitDataReceived(::uint64_t current, ::uint64_t total, bool filterSupported);
+        awaitable<void> emitDataReceived(::uint64_t current, ::uint64_t total, bool filterSupported);
         void setIsFiltered(bool filtered);
 
     private:
@@ -253,14 +255,14 @@ protected:
 
 private:
     void setup();
-    void handleDrop(const std::string& newDrops);
-    void handleTooLarge(::uint64_t size);
-    void handleErrorUpload(std::string uuid, std::string error);
-    void handleSendRequest(std::string& id);
-    void emitUploaded(std::string id);
-    void stopReceiving();
-    void onData(::uint64_t current, ::uint64_t total);
-    void onDataExceeded(::uint64_t dataExceeded);
+    awaitable<void> handleDrop(const std::string& newDrops);
+    awaitable<void> handleTooLarge(::uint64_t size);
+    awaitable<void> handleErrorUpload(std::string uuid, std::string error);
+    awaitable<void> handleSendRequest(std::string& id);
+    awaitable<void> emitUploaded(std::string id);
+    awaitable<void> stopReceiving();
+    awaitable<void> onData(::uint64_t current, ::uint64_t total);
+    awaitable<void> onDataExceeded(::uint64_t dataExceeded);
     void createWorkerResource();
     void disableJavaScriptFilter();
 

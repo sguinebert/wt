@@ -69,8 +69,8 @@ const std::string WObject::id() const
 void WObject::setFormData(const FormData& formData)
 { }
 
-void WObject::setRequestTooLarge(::int64_t size)
-{ }
+awaitable<void> WObject::setRequestTooLarge(::int64_t size)
+{ co_return; }
 
 void WObject::signalConnectionsChanged()
 { }
@@ -105,6 +105,16 @@ WStatelessSlot* WObject::isStateless(Method method) const
 
   return (const_cast<WObject *>(this))->getStateless(method);
 }
+
+//WStatelessSlot *WObject::isStateless(AsyncMethod method) const
+//{
+//  for (unsigned i = 0; i < statelessSlots_.size(); i++) {
+//    if (statelessSlots_[i]->implementsMethod(method))
+//      return statelessSlots_[i].get();
+//  }
+
+//  return (const_cast<WObject *>(this))->getStateless(method);
+//}
 
 WStatelessSlot *WObject::implementAutolearn(Method method)
 {

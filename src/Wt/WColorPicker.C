@@ -90,6 +90,7 @@ void WColorPicker::setFormData(const FormData& formData)
     const std::string& value = formData.values[0];
     color_ = WColor(value);
   }
+  return;
 }
 
 WT_USTRING WColorPicker::valueText() const

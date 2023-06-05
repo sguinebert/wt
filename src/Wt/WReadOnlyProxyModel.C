@@ -44,22 +44,22 @@ WModelIndex WReadOnlyProxyModel::index(int row, int column,
   return sourceModel()->index(row, column, parent);
 }
 
-bool WReadOnlyProxyModel::setData(const WModelIndex& index, const cpp17::any& value,
+awaitable<bool> WReadOnlyProxyModel::setData(const WModelIndex& index, const cpp17::any& value,
                                   ItemDataRole role)
 {
-  return false;
+  co_return false;
 }
 
-bool WReadOnlyProxyModel::setItemData(const WModelIndex& index,
+awaitable<bool> WReadOnlyProxyModel::setItemData(const WModelIndex& index,
 				      const DataMap& values)
 {
-  return false;
+  co_return false;
 }
 
-bool WReadOnlyProxyModel::setHeaderData(int section, Orientation orientation,
+awaitable<bool> WReadOnlyProxyModel::setHeaderData(int section, Orientation orientation,
                                         const cpp17::any& value, ItemDataRole role)
 {
-  return false;
+  co_return false;
 }
 
 bool WReadOnlyProxyModel::insertColumns(int column, int count,
@@ -74,9 +74,9 @@ bool WReadOnlyProxyModel::removeColumns(int column, int count,
   return false;
 }
 
-void WReadOnlyProxyModel::dropEvent(const WDropEvent& e, DropAction action,
+awaitable<void> WReadOnlyProxyModel::dropEvent(const WDropEvent& e, DropAction action,
 				    int row, int column,
 				    const WModelIndex& parent)
-{ }
+{ co_return; }
 
 }

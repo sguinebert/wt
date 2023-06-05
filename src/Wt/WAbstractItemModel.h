@@ -12,6 +12,7 @@
 #include <Wt/WSignal.h>
 #include <Wt/WGlobal.h>
 #include <Wt/WAny.h>
+#include <boost/signals2.hpp>
 
 namespace Wt {
 
@@ -436,8 +437,8 @@ public:
    *
    * \sa data()
    */
-  virtual bool setData(const WModelIndex& index, const cpp17::any& value,
-                       ItemDataRole role = ItemDataRole::Edit);
+  virtual awaitable<bool> setData(const WModelIndex& index, const cpp17::any& value,
+                                  ItemDataRole role = ItemDataRole::Edit);
 
   /*! \brief Sets data at the given model index.
    *
@@ -445,7 +446,7 @@ public:
    *
    * \sa setData()
    */
-  virtual bool setItemData(const WModelIndex& index, const DataMap& values);
+  virtual awaitable<bool> setItemData(const WModelIndex& index, const DataMap& values);
 
   /*! \brief Sets header data for a column or row.
    *
@@ -453,9 +454,9 @@ public:
    *
    * \sa headerData()
    */
-  virtual bool setHeaderData(int section, Orientation orientation,
-			     const cpp17::any& value,
-                             ItemDataRole role = ItemDataRole::Edit);
+  virtual awaitable<bool> setHeaderData(int section, Orientation orientation,
+                                        const cpp17::any& value,
+                                        ItemDataRole role = ItemDataRole::Edit);
 
   /*! \brief Sets column header data.
    *
@@ -463,7 +464,7 @@ public:
    *
    * \sa setHeaderData(int, Orientation, const cpp17::any&, int)
    */
-  bool setHeaderData(int section, const cpp17::any& value);
+  awaitable<bool> setHeaderData(int section, const cpp17::any& value);
 
   /*! \brief Sorts the model according to a particular column.
    *
@@ -473,7 +474,7 @@ public:
    *
    * \sa layoutAboutToBeChanged(), layoutChanged()
    */
-  virtual void sort(int column, SortOrder order = SortOrder::Ascending);
+  virtual awaitable<void> sort(int column, SortOrder order = SortOrder::Ascending);
 
   /*! \brief Expands a column.
    *
@@ -484,7 +485,7 @@ public:
    *
    * \sa WAggregateProxyModel
    */
-  virtual void expandColumn(int column);
+  virtual awaitable<void> expandColumn(int column);
 
   /*! \brief Collapses a column.
    *
@@ -495,7 +496,7 @@ public:
    *
    * \sa WAggregateProxyModel
    */
-  virtual void collapseColumn(int column);
+  virtual awaitable<void> collapseColumn(int column);
 
   /*! \brief Converts a model index to a raw pointer that remains valid
    *         while the model's layout is changed. 
@@ -578,8 +579,8 @@ public:
    *
    * \sa mimeType(), WItemSelectionModel
    */
-  virtual void dropEvent(const WDropEvent& e, DropAction action,
-			 int row, int column, const WModelIndex& parent);
+  virtual awaitable<void> dropEvent(const WDropEvent& e, DropAction action,
+                                    int row, int column, const WModelIndex& parent);
 
   /*! \brief Handles a drop event.
    *
@@ -601,8 +602,8 @@ public:
    *
    * \sa mimeType(), WItemSelectionModel
    */
-  virtual void dropEvent(const WDropEvent& e, DropAction action,
-                         const WModelIndex& index, Wt::Side side);
+  virtual awaitable<void> dropEvent(const WDropEvent& e, DropAction action,
+                                    const WModelIndex& index, Wt::Side side);
 
   /*! \brief Inserts one column.
    *
@@ -671,9 +672,9 @@ public:
    *
    * \sa setData(), index()
    */
-  bool setData(int row, int column, const cpp17::any& value,
-               ItemDataRole role = ItemDataRole::Edit,
-	       const WModelIndex& parent = WModelIndex());
+  awaitable<bool> setData(int row, int column, const cpp17::any& value,
+                          ItemDataRole role = ItemDataRole::Edit,
+                          const WModelIndex& parent = WModelIndex());
 
   /*! \brief %Signal emitted before a number of columns will be inserted.
    *
@@ -683,8 +684,7 @@ public:
    *
    * \sa columnsInserted(), beginInsertColumns()
    */
-  virtual Signal<WModelIndex, int, int>& columnsAboutToBeInserted()
-    { return columnsAboutToBeInserted_; }
+  virtual Signal<WModelIndex, int, int>& columnsAboutToBeInserted() { return columnsAboutToBeInserted_; }
 
   /*! \brief %Signal emitted before a number of columns will be removed.
    *
@@ -694,8 +694,7 @@ public:
    *
    * \sa columnsRemoved(), beginRemoveColumns()
    */
-  virtual Signal<WModelIndex, int, int>& columnsAboutToBeRemoved()
-    { return columnsAboutToBeRemoved_; }
+  virtual Signal<WModelIndex, int, int>& columnsAboutToBeRemoved() { return columnsAboutToBeRemoved_; }
  
   /*! \brief %Signal emitted after a number of columns were inserted.
    *
@@ -705,8 +704,7 @@ public:
    *
    * \sa columnsAboutToBeInserted(), endInsertColumns()
    */
-  virtual Signal<WModelIndex, int, int>& columnsInserted()
-    { return columnsInserted_; }
+  virtual Signal<WModelIndex, int, int>& columnsInserted() { return columnsInserted_; }
 
   /*! \brief %Signal emitted after a number of columns were removed.
    *
@@ -715,8 +713,7 @@ public:
    *
    * \sa columnsAboutToBeRemoved(), endRemoveColumns()
    */
-  virtual Signal<WModelIndex, int, int>& columnsRemoved()
-    { return columnsRemoved_; }
+  virtual Signal<WModelIndex, int, int>& columnsRemoved() { return columnsRemoved_; }
 
   /*! \brief %Signal emitted before a number of rows will be inserted.
    *
@@ -726,8 +723,7 @@ public:
    *
    * \sa rowsInserted(), beginInsertRows()
    */
-  virtual Signal<WModelIndex, int, int>& rowsAboutToBeInserted()
-    { return rowsAboutToBeInserted_; }
+  virtual Signal<WModelIndex, int, int>& rowsAboutToBeInserted() { return rowsAboutToBeInserted_; }
 
   /*! \brief %Signal emitted before a number of rows will be removed.
    *
@@ -737,8 +733,7 @@ public:
    *
    * \sa rowsRemoved(), beginRemoveRows()
    */
-  virtual Signal<WModelIndex, int, int>& rowsAboutToBeRemoved()
-    { return rowsAboutToBeRemoved_; }
+  virtual Signal<WModelIndex, int, int>& rowsAboutToBeRemoved() { return rowsAboutToBeRemoved_; }
  
   /*! \brief %Signal emitted after a number of rows were inserted.
    *
@@ -747,8 +742,9 @@ public:
    *
    * \sa rowsAboutToBeInserted(), endInsertRows()
    */
-  virtual Signal<WModelIndex, int, int>& rowsInserted()
-    { return rowsInserted_; }
+  Signal<WModelIndex, int, int>&
+  //boost::signals2::signal<void(WModelIndex, int, int)>&
+  rowsInserted() { return rowsInserted_; }
 
   /*! \brief %Signal emitted after a number of rows were removed.
    *
@@ -757,8 +753,7 @@ public:
    *
    * \sa rowsAboutToBeRemoved(), endRemoveRows()
    */
-  virtual Signal<WModelIndex, int, int>& rowsRemoved()
-    { return rowsRemoved_; }
+  Signal<WModelIndex, int, int>& rowsRemoved() { return rowsRemoved_; }
 
   /*! \brief %Signal emitted when some data was changed.
    *
@@ -767,8 +762,7 @@ public:
    *
    * \sa setData()
    */
-  virtual Signal<WModelIndex, WModelIndex>& dataChanged()
-    { return dataChanged_; }
+  Signal<WModelIndex, WModelIndex>& dataChanged() { return dataChanged_; }
 
   /*! \brief %Signal emitted when some header data was changed.
    *
@@ -778,8 +772,7 @@ public:
    *
    * \sa setHeaderData()
    */
-  virtual Signal<Orientation, int, int>& headerDataChanged()
-    { return headerDataChanged_; }
+  Signal<Orientation, int, int>& headerDataChanged() { return headerDataChanged_; }
 
   /*! \brief %Signal emitted when the layout is about to be changed.
    *
@@ -815,7 +808,7 @@ protected:
    *
    * This causes the modelReset() signal to be emitted.
    */
-  void reset();
+  awaitable<void> reset();
 
   /*! \brief Creates a model index for the given row and column.
    *
@@ -848,7 +841,7 @@ protected:
    *
    * \sa endInsertColumns(), insertColumns(), columnsAboutToBeInserted
    */  
-  void beginInsertColumns(const WModelIndex& parent, int first, int last);
+  awaitable<void> beginInsertColumns(const WModelIndex& parent, int first, int last);
 
   /*! \brief Method to be called before inserting rows.
    *
@@ -859,7 +852,7 @@ protected:
    *
    * \sa endInsertRows(), insertRows(), rowsAboutToBeInserted
    */  
-  void beginInsertRows(const WModelIndex& parent, int first, int last);
+  awaitable<void> beginInsertRows(const WModelIndex& parent, int first, int last);
 
   /*! \brief Method to be called before removing columns.
    *
@@ -870,7 +863,7 @@ protected:
    *
    * \sa endRemoveColumns(), removeColumns(), columnsAboutToBeRemoved
    */
-  void beginRemoveColumns(const WModelIndex& parent, int first, int last);
+  awaitable<void> beginRemoveColumns(const WModelIndex& parent, int first, int last);
 
   /*! \brief Method to be called before removing rows.
    *
@@ -881,39 +874,39 @@ protected:
    *
    * \sa endRemoveRows(), removeRows(), rowsAboutToBeRemoved
    */  
-  void beginRemoveRows(const WModelIndex& parent, int first, int last);
+  awaitable<void> beginRemoveRows(const WModelIndex& parent, int first, int last);
 
   /*! \brief Method to be called after inserting columns.
    *
    * \sa beginInsertColumns()
    */
-  void endInsertColumns();
+  awaitable<void> endInsertColumns();
 
   /*! \brief Method to be called after inserting rows.
    *
    * \sa beginInsertRows()
    */  
-  void endInsertRows();
+  awaitable<void> endInsertRows();
 
   /*! \brief Method to be called after removing columns.
    *
    * \sa beginRemoveColumns()
    */  
-  void endRemoveColumns();
+  awaitable<void> endRemoveColumns();
 
   /*! \brief Method to be called after removing rows.
    *
    * \sa beginRemoveRows()
    */
-  void endRemoveRows();
+  awaitable<void> endRemoveRows();
 
   /*! \brief Copy data to an index in this model.
    *
    * The source index can be any valid index. The destination
    * index must be part of this model.
    */
-  virtual void copyData(const WModelIndex& sIndex,
-                        const WModelIndex& dIndex);
+  virtual awaitable<void> copyData(const WModelIndex& sIndex,
+                                   const WModelIndex& dIndex);
 
 private:
   int first_, last_;
@@ -926,6 +919,7 @@ private:
   Signal<WModelIndex, int, int> rowsAboutToBeInserted_;
   Signal<WModelIndex, int, int> rowsAboutToBeRemoved_;
   Signal<WModelIndex, int, int> rowsInserted_;
+  //boost::signals2::signal<void(WModelIndex, int, int)> rowsInserted_;
   Signal<WModelIndex, int, int> rowsRemoved_;
   Signal<WModelIndex, WModelIndex> dataChanged_;
   Signal<Orientation, int, int> headerDataChanged_;

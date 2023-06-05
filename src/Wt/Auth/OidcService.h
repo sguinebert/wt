@@ -61,10 +61,10 @@ public:
    * The authentication process ends with the authenticated() signal
    * which signals the obtained identity.
    */
-  virtual void getIdentity(const OAuthAccessToken& token) override;
+  virtual awaitable<void> getIdentity(const OAuthAccessToken& token) override;
 
 private:
-  void handleResponse(AsioWrapper::error_code err, const Http::Message& response);
+  awaitable<void> handleResponse(AsioWrapper::error_code err, const Http::Message& response);
   Identity parseIdToken(const std::string& idToken);
   Identity parseClaims(const Json::Object& claims);
 

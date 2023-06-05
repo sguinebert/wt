@@ -181,7 +181,7 @@ void AuthModel::setRememberMeCookie(const User& user)
 		 app->environment().urlScheme() == "https");
 }
 
-bool AuthModel::login(Login& login)
+awaitable<bool> AuthModel::login(Login& login)
 {
   if (valid()) {
 #ifndef WT_TARGET_JAVA
@@ -193,23 +193,22 @@ bool AuthModel::login(Login& login)
 #else // WT_TARGET_JAVA
     auto self = this;
 #endif // WT_TARGET_JAVA
-    User user = users().findWithIdentity(Identity::LoginName,
-					 valueText(LoginNameField));
+    User user = users().findWithIdentity(Identity::LoginName, valueText(LoginNameField));
     cpp17::any v = value(RememberMeField);
-    if (loginUser(login, user)) {
+    if (co_await loginUser(login, user)) {
       reset();
 
       if (cpp17::any_has_value(v) && cpp17::any_cast<bool>(v) == true)
 	setRememberMeCookie(user);
 
-      return true;
+      co_return true;
     } else
-      return false;
-  } else
-    return false;
+      co_return false;
+  }
+  co_return false;
 }
 
-void AuthModel::logout(Login& login)
+awaitable<void> AuthModel::logout(Login& login)
 {
   if (login.loggedIn()) {
     if (baseAuth()->authTokensEnabled()) {
@@ -222,8 +221,9 @@ void AuthModel::logout(Login& login)
        */
     }
 
-    login.logout();
+    co_await login.logout();
   }
+  co_return;
 }
 
 EmailTokenResult AuthModel::processEmailToken(const std::string& token)

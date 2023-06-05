@@ -127,30 +127,24 @@ public:
    *
    * Forwards the result indicating success from the source model.
    */
-  bool setHeaderData(int section, Orientation orientation,
-		     const cpp17::any& value, ItemDataRole role = ItemDataRole::Edit);
+  awaitable<bool> setHeaderData(int section, Orientation orientation, const cpp17::any& value, ItemDataRole role = ItemDataRole::Edit) override;
 
 private:
   std::vector<Wt::Signals::connection> modelConnections_;
 
-  void sourceColumnsAboutToBeInserted(const WModelIndex &parent,
-				      int start, int end);
-  void sourceColumnsAboutToBeRemoved(const WModelIndex &parent,
-				     int start, int end);
-  void sourceColumnsInserted(const WModelIndex &parent, int start, int end);
-  void sourceColumnsRemoved(const WModelIndex &parent, int start, int end);
-  void sourceRowsAboutToBeInserted(const WModelIndex &parent,
-				   int start, int end);
-  void sourceRowsAboutToBeRemoved(const WModelIndex &parent,
-				  int start, int end);
-  void sourceRowsInserted(const WModelIndex &parent, int start, int end);
-  void sourceRowsRemoved(const WModelIndex &parent, int start, int end);
-  void sourceDataChanged(const WModelIndex &topLeft,
-			 const WModelIndex &bottomRight);
-  void sourceHeaderDataChanged(Orientation orientation, int start, int end);
-  void sourceLayoutAboutToBeChanged();
-  void sourceLayoutChanged();
-  void sourceModelReset();
+  awaitable<void> sourceColumnsAboutToBeInserted(const WModelIndex &parent, int start, int end);
+  awaitable<void> sourceColumnsAboutToBeRemoved(const WModelIndex &parent, int start, int end);
+  awaitable<void> sourceColumnsInserted(const WModelIndex &parent, int start, int end);
+  awaitable<void> sourceColumnsRemoved(const WModelIndex &parent, int start, int end);
+  awaitable<void> sourceRowsAboutToBeInserted(const WModelIndex &parent, int start, int end);
+  awaitable<void> sourceRowsAboutToBeRemoved(const WModelIndex &parent, int start, int end);
+  awaitable<void> sourceRowsInserted(const WModelIndex &parent, int start, int end);
+  awaitable<void> sourceRowsRemoved(const WModelIndex &parent, int start, int end);
+  awaitable<void> sourceDataChanged(const WModelIndex &topLeft, const WModelIndex &bottomRight);
+  awaitable<void> sourceHeaderDataChanged(Orientation orientation, int start, int end);
+  awaitable<void> sourceLayoutAboutToBeChanged();
+  awaitable<void> sourceLayoutChanged();
+  awaitable<void> sourceModelReset();
 };
 
 } // namespace Wt

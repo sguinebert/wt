@@ -92,10 +92,10 @@ void WVirtualImage::enableDragging()
 WVirtualImage::~WVirtualImage()
 { }
 
-void WVirtualImage::mouseUp(const WMouseEvent& e)
+awaitable<void> WVirtualImage::mouseUp(const WMouseEvent& e)
 {
-  internalScrollTo(currentX_ - e.dragDelta().x, currentY_ - e.dragDelta().y,
-		   !WApplication::instance()->environment().ajax());
+  co_await internalScrollTo(currentX_ - e.dragDelta().x, currentY_ - e.dragDelta().y,
+                            !WApplication::instance()->environment().ajax());
 }
 
 void WVirtualImage::redrawAll()
@@ -114,13 +114,12 @@ void WVirtualImage::resizeImage(::int64_t w, ::int64_t h)
   redrawAll();
 }
 
-void WVirtualImage::scrollTo(::int64_t newX, ::int64_t newY)
+awaitable<void> WVirtualImage::scrollTo(::int64_t newX, ::int64_t newY)
 {
-  internalScrollTo(newX, newY, true);
+  co_await internalScrollTo(newX, newY, true);
 }
 
-void WVirtualImage::internalScrollTo(::int64_t newX, ::int64_t newY,
-				     bool moveViewPort)
+awaitable<void> WVirtualImage::internalScrollTo(::int64_t newX, ::int64_t newY, bool moveViewPort)
 {
   if (imageWidth_ != Infinite)
     newX = clamp(newX, 0, imageWidth_ - viewPortWidth_);
@@ -134,12 +133,12 @@ void WVirtualImage::internalScrollTo(::int64_t newX, ::int64_t newY,
 
   generateGridItems(newX, newY);
 
-  viewPortChanged_.emit(currentX_, currentY_);
+  co_await viewPortChanged_.emit(currentX_, currentY_);
 }
 
-void WVirtualImage::scroll(::int64_t dx, ::int64_t dy)
+awaitable<void> WVirtualImage::scroll(::int64_t dx, ::int64_t dy)
 {
-  scrollTo(currentX_ + dx, currentY_ + dy);
+  co_await scrollTo(currentX_ + dx, currentY_ + dy);
 }
 
 std::unique_ptr<WImage> WVirtualImage

@@ -220,7 +220,7 @@ public:
    * The authentication process ends with the authenticated() signal
    * which signals the obtained identity.
    */
-  virtual void getIdentity(const OAuthAccessToken& token);
+  virtual awaitable<void> getIdentity(const OAuthAccessToken& token);
 
   /*! \brief Error information, in case authentication or identification
    *         failed.
@@ -340,14 +340,13 @@ private:
   Wt::Signals::connection doneCallbackConnection_;
 
   void requestToken(std::string_view authorizationCode);
-  void handleToken(AsioWrapper::error_code err,
-		   const Http::Message& response);
+  awaitable<void> handleToken(AsioWrapper::error_code err, const Http::Message& response);
   OAuthAccessToken parseUrlEncodedToken(const Http::Message& response);
   OAuthAccessToken parseJsonToken(const Http::Message& response);
 
   std::string authorizeUrl() const;
   void doParseTokenResponse(const Http::Message& response);
-  void onOAuthDone();
+  awaitable<void> onOAuthDone();
 #ifndef WT_TARGET_JAVA
   void handleAuthComplete(); // For non-Ajax sessions
 #endif // WT_TARGET_JAVA

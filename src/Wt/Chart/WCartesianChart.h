@@ -2078,9 +2078,9 @@ private:
   WTransform curveTransform(const WDataSeries &series) const;
   void setZoomAndPan();
   void addAreaMask();
-  void xTransformChanged(int xAxis);
-  void yTransformChanged(int yAxis);
-  void jsSeriesSelected(double x, double y);
+  awaitable<void> xTransformChanged(int xAxis);
+  awaitable<void> yTransformChanged(int yAxis);
+  awaitable<void> jsSeriesSelected(double x, double y);
   void loadTooltip(double x, double y);
   WPointF hv(double x, double y, double width) const;
   WPointF inverseHv(double x, double y, double width) const;

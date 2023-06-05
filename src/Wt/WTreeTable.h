@@ -122,7 +122,7 @@ public:
    *
    * \sa treeRoot(), setTree()
    */
-  void setTreeRoot(std::unique_ptr<WTreeTableNode> root, const WString& header);
+  awaitable<void> setTreeRoot(std::unique_ptr<WTreeTableNode> root, const WString& header);
 
   /*! \brief Returns the tree root.
    */

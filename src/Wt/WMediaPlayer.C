@@ -262,8 +262,7 @@ void WMediaPlayer::setProgressBar(MediaPlayerProgressBarId id, WProgressBar *w)
     w->setFormat(WString::Empty);
 
     w->valueChanged().connect
-      (this, std::bind(&WMediaPlayer::updateFromProgressBar, this, bc_id,
-		       std::placeholders::_1));
+      (this, std::bind(&WMediaPlayer::updateFromProgressBar, this, bc_id, std::placeholders::_1));
 
     updateProgressBarState(id);
   }
@@ -275,8 +274,7 @@ void WMediaPlayer::updateProgressBarState(MediaPlayerProgressBarId id)
   if (bar) {
     switch (id) {
     case MediaPlayerProgressBarId::Time:
-      bar->setState(0, status_.seekPercent * status_.duration,
-		    status_.currentTime);
+      bar->setState(0, status_.seekPercent * status_.duration, status_.currentTime);
       break;
     case MediaPlayerProgressBarId::Volume:
       bar->setState(0, 1, status_.volume);
@@ -284,15 +282,14 @@ void WMediaPlayer::updateProgressBarState(MediaPlayerProgressBarId id)
   }
 }
 
-void WMediaPlayer::updateFromProgressBar(MediaPlayerProgressBarId id,
-					 double value)
+void WMediaPlayer::updateFromProgressBar(MediaPlayerProgressBarId id, double value)
 {
   switch (id) {
   case MediaPlayerProgressBarId::Time:
     seek(value); break;
   case MediaPlayerProgressBarId::Volume:
     setVolume(value);
-  } 
+  }
 }
 
 WProgressBar *WMediaPlayer::progressBar(MediaPlayerProgressBarId id) const
@@ -649,16 +646,16 @@ void WMediaPlayer::setFormData(const FormData& formData)
     if (attributes.size() == 8) {
       try {
         status_.volume = Utils::stod(attributes[0]);
-	status_.currentTime = Utils::stod(attributes[1]);
+        status_.currentTime = Utils::stod(attributes[1]);
         status_.duration = Utils::stod(attributes[2]);
         status_.playing = (attributes[3] == "0");
         status_.ended = (attributes[4] == "1");
         status_.readyState = intToReadyState(Utils::stoi(attributes[5]));
-	status_.playbackRate = Utils::stod(attributes[6]);
+        status_.playbackRate = Utils::stod(attributes[6]);
         status_.seekPercent = Utils::stod(attributes[7]);
 
-	updateProgressBarState(MediaPlayerProgressBarId::Time);
-	updateProgressBarState(MediaPlayerProgressBarId::Volume);
+        updateProgressBarState(MediaPlayerProgressBarId::Time);
+        updateProgressBarState(MediaPlayerProgressBarId::Volume);
 
       } catch (const std::exception& e) {
 	throw WException("WMediaPlayer: error parsing: "

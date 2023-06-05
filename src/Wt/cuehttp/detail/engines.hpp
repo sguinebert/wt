@@ -23,7 +23,7 @@
 #include <memory>
 #include <vector>
 
-#include <boost/asio.hpp>
+#include <Wt/AsioWrapper/asio.hpp>
 #include "../detail/noncopyable.hpp"
 
 #ifdef TWEAKS
@@ -37,8 +37,8 @@ asio::io_context ctx{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE};
 #endif
 
 using namespace boost;
-using executor_t = boost::asio::io_context::executor_type;
-inline static thread_local asio::io_context* thread_context = nullptr;
+
+inline thread_local asio::io_context* thread_context = nullptr;
 
 namespace Wt {
 namespace http {
@@ -64,6 +64,7 @@ class engines final : safe_noncopyable {
 //  }
 
   static asio::io_context* get_thread_context() {
+    asm volatile("":::"memory");
     return thread_context;
   }
 

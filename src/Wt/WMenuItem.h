@@ -137,7 +137,7 @@ public:
    *       to use WString in the future).
    * \endif
    */
-  virtual void setPathComponent(const std::string& path);
+  virtual awaitable<void> setPathComponent(const std::string& path);
 
   /*! \brief Returns the path component for this item.
    *
@@ -275,7 +275,7 @@ public:
    *
    * \sa setCloseable(), hide()
    */
-  void close();
+  awaitable<void> close();
 
   /*! \brief Returns the menu that contains this item.
    */
@@ -289,8 +289,7 @@ public:
    * when it the item is activated for the first time (LazyLoading) or
    * transmitted prior to first rendering.
    */
-  void setContents(std::unique_ptr<WWidget> contents,
-		   ContentLoading policy = ContentLoading::Lazy);
+  void setContents(std::unique_ptr<WWidget> contents, ContentLoading policy = ContentLoading::Lazy);
 
   /*! \brief Returns the contents widget for this item.
    *
@@ -308,7 +307,7 @@ public:
    *
    * \sa close()
    */
-  void select();
+  awaitable<void> select();
 
   /*! \brief %Signal emitted when an item is activated.
    *
@@ -348,7 +347,7 @@ public:
    */
   virtual void renderSelected(bool selected);
 
-  virtual void setFromInternalPath(const std::string& path);
+  virtual awaitable<void> setFromInternalPath(const std::string& path);
 
   virtual void enableAjax() override;
 
@@ -389,15 +388,15 @@ private:
   bool contentsLoaded() const;
   void loadContents();
   void setParentMenu(WMenu *menu);
-  void selectNotLoaded();
-  void selectVisual();
-  void undoSelectVisual();
+  awaitable<void> selectNotLoaded();
+  awaitable<void> selectVisual();
+  awaitable<void> undoSelectVisual();
   void connectClose();
   void connectSignals();
   void setItemPadding(bool padding);
   void contentsDestroyed();
-  void setCheckBox();
-  void setUnCheckBox();
+  awaitable<void> setCheckBox();
+  awaitable<void> setUnCheckBox();
 
   std::unique_ptr<WWidget> takeContentsForStack();
   WWidget *contentsInStack() const;

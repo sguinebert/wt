@@ -52,8 +52,7 @@ public:
    *
    * This returns the row count of the source model.
    */
-  virtual int rowCount(const WModelIndex& parent = WModelIndex())
-    const override;
+  virtual int rowCount(const WModelIndex& parent = WModelIndex()) const override;
 
   /*! \brief Returns the parent for a model index.
    *
@@ -65,51 +64,44 @@ public:
    *
    * Returns the index in the source model.
    */
-  virtual WModelIndex index(int row, int column,
-			    const WModelIndex& parent = WModelIndex())
-    const override;
+  virtual WModelIndex index(int row, int column, const WModelIndex& parent = WModelIndex()) const override;
 
   using WAbstractProxyModel::setData;
 
   /*! \brief Always returns \c false and has no effect.
    *
    */
-  virtual bool setData(const WModelIndex& index,
-                       const cpp17::any& value, ItemDataRole role = ItemDataRole::Edit) override;
+  virtual awaitable<bool> setData(const WModelIndex& index,
+                                  const cpp17::any& value, ItemDataRole role = ItemDataRole::Edit) override;
 
   /*! \brief Always returns \c false and has no effect.
    *
    */
-  virtual bool setItemData(const WModelIndex& index, const DataMap& values)
-    override;
+  virtual awaitable<bool> setItemData(const WModelIndex& index, const DataMap& values) override;
 
   using WAbstractProxyModel::setHeaderData;
 
   /*! \brief Always returns \c false and has no effect.
    *
    */
-  virtual bool setHeaderData(int section, Orientation orientation,
-                             const cpp17::any& value, ItemDataRole role = ItemDataRole::Edit)
-    override;
+  virtual awaitable<bool> setHeaderData(int section, Orientation orientation,
+                                        const cpp17::any& value, ItemDataRole role = ItemDataRole::Edit) override;
 
   /*! \brief Always returns \c false and has no effect.
    *
    */
-  virtual bool insertColumns(int column, int count, const WModelIndex& parent)
-    override;
+  virtual bool insertColumns(int column, int count, const WModelIndex& parent) override;
 
   /*! \brief Always returns \c false and has no effect.
    *
    */
-  virtual bool removeColumns(int column, int count, const WModelIndex& parent)
-    override;
+  virtual bool removeColumns(int column, int count, const WModelIndex& parent) override;
 
   /*! \brief Has no effect.
    *
    */
-  virtual void dropEvent(const WDropEvent& e, DropAction action,
-			 int row, int column, const WModelIndex& parent)
-    override;
+  virtual awaitable<void> dropEvent(const WDropEvent& e, DropAction action,
+                                    int row, int column, const WModelIndex& parent) override;
 };
 
 }

@@ -94,8 +94,7 @@ void WMenuItem::create(const std::string& iconPath, const WString& text,
 WMenuItem::~WMenuItem()
 { }
 
-void WMenuItem::setContents(std::unique_ptr<WWidget> contents,
-			    ContentLoading policy)
+void WMenuItem::setContents(std::unique_ptr<WWidget> contents, ContentLoading policy)
 {
   int menuIdx = -1;
   WMenu *menu = menu_;
@@ -257,23 +256,22 @@ void WMenuItem::updateInternalPath()
   } else {
     WAnchor *a = anchor();
     if (a && !customLink_) {
-      if (WApplication::instance()->environment().agent() == 
-	  UserAgent::IE6)
-	a->setLink(WLink("#"));
+      if (WApplication::instance()->environment().agent() == UserAgent::IE6)
+        a->setLink(WLink("#"));
       else
-	a->setLink(WLink());
+        a->setLink(WLink());
     }
   }
 }
 
-void WMenuItem::setPathComponent(const std::string& path)
+awaitable<void> WMenuItem::setPathComponent(const std::string& path)
 {
   customPathComponent_ = true;
   pathComponent_ = path;
 
   updateInternalPath();
   if (menu_)
-    menu_->itemPathChanged(this);
+    co_await menu_->itemPathChanged(this);
 }
 
 void WMenuItem::setSelectable(bool selectable)
@@ -332,10 +330,11 @@ bool WMenuItem::isChecked() const
     return false;
 }
 
-void WMenuItem::close()
+awaitable<void> WMenuItem::close()
 {
   if (menu_)
-    menu_->close(this);
+    co_await menu_->close(this);
+  co_return;
 }
 
 void WMenuItem::enableAjax()
@@ -353,19 +352,18 @@ void WMenuItem::setDisabled(bool disabled)
 {
   WContainerWidget::setDisabled(disabled);
 
-  if (disabled)
-    if (menu_)
-      menu_->onItemHidden(menu_->indexOf(this), true);
+//  if (disabled)
+//    if (menu_)
+//      menu_->onItemHidden(menu_->indexOf(this), true);
 }
 
-void WMenuItem::setHidden(bool hidden,
-			  const WAnimation& animation)
+void WMenuItem::setHidden(bool hidden, const WAnimation& animation)
 {
   WContainerWidget::setHidden(hidden, animation);
 
-  if (hidden)
-    if (menu_)
-      menu_->onItemHidden(menu_->indexOf(this), true);
+//  if (hidden)
+//    if (menu_)
+//      menu_->onItemHidden(menu_->indexOf(this), true);
 }
 
 void WMenuItem::render(WFlags<RenderFlag> flags)
@@ -395,10 +393,11 @@ void WMenuItem::renderSelected(bool selected)
   }
 }
 
-void WMenuItem::selectNotLoaded()
+awaitable<void> WMenuItem::selectNotLoaded()
 {
   if (!contentsLoaded())
-    select();
+    co_await select();
+  co_return;
 }
 
 bool WMenuItem::contentsLoaded() const
@@ -423,52 +422,55 @@ void WMenuItem::connectSignals()
   if (!signalsConnected_) {
     signalsConnected_ = true;
 
-    if (!oContents_ || contentsLoaded())
-      implementStateless(&WMenuItem::selectVisual,
-			 &WMenuItem::undoSelectVisual);
+#warning "repair this"
+//    if (!oContents_ || contentsLoaded())
+//      implementStateless(&WMenuItem::selectVisual, &WMenuItem::undoSelectVisual);
 
     WAnchor *a = anchor();
 
-    if (a) {
+    if (a)
+    {
       SignalBase *as;
       bool selectFromCheckbox = false;
 
       if (checkBox_ && !checkBox_->clicked().propagationPrevented()) {
-	as = &checkBox_->changed();
-	/*
-	 * Because the checkbox is not a properly exposed form object,
-	 * we need to relay its value ourselves
-	 */
-	checkBox_->checked().connect(this, &WMenuItem::setCheckBox);
-	checkBox_->unChecked().connect(this, &WMenuItem::setUnCheckBox);
-	selectFromCheckbox = true;
-      } else
-	as = &a->clicked();
+        as = &checkBox_->changed();
+        /*
+         * Because the checkbox is not a properly exposed form object,
+         * we need to relay its value ourselves
+         */
+        checkBox_->checked().connect(this, &WMenuItem::setCheckBox);
+        checkBox_->unChecked().connect(this, &WMenuItem::setUnCheckBox);
+        selectFromCheckbox = true;
+      }
+      else
+        as = &a->clicked();
 
       if (checkBox_)
-	a->setLink(WLink());
+        a->setLink(WLink());
 
       if (uContents_)
-	as->connect(this, &WMenuItem::selectNotLoaded);
-      else {
-	as->connect(this, &WMenuItem::selectVisual);
-	if (!selectFromCheckbox)
-	  as->connect(this, &WMenuItem::select);
+        as->connect(this, &WMenuItem::selectNotLoaded);
+      else
+      {
+        as->connect(this, &WMenuItem::selectVisual);
+        if (!selectFromCheckbox)
+          as->connect(this, &WMenuItem::select);
       }
     }
   }
 }
 
-void WMenuItem::setCheckBox()
+awaitable<void> WMenuItem::setCheckBox()
 {
   setChecked(true);
-  select();
+  co_await select();
 }
 
-void WMenuItem::setUnCheckBox()
+awaitable<void> WMenuItem::setUnCheckBox()
 {
   setChecked(false);
-  select();
+  co_await select();
 }
 
 void WMenuItem::setParentMenu(WMenu *menu)
@@ -547,33 +549,37 @@ void WMenuItem::returnContentsInStack(std::unique_ptr<WWidget> widget)
     uContents_ = std::move(widget);
 }
 
-void WMenuItem::setFromInternalPath(const std::string& path)
+awaitable<void> WMenuItem::setFromInternalPath(const std::string& path)
 {
   if (internalPathEnabled() &&
       menu_->contentsStack_ &&
       menu_->contentsStack_->currentWidget() != contents())
-    menu_->select(menu_->indexOf(this), false);
+    co_await menu_->select(menu_->indexOf(this), false);
 
   if (subMenu_ && subMenu_->internalPathEnabled())
-    subMenu_->internalPathChanged(path);
+    co_await subMenu_->internalPathChanged(path);
+  co_return;
 }
 
-void WMenuItem::select()
+awaitable<void> WMenuItem::select()
 {
   if (menu_ && selectable_ && !isDisabled())
-    menu_->select(this);
+    co_await menu_->select(this);
+  co_return;
 }
 
-void WMenuItem::selectVisual()
+awaitable<void> WMenuItem::selectVisual()
 {
   if (menu_ && selectable_)
-    menu_->selectVisual(this);
+    co_await menu_->selectVisual(this);
+  co_return;
 }
 
-void WMenuItem::undoSelectVisual()
+awaitable<void> WMenuItem::undoSelectVisual()
 {
   if (menu_ && selectable_)
-    menu_->undoSelectVisual();
+    co_await menu_->undoSelectVisual();
+  co_return;
 }
 
 void WMenuItem::setMenu(std::unique_ptr<WMenu> menu)

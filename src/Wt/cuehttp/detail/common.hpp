@@ -44,7 +44,8 @@
 using namespace boost;
 
 #ifdef ENABLE_HTTPS
-#include "boost/asio/asio/ssl.hpp"
+//#include "boost/asio/asio/ssl.hpp"
+#include <Wt/AsioWrapper/ssl.hpp>
 #endif  // ENABLE_HTTPS
 #include "noncopyable.hpp"
 
@@ -125,7 +126,10 @@ inline constexpr bool is_middleware_list_v = is_middleware_list<_Ty>::value;
 
 
 template <typename _Ty, typename... _Args>
-using is_awaitable_lambda = std::is_convertible<std::decay_t<_Ty>, std::function<awaitable<void>(_Args...)>>;
+using is_awaitable_function = std::is_convertible<std::decay_t<_Ty>, std::function<awaitable<void>(_Args...)>>;
+
+template <typename F, typename... _Args>
+inline constexpr bool is_awaitable_function_v = is_awaitable_function<F, _Args...>::value;
 
 template <typename F>
 struct function_traits : public function_traits<decltype(&std::decay_t<F>::operator())> {};
@@ -133,8 +137,9 @@ struct function_traits : public function_traits<decltype(&std::decay_t<F>::opera
 template <typename R, typename C, typename... Args >
 struct function_traits<R (C::*)(Args...) const>
 {
+
     using function_type = std::function<R (Args...)>;
-    inline static bool constexpr value = is_awaitable_lambda<function_type, Args...>::value;
+    inline static bool constexpr value = is_awaitable_function<function_type, Args...>::value;
 };
 
 template <typename F>

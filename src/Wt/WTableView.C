@@ -245,13 +245,12 @@ void WTableView::resize(const WLength& width, const WLength& height)
     }
 
     if (!height.isAuto()) {
-      viewportHeight_
-	= static_cast<int>(std::ceil((height.toPixels()
-				      - headerHeight().toPixels())));
+      viewportHeight_ = static_cast<int>(std::ceil((height.toPixels()
+                                                    - headerHeight().toPixels())));
       if (scrollToRow_ != -1) {
-	WModelIndex index = model()->index(scrollToRow_, 0, rootIndex());
-	scrollToRow_ = -1;
-	scrollTo(index, scrollToHint_);
+          WModelIndex index = model()->index(scrollToRow_, 0, rootIndex());
+          scrollToRow_ = -1;
+          scrollTo(index, scrollToHint_);
       }
     } else
       viewportHeight_ = UNKNOWN_VIEWPORT_HEIGHT;
@@ -292,9 +291,9 @@ void WTableView::updateTableBackground()
       (this, plainTable_, TableViewRowContainer);
 }
 
-void WTableView::setModel(const std::shared_ptr<WAbstractItemModel>& model)
+awaitable<void> WTableView::setModel(const std::shared_ptr<WAbstractItemModel>& model)
 {  
-  WAbstractItemView::setModel(model);
+  co_await WAbstractItemView::setModel(model);
 
   typedef WTableView Self;
 
@@ -994,7 +993,8 @@ void WTableView::rerenderData()
 		renderedFirstColumn_, 
 		renderedLastColumn_);
   } else {
-    pageChanged().emit();
+    //pageChanged().emit();
+    PageTabCallBack_();
 
     while (plainTable_->rowCount() > 1)
       plainTable_->removeRow(plainTable_->rowCount() - 1);
@@ -1034,6 +1034,7 @@ void WTableView::rerenderData()
       }
     }
   }
+  //co_return;
 }
 
 void WTableView::rerenderHeader()
@@ -1324,7 +1325,7 @@ WWidget* WTableView::headerWidget(int column, bool contentsOnly)
     return result;
 }
 
-void WTableView::shiftModelIndexRows(int start, int count)
+awaitable<void> WTableView::shiftModelIndexRows(int start, int count)
 {
   WModelIndexSet& set = selectionModel()->selection_;
   
@@ -1356,13 +1357,14 @@ void WTableView::shiftModelIndexRows(int start, int count)
     set.insert(newIndex);
   }
 
-  shiftEditorRows(rootIndex(), start, count, true);
+  co_await shiftEditorRows(rootIndex(), start, count, true);
 
   if (!toErase.empty())
-    selectionChanged().emit();
+    co_await selectionChanged().emit();
+  co_return;
 }
 
-void WTableView::shiftModelIndexColumns(int start, int count)
+awaitable<void> WTableView::shiftModelIndexColumns(int start, int count)
 {
   WModelIndexSet& set = selectionModel()->selection_;
   
@@ -1393,17 +1395,17 @@ void WTableView::shiftModelIndexColumns(int start, int count)
     set.insert(newIndex);
   }
 
-  shiftEditorColumns(rootIndex(), start, count, true);
+  co_await shiftEditorColumns(rootIndex(), start, count, true);
 
   if (!toShift.empty() || !toErase.empty())
-    selectionChanged().emit();
+   co_await selectionChanged().emit();
+  co_return;
 }
 
-void WTableView::modelColumnsInserted(const WModelIndex& parent, 
-				      int start, int end)
+awaitable<void> WTableView::modelColumnsInserted(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
-    return;
+    co_return;
 
   int count = end - start + 1;
   int width = 0;
@@ -1413,7 +1415,7 @@ void WTableView::modelColumnsInserted(const WModelIndex& parent,
     width += (int)columnInfo(i).width.toPixels() + 7;
   }
 
-  shiftModelIndexColumns(start, end - start + 1);
+  co_await shiftModelIndexColumns(start, end - start + 1);
 
   if (ajaxMode())
     canvas_->setWidth(canvas_->width().toPixels() + width);
@@ -1425,25 +1427,24 @@ void WTableView::modelColumnsInserted(const WModelIndex& parent,
   if (start > (lastColumn() + 1) || 
       renderState_ == RenderState::NeedRerender || 
       renderState_ == RenderState::NeedRerenderData)
-    return;
+    co_return;
 
   scheduleRerender(RenderState::NeedRerenderData);
   adjustSize();
 }
 
-void WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& parent, 
-					      int start, int end)
+awaitable<void> WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
-    return;
+    co_return;
 
   for (int r = 0; r < model()->rowCount(); r++) {
     for (int c = start; c <= end; c++) {
-      closeEditor(model()->index(r, c), false);
+      co_await closeEditor(model()->index(r, c), false);
     }
   }
 
-  shiftModelIndexColumns(start, -(end - start + 1));
+  co_await shiftModelIndexColumns(start, -(end - start + 1));
 
   int count = end - start + 1;
   int width = 0;
@@ -1470,7 +1471,7 @@ void WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& parent,
   if (start > lastColumn() || 
       renderState_ == RenderState::NeedRerender || 
       renderState_ == RenderState::NeedRerenderData)
-    return;
+    co_return;
 
   resetGeometry();
 
@@ -1478,14 +1479,13 @@ void WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& parent,
   adjustSize();
 }
 
-void WTableView::modelRowsInserted(const WModelIndex& parent, 
-				   int start, int end)
+awaitable<void> WTableView::modelRowsInserted(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
-    return;
+    co_return;
 
   int count = end - start + 1;
-  shiftModelIndexRows(start, count);
+  co_await shiftModelIndexRows(start, count);
 
   computeRenderedArea();
 
@@ -1502,6 +1502,7 @@ void WTableView::modelRowsInserted(const WModelIndex& parent,
     scheduleRerender(RenderState::NeedRerenderData);
 
   adjustSize();
+  co_return;
 }
 
 namespace {
@@ -1516,19 +1517,18 @@ int calcOverlap(int start1, int end1,
 
 }
 
-void WTableView::modelRowsAboutToBeRemoved(const WModelIndex& parent,
-					   int start, int end)
+awaitable<void> WTableView::modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
-    return;
+    co_return;
 
   for (int c = 0; c < columnCount(); c++) {
     for (int r = start; r <= end; r++) {
-      closeEditor(model()->index(r, c), false);
+      co_await closeEditor(model()->index(r, c), false);
     }
   }
 
-  shiftModelIndexRows(start, -(end - start + 1));  
+  co_await shiftModelIndexRows(start, -(end - start + 1));
 
   int overlapTop = calcOverlap(0, spannerCount(Side::Top),
 			       start, end + 1);
@@ -1551,10 +1551,10 @@ void WTableView::modelRowsAboutToBeRemoved(const WModelIndex& parent,
     setSpannerCount(Side::Top, spannerCount(Side::Top) - overlapTop);
     setSpannerCount(Side::Bottom, spannerCount(Side::Bottom) + overlapTop);
   }
+  co_return;
 }
 
-void WTableView::modelRowsRemoved(const WModelIndex& parent,
-				  int start, int end)
+void WTableView::modelRowsRemoved(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
     return;
@@ -1783,93 +1783,93 @@ void WTableView::setAlternatingRowColors(bool enable)
   updateTableBackground();
 }
 
-void WTableView::handleSingleClick(bool headerColumns, const WMouseEvent& event)
+awaitable<void> WTableView::handleSingleClick(bool headerColumns, const WMouseEvent& event)
 {
   WModelIndex index = translateModelIndex(headerColumns, event);
-  handleClick(index, event);
+  co_await handleClick(index, event);
 }
 
-void WTableView::handleDblClick(bool headerColumns, const WMouseEvent& event)
+awaitable<void> WTableView::handleDblClick(bool headerColumns, const WMouseEvent& event)
 {
   WModelIndex index = translateModelIndex(headerColumns, event);
-  handleDoubleClick(index, event);
+  co_await handleDoubleClick(index, event);
 }
 
-void WTableView::handleMouseWentDown(bool headerColumns,
+awaitable<void> WTableView::handleMouseWentDown(bool headerColumns,
 				     const WMouseEvent& event)
 {
   WModelIndex index = translateModelIndex(headerColumns, event);
-  handleMouseDown(index, event);
+  co_await handleMouseDown(index, event);
 }
 
-void WTableView::handleMouseWentUp(bool headerColumns, const WMouseEvent& event)
+awaitable<void> WTableView::handleMouseWentUp(bool headerColumns, const WMouseEvent& event)
 {
   WModelIndex index = translateModelIndex(headerColumns, event);
-  handleMouseUp(index, event);
+  co_await handleMouseUp(index, event);
 }
 
-void WTableView::handleTouchSelected(const WTouchEvent& event)
+awaitable<void> WTableView::handleTouchSelected(const WTouchEvent& event)
 {
   std::vector<WModelIndex> indices;
   for(std::size_t i = 0; i < event.touches().size(); i++){
     indices.push_back(translateModelIndex(event.touches()[i]));
   }
-  handleTouchSelect(indices, event);
+  co_await handleTouchSelect(indices, event);
 }
 
-void WTableView::handleTouchStarted(const WTouchEvent& event)
+awaitable<void> WTableView::handleTouchStarted(const WTouchEvent& event)
 {
   std::vector<WModelIndex> indices;
   const std::vector<Touch> &touches = event.changedTouches();
   for(std::size_t i = 0; i < touches.size(); i++){
     indices.push_back(translateModelIndex(touches[i]));
   }
-  handleTouchStart(indices, event);
+  co_await handleTouchStart(indices, event);
 }
 
-void WTableView::handleTouchMoved(const WTouchEvent& event)
+awaitable<void> WTableView::handleTouchMoved(const WTouchEvent& event)
 {
   std::vector<WModelIndex> indices;
   const std::vector<Touch> &touches = event.changedTouches();
   for(std::size_t i = 0; i < touches.size(); i++){
     indices.push_back(translateModelIndex(touches[i]));
   }
-  handleTouchMove(indices, event);
+  co_await handleTouchMove(indices, event);
 }
 
-void WTableView::handleTouchEnded(const WTouchEvent& event)
+awaitable<void> WTableView::handleTouchEnded(const WTouchEvent& event)
 {
   std::vector<WModelIndex> indices;
   const std::vector<Touch> &touches = event.changedTouches();
   for (std::size_t i = 0; i < touches.size(); i++) {
     indices.push_back(translateModelIndex(touches[i]));
   }
-  handleTouchEnd(indices, event);
+  co_await handleTouchEnd(indices, event);
 }
 
-void WTableView::handleRootSingleClick(int u, const WMouseEvent& event)
+awaitable<void> WTableView::handleRootSingleClick(int u, const WMouseEvent& event)
 {
-  handleClick(WModelIndex(), event);
+  co_await handleClick(WModelIndex(), event);
 }
 
-void WTableView::handleRootDoubleClick(int u, const WMouseEvent& event)
+awaitable<void> WTableView::handleRootDoubleClick(int u, const WMouseEvent& event)
 {
-  handleDoubleClick(WModelIndex(), event);
+  co_await handleDoubleClick(WModelIndex(), event);
 }
 
-void WTableView::handleRootMouseWentDown(int u, const WMouseEvent& event)
+awaitable<void> WTableView::handleRootMouseWentDown(int u, const WMouseEvent& event)
 {
-  handleMouseDown(WModelIndex(), event);
+  co_await handleMouseDown(WModelIndex(), event);
 }
 
-void WTableView::handleRootMouseWentUp(int u, const WMouseEvent& event)
+awaitable<void> WTableView::handleRootMouseWentUp(int u, const WMouseEvent& event)
 {
-  handleMouseUp(WModelIndex(), event);
+  co_await handleMouseUp(WModelIndex(), event);
 }
 
-void WTableView::modelLayoutChanged()
+awaitable<void> WTableView::modelLayoutChanged()
 {
-  WAbstractItemView::modelLayoutChanged();
+  co_await WAbstractItemView::modelLayoutChanged();
 
   resetGeometry();
 }
@@ -2030,19 +2030,18 @@ void WTableView::selectRange(const WModelIndex& first, const WModelIndex& last)
 		     SelectionFlag::Select);
 }
 
-void WTableView::onDropEvent(int renderedRow, int columnId,
+awaitable<void> WTableView::onDropEvent(int renderedRow, int columnId,
 			     std::string sourceId, std::string mimeType,
 			     WMouseEvent event)
 {
-  WDropEvent e(WApplication::instance()->decodeObject(sourceId), mimeType,
-	       event);
+  WDropEvent e(WApplication::instance()->decodeObject(sourceId), mimeType, event);
 
   WModelIndex index = model()->index(firstRow() + renderedRow,
 				     columnById(columnId), rootIndex());
 
-  dropEvent(e, index);
+  co_await dropEvent(e, index);
 }
-void WTableView::onRowDropEvent(int renderedRow, int columnId,
+awaitable<void> WTableView::onRowDropEvent(int renderedRow, int columnId,
                                 std::string sourceId, std::string mimeType,
                                 std::string side, WMouseEvent event)
 {
@@ -2051,10 +2050,9 @@ void WTableView::onRowDropEvent(int renderedRow, int columnId,
 
   WModelIndex index;
   if (renderedRow >= 0)
-    index = model()->index(firstRow() + renderedRow,
-                           columnById(columnId), rootIndex());
+    index = model()->index(firstRow() + renderedRow, columnById(columnId), rootIndex());
 
-  dropEvent(e, index, side == "top" ? Side::Top : Side::Bottom);
+  co_await dropEvent(e, index, side == "top" ? Side::Top : Side::Bottom);
 }
 
 void WTableView::setCurrentPage(int page)

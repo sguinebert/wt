@@ -61,11 +61,11 @@ private:
 
     WTimeEdit *timeEdit_;
 
-    void hourValueChanged();
-    void minuteValueChanged();
-    void secondValueChanged();
-    void msecValueChanged();
-    void ampmValueChanged();
+    awaitable<void> hourValueChanged();
+    awaitable<void> minuteValueChanged();
+    awaitable<void> secondValueChanged();
+    awaitable<void> msecValueChanged();
+    awaitable<void> ampmValueChanged();
     bool formatAp() const;
     bool formatMs() const;
     bool formatS() const;

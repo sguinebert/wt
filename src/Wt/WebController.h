@@ -196,7 +196,7 @@ private:
   SocketNotifierMap socketNotifiersExcept_;
   // assumes that you did grab the notifierMutex_
   SocketNotifierMap& socketNotifiers(WSocketNotifier::Type type);
-  void socketNotify(int descriptor, WSocketNotifier::Type type);
+  awaitable<void> socketNotify(int descriptor, WSocketNotifier::Type type);
 #endif
 
   struct UpdateResourceProgressParams {
@@ -207,7 +207,7 @@ private:
       std::uintmax_t current;
       std::uintmax_t total;
   };
-  void updateResourceProgress(const UpdateResourceProgressParams &params);
+  awaitable<void> updateResourceProgress(const UpdateResourceProgressParams &params);
 
   EntryPointMatch getEntryPoint(WebRequest *request);
 

@@ -121,14 +121,15 @@ WT_USTRING WDateEdit::format() const
   }
 }
 
-void WDateEdit::setFromCalendar()
+awaitable<void> WDateEdit::setFromCalendar()
 {
   if (!calendar_->selection().empty()) {
     WDate calDate = Utils::first(calendar_->selection());
     setText(calDate.toString(format()));
-    textInput().emit();
-    changed().emit();
+    co_await textInput().emit();
+    co_await changed().emit();
   }
+  co_return;
 }
 
 WDate WDateEdit::date() const
@@ -145,25 +146,26 @@ void WDateEdit::setDate(const WDate& date)
   }
 }
 
-void WDateEdit::setFromLineEdit()
+awaitable<void> WDateEdit::setFromLineEdit()
 {
   WDate d = WDate::fromString(text(), format());
 
   if (d.isValid()) {
     if (calendar_->selection().empty()) {
       calendar_->select(d);
-      calendar_->selectionChanged().emit();
+      co_await calendar_->selectionChanged().emit();
     } else {
       WDate j = Utils::first(calendar_->selection());
 
       if (j != d) {
-	calendar_->select(d);
-	calendar_->selectionChanged().emit();
+        calendar_->select(d);
+        co_await calendar_->selectionChanged().emit();
       }
     }
 
     calendar_->browseTo(d);
   }
+  co_return;
 }
 
 void WDateEdit::propagateSetEnabled(bool enabled)

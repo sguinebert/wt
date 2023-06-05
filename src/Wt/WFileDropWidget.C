@@ -198,10 +198,9 @@ bool WFileDropWidget::File::cancelled() const
   return cancelled_;
 }
 
-void WFileDropWidget::File::emitDataReceived(::uint64_t current, ::uint64_t total,
-					     bool filterSupported) {
+awaitable<void> WFileDropWidget::File::emitDataReceived(::uint64_t current, ::uint64_t total, bool filterSupported) {
   if (!filterEnabled_ || !filterSupported || chunkSize_ == 0) {
-    dataReceived_.emit(current, total);
+    co_await dataReceived_.emit(current, total);
   } else {
     ::uint64_t currentChunkSize = chunkSize_;
     unsigned nbChunks = (unsigned)(size_ / chunkSize_);
@@ -210,8 +209,9 @@ void WFileDropWidget::File::emitDataReceived(::uint64_t current, ::uint64_t tota
     
     ::uint64_t progress = nbReceivedChunks_*chunkSize_
 	+ ::uint64_t( (double(current)/double(total)) * currentChunkSize );
-    dataReceived_.emit(progress, size_);
+    co_await dataReceived_.emit(progress, size_);
   }
+  co_return;
 }
 
 void WFileDropWidget::File::setFilterEnabled(bool enabled) {
@@ -295,7 +295,7 @@ void WFileDropWidget::setup()
   addStyleClass("Wt-filedropzone");
 }
 
-void WFileDropWidget::handleDrop(const std::string& newDrops)
+awaitable<void> WFileDropWidget::handleDrop(const std::string& newDrops)
 {
 #ifndef WT_TARGET_JAVA
   Json::Array dropdata;
@@ -340,11 +340,11 @@ void WFileDropWidget::handleDrop(const std::string& newDrops)
     drops.push_back(file.get());
     uploads_.push_back(std::move(file));
   }
-  dropEvent_.emit(drops);
+  co_await dropEvent_.emit(drops);
   doJavaScript(jsRef() + ".markForSending(" + newDrops + ");");
 }
 
-void WFileDropWidget::handleSendRequest(int id)
+awaitable<void> WFileDropWidget::handleSendRequest(int id)
 {
   /* When something invalid is dropped, the upload can fail (eg. a folder).
    * We simply proceed to the next and consider this upload as 'cancelled'
@@ -352,8 +352,10 @@ void WFileDropWidget::handleSendRequest(int id)
    * A cancelled upload will also be skipped in this way.
    */
   bool fileFound = false;
-  for (unsigned i=currentFileIdx_; i < uploads_.size(); i++) {
-    if (uploads_[i]->uploadId() == id) {
+  for (unsigned i = currentFileIdx_; i < uploads_.size(); i++)
+  {
+    if (uploads_[i]->uploadId() == id)
+    {
       fileFound = true;
       currentFileIdx_ = i;
       auto currentFile = uploads_[currentFileIdx_].get();
@@ -363,12 +365,14 @@ void WFileDropWidget::handleSendRequest(int id)
       doJavaScript(jsRef() + ".send('" + resource_->url() + "', "
 		   + (currentFile->filterEnabled() ? "true" : "false")
 		   + ");");
-      uploadStart_.emit(currentFile);
+      co_await uploadStart_.emit(currentFile);
       break;
-    } else {
+    }
+    else
+    {
       // If a previous upload was not cancelled, it must have failed
       if (!uploads_[i]->cancelled())
-	uploadFailed_.emit(uploads_[i].get());
+        co_await uploadFailed_.emit(uploads_[i].get());
     }
   }
 
@@ -378,26 +382,27 @@ void WFileDropWidget::handleSendRequest(int id)
     updatesEnabled_ = true;
     WApplication::instance()->enableUpdates(true);
   }
+  co_return;
 }
 
-void WFileDropWidget::handleTooLarge(::uint64_t size)
+awaitable<void> WFileDropWidget::handleTooLarge(::uint64_t size)
 {
   if (currentFileIdx_ >= uploads_.size()) {
     // This shouldn't happen, but a mischievous client might emit
     // this signal a few times, causing currentFileIdx_
     // to go out of bounds
-    return;
+    co_return;
   }
-  tooLarge_.emit(uploads_[currentFileIdx_].get(), size);
+  co_await tooLarge_.emit(uploads_[currentFileIdx_].get(), size);
   currentFileIdx_++;
 }
   
-void WFileDropWidget::stopReceiving()
+awaitable<void> WFileDropWidget::stopReceiving()
 {
   if (currentFileIdx_ < uploads_.size()) {
     for (unsigned i=currentFileIdx_; i < uploads_.size(); i++)
       if (!uploads_[i]->cancelled())
-	uploadFailed_.emit(uploads_[i].get());
+        co_await uploadFailed_.emit(uploads_[i].get());
     // std::cerr << "ERROR: file upload was still listening, "
     // 	      << "cancelling expected uploads"
     // 	      << std::endl;
@@ -407,6 +412,7 @@ void WFileDropWidget::stopReceiving()
       updatesEnabled_ = false;
     }
   }
+  co_return;
 }
 
 // Note: args by value, since this is handled after handleRequest is finished
@@ -428,15 +434,16 @@ void WFileDropWidget::proceedToNextFile()
   }
 }
 
-void WFileDropWidget::emitUploaded(int id)
+awaitable<void> WFileDropWidget::emitUploaded(int id)
 {
   for (unsigned i=0; i < currentFileIdx_ && i < uploads_.size(); i++) {
     auto f = uploads_[i].get();
     if (f->uploadId() == id) {
-      f->uploaded().emit();
-      uploaded().emit(f);
+      co_await f->uploaded().emit();
+      co_await uploaded().emit(f);
     }
   }
+  co_return;
 }
 
 bool WFileDropWidget::incomingIdCheck(int id)
@@ -473,29 +480,29 @@ bool WFileDropWidget::remove(File *file)
   return false;
 }
 
-void WFileDropWidget::onData(::uint64_t current, ::uint64_t total)
+awaitable<void> WFileDropWidget::onData(::uint64_t current, ::uint64_t total)
 {
   if (currentFileIdx_ >= uploads_.size()) {
     // This shouldn't happen, but a mischievous client might emit
     // the filetoolarge signal too many times, causing currentFileIdx_
     // to go out of bounds
-    return;
+    co_return;
   }
   auto file = uploads_[currentFileIdx_].get();
-  file->emitDataReceived(current, total, filterSupported_);
+  co_await file->emitDataReceived(current, total, filterSupported_);
 
   WApplication::instance()->triggerUpdate();
 }
 
-void WFileDropWidget::onDataExceeded(::uint64_t dataExceeded)
+awaitable<void> WFileDropWidget::onDataExceeded(::uint64_t dataExceeded)
 {
   if (currentFileIdx_ >= uploads_.size()) {
     // This shouldn't happen, but a mischievous client might emit
     // the filetoolarge signal too many times, causing currentFileIdx_
     // to go out of bounds
-    return;
+    co_return;
   }
-  tooLarge_.emit(uploads_[currentFileIdx_].get(), dataExceeded);
+  co_await tooLarge_.emit(uploads_[currentFileIdx_].get(), dataExceeded);
 
   WApplication *app = WApplication::instance();
   app->triggerUpdate();
@@ -624,7 +631,8 @@ void WFileDropWidget::setJavaScriptFilter(const std::string& filterFn,
   repaint();
 }
 
-void WFileDropWidget::createWorkerResource() {
+void WFileDropWidget::createWorkerResource()
+{
   if (uploadWorkerResource_ != 0) {
     delete uploadWorkerResource_;
     uploadWorkerResource_ = 0;
@@ -632,12 +640,6 @@ void WFileDropWidget::createWorkerResource() {
 
   if (jsFilterFn_.empty())
     return;
-  
-#ifndef WT_TARGET_JAVA
-  uploadWorkerResource_ = addChild(std::make_unique<WMemoryResource>("text/javascript"));
-#else // WT_TARGET_JAVA
-  uploadWorkerResource_ = new WMemoryResource("text/javascript");
-#endif // WT_TARGET_JAVA
 
   std::stringstream ss;
   ss << "importScripts(";
@@ -653,7 +655,13 @@ void WFileDropWidget::createWorkerResource() {
   
 #ifndef WT_TARGET_JAVA
   std::string js = ss.str();
-  uploadWorkerResource_->setData((const unsigned char*)js.c_str(), js.length());
+  //uploadWorkerResource_->setData((const unsigned char*)js.c_str(), js.length());
+#ifndef WT_TARGET_JAVA
+  uploadWorkerResource_ = addChild(std::make_unique<WMemoryResource>("text/javascript", std::vector<unsigned char>(js.begin(), js.end())));
+#else // WT_TARGET_JAVA
+  uploadWorkerResource_ = new WMemoryResource("text/javascript");
+#endif // WT_TARGET_JAVA
+
 #else
   try {
     uploadWorkerResource_->setData(ss.str().getBytes("utf8"));

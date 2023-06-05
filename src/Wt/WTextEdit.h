@@ -244,8 +244,7 @@ public:
 protected:
   virtual std::string renderRemoveJs(bool recursive) override;
   virtual void updateDom(DomElement& element, bool all) override;
-  virtual void getDomChanges(std::vector<DomElement *>& result,
-			     WApplication *app) override;
+  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   virtual bool domCanBeSaved() const override;
 
   virtual int boxPadding(Orientation orientation) const override;
@@ -269,13 +268,13 @@ private:
   std::string plugins() const;
 
   void init();
-  void propagateOnChange();
-  void propagateOnClick(WMouseEvent evt);
-  void propagateOnDoubleClick(WMouseEvent evt); 
-  void propagateOnMouseWentDown(WMouseEvent evt); 
-  void propagateOnMouseWentUp(WMouseEvent evt); 
-  void propagateOnFocusIn();
-  void propagateOnFocusOut();
+  awaitable<void> propagateOnChange();
+  awaitable<void> propagateOnClick(WMouseEvent evt);
+  awaitable<void> propagateOnDoubleClick(WMouseEvent evt);
+  awaitable<void> propagateOnMouseWentDown(WMouseEvent evt);
+  awaitable<void> propagateOnMouseWentUp(WMouseEvent evt);
+  awaitable<void> propagateOnFocusIn();
+  awaitable<void> propagateOnFocusOut();
   static void initTinyMCE();
   static int getTinyMCEVersion();
   bool serialize(std::stringstream &ss, std::map<std::string, cpp17::any>& map);

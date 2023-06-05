@@ -95,24 +95,24 @@ WStandardItem::WStandardItem()
     flags_(ItemFlag::Selectable)
 { }
 
-WStandardItem::WStandardItem(const WString& text)
-  : model_(nullptr),
-    parent_(nullptr),
-    row_(-1), column_(-1),
-    flags_(ItemFlag::Selectable)
-{
-  setText(text);
-}
+//WStandardItem::WStandardItem(const WString& text)
+//  : model_(nullptr),
+//    parent_(nullptr),
+//    row_(-1), column_(-1),
+//    flags_(ItemFlag::Selectable)
+//{
+//  setText(text);
+//}
 
-WStandardItem::WStandardItem(const std::string& iconUri, const WString& text)
-  : model_(nullptr),
-    parent_(nullptr),
-    row_(-1), column_(-1),
-    flags_(ItemFlag::Selectable)
-{
-  setText(text);
-  setIcon(iconUri);
-}
+//WStandardItem::WStandardItem(const std::string& iconUri, const WString& text)
+//  : model_(nullptr),
+//    parent_(nullptr),
+//    row_(-1), column_(-1),
+//    flags_(ItemFlag::Selectable)
+//{
+//  setText(text);
+//  setIcon(iconUri);
+//}
 
 WStandardItem::WStandardItem(int rows, int columns)
   : model_(nullptr),
@@ -155,7 +155,7 @@ WStandardItem& WStandardItem::operator=(const WStandardItem &other)
   return *this;
 }
 
-void WStandardItem::setData(const cpp17::any& d, ItemDataRole role)
+awaitable<void> WStandardItem::setData(const cpp17::any& d, ItemDataRole role)
 {
   if (role == ItemDataRole::Edit)
     role = ItemDataRole::Display;
@@ -164,9 +164,10 @@ void WStandardItem::setData(const cpp17::any& d, ItemDataRole role)
 
   if (model_) {
     WModelIndex self = index();
-    model_->dataChanged().emit(self, self);
-    model_->itemChanged().emit(this);
+    co_await model_->dataChanged().emit(self, self);
+    co_await model_->itemChanged().emit(this);
   }
+  co_return;
 }
 
 cpp17::any WStandardItem::data(ItemDataRole role) const
@@ -182,9 +183,9 @@ cpp17::any WStandardItem::data(ItemDataRole role) const
       return cpp17::any();
 }
 
-void WStandardItem::setText(const WString& text)
+awaitable<void> WStandardItem::setText(const WString& text)
 {
-  setData(cpp17::any(text), ItemDataRole::Display);
+  co_await setData(cpp17::any(text), ItemDataRole::Display);
 }
 
 WString WStandardItem::text() const
@@ -194,9 +195,9 @@ WString WStandardItem::text() const
   return asString(d);
 }
 
-void WStandardItem::setIcon(const std::string& uri)
+awaitable<void> WStandardItem::setIcon(const std::string& uri)
 {
-  setData(uri, ItemDataRole::Decoration);
+  co_await setData(uri, ItemDataRole::Decoration);
 }
 
 std::string WStandardItem::icon() const
@@ -209,9 +210,9 @@ std::string WStandardItem::icon() const
     return std::string();
 }
 
-void WStandardItem::setLink(const WLink& link)
+awaitable<void> WStandardItem::setLink(const WLink& link)
 {
-  setData(link, ItemDataRole::Link);
+  co_await setData(link, ItemDataRole::Link);
 }
 
 WLink WStandardItem::link() const
@@ -224,12 +225,13 @@ WLink WStandardItem::link() const
     return WLink(std::string());
 }
 
-void WStandardItem::setFlags(WFlags<ItemFlag> flags)
+awaitable<void> WStandardItem::setFlags(WFlags<ItemFlag> flags)
 {
   if (flags_ != flags) {
     flags_ = flags;
-    signalModelDataChange();
+    co_await signalModelDataChange();
   }
+  co_return;
 }
 
 WFlags<ItemFlag> WStandardItem::flags() const
@@ -237,9 +239,9 @@ WFlags<ItemFlag> WStandardItem::flags() const
   return flags_;
 }
 
-void WStandardItem::setStyleClass(const WString& styleClass)
+awaitable<void> WStandardItem::setStyleClass(const WString& styleClass)
 {
-  setData(styleClass, ItemDataRole::StyleClass);
+  co_await setData(styleClass, ItemDataRole::StyleClass);
 }
 
 WString WStandardItem::styleClass() const
@@ -252,9 +254,9 @@ WString WStandardItem::styleClass() const
     return WString();
 }
 
-void WStandardItem::setToolTip(const WString& toolTip)
+awaitable<void> WStandardItem::setToolTip(const WString& toolTip)
 {
-  setData(toolTip, ItemDataRole::ToolTip);
+  co_await setData(toolTip, ItemDataRole::ToolTip);
 }
 
 WString WStandardItem::toolTip() const
@@ -267,17 +269,18 @@ WString WStandardItem::toolTip() const
     return WString();
 }
 
-void WStandardItem::setCheckable(bool checkable)
+awaitable<void> WStandardItem::setCheckable(bool checkable)
 {
   if (!isCheckable() && checkable) {
     flags_ |= ItemFlag::UserCheckable;
     if (!cpp17::any_has_value(data(ItemDataRole::Checked)))
-      setChecked(false);
-    signalModelDataChange();
+      co_await setChecked(false);
+    co_await signalModelDataChange();
   } if (isCheckable() && !checkable) {
     flags_.clear(ItemFlag::UserCheckable);
-    signalModelDataChange();
+    co_await signalModelDataChange();
   }
+  co_return;
 }
 
 bool WStandardItem::isCheckable() const
@@ -285,23 +288,25 @@ bool WStandardItem::isCheckable() const
   return flags_.test(ItemFlag::UserCheckable);
 }
 
-void WStandardItem::setChecked(bool checked)
+awaitable<void> WStandardItem::setChecked(bool checked)
 {
   cpp17::any d = data(ItemDataRole::Checked);
   if (!cpp17::any_has_value(d) || isChecked() != checked)
-    setCheckState(checked ? CheckState::Checked : CheckState::Unchecked);
+    co_await setCheckState(checked ? CheckState::Checked : CheckState::Unchecked);
+  co_return;
 }
 
-void WStandardItem::setCheckState(CheckState state)
+awaitable<void> WStandardItem::setCheckState(CheckState state)
 {
   cpp17::any d = data(ItemDataRole::Checked);
   if (!cpp17::any_has_value(d) || checkState() != state || 
       !cpp17::any_has_value(data(ItemDataRole::Checked))) {
     if (isTristate())
-      setData(cpp17::any(state), ItemDataRole::Checked);
+      co_await setData(cpp17::any(state), ItemDataRole::Checked);
     else
-      setData(cpp17::any(state == CheckState::Checked), ItemDataRole::Checked);
+      co_await setData(cpp17::any(state == CheckState::Checked), ItemDataRole::Checked);
   }
+  co_return;
 }
 
 bool WStandardItem::isChecked() const
@@ -336,16 +341,17 @@ bool WStandardItem::isTristate() const
   return flags_.test(ItemFlag::Tristate);
 }
 
-void WStandardItem::setEditable(bool editable)
+awaitable<void> WStandardItem::setEditable(bool editable)
 {
   if (!isEditable() && editable) {
     flags_ |= ItemFlag::Editable;
-    signalModelDataChange();
+    co_await signalModelDataChange();
   }
   else if (isEditable() && !editable) {
     flags_.clear(ItemFlag::Editable);
-    signalModelDataChange();
+    co_await signalModelDataChange();
   }
+  co_return;
 }
 
 bool WStandardItem::isEditable() const
@@ -546,8 +552,7 @@ void WStandardItem
   }
 }
 
-void WStandardItem::setChild(int row, int column,
-			     std::unique_ptr<WStandardItem> item)
+awaitable<void> WStandardItem::setChild(int row, int column, std::unique_ptr<WStandardItem> item)
 {
   if (column >= columnCount())
     setColumnCount(column + 1);
@@ -562,9 +567,10 @@ void WStandardItem::setChild(int row, int column,
 
   if (model_) {
     WModelIndex self = it->index();
-    model_->dataChanged().emit(self, self);
+    co_await model_->dataChanged().emit(self, self);
     // model_->itemChanged().emit(item);
   }
+  co_return;
 }
 
 void WStandardItem::adoptChild(int row, int column, WStandardItem *item)
@@ -602,9 +608,9 @@ void WStandardItem::setModel(WStandardItemModel *model)
     }
 }
 
-void WStandardItem::setChild(int row, std::unique_ptr<WStandardItem> item)
+awaitable<void> WStandardItem::setChild(int row, std::unique_ptr<WStandardItem> item)
 {
-  setChild(row, 0, std::move(item));
+  co_await setChild(row, 0, std::move(item));
 }
 
 WStandardItem *WStandardItem::child(int row, int column) const
@@ -615,7 +621,7 @@ WStandardItem *WStandardItem::child(int row, int column) const
     return nullptr;
 }
 
-std::unique_ptr<WStandardItem> WStandardItem::takeChild(int row, int column)
+awaitable<std::unique_ptr<WStandardItem>> WStandardItem::takeChild(int row, int column)
 {
   WStandardItem *item = child(row, column);
 
@@ -632,10 +638,10 @@ std::unique_ptr<WStandardItem> WStandardItem::takeChild(int row, int column)
     if (item->hasChildren())
       model_->endRemoveRows();
 
-    model_->dataChanged().emit(idx, idx);
+    co_await model_->dataChanged().emit(idx, idx);
   }
 
-  return result;
+  co_return result;
 }
 
 std::vector<std::unique_ptr<WStandardItem> > WStandardItem
@@ -747,10 +753,11 @@ void WStandardItem::renumberColumns(int column)
 void WStandardItem::renumberRows(int row)
 {
   for (int c = 0; c < columnCount(); ++c)
-    for (int r = row; r < rowCount(); ++r) {
+    for (int r = row; r < rowCount(); ++r)
+    {
       WStandardItem *item = child(r, c);
       if (item)
-	item->row_ = r;
+        item->row_ = r;
     }
 }
 
@@ -767,15 +774,16 @@ std::unique_ptr<WStandardItem> WStandardItem::clone() const
   return std::unique_ptr<WStandardItem>(new WStandardItem(*this));
 }
 
-void WStandardItem::sortChildren(int column, SortOrder order)
+awaitable<void> WStandardItem::sortChildren(int column, SortOrder order)
 {
   if (model_)
-    model_->layoutAboutToBeChanged().emit();
+    co_await model_->layoutAboutToBeChanged().emit();
 
   recursiveSortChildren(column, order);
 
   if (model_)
-    model_->layoutChanged().emit();
+    co_await model_->layoutChanged().emit();
+  co_return;
 }
 
 bool WStandardItem::operator< (const WStandardItem& other) const
@@ -841,12 +849,13 @@ void WStandardItem::recursiveSortChildren(int column, SortOrder order)
     }
 }
 
-void WStandardItem::signalModelDataChange()
+awaitable<void> WStandardItem::signalModelDataChange()
 {
   if (model_) {
     WModelIndex self = index();
-    model_->dataChanged().emit(self, self);
+    co_await model_->dataChanged().emit(self, self);
   }
+  co_return;
 }
 
 }

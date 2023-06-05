@@ -35,7 +35,7 @@ private:
 
   Signal<char>                letterPushed_;
 
-  void processButton(WPushButton *b);
+  awaitable<void> processButton(WPushButton *b);
   void processButtonPushed(const WKeyEvent &e, WPushButton *b);
 };
 

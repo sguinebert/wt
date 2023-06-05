@@ -92,11 +92,10 @@ WWidget *WTreeTable::headerWidget() const
   return headers_;
 }
 
-void WTreeTable::setTreeRoot(std::unique_ptr<WTreeTableNode> root,
-			     const WString& h)
+awaitable<void> WTreeTable::setTreeRoot(std::unique_ptr<WTreeTableNode> root, const WString& h)
 {
   root->setTable(this);
-  tree_->setTreeRoot(std::move(root));
+  co_await tree_->setTreeRoot(std::move(root));
 
   header(0)->setText(h.empty() ? "&nbsp;" : h);
 }
@@ -122,8 +121,7 @@ void WTreeTable::setTree(std::unique_ptr<WTree> root, const WString& h)
 void WTreeTable::addColumn(const WString& header, const WLength& width)
 {
   if (treeRoot())
-    throw WException("WTreeTable::addColumn(): must be called before "
-		     "setTreeRoot()");
+    throw WException("WTreeTable::addColumn(): must be called before setTreeRoot()");
 
   std::unique_ptr<WText> t(new WText(header));
   t->resize(width, WLength::Auto);

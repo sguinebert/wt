@@ -43,11 +43,11 @@ private:
   void reply();
   void edit();
   void rm();
-  void save();
-  void cancel();
+  awaitable<void> save();
+  awaitable<void> cancel();
   bool isNew() const;
 
-  void renderView();
+  awaitable<void> renderView();
 };
 
 #endif // COMMENT_VIEW_H_

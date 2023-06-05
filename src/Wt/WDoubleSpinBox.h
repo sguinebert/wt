@@ -144,7 +144,7 @@ private:
   Signal<double> valueChanged_;
 
   void setup();
-  void onChange();
+  awaitable<void> onChange();
 };
 
 }

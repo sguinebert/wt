@@ -52,7 +52,7 @@ private:
 
   /*! \brief Process one timer tick.
    */
-  void timerTick();
+  awaitable<void> timerTick();
 };
 
 /*@}*/

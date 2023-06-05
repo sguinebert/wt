@@ -99,9 +99,9 @@ void WComboBox::setModelColumn(int index)
   modelColumn_ = index;
 }
 
-void WComboBox::addItem(const WString& text)
+awaitable<void> WComboBox::addItem(const WString& text)
 {
-  insertItem(count(), text);
+  co_await insertItem(count(), text);
 }
 
 int WComboBox::count() const
@@ -122,12 +122,13 @@ const WString WComboBox::currentText() const
     return WString();
 }
 
-void WComboBox::insertItem(int index, const WString& text)
+awaitable<void> WComboBox::insertItem(int index, const WString& text)
 {
   if (model_->insertRow(index)) {
-    setItemText(index, text);
+    co_await setItemText(index, text);
     makeCurrentIndexValid();
   }
+  co_return;
 }
 
 const WString WComboBox::itemText(int index) const
@@ -135,7 +136,7 @@ const WString WComboBox::itemText(int index) const
   return asString(model_->data(index, modelColumn_));
 }
 
-void WComboBox::removeItem(int index)
+awaitable<void> WComboBox::removeItem(int index)
 {
   model_->removeRow(index);
 
@@ -157,9 +158,9 @@ void WComboBox::setCurrentIndex(int index)
   }
 }
 
-void WComboBox::setItemText(int index, const WString& text)
+awaitable<void> WComboBox::setItemText(int index, const WString& text)
 {
-  model_->setData(index, modelColumn_, cpp17::any(text));
+  co_await model_->setData(index, modelColumn_, cpp17::any(text));
 }
 
 void WComboBox::clear()
@@ -169,7 +170,7 @@ void WComboBox::clear()
   makeCurrentIndexValid();
 }
 
-void WComboBox::propagateChange()
+awaitable<void> WComboBox::propagateChange()
 {
   /*
    * copy values for when widget would be deleted from activated_.emit()
@@ -182,12 +183,13 @@ void WComboBox::propagateChange()
 
   observing_ptr<WComboBox> guard(this);
 
-  activated_.emit(currentIndex_);
+  co_await activated_.emit(currentIndex_);
 
   if (guard) {
     if (myCurrentIndex != - 1)
-      sactivated_.emit(myCurrentValue);
+      co_await sactivated_.emit(myCurrentValue);
   }
+  co_return;
 }
 
 bool WComboBox::isSelected(int index) const

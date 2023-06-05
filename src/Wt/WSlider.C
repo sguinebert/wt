@@ -57,8 +57,8 @@ private:
   double w() const;
   double h() const;
 
-  void onSliderClick(const WMouseEvent& event);
-  void onSliderReleased(int u);
+  awaitable<void> onSliderClick(const WMouseEvent& event);
+  awaitable<void> onSliderReleased(int u);
 };
 
 void PaintedSlider::paintEvent(WPaintDevice *paintDevice)
@@ -338,19 +338,18 @@ void PaintedSlider::sliderResized(const WLength& width, const WLength& height)
   updateState();
 }
  
-void PaintedSlider::onSliderClick(const WMouseEvent& event)
+awaitable<void> PaintedSlider::onSliderClick(const WMouseEvent& event)
 {
   int x = event.widget().x;
   int y = event.widget().y;
 
-  if (WApplication::instance()->layoutDirection() ==
-      LayoutDirection::RightToLeft)
+  if (WApplication::instance()->layoutDirection() == LayoutDirection::RightToLeft)
     x = (int)(w() - x);
 
-  onSliderReleased(slider_->orientation() == Orientation::Horizontal ? x : y);
+  co_await onSliderReleased(slider_->orientation() == Orientation::Horizontal ? x : y);
 }
 
-void PaintedSlider::onSliderReleased(int u)
+awaitable<void> PaintedSlider::onSliderReleased(int u)
 {
   if (slider_->orientation() == Orientation::Horizontal)
     u -= slider_->handleWidth() / 2;
@@ -367,10 +366,10 @@ void PaintedSlider::onSliderReleased(int u)
 			       + (int)((double)u / pixelsPerUnit + 0.5)));
 
   // TODO changed() ?
-  slider_->sliderMoved().emit(static_cast<int>(v));
+  co_await slider_->sliderMoved().emit(static_cast<int>(v));
 
-  slider_->setValue(static_cast<int>(v));
-  slider_->valueChanged().emit(slider_->value());  
+  co_await slider_->setValue(static_cast<int>(v));
+  co_await slider_->valueChanged().emit(slider_->value());
 
   updateSliderPosition();
 }
@@ -569,7 +568,7 @@ void WSlider::setRange(int minimum, int maximum)
   update();
 }
 
-void WSlider::setValue(int value)
+awaitable<void> WSlider::setValue(int value)
 {
   value_ = std::min(maximum_, std::max(minimum_, value));
 
@@ -577,8 +576,9 @@ void WSlider::setValue(int value)
     paintedSlider_->updateSliderPosition();
   else {
     update();
-    onChange();
+    co_await onChange();
   }
+  co_return;
 }
 
 void WSlider::signalConnectionsChanged()
@@ -588,10 +588,10 @@ void WSlider::signalConnectionsChanged()
   update();
 }
 
-void WSlider::onChange()
+awaitable<void> WSlider::onChange()
 {
-  valueChanged_.emit(value_);
-  sliderMoved_.emit(value_);
+  co_await valueChanged_.emit(value_);
+  co_await sliderMoved_.emit(value_);
 }
 
 DomElementType WSlider::domElementType() const
@@ -634,13 +634,12 @@ void WSlider::updateDom(DomElement& element, bool all)
       element.setAttribute("min", std::to_string(minimum_));
       element.setAttribute("max", std::to_string(maximum_));
 
-      if (!changedConnected_
-	  && (valueChanged_.isConnected() || sliderMoved_.isConnected())) {
-	changedConnected_ = true;
+      if (!changedConnected_ && (valueChanged_.isConnected() || sliderMoved_.isConnected())) {
+        changedConnected_ = true;
         changed().connect(this, &WSlider::onChange);
       } else if (!inputConnected_ && (valueChanged_.isConnected() || sliderMoved_.isConnected())) {
-	changedConnected_ = true;
-	input().connect(this, &WSlider::onChange);
+        changedConnected_ = true;
+        input().connect(this, &WSlider::onChange);
       }
 
       changed_ = false;
@@ -664,6 +663,7 @@ void WSlider::setFormData(const FormData& formData)
       value_ = Utils::stoi(value);
     } catch (std::exception& e) { }
   }
+  return;
 }
 
 WT_USTRING WSlider::valueText() const

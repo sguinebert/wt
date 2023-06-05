@@ -74,16 +74,17 @@ void WPushButton::setCheckable(bool checkable)
   }
 }
 
-void WPushButton::toggled()
+awaitable<void> WPushButton::toggled()
 {
   // FIXME: later, make it a true EventSignal
 
   flags_.set(BIT_IS_CHECKED, !isChecked());
 
   if (isChecked())
-    checked().emit();
+    co_await checked().emit();
   else
-    unChecked().emit();
+    co_await unChecked().emit();
+  co_return;
 }
 
 EventSignal<>& WPushButton::checked()
@@ -176,16 +177,17 @@ void WPushButton::setMenu(std::unique_ptr<WPopupMenu> popupMenu)
     popupMenu_->setButton(this);
 }
 
-void WPushButton::doRedirect()
+awaitable<void> WPushButton::doRedirect()
 {
   WApplication *app = WApplication::instance();
 
   if (!app->environment().ajax()) {
     if (linkState_.link.type() == LinkType::InternalPath)
-      app->setInternalPath(linkState_.link.internalPath().toUTF8(), true);
+      co_await app->setInternalPath(linkState_.link.internalPath().toUTF8(), true);
     else
       app->redirect(linkState_.link.url());
   }
+  co_return;
 }
 
 DomElementType WPushButton::domElementType() const
@@ -206,11 +208,10 @@ void WPushButton::updateDom(DomElement& element, bool all)
 
   bool updateInnerHtml = !icon_.isNull() && flags_.test(BIT_TEXT_CHANGED);
 
-  if (updateInnerHtml || flags_.test(BIT_ICON_CHANGED)
-      || (all && !icon_.isNull())) {
+  if (updateInnerHtml || flags_.test(BIT_ICON_CHANGED) || (all && !icon_.isNull()))
+  {
     DomElement *image = DomElement::createNew(DomElementType::IMG);
-    image->setProperty(Property::Src, 
-		       icon_.resolveUrl(WApplication::instance()));
+    image->setProperty(Property::Src, icon_.resolveUrl(WApplication::instance()));
     image->setId("im" + formName());
     element.insertChildAt(image, 0);
     flags_.set(BIT_ICON_RENDERED);
@@ -298,12 +299,10 @@ void WPushButton::renderHRef(DomElement& element)
   }
 }
 
-void WPushButton::getDomChanges(std::vector<DomElement *>& result,
-				WApplication *app)
+void WPushButton::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   if (flags_.test(BIT_ICON_CHANGED) && flags_.test(BIT_ICON_RENDERED)) {
-    DomElement *image
-      = DomElement::getForUpdate("im" + formName(), DomElementType::IMG);
+    DomElement *image = DomElement::getForUpdate("im" + formName(), DomElementType::IMG);
     if (icon_.isNull()) {
       image->removeFromParent();
       flags_.reset(BIT_ICON_RENDERED);
@@ -340,7 +339,7 @@ WT_USTRING WPushButton::valueText() const
   return WT_USTRING();
 }
 
-void WPushButton::setValueText(const WT_USTRING& value)
+void WPushButton::setValueText(const WT_USTRING& /*value*/)
 { }
 
 void WPushButton::refresh()

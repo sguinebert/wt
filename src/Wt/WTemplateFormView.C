@@ -186,8 +186,7 @@ void WTemplateFormView::indicateValidation(WFormModel::Field field,
   }
 }
 
-void WTemplateFormView::updateModelField(WFormModel *model,
-					 WFormModel::Field field)
+void WTemplateFormView::updateModelField(WFormModel *model, WFormModel::Field field)
 {
   WWidget *edit = resolveWidget(field);
   WFormWidget *fedit = dynamic_cast<WFormWidget *>(edit);
@@ -198,8 +197,8 @@ void WTemplateFormView::updateModelField(WFormModel *model,
 }
 
 void WTemplateFormView::updateModelValue(WFormModel *model,
-					 WFormModel::Field field,
-					 WFormWidget *edit)
+                                         WFormModel::Field field,
+                                         WFormWidget *edit)
 {
   if (updateModelValue(model, field, (WWidget *)edit))
     return;
@@ -212,8 +211,8 @@ void WTemplateFormView::updateModelValue(WFormModel *model,
 }
 
 bool WTemplateFormView::updateModelValue(WFormModel *model,
-					 WFormModel::Field field,
-					 WWidget *edit)
+                                         WFormModel::Field field,
+                                         WWidget *edit)
 {
   FieldMap::const_iterator fi = fields_.find(field);
 

@@ -227,8 +227,8 @@ private:
   void create(std::unique_ptr<WInteractWidget> displayWidget,
 	      WLineEdit *forEdit);
 
-  void setFromCalendar();
-  void setFromLineEdit();
+  awaitable<void> setFromCalendar();
+  awaitable<void> setFromLineEdit();
   void onPopupHidden();
 };
 

@@ -558,13 +558,11 @@ private:
 protected:
   virtual int firstChildIndex() const;
 
-  virtual void childResized(WWidget *child, WFlags<Orientation> directions)
-    override;
-  virtual void parentResized(WWidget *parent, WFlags<Orientation> directions)
-    override;
-  virtual void getDomChanges(std::vector<DomElement *>& result,
-			     WApplication *app) override;
+  virtual void childResized(WWidget *child, WFlags<Orientation> directions) override;
+  virtual void parentResized(WWidget *parent, WFlags<Orientation> directions) override;
+  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   virtual void iterateChildren(const HandleWidgetMethod& method) const override;
+  virtual awaitable<void> iterateChildren(AsyncHandleWidgetMethod&& method) const override;
 
   DomElement *createDomElement(WApplication *app, bool addChildren);
 

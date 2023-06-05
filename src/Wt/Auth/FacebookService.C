@@ -34,7 +34,7 @@ public:
     : OAuthProcess(auth, scope)
   { }
 
-  virtual void getIdentity(const OAuthAccessToken& token) override
+  virtual awaitable<void> getIdentity(const OAuthAccessToken& token) override
   {
     httpClient_.reset(new Http::Client());
     httpClient_->setTimeout(std::chrono::seconds(15));
@@ -50,12 +50,13 @@ public:
 #ifndef WT_TARGET_JAVA
     WApplication::instance()->deferRendering();
 #endif
+    co_return;
   }
 
 private:
   std::unique_ptr<Http::Client> httpClient_;
 
-  void handleMe(AsioWrapper::error_code err, const Http::Message& response)
+  awaitable<void> handleMe(AsioWrapper::error_code err, const Http::Message& response)
   {
 #ifndef WT_TARGET_JAVA
     WApplication::instance()->resumeRendering();
@@ -75,30 +76,34 @@ private:
       bool ok = me.isNull();
 #endif
 
-      if (!ok) {
-	LOG_ERROR("could not parse Json: '{}'", response.body());
-	setError(ERROR_MSG("badjson"));
-	authenticated().emit(Identity::Invalid);
-      } else {
-	std::string id = me["id"].get_string("");
-	WT_USTRING userName = me["name"].get_string("");
-	std::string email = me["email"].get_string("");
+      if (!ok)
+      {
+        LOG_ERROR("could not parse Json: '{}'", response.body());
+        setError(ERROR_MSG("badjson"));
+        co_await authenticated().emit(Identity::Invalid);
+      }
+      else
+      {
+        std::string id = me["id"].get_string("");
+        WT_USTRING userName = me["name"].get_string("");
+        std::string email = me["email"].get_string("");
         bool emailVerified = !me["email"].is_null();
 
-	authenticated().emit(Identity(service().name(), id, userName,
-				      email, emailVerified));
+        co_await authenticated().emit(Identity(service().name(), id, userName, email, emailVerified));
       }
     } else {
-      if (!err) {
-	LOG_ERROR("user info request returned: {}", response.status());
-	LOG_ERROR("with: {}", response.body());
+      if (!err)
+      {
+        LOG_ERROR("user info request returned: {}", response.status());
+        LOG_ERROR("with: {}", response.body());
       } else
-	LOG_ERROR("handleMe(): {}", err.message());
+        LOG_ERROR("handleMe(): {}", err.message());
 
       setError(ERROR_MSG("badresponse"));
 
-      authenticated().emit(Identity::Invalid);
+      co_await authenticated().emit(Identity::Invalid);
     }
+    co_return;
   }
 };
 

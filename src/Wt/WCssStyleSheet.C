@@ -157,15 +157,14 @@ bool WCssTemplateRule::updateDomElement(DomElement& element, bool all)
   return true;
 }
 
-WCssTextRule::WCssTextRule(const std::string& selector,
-			   const WT_USTRING& declarations)
+WCssTextRule::WCssTextRule(const std::string& selector, const WT_USTRING& declarations)
   : WCssRule(selector),
     declarations_(declarations)
 { }
 
 std::string WCssTextRule::declarations()
 {
-  return declarations_.toUTF8(); 
+  return declarations_.toUTF8();
 }
 
 WCssStyleSheet::WCssStyleSheet()
@@ -275,8 +274,7 @@ void WCssStyleSheet::cssText(WStringStream& out, bool all)
     rulesModified_.clear();
 }
 
-void WCssStyleSheet::javaScriptUpdate(WApplication *app,
-				      WStringStream& js, bool all)
+void WCssStyleSheet::javaScriptUpdate(WApplication *app, WStringStream& js, bool all)
 {
   if (!all) {
     for (unsigned i = 0; i < rulesRemoved_.size(); ++i) {
@@ -294,8 +292,8 @@ void WCssStyleSheet::javaScriptUpdate(WApplication *app,
 
       DomElement *d = DomElement::updateGiven("d", DomElementType::SPAN);
       if ((*i)->updateDomElement(*d, false)) {
-	EscapeOStream sout(js);
-	d->asJavaScript(sout, DomElement::Priority::Update);
+          EscapeOStream sout(js);
+          d->asJavaScript(sout, DomElement::Priority::Update);
       }
 
       delete d;
@@ -314,7 +312,7 @@ void WCssStyleSheet::javaScriptUpdate(WApplication *app,
 	auto rule = toProcess[i].get();
 	js << WT_CLASS ".addCss('"
 	   << rule->selector() << "',";
-	DomElement::jsStringLiteral(js, rule->declarations(), '\'');
+    DomElement::jsStringLiteral(js, rule->declarations(), '\'');
 	js << ");\n";
       }
     } else {
@@ -324,7 +322,7 @@ void WCssStyleSheet::javaScriptUpdate(WApplication *app,
 	auto rule = toProcess[i];
 	js << WT_CLASS ".addCss('"
 	   << rule->selector() << "',";
-	DomElement::jsStringLiteral(js, rule->declarations(), '\'');
+    DomElement::jsStringLiteral(js, rule->declarations(), '\'');
 	js << ");\n";
       }
     }

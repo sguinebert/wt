@@ -107,7 +107,7 @@ private:
   friend class WTable;
 
 protected:
-  virtual void           updateDom(DomElement& element, bool all) override;
+  virtual void updateDom(DomElement& element, bool all) override;
   virtual DomElementType domElementType() const override;
   virtual void           propagateRenderOk(bool deep) override;
 };

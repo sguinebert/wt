@@ -233,8 +233,7 @@ void WImage::updateDom(DomElement& element, bool all)
     element.addChild(img);
 }
 
-void WImage::getDomChanges(std::vector<DomElement *>& result,
-			   WApplication *app)
+void WImage::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   if (map_) {
     // TODO: check if BIT_MAP_CREATED: then need to replace the whole

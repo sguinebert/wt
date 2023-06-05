@@ -113,8 +113,7 @@ public:
    *
    * Inserts the node \p node at index \p index.
    */
-  virtual void insertChildNode(int index,
-			       std::unique_ptr<WTreeNode> node);
+  virtual void insertChildNode(int index, std::unique_ptr<WTreeNode> node);
 
   /*! \brief Adds a child node.
    *
@@ -125,11 +124,11 @@ public:
    *
    * \sa insertChildNode()
    */
-  WTreeNode *addChildNode(std::unique_ptr<WTreeNode> node);
+  WTreeNode * addChildNode(std::unique_ptr<WTreeNode> node);
 
   /*! \brief Removes a child node.
    */
-  std::unique_ptr<WTreeNode> removeChildNode(WTreeNode *node);
+  awaitable<std::unique_ptr<WTreeNode>> removeChildNode(WTreeNode *node);
 
   /*! \brief Returns the list of children.
    */
@@ -300,7 +299,7 @@ protected:
    * The default implementation changes the style class of the labelArea()
    * to "selected".
    */
-  virtual void renderSelected(bool selected);
+  virtual awaitable<void> renderSelected(bool selected);
 
   /*! \brief Reacts to the removal of a descendant node.
    *
@@ -308,7 +307,7 @@ protected:
    * descendant node. The default implementation simply propagates the
    * event to the parent.
    */
-  virtual void descendantRemoved(WTreeNode *node);
+  virtual awaitable<void> descendantRemoved(WTreeNode *node);
 
   /*! \brief Reacts to the addition of a descendant node.
    *

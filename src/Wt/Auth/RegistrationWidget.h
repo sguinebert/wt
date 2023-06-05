@@ -79,7 +79,7 @@ protected:
    * RegistrationModel::doRegister(). If registration was successful,
    * it calls registerUserDetails() and subsequently logs the user in.
    */
-  virtual void doRegister();
+  virtual awaitable<void> doRegister();
 
   /*! \brief Closes the registration widget.
    *
@@ -116,11 +116,11 @@ private:
   void checkLoginName();
   void checkPassword();
   void checkPassword2();
-  void confirmIsYou();
-  void confirmedIsYou();
-  void oAuthDone(OAuthProcess *oauth, const Identity& identity);
+  awaitable<void> confirmIsYou();
+  awaitable<void> confirmedIsYou();
+  awaitable<void> oAuthDone(OAuthProcess *oauth, const Identity& identity);
 #ifdef WT_HAS_SAML
-  void samlDone(Saml::Process *saml, const Identity &Identity);
+  awaitable<void> samlDone(Saml::Process *saml, const Identity &Identity);
 #endif // WT_HAS_SAML
 };
 

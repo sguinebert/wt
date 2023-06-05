@@ -63,7 +63,8 @@ void WViewWidget::updateDom(DomElement& element, bool all)
   if (!app->session()->renderer().preLearning()) {
     if (all && !contents_) {
       needContentsUpdate_ = true;
-      render(RenderFlag::Full);
+      scheduleRender(); //replace render
+      //co_await render(RenderFlag::Full);
     }
 
     if (contents_) {
@@ -74,7 +75,7 @@ void WViewWidget::updateDom(DomElement& element, bool all)
       DomElement *e = contents_->createSDomElement(WApplication::instance());
 
       if (!all)
-	element.setWasEmpty(true); // removes previous content
+          element.setWasEmpty(true); // removes previous content
       element.addChild(e);
 
       WApplication::instance()->session()->renderer()
@@ -100,6 +101,7 @@ void WViewWidget::doneRerender()
     widgetRemoved(contents_.get(), false);
     contents_.reset();
   }
+  //co_return;
 }
 
 DomElementType WViewWidget::domElementType() const

@@ -134,24 +134,25 @@ void RegistrationWidget::update()
   } else
     isYou->hide();
 
-  if (model_->isFederatedLoginVisible()) {
-    if (!conditionValue("if:oauth")) {
+  if (model_->isFederatedLoginVisible())
+  {
+    if (!conditionValue("if:oauth"))
+    {
       setCondition("if:oauth", true);
       if (model_->passwordAuth())
-	bindString("oauth-description", tr("Wt.Auth.or-oauth-registration"));
+        bindString("oauth-description", tr("Wt.Auth.or-oauth-registration"));
       else
-	bindString("oauth-description", tr("Wt.Auth.oauth-registration"));
+        bindString("oauth-description", tr("Wt.Auth.oauth-registration"));
 
-      WContainerWidget *icons = 
-	bindWidget("icons", std::make_unique<WContainerWidget>());
+      WContainerWidget *icons =  bindWidget("icons", std::make_unique<WContainerWidget>());
       icons->addStyleClass("Wt-field");
 
-      for (unsigned i = 0; i < model_->oAuth().size(); ++i) {
-	const OAuthService *service = model_->oAuth()[i];
+      for (unsigned i = 0; i < model_->oAuth().size(); ++i)
+      {
+        const OAuthService *service = model_->oAuth()[i];
 
-	OAuthWidget *w
-	  = icons->addWidget(std::make_unique<OAuthWidget>(*service));
-	w->authenticated().connect(this, &RegistrationWidget::oAuthDone);
+        OAuthWidget *w = icons->addWidget(std::make_unique<OAuthWidget>(*service));
+        w->authenticated().connect(this, &RegistrationWidget::oAuthDone);
       }
 
 #ifdef WT_HAS_SAML
@@ -181,35 +182,35 @@ void RegistrationWidget::update()
   }
 }
 
-void RegistrationWidget::oAuthDone(OAuthProcess *oauth,
-				   const Identity& identity)
+awaitable<void> RegistrationWidget::oAuthDone(OAuthProcess *oauth, const Identity& identity)
 {
   if (identity.isValid()) {
     LOG_SECURE("{}: identified: as {}, {}, {}", oauth->service().name(), identity.id(), identity.name(), identity.email());
 
-    if (!model_->registerIdentified(identity))
+    if (!co_await model_->registerIdentified(identity))
       update();
   } else {
     if (authWidget_)
       authWidget_->displayError(oauth->error());
     LOG_SECURE("{}: error: {}", oauth->service().name(), oauth->error());
   }
+  co_return;
 }
 
 #ifdef WT_HAS_SAML
-void RegistrationWidget::samlDone(Saml::Process *saml,
-                                  const Identity &identity)
+awaitable<void> RegistrationWidget::samlDone(Saml::Process *saml, const Identity &identity)
 {
   if (identity.isValid()) {
     LOG_SECURE("{}: identified: as {}, {}, {}", saml->service().name(), identity.id(), identity.name(), identity.email());
 
-    if (!model_->registerIdentified(identity))
+    if (!co_await model_->registerIdentified(identity))
       update();
   } else {
     if (authWidget_)
       authWidget_->displayError(saml->error());
     LOG_SECURE("{}: error: {}", saml->service().name(), saml->error());
   }
+  co_return;
 }
 #endif // WT_HAS_SAML
 
@@ -245,10 +246,9 @@ bool RegistrationWidget::validate()
   return model_->validate();
 }
 
-void RegistrationWidget::doRegister()
+awaitable<void> RegistrationWidget::doRegister()
 {
-  std::unique_ptr<AbstractUserDatabase::Transaction>
-    t(model_->users().startTransaction());
+  std::unique_ptr<AbstractUserDatabase::Transaction> t(model_->users().startTransaction());
 
   updateModel(model_.get());
 
@@ -257,13 +257,13 @@ void RegistrationWidget::doRegister()
     if (user.isValid()) {
       registerUserDetails(user);
       if (!model_->baseAuth()->emailVerificationRequired() || user.unverifiedEmail().empty())
-	model_->loginUser(model_->login(), user);
-      else {
-	if (authWidget_)
-	  authWidget_->displayInfo
-	    (WString::tr("Wt.Auth.confirm-email-first"));
+        co_await model_->loginUser(model_->login(), user);
+      else
+      {
+        if (authWidget_)
+            authWidget_->displayInfo(WString::tr("Wt.Auth.confirm-email-first"));
 
-	close();
+        close();
       }
     } else
       update();
@@ -272,6 +272,7 @@ void RegistrationWidget::doRegister()
 
   if (t.get())
     t->commit();
+  co_return;
 }
 
 void RegistrationWidget::registerUserDetails(User& user)
@@ -282,7 +283,7 @@ void RegistrationWidget::close()
   removeFromParent();
 }
 
-void RegistrationWidget::confirmIsYou()
+awaitable<void> RegistrationWidget::confirmIsYou()
 {
   updateModel(model_.get());
 
@@ -290,9 +291,8 @@ void RegistrationWidget::confirmIsYou()
   case IdentityConfirmationMethod::ConfirmWithPassword:
     {
       confirmPasswordLogin_.reset(new Login());
-      confirmPasswordLogin_->login(model_->existingUser(), LoginState::Weak);
-      confirmPasswordLogin_
-	->changed().connect(this, &RegistrationWidget::confirmedIsYou);
+      co_await confirmPasswordLogin_->login(model_->existingUser(), LoginState::Weak);
+      confirmPasswordLogin_->changed().connect(this, &RegistrationWidget::confirmedIsYou);
 
       isYouDialog_ = authWidget_->createPasswordPromptDialog(*confirmPasswordLogin_);
       isYouDialog_->finished().connect
@@ -318,14 +318,16 @@ void RegistrationWidget::confirmIsYou()
   default:
     LOG_ERROR("that's gone haywire.");
   }
+  co_return;
 }
 
-void RegistrationWidget::confirmedIsYou()
+awaitable<void> RegistrationWidget::confirmedIsYou()
 {
   if (confirmPasswordLogin_->state() == LoginState::Strong)
-    model_->existingUserConfirmed();
+    co_await model_->existingUserConfirmed();
   else
     confirmPasswordLogin_.reset();
+  co_return;
 }
 
   }

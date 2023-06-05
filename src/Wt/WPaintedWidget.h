@@ -305,8 +305,7 @@ protected:
   virtual DomElementType domElementType() const override;
   virtual void updateDom(DomElement& element, bool all) override;
   virtual DomElement *createDomElement(WApplication *app) override;
-  virtual void getDomChanges(std::vector<DomElement *>& result,
-			     WApplication *app) override;
+  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   virtual void propagateRenderOk(bool deep) override;
   virtual void enableAjax() override;
   virtual void render(WFlags<RenderFlag> flags) override;

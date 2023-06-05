@@ -87,7 +87,6 @@ class cuehttp final : safe_noncopyable {
   detail::engines& engine_;
   http_t server_;
   detail::middlewares middlewares_;
-  //std::function<void(context&)> http_handler_;
   std::function<awaitable<void>(context&)> http_handler_;
   // websocket
   std::unique_ptr<ws_server> ws_;

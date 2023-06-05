@@ -235,19 +235,19 @@ public:
    *
    * \sa finished(), result()
    */
-  virtual void done(DialogCode r);
+  virtual awaitable<void> done(DialogCode r);
 
   /*! \brief Closes the dialog, with result is Accepted.
    *
    * \sa done(DialogCode r), reject()
    */
-  virtual void accept();
+  virtual awaitable<void> accept();
 
   /*! \brief Closes the dialog, with result is Rejected.
    *
    * \sa done(DialogCode r), accept()
    */
-  virtual void reject();
+  virtual awaitable<void> reject();
 
   /*! \brief Lets pressing the escape key reject the dialog.
    *
@@ -460,8 +460,8 @@ private:
     enterConnection1_, enterConnection2_;
 
   void create();
-  void onEscapePressed();
-  void onDefaultPressed();
+  awaitable<void> onEscapePressed();
+  awaitable<void> onDefaultPressed();
   void bringToFront(const WMouseEvent &e);
   void zIndexChanged(int zIndex);
 

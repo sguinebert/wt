@@ -63,7 +63,7 @@ WStringListModel::~WStringListModel()
   delete otherData_;
 }
 
-void WStringListModel::setStringList(const std::vector<WString>& strings)
+awaitable<void> WStringListModel::setStringList(const std::vector<WString>& strings)
 {
   int currentSize = displayData_.size();
   int newSize = strings.size();
@@ -87,7 +87,8 @@ void WStringListModel::setStringList(const std::vector<WString>& strings)
   int numChanged = std::min(currentSize, newSize);
 
   if (numChanged)
-    dataChanged().emit(index(0, 0), index(numChanged - 1, 0));
+    co_await dataChanged().emit(index(0, 0), index(numChanged - 1, 0));
+  co_return;
 }
 
 void WStringListModel::addString(const WString& string)
@@ -116,8 +117,9 @@ cpp17::any WStringListModel::data(const WModelIndex& index, ItemDataRole role) c
     return cpp17::any();
 }
 
-bool WStringListModel::setData(const WModelIndex& index,
-                               const cpp17::any& value, ItemDataRole role)
+awaitable<bool> WStringListModel::setData(const WModelIndex& index,
+                                          const cpp17::any& value,
+                                          ItemDataRole role)
 {
   if (role == ItemDataRole::Edit)
     role = ItemDataRole::Display;
@@ -138,19 +140,19 @@ bool WStringListModel::setData(const WModelIndex& index,
     (*otherData_)[index.row()][role] = value;
   }
 
-  dataChanged().emit(index, index);
+  co_await dataChanged().emit(index, index);
 
-  return true;
+  co_return true;
 }
 
-void WStringListModel::setFlags(int row, WFlags<ItemFlag> flags)
+awaitable<void> WStringListModel::setFlags(int row, WFlags<ItemFlag> flags)
 {
   if (flags_.empty())
     flags_.insert(flags_.begin(), rowCount(),
 		  ItemFlag::Selectable | ItemFlag::Editable);
 
   flags_[row] = flags;
-  dataChanged().emit(index(row, 0), index(row, 0));
+  co_await dataChanged().emit(index(row, 0), index(row, 0));
 }
 
 WFlags<ItemFlag> WStringListModel::flags(const WModelIndex& index) const
@@ -196,9 +198,9 @@ bool WStringListModel::removeRows(int row, int count, const WModelIndex& parent)
     return false;
 }
 
-void WStringListModel::sort(int column, SortOrder order)
+awaitable<void> WStringListModel::sort(int column, SortOrder order)
 {
-  layoutAboutToBeChanged().emit();
+  co_await layoutAboutToBeChanged().emit();
 
   if (!otherData_ && flags_.empty()) {
     if (order == SortOrder::Ascending)
@@ -245,7 +247,7 @@ void WStringListModel::sort(int column, SortOrder order)
     flags_ = flags;
   }
 
-  layoutChanged().emit();
+  co_await layoutChanged().emit();
 }
 
 }

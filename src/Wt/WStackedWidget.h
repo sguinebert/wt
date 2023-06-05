@@ -134,9 +134,8 @@ public:
 			      bool autoReverse = false);
 
 protected:
-  virtual DomElement *createDomElement(WApplication *app) override;
-  virtual void getDomChanges(std::vector<DomElement *>& result,
-			     WApplication *app) override;
+  virtual DomElement * createDomElement(WApplication *app) override;
+  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   virtual void render(WFlags<RenderFlag> flags) override;
 
 private:

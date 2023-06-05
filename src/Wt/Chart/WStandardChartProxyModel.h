@@ -177,7 +177,7 @@ private:
   mutable double markerScaleFactor_;
 #endif
 
-  void sourceModelModified();
+  awaitable<void> sourceModelModified();
   const WColor *color(int row, int column, ItemDataRole colorRole) const;
 };
 

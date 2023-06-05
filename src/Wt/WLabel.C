@@ -201,8 +201,7 @@ DomElementType WLabel::domElementType() const
     return isInline() ? DomElementType::SPAN : DomElementType::DIV;
 }
 
-void WLabel::getDomChanges(std::vector<DomElement *>& result,
-			   WApplication *app)
+void WLabel::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   WInteractWidget::getDomChanges(result, app);
 
@@ -226,6 +225,23 @@ void WLabel::iterateChildren(const HandleWidgetMethod &method) const
 #else
     method.handle(image_.get());
 #endif
+}
+
+awaitable<void> WLabel::iterateChildren(AsyncHandleWidgetMethod &&method) const
+{
+  if (text_)
+#ifndef WT_TARGET_JAVA
+    co_await method(text_.get());
+#else
+    co_await method.handle(text_.get());
+#endif
+  if (image_)
+#ifndef WT_TARGET_JAVA
+    co_await method(image_.get());
+#else
+    co_await method.handle(image_.get());
+#endif
+  co_return;
 }
 
 }

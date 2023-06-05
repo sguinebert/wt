@@ -87,7 +87,7 @@ public:
    *
    * The initial value is \c 0.
    */
-  void setTreeRoot(std::unique_ptr<WTreeNode> root);
+  awaitable<void> setTreeRoot(std::unique_ptr<WTreeNode> root);
 
   /*! \brief Returns the root node.
    *
@@ -99,7 +99,7 @@ public:
    *
    * The default selection mode is Wt::SelectionMode::None.
    */
-  void setSelectionMode(SelectionMode mode);
+  awaitable<void> setSelectionMode(SelectionMode mode);
 
   /*! \brief Returns the selection mode.
    */
@@ -115,11 +115,11 @@ public:
 
   /*! \brief Sets a selection of tree nodes.
    */
-  void select(const WTreeNodeSet& nodes);
+  awaitable<void> select(const WTreeNodeSet& nodes);
 
   /*! \brief Selects or unselect the given <i>node</i>.
    */
-  void select(WTreeNode *node, bool selected = true);
+  awaitable<void> select(WTreeNode *node, bool selected = true);
 
   /*! \brief Returns if the given <i>node</i> is currently selected.
    */
@@ -127,7 +127,7 @@ public:
 
   /*! \brief Clears the current selection.
    */
-  void clearSelection();
+  awaitable<void> clearSelection();
 
   /*! \brief %Signal that is emitted when the selection changes.
    */
@@ -141,13 +141,13 @@ private:
   WTreeNodeSet selection_;
   Signal<> itemSelectionChanged_;
 
-  void onClick(WTreeNode *node, WMouseEvent event);
+  awaitable<void> onClick(WTreeNode *node, WMouseEvent event);
 
-  void selectRange(WTreeNode *from, WTreeNode *to);
-  void extendSelection(WTreeNode *node);
+  awaitable<void> selectRange(WTreeNode *from, WTreeNode *to);
+  awaitable<void> extendSelection(WTreeNode *node);
 
 protected:
-  void nodeRemoved(WTreeNode *node);
+  awaitable<void> nodeRemoved(WTreeNode *node);
   void nodeAdded(WTreeNode * const node);
 
   friend class Impl::SentinelTreeNode;

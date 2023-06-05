@@ -227,7 +227,7 @@ void WPaintedWidget::render(WFlags<RenderFlag> flags)
     defineJavaScript();
   }
 
-  WInteractWidget::render(flags);
+  WInteractWidget::render(flags); //co_return;
 }
 
 void WPaintedWidget::setFormData(const FormData& formData)
@@ -364,7 +364,7 @@ DomElementType WPaintedWidget::domElementType() const
     return DomElementType::DIV;
 }
 
-DomElement *WPaintedWidget::createDomElement(WApplication *app)
+DomElement * WPaintedWidget::createDomElement(WApplication *app)
 {
   if (isInLayout()) {
     setLayoutSizeAware(true);
@@ -452,8 +452,7 @@ void WPaintedWidget::propagateRenderOk(bool deep)
   WInteractWidget::propagateRenderOk(deep);
 }
 
-void WPaintedWidget::getDomChanges(std::vector<DomElement *>& result,
-				   WApplication *app)
+void WPaintedWidget::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   DomElement *e = DomElement::getForUpdate(this, DomElementType::DIV);
   updateDom(*e, false);
@@ -462,9 +461,7 @@ void WPaintedWidget::getDomChanges(std::vector<DomElement *>& result,
   bool createdNew = createPainter();
 
   if (needRepaint_) {
-    std::unique_ptr<WPaintDevice> device
-      = painter_->getPaintDevice(repaintFlags_.test(PaintFlag::Update) &&
-				 !createdNew);
+    std::unique_ptr<WPaintDevice> device = painter_->getPaintDevice(repaintFlags_.test(PaintFlag::Update) && !createdNew);
 
     if (renderWidth_ != 0 && renderHeight_ != 0) {
       paintEvent(device.get());
@@ -476,8 +473,7 @@ void WPaintedWidget::getDomChanges(std::vector<DomElement *>& result,
     }
 
     if (createdNew) {
-      DomElement *canvas
-	= DomElement::getForUpdate('p' + id(), DomElementType::DIV);
+      DomElement *canvas = DomElement::getForUpdate('p' + id(), DomElementType::DIV);
       canvas->removeAllChildren();
       painter_->createContents(canvas, std::move(device));
       result.push_back(canvas);

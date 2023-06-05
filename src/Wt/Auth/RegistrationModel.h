@@ -143,7 +143,7 @@ public:
    * Returns \c true if the given identity was already registered, and
    * has been logged in.
    */
-  virtual bool registerIdentified(const Identity& identity);
+  virtual awaitable<bool> registerIdentified(const Identity& identity);
 
   /*! \brief Returns the existing user that needs to be confirmed.
    *
@@ -174,7 +174,7 @@ public:
    * The new identity is added to this existing user (if applicable),
    * and the user is logged in.
    */
-  virtual void existingUserConfirmed();
+  virtual awaitable<void> existingUserConfirmed();
 
   /*! \brief Validates the login name.
    *

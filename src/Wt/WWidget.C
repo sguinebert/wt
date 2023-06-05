@@ -93,7 +93,7 @@ void WWidget::setJsSize()
        + "false");
 }
 
-void WWidget::render(WFlags<RenderFlag> flags)
+void WWidget::render(WFlags<RenderFlag> /*flags*/)
 { }
 
 bool WWidget::isRendered() const

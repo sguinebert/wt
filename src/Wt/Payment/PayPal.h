@@ -191,8 +191,7 @@ private:
   std::map<std::string, std::string> parametersMapToMap
   (Http::ParameterMap &map);
 
-  void handleSetup(Wt::AsioWrapper::error_code err,
-                   const Http::Message& response);
+  awaitable<void> handleSetup(Wt::AsioWrapper::error_code err, const Http::Message& response);
 
   void setToken(const std::string& url);
   std::string cancelUrl() const;
@@ -201,16 +200,16 @@ private:
 
   JSignal<int>& redirected();
   void setPaymentAccepted(bool accepted, std::string_view payerId);
-  void onRedirect(int result);
+  awaitable<void> onRedirect(int result);
 
   void handleInternalPath(const std::string& internalPath);
-  void handleCustomerDetails(Wt::AsioWrapper::error_code err,
+  awaitable<void> handleCustomerDetails(Wt::AsioWrapper::error_code err,
                    const Http::Message& response);
   std::string prameterValue(const std::string &parameterName,
                             Http::ParameterMap &params);
   void saveCustomerDetails(Http::ParameterMap &params);
 
-  void handleCompletePayment(Wt::AsioWrapper::error_code err,
+  awaitable<void> handleCompletePayment(Wt::AsioWrapper::error_code err,
                              const Http::Message& response);
 
   //test the msg and saves the token.

@@ -142,7 +142,7 @@ public:
    *
    * \sa setFilterKeyColumn(), setFilterRole()
    */
-  void setFilterRegExp(std::unique_ptr<std::regex> pattern);
+  awaitable<void> setFilterRegExp(std::unique_ptr<std::regex> pattern);
 
   /*! \brief Return the regular expression used for filtering.
    *
@@ -224,7 +224,7 @@ public:
    * This refilters and resorts the model, and is useful only if you
    * have reimplemented filterAcceptRow() and/or lessThan()
    */
-  void invalidate();
+  awaitable<void> invalidate();
 
   virtual int columnCount(const WModelIndex& parent = WModelIndex())
     const override;
@@ -233,18 +233,16 @@ public:
 
   virtual WModelIndex parent(const WModelIndex& index) const override;
   virtual WModelIndex index(int row, int column,
-			    const WModelIndex& parent = WModelIndex())
-    const override;
+                const WModelIndex& parent = WModelIndex()) const override;
 
-  virtual bool setHeaderData(int section, Orientation orientation,
-			     const cpp17::any& value,
-                             ItemDataRole role = ItemDataRole::Edit) override;
+  virtual awaitable<bool> setHeaderData(int section, Orientation orientation,
+                                        const cpp17::any& value,
+                                        ItemDataRole role = ItemDataRole::Edit) override;
   virtual cpp17::any headerData(int section,
-			     Orientation orientation = Orientation::Horizontal,
-                         ItemDataRole role = ItemDataRole::Display) const override;
+                                Orientation orientation = Orientation::Horizontal,
+                                ItemDataRole role = ItemDataRole::Display) const override;
   virtual WFlags<HeaderFlag> headerFlags
-    (int section, Orientation orientation = Orientation::Horizontal)
-    const override;
+      (int section, Orientation orientation = Orientation::Horizontal) const override;
 
   /*! \brief Inserts a number rows.
    *
@@ -261,18 +259,15 @@ public:
    * disable the dynamic sort/filtering behaviour while inserting new
    * row(s) of data.
    */
-  virtual bool insertRows(int row, int count,
-			  const WModelIndex& parent = WModelIndex()) override;
+  virtual bool insertRows(int row, int count, const WModelIndex& parent = WModelIndex()) override;
 
   /*! \brief Removes a number rows.
    *
    * The rows are removed from the source model.
    */
-  virtual bool removeRows(int row, int count,
-			  const WModelIndex& parent = WModelIndex()) override;
+  virtual bool removeRows(int row, int count, const WModelIndex& parent = WModelIndex()) override;
 
-  virtual void sort(int column, SortOrder order = SortOrder::Ascending)
-    override;
+  virtual awaitable<void> sort(int column, SortOrder order = SortOrder::Ascending) override;
 
 protected:
   /*! \brief Returns whether a source row is accepted by the filter.
@@ -355,30 +350,25 @@ private:
   mutable ItemMap mappedIndexes_;
   mutable Item* mappedRootItem_;
 
-  void sourceColumnsAboutToBeInserted(const WModelIndex& parent,
-				      int start, int end);
-  void sourceColumnsInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceColumnsInserted(const WModelIndex& parent, int start, int end);
 
-  void sourceColumnsAboutToBeRemoved(const WModelIndex& parent,
-				     int start, int end);
-  void sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
 
-  void sourceRowsAboutToBeInserted(const WModelIndex& parent,
-				   int start, int end);
-  void sourceRowsInserted(const WModelIndex& parent, int start, int end);
+  void sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceRowsInserted(const WModelIndex& parent, int start, int end);
 
-  void sourceRowsAboutToBeRemoved(const WModelIndex& parent,
-				  int start, int end);
+  awaitable<void> sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   void sourceRowsRemoved(const WModelIndex& parent, int start, int end);
 
-  void sourceDataChanged(const WModelIndex& topLeft,
-			 const WModelIndex& bottomRight);
+  awaitable<void> sourceDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight);
 
-  void sourceHeaderDataChanged(Orientation orientation, int start, int end);
+  awaitable<void> sourceHeaderDataChanged(Orientation orientation, int start, int end);
 
-  void sourceLayoutAboutToBeChanged();
-  void sourceLayoutChanged();
-  void sourceModelReset();
+  awaitable<void> sourceLayoutAboutToBeChanged();
+  awaitable<void> sourceLayoutChanged();
+  awaitable<void> sourceModelReset();
 
   Item *itemFromSourceIndex(const WModelIndex& sourceIndex) const;
   Item *parentItemFromIndex(const WModelIndex& index) const;

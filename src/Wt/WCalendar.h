@@ -323,17 +323,17 @@ private:
   void create();
   void renderMonth();
 
-  void emitCurrentPageChanged();
+  //awaitable<void> emitCurrentPageChanged();
 
   void monthChanged(int newMonth);
   void yearChanged(WString newYear);
   WDate dateForCell(int week, int dayOfWeek);
 
-  void selectInCurrentMonth(const WDate& d);
+  awaitable<void> selectInCurrentMonth(const WDate& d);
 
   bool isInvalid(const WDate& d);
-  void cellClicked(Coordinate c);
-  void cellDblClicked(Coordinate c);
+  awaitable<void> cellClicked(Coordinate c);
+  awaitable<void> cellDblClicked(Coordinate c);
 };
 
 }

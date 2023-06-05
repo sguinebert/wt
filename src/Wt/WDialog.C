@@ -522,7 +522,7 @@ awaitable<DialogCode> WDialog::exec(const WAnimation& animation)
   recursiveEventLoop_ = true;
 
   if (app->environment().isTest()) {
-    app->environment().dialogExecuted().emit(this);
+    co_await app->environment().dialogExecuted().emit(this);
     if (recursiveEventLoop_)
       throw WException("Test case must close dialog");
   } else {
@@ -536,10 +536,10 @@ awaitable<DialogCode> WDialog::exec(const WAnimation& animation)
   co_return result_;
 }
 
-void WDialog::done(DialogCode result)
+awaitable<void> WDialog::done(DialogCode result)
 {
   if (isHidden())
-    return;
+    co_return;
 
   result_ = result;
 
@@ -548,17 +548,17 @@ void WDialog::done(DialogCode result)
   } else
     hide();
 
-  finished_.emit(result);
+  co_await finished_.emit(result);
 }
 
-void WDialog::accept()
+awaitable<void> WDialog::accept()
 {
-  done(DialogCode::Accepted);
+  co_await done(DialogCode::Accepted);
 }
 
-void WDialog::reject()
+awaitable<void> WDialog::reject()
 {
-  done(DialogCode::Rejected);
+  co_await done(DialogCode::Rejected);
 }
 
 void WDialog::setModal(bool modal)
@@ -566,26 +566,31 @@ void WDialog::setModal(bool modal)
   modal_ = modal;
 }
 
-void WDialog::onDefaultPressed()
+awaitable<void> WDialog::onDefaultPressed()
 {
   DialogCover *c = cover();
-  if (footer_ && c && c->isTopDialogRendered(this)) {
-    for (int i = 0; i < footer()->count(); ++i) {
+  if (footer_ && c && c->isTopDialogRendered(this))
+  {
+    for (int i = 0; i < footer()->count(); ++i)
+    {
       WPushButton *b = dynamic_cast<WPushButton *>(footer()->widget(i));
-      if (b && b->isDefault()) {
-	if (b->isEnabled())
-	  b->clicked().emit(WMouseEvent());
+      if (b && b->isDefault())
+      {
+        if (b->isEnabled())
+          co_await b->clicked().emit(WMouseEvent());
         break;
       }
     }
   }
+  co_return;
 }
 
-void WDialog::onEscapePressed()
+awaitable<void> WDialog::onEscapePressed()
 {
   DialogCover *c = cover();
   if (c && c->isTopDialogRendered(this))
-    reject();
+    co_await reject();
+  co_return;
 }
 
 void WDialog::setHidden(bool hidden, const WAnimation& animation)

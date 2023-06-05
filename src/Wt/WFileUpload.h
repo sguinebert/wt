@@ -358,27 +358,27 @@ private:
   std::string acceptAttributes_;
   void create();
 
-  void onData(::uint64_t current, ::uint64_t total);
-  void onDataExceeded(::uint64_t dataExceeded);
+  awaitable<void> onData(::uint64_t current, ::uint64_t total);
+  awaitable<void> onDataExceeded(::uint64_t dataExceeded);
 
   std::string displayWidgetClickJS();
 
-  virtual void setRequestTooLarge(::int64_t size) override;
+  virtual awaitable<void> setRequestTooLarge(::int64_t size) override;
 
 protected:
-  virtual void           updateDom(DomElement& element, bool all) override;
-  virtual DomElement    *createDomElement(WApplication *app) override;
+  virtual void updateDom(DomElement& element, bool all) override;
+  virtual DomElement * createDomElement(WApplication *app) override;
   virtual DomElementType domElementType() const override;
-  virtual void           propagateRenderOk(bool deep) override;
-  virtual void           getDomChanges(std::vector<DomElement *>& result,
-                                       WApplication *app) override;
+  virtual void propagateRenderOk(bool deep) override;
+  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   virtual void propagateSetEnabled(bool enabled) override;
   virtual std::string renderRemoveJs(bool recursive) override;
 
 private:
-  void handleFileTooLarge(::int64_t fileSize);
+  awaitable<void> handleFileTooLarge(::int64_t fileSize);
 
   void onUploaded();
+  int uploadesfiles_ = 0;
 
   virtual void setFormData(const FormData& formData) override;
   void setFiles(const std::vector<Http::UploadedFile>& files);

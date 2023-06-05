@@ -29,7 +29,7 @@ private:
   WText          *captchaMessage_;
 
   void regenerate();
-  void handleClick(const WMouseEvent& me);
+  awaitable<void> handleClick(const WMouseEvent& me);
 };
 
 #endif //MY_CAPTCHA_H_

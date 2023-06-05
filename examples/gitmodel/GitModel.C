@@ -13,13 +13,13 @@ GitModel::GitModel()
   : WAbstractItemModel()
 { }
 
-void GitModel::setRepositoryPath(const std::string& gitRepositoryPath)
+awaitable<void> GitModel::setRepositoryPath(const std::string& gitRepositoryPath)
 {
   git_.setRepositoryPath(gitRepositoryPath);
-  loadRevision("master");
+  co_await loadRevision("master");
 }
 
-void GitModel::loadRevision(const std::string& revName)
+awaitable<void> GitModel::loadRevision(const std::string& revName)
 {
   Git::ObjectId treeRoot = git_.getCommitTree(revName);
 
@@ -27,7 +27,7 @@ void GitModel::loadRevision(const std::string& revName)
   // model indexes. Anyone listening for this event could temporarily
   // convert some model indexes to a raw index pointer, but this model
   // does not reimplement these methods.
-  layoutAboutToBeChanged().emit();
+  co_await layoutAboutToBeChanged().emit();
 
   treeData_.clear();
   childPointer_.clear();
@@ -35,7 +35,7 @@ void GitModel::loadRevision(const std::string& revName)
   // Store the tree root as treeData_[0]
   treeData_.push_back(Tree(-1, -1, treeRoot, git_.treeSize(treeRoot)));
 
-  layoutChanged().emit();
+  co_await layoutChanged().emit();
 }
 
 WModelIndex GitModel::parent(const WModelIndex& index) const

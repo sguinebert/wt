@@ -134,7 +134,7 @@ private:
     std::unique_ptr<WPopupWidget> popup_;
     WTimePicker *timePicker_;
 
-    void setFromTimePicker();
+    awaitable<void> setFromTimePicker();
     void setFromLineEdit();
     void defineJavaScript();
     void connectJavaScript(Wt::EventSignalBase& s,

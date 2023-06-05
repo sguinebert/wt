@@ -55,8 +55,7 @@ public:
    */
   WTreeTable *table() const { return table_; }
 
-  virtual void insertChildNode(int index,
-			       std::unique_ptr<WTreeNode> node) override;
+  virtual void insertChildNode(int index, std::unique_ptr<WTreeNode> node) override;
 
 protected:
 

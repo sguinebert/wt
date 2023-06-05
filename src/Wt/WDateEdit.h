@@ -133,11 +133,11 @@ protected:
 
   /*! \brief Sets the value from the calendar to the line edit.
    */
-  virtual void setFromCalendar();
+  virtual awaitable<void> setFromCalendar();
 
   /*! \brief Sets the value from the line edit to the calendar.
    */
-  virtual void setFromLineEdit();
+  virtual awaitable<void> setFromLineEdit();
 
 private:
   std::unique_ptr<WPopupWidget> popup_;

@@ -41,14 +41,14 @@ WMemoryResource::~WMemoryResource()
   beingDeleted();
 }
 
-void WMemoryResource::setMimeType(const std::string& mimeType)
+awaitable<void> WMemoryResource::setMimeType(const std::string& mimeType)
 {
   mimeType_ = mimeType;
 
-  setChanged();
+  co_await setChanged();
 }
 
-void WMemoryResource::setData(const std::vector<unsigned char>& data)
+awaitable<void> WMemoryResource::setData(const std::vector<unsigned char>& data)
 {
   {
 #ifdef WT_THREADED
@@ -58,10 +58,10 @@ void WMemoryResource::setData(const std::vector<unsigned char>& data)
     data_.reset(new std::vector<unsigned char>(data));
   }
 
-  setChanged();
+  co_await setChanged();
 }
 
-void WMemoryResource::setData(const unsigned char *data, int count)
+awaitable<void> WMemoryResource::setData(const unsigned char *data, int count)
 {
   {
 #ifdef WT_THREADED
@@ -70,7 +70,7 @@ void WMemoryResource::setData(const unsigned char *data, int count)
     data_.reset(new std::vector<unsigned char>(data, data + count));
   }
 
-  setChanged();
+  co_await setChanged();
 }
 
 const std::vector<unsigned char> WMemoryResource::data() const

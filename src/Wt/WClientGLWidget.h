@@ -406,39 +406,22 @@ public:
 			      double x, double y, double z, double w)
     override;
   virtual void vertexAttribPointer(WGLWidget::AttribLocation location, int size,
-				   WGLWidget::GLenum type, bool normalized,
-				   unsigned stride, unsigned offset)
-    override;
-  virtual void viewport(int x, int y, unsigned width, unsigned height)
-    override;
-  virtual void initJavaScriptMatrix4(WGLWidget::JavaScriptMatrix4x4 &jsm)
-    override;
-  virtual void setJavaScriptMatrix4(WGLWidget::JavaScriptMatrix4x4 &jsm,
-				    const WGenericMatrix<double, 4, 4> &m)
-    override;
-  virtual void initJavaScriptVector(WGLWidget::JavaScriptVector &jsv)
-    override;
-  virtual void setJavaScriptVector(WGLWidget::JavaScriptVector &jsv,
-				   const std::vector<float> &v)
-    override;
-  virtual void setClientSideMouseHandler(const std::string& handlerCode)
-    override;
-  virtual void setClientSideLookAtHandler
-    (const WGLWidget::JavaScriptMatrix4x4 &m, double ctrX, double ctrY,
-     double ctrZ, double uX, double uY, double uZ, double pitchRate,
-     double yawRate)
-    override;
-  virtual void setClientSideWalkHandler
-    (const WGLWidget::JavaScriptMatrix4x4 &m, double frontStep, double rotStep)
-    override;
-  virtual JsArrayType arrayType() const
-    override;
-  virtual void injectJS(const std::string & jsString)
-    override;
-  virtual void restoreContext(const std::string &jsRef)
-    override;
-  virtual void render(const std::string& jsRef, WFlags<RenderFlag> flags)
-    override;
+                                   WGLWidget::GLenum type, bool normalized,
+                                   unsigned stride, unsigned offset) override;
+  virtual void viewport(int x, int y, unsigned width, unsigned height) override;
+  virtual void initJavaScriptMatrix4(WGLWidget::JavaScriptMatrix4x4 &jsm) override;
+  virtual void setJavaScriptMatrix4(WGLWidget::JavaScriptMatrix4x4 &jsm, const WGenericMatrix<double, 4, 4> &m) override;
+  virtual void initJavaScriptVector(WGLWidget::JavaScriptVector &jsv) override;
+  virtual void setJavaScriptVector(WGLWidget::JavaScriptVector &jsv, const std::vector<float> &v) override;
+  virtual void setClientSideMouseHandler(const std::string& handlerCode) override;
+  virtual void setClientSideLookAtHandler(const WGLWidget::JavaScriptMatrix4x4 &m, double ctrX, double ctrY,
+                                          double ctrZ, double uX, double uY, double uZ, double pitchRate,
+                                          double yawRate) override;
+  virtual void setClientSideWalkHandler(const WGLWidget::JavaScriptMatrix4x4 &m, double frontStep, double rotStep) override;
+  virtual JsArrayType arrayType() const override;
+  virtual void injectJS(const std::string & jsString) override;
+  virtual void restoreContext(const std::string &jsRef) override;
+  virtual void render(const std::string& jsRef, WFlags<RenderFlag> flags) override;
 
 private:
   std::stringstream js_;

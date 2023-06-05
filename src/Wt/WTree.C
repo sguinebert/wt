@@ -85,26 +85,24 @@ namespace Wt {
     class SentinelTreeNode final : public WTreeNode
     {
     public:
-      SentinelTreeNode(WTree *tree)
-	: WTreeNode(""),
-	  tree_(tree)
-      {
-	addStyleClass("Wt-sentinel");
-	setNodeVisible(false);
-	expand();
-     }
+    SentinelTreeNode(WTree *tree) : WTreeNode(""), tree_(tree)
+    {
+      addStyleClass("Wt-sentinel");
+      setNodeVisible(false);
+      expand();
+    }
       
      virtual WTree *tree() const override { return tree_; }
 
     protected:
-      virtual void descendantRemoved(WTreeNode *node) override
+      virtual awaitable<void> descendantRemoved(WTreeNode *node) override
       {
-	tree_->nodeRemoved(node);
+        co_await tree_->nodeRemoved(node);
       }
 
       virtual void descendantAdded(WTreeNode *node) override
       {
-	tree_->nodeAdded(node);
+        tree_->nodeAdded(node);
       }
 
     private:
@@ -120,74 +118,79 @@ WTree::WTree()
   setImplementation(std::unique_ptr<Impl::SentinelTreeNode>(sentinelRoot_ = new Impl::SentinelTreeNode(this)));
 }
 
-void WTree::setTreeRoot(std::unique_ptr<WTreeNode> node)
+awaitable<void> WTree::setTreeRoot(std::unique_ptr<WTreeNode> node)
 {
   if (treeRoot_)
-    sentinelRoot_->removeChildNode(treeRoot_);
+    co_await sentinelRoot_->removeChildNode(treeRoot_);
   treeRoot_ = node.get();
-  sentinelRoot_->addChildNode(std::move(node));
+  co_await sentinelRoot_->addChildNode(std::move(node));
 }
 
-void WTree::setSelectionMode(SelectionMode mode)
+awaitable<void> WTree::setSelectionMode(SelectionMode mode)
 {
   if (mode != selectionMode_) {
     selectionMode_ = mode;
-    clearSelection();
+    co_await clearSelection();
   }
+  co_return;
 }
 
-void WTree::clearSelection()
+awaitable<void> WTree::clearSelection()
 {
-  while (!selection_.empty()) {
+  while (!selection_.empty())
+  {
     WTreeNode *n = *selection_.begin();
-    select(n, false);
+    co_await select(n, false);
   }
+  co_return;
 }
 
-void WTree::select(WTreeNode *node, bool selected)
+awaitable<void> WTree::select(WTreeNode *node, bool selected)
 {
-  if (selectionMode_ == SelectionMode::Single && selected && 
-      selection_.size() == 1 && Utils::first(selection_) == node)
-    return; // node was already selected, avoid re-emission of signals
+  if (selectionMode_ == SelectionMode::Single && selected && selection_.size() == 1 && Utils::first(selection_) == node)
+    co_return; // node was already selected, avoid re-emission of signals
 
   if (selectionMode_ == SelectionMode::Single && selected)
-    clearSelection();
+    co_await clearSelection();
 
-  if (!selected || selectionMode_ != SelectionMode::None) {
-    if (selected) {
-      if (node->isSelectable()) {
-	selection_.insert(node);
-	node->renderSelected(selected);
-      }
+  if (!selected || selectionMode_ != SelectionMode::None)
+  {
+    if (selected)
+    {
+        if (node->isSelectable())
+        {
+          selection_.insert(node);
+          co_await node->renderSelected(selected);
+        }
     } else {
       if (selection_.erase(node))
-	node->renderSelected(false);
+        co_await node->renderSelected(false);
       else
-	return; // node was not selected, avoid re-emission of signals
+        co_return; // node was not selected, avoid re-emission of signals
     }
   }
 
-  itemSelectionChanged_.emit();
+  co_await itemSelectionChanged_.emit();
 }
 
-void WTree::select(const WTreeNodeSet& nodes)
+awaitable<void> WTree::select(const WTreeNodeSet& nodes)
 {
-  clearSelection();
+  co_await clearSelection();
 
-  for (WTreeNodeSet::const_iterator i = nodes.begin(); i != nodes.end(); ++i)
-    select(*i);
+  for (auto i = nodes.begin(); i != nodes.end(); ++i)
+    co_await select(*i);
 
-  itemSelectionChanged_.emit();
+  co_await itemSelectionChanged_.emit();
 }
 
-void WTree::nodeRemoved(WTreeNode *node)
+awaitable<void> WTree::nodeRemoved(WTreeNode *node)
 {
-  select(node, false);
+  co_await select(node, false);
 
   node->clickedConnection_.disconnect();
 
   for (unsigned i = 0; i < node->childNodes().size(); ++i)
-    nodeRemoved(node->childNodes()[i]);
+    co_await nodeRemoved(node->childNodes()[i]);
 }
 
 void WTree::nodeAdded(WTreeNode * const node)
@@ -200,8 +203,10 @@ void WTree::nodeAdded(WTreeNode * const node)
     else
       w = node->label();
 
-    node->clickedConnection_ = w->clicked().connect
-      (this, std::bind(&WTree::onClick, this, node, std::placeholders::_1));
+    node->clickedConnection_ = w->clicked().connect(this, std::bind(&WTree::onClick,
+                                                                    this,
+                                                                    node,
+                                                                    std::placeholders::_1));
     w->clicked().preventPropagation();
 
     for (unsigned i = 0; i < node->childNodes().size(); ++i)
@@ -210,45 +215,53 @@ void WTree::nodeAdded(WTreeNode * const node)
 
   // This doesn't hurt but sounds like it is not something the library
   // should deal with ...
-  if (!node->parentNode()->isSelectable() && isSelected(node->parentNode()))
-    select(node->parentNode(), false);
+//  if (!node->parentNode()->isSelectable() && isSelected(node->parentNode()))
+//    co_await select(node->parentNode(), false);
+//  co_return;
 }
 
-void WTree::selectRange(WTreeNode *from, WTreeNode *to)
+awaitable<void> WTree::selectRange(WTreeNode *from, WTreeNode *to)
 {
-  clearSelection();
+  co_await clearSelection();
 
   WTreeNode *n = from;
-  for (;;) {
-    select(n);
+  for (;;)
+  {
+    co_await select(n);
 
     if (n == to)
       break;
-    else {
+    else
+    {
       if (n->isExpanded() && !n->childNodes().empty())
-	n = n->childNodes()[0];
-      else {
-	for (;;) {
-	  const std::vector<WTreeNode *>& cs = n->parentNode()->childNodes();
-	  int i = Utils::indexOf(cs, n);
+      {
+        n = n->childNodes()[0];
+      }
+      else
+      {
+        for (;;)
+        {
+            const std::vector<WTreeNode *>& cs = n->parentNode()->childNodes();
+            int i = Utils::indexOf(cs, n);
 
-	  i++;
-	  if (i < static_cast<int>(cs.size())) {
-	    n = cs[i];
-	    break;
-	  } else {
-	    n = n->parentNode();
-	  }
-	}
+            i++;
+            if (i < static_cast<int>(cs.size())) {
+                n = cs[i];
+                break;
+            } else {
+                n = n->parentNode();
+            }
+        }
       }
     }
   }
+  co_return;
 }
 
-void WTree::extendSelection(WTreeNode *node)
+awaitable<void> WTree::extendSelection(WTreeNode *node)
 {
   if (selection_.empty()) {
-    select(node);
+    co_await select(node);
   } else {
     /*
      * Expand current selection. First we find the selection extremes.
@@ -258,65 +271,68 @@ void WTree::extendSelection(WTreeNode *node)
      */
     WTreeNode *top = nullptr, *bottom = nullptr;
 
-    for (WTreeNodeSet::const_iterator i = selection_.begin();
-	 i != selection_.end(); ++i) {
+    for (auto i = selection_.begin(); i != selection_.end(); ++i)
+    {
       WTreeNode *s = *i;
 
       WTreeNode *f1 = firstNode(top, s);
       if (!f1)
-	continue;
+        continue;
 
       top = f1;
 
       if (!bottom)
-	bottom = s;
-      else {
-	WTreeNode *f2 = firstNode(bottom, s);
-	if (f2 == bottom)
-	  bottom = s;
+        bottom = s;
+      else
+      {
+        WTreeNode *f2 = firstNode(bottom, s);
+        if (f2 == bottom)
+          bottom = s;
       }
     }
 
     /*
      * All selected nodes are invisible: assume nothing was selected
      */
-    if (!top) {
-      clearSelection();
-      select(node);
-      return;
+    if (!top)
+    {
+      co_await clearSelection();
+      co_await select(node);
+      co_return;
     }
 
     WTreeNode *f1 = firstNode(node, top);
 
     if (f1 == top)
-      selectRange(top, node);
+      co_await selectRange(top, node);
     else
-      selectRange(node, bottom);
+      co_await selectRange(node, bottom);
   }
+  co_return;
 }
 
-void WTree::onClick(WTreeNode *node, WMouseEvent event)
+awaitable<void> WTree::onClick(WTreeNode *node, WMouseEvent event)
 {
   if (selectionMode_ == SelectionMode::None)
-    return;
+    co_return;
 
   if (selectionMode_ == SelectionMode::Extended) {
     if (event.modifiers().test(KeyboardModifier::Shift)) {
-      extendSelection(node);
+      co_await extendSelection(node);
     } else {
       if (!(event.modifiers() & (KeyboardModifier::Control |
 				 KeyboardModifier::Meta))) {
 	if (isSelected(node))
-	  return;
+      co_return;
 	else {
-	  clearSelection();
-	  select(node);
+      co_await clearSelection();
+      co_await select(node);
 	}
       } else
-	select(node, !isSelected(node));
+    co_await select(node, !isSelected(node));
     }
   } else
-    select(node);
+    co_await select(node);
 }
 
 bool WTree::isSelected(WTreeNode *node) const

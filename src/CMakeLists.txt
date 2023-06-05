@@ -396,6 +396,7 @@ Wt/Render/RenderUtils.h Wt/Render/RenderUtils.C
 Wt/Render/Specificity.h Wt/Render/Specificity.C
 Wt/Render/WTextRenderer.h Wt/Render/WTextRenderer.C
 Wt/Signals/signals.hpp Wt/Signals/signals.cpp
+Wt/Signals/nano_function.hpp Wt/Signals/nano_mutex.hpp Wt/Signals/nano_observer.hpp Wt/Signals/nano_signal_slot.hpp
 Wt/turbo-base64/turbob64.h Wt/turbo-base64/turbob64c.c Wt/turbo-base64/turbob64d.c Wt/turbo-base64/turbob64sse.c Wt/turbo-base64/turbob64avx2.c 
 web/fasthex/hex.h web/fasthex/hex.cc
 web/md5.h web/md5.c

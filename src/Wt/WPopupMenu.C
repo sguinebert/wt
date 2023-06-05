@@ -112,10 +112,10 @@ void WPopupMenu::setHidden(bool hidden, const WAnimation& animation)
                  + (hidden ? "1" : "0") + ");");
 }
 
-void WPopupMenu::done(WMenuItem *result)
+awaitable<void> WPopupMenu::done(WMenuItem *result)
 {
   if (isHidden())
-    return;
+    co_return;
 
   if (location_ && location_ == button_) {
     button_->removeStyleClass("active", true);
@@ -134,19 +134,21 @@ void WPopupMenu::done(WMenuItem *result)
   recursiveEventLoop_ = false;
 
   if (result_)
-    triggered_.emit(result_);
+    co_await triggered_.emit(result_);
 
   if (shouldHide)
-    aboutToHide_.emit();
+    co_await aboutToHide_.emit();
+  co_return;
 }
 
-void WPopupMenu::cancel()
+awaitable<void> WPopupMenu::cancel()
 {
   if (willPopup_)
-    return;
+    co_return;
 
   if (!isHidden())
-    done(nullptr);
+    co_await done(nullptr);
+  co_return;
 }
 
 void WPopupMenu::popup(WWidget *location, Orientation orientation)
@@ -274,7 +276,7 @@ awaitable<void> WPopupMenu::exec()
   recursiveEventLoop_ = true;
 
   if (app->environment().isTest()) {
-    app->environment().popupExecuted().emit(this);
+    co_await app->environment().popupExecuted().emit(this);
     if (recursiveEventLoop_)
       throw WException("Test case must close popup menu.");
   } else {

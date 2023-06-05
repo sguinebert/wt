@@ -286,7 +286,7 @@ public:
    *
    * \sa setCachedResult()
    */
-  virtual bool setData(const WModelIndex& index,
+  virtual awaitable<bool> setData(const WModelIndex& index,
 		       const cpp17::any& value,
                        ItemDataRole role = ItemDataRole::Edit) override;
 

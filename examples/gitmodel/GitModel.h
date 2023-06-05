@@ -49,14 +49,14 @@ public:
 
   /*! \brief Set the repository and load its 'master' revision.
    */
-  void setRepositoryPath(const std::string& repositoryPath);
+  awaitable<void> setRepositoryPath(const std::string& repositoryPath);
 
   /*! \brief Load a particular revision.
    *
    * The revision name may be any revision accepted by git, by
    * git-rev-parse(1).
    */
-  void loadRevision(const std::string& revName);
+  awaitable<void> loadRevision(const std::string& revName);
 
   /*! \brief Returns the parent index.
    *

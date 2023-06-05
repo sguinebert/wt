@@ -61,21 +61,20 @@ public:
 
   /*! \brief Creates a new resource with given mime-type and data
    */
-  WMemoryResource(const std::string& mimeType,
-		  const std::vector<unsigned char>& data);
+  WMemoryResource(const std::string& mimeType, const std::vector<unsigned char>& data);
 
   ~WMemoryResource();
 
   /*! \brief Sets new data for the resource to serve.
    */
-  void setData(const std::vector<unsigned char> &data);
+  awaitable<void> setData(const std::vector<unsigned char> &data);
 
   /*! \brief Sets new data for the resource to serve.
    *
    * Sets the data from using the first \p count bytes from the
    * C-style \p data array.
    */
-  void setData(const unsigned char *data, int count);
+  awaitable<void> setData(const unsigned char *data, int count);
 
   /*! \brief Returns the data this resource will serve.
    */
@@ -87,7 +86,7 @@ public:
 
   /*! \brief Sets the mime-type.
    */
-  void setMimeType(const std::string& mimeType);
+  awaitable<void> setMimeType(const std::string& mimeType);
 
   virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
 

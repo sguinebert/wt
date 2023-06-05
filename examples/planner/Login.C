@@ -32,31 +32,33 @@ Login::Login()
   captcha_->completed().connect(this, &Login::captchaCompleted);
 }
 
-void Login::captchaCompleted()
+co_return; Login::captchaCompleted()
 {
   if (userNameEdit_->validate() != ValidationState::Valid) {
     captcha_->hide();
     loginButton_->show();
     userNameEdit_->setFocus();
   } else {
-    login();
+    co_await login();
   }
+  co_return;
 }
 
-void Login::userNameEnterPressed()
+awaitable<void> Login::userNameEnterPressed()
 {
-  if (userNameEdit_->validate() == ValidationState::Valid
-      && !loginButton_->isHidden())
-    login();
+  if (userNameEdit_->validate() == ValidationState::Valid && !loginButton_->isHidden())
+    co_await login();
+  co_return;
 }
 
-void Login::loginClicked(const WMouseEvent& me)
+awaitable<void> Login::loginClicked(const WMouseEvent& me)
 {
   if (userNameEdit_->validate() == ValidationState::Valid)
-    login();
+    co_await login();
+  co_return;
 }
 
-void Login::login()
+awaitable<void> Login::login()
 {
-  loggedIn_.emit(userNameEdit_->text());
+  co_await loggedIn_.emit(userNameEdit_->text());
 }

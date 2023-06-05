@@ -183,14 +183,14 @@ void WAbstractSpinBox::updateDom(DomElement& element, bool all)
   if (all || changed_) {
     if (!all) {
       if (!nativeControl())
-	doJavaScript(jsRef() + ".wtObj"
-		     ".configure("
-		     + std::to_string(decimals()) + ","
-		     + prefix().jsStringLiteral() + ","
-		     + suffix().jsStringLiteral() + ","
-		     + jsMinMaxStep() + ");");
+        doJavaScript(jsRef() + ".wtObj"
+                 ".configure("
+                 + std::to_string(decimals()) + ","
+                 + prefix().jsStringLiteral() + ","
+                 + suffix().jsStringLiteral() + ","
+                 + jsMinMaxStep() + ");");
       else
-	setValidator(std::shared_ptr<WValidator>(createValidator().release()));
+        setValidator(std::shared_ptr<WValidator>(createValidator().release()));
     }
   }
 

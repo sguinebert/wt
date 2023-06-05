@@ -223,6 +223,26 @@ void WContainerWidget::iterateChildren(const HandleWidgetMethod& method) const
     layout_->iterateWidgets(method);
 }
 
+awaitable<void> WContainerWidget::iterateChildren(AsyncHandleWidgetMethod &&method) const
+{
+  // It's possible that a child is added during iteration,
+  // e.g. when load() is called on a widget that adds a
+  // new global widget to the domroot. This would invalidate
+  // the iterator. That's why we're iterating over children_
+  // the old school way, with an index. Then there's no iterator
+  // that ends up invalidated.
+  for (std::size_t i = 0; i < children_.size(); ++i)
+#ifndef WT_TARGET_JAVA
+    co_await method(children_[i]);
+#else
+    co_await method.handle(children_[i]);
+#endif
+
+  if (layout_)
+    layout_->iterateWidgets(method);
+  co_return;
+}
+
 int WContainerWidget::indexOf(WWidget *widget) const
 {
   for (unsigned i = 0; i < children_.size(); ++i)
@@ -550,8 +570,7 @@ DomElementType WContainerWidget::domElementType() const
   return type;
 }
 
-void WContainerWidget::getDomChanges(std::vector<DomElement *>& result,
-				     WApplication *app)
+void WContainerWidget::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   DomElement *e = DomElement::getForUpdate(this, domElementType());
 
@@ -574,13 +593,12 @@ void WContainerWidget::getDomChanges(std::vector<DomElement *>& result,
   result.push_back(e);
 }
 
-DomElement *WContainerWidget::createDomElement(WApplication *app)
+DomElement * WContainerWidget::createDomElement(WApplication *app)
 {
   return createDomElement(app, true);
 }
 
-DomElement *WContainerWidget::createDomElement(WApplication *app,
-					       bool addChildren)
+DomElement * WContainerWidget::createDomElement(WApplication *app, bool addChildren)
 {
   addedChildren_.reset();
 
@@ -734,15 +752,15 @@ void WContainerWidget::setFormData(const FormData& formData)
 
     if (attributes.size() == 2) {
       try {
-        scrollTop_ = (int)Utils::stod(attributes[0]);
-        scrollLeft_ = (int)Utils::stod(attributes[1]);
+    scrollTop_ = (int)Utils::stod(attributes[0]);
+    scrollLeft_ = (int)Utils::stod(attributes[1]);
 
       }catch (const std::exception& e) {
-	throw WException("WContainerWidget: error parsing: " + formData.values[0] + ": " + e.what());
+    throw WException("WContainerWidget: error parsing: " + formData.values[0] + ": " + e.what());
       }
     } else 
       throw WException("WContainerWidget: error parsing: " + formData.values[0]);
-	  }
+  }
 
 }
 

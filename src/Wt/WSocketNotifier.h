@@ -122,7 +122,7 @@ private:
   Signal<int> activated_;
 
   const std::string& sessionId() const { return sessionId_; }
-  void notify();
+  awaitable<void> notify();
   void dummy();
 
   friend class WebController;

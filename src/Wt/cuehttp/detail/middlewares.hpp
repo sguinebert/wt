@@ -35,7 +35,6 @@ class middlewares final : safe_noncopyable {
  public:
   middlewares() noexcept { compose(); }
 
-  //const std::function<void(context&)>& callback() const noexcept { return handler_; }
   const std::function<awaitable<void>(context&)>& callback() const noexcept { return handler_; }
 
   template <typename... _Args>
@@ -162,9 +161,6 @@ class middlewares final : safe_noncopyable {
       }
     };
   }
-
-//  std::function<void(context&)> handler_;
-//  std::vector<std::function<void(context&, std::function<void()>)>> middlewares_;
 
   std::function<awaitable<void>(context&)> handler_;
   std::vector<std::function<awaitable<void>(context&, std::function<awaitable<void>()>)>> middlewares_;

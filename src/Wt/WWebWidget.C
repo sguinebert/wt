@@ -291,6 +291,9 @@ void WWebWidget::setDecorationStyle(const WCssDecorationStyle& style)
 void WWebWidget::iterateChildren(const HandleWidgetMethod& method) const
 { }
 
+awaitable<void> WWebWidget::iterateChildren(AsyncHandleWidgetMethod &&method) const
+{ co_return; }
+
 std::string WWebWidget::renderRemoveJs(bool recursive)
 {
   Wt::WStringStream result;
@@ -350,7 +353,7 @@ void WWebWidget::widgetRemoved(WWidget *child, bool renderRemove)
   WApplication::instance()
     ->session()->renderer().updateFormObjects(child->webWidget(), true);
 
-  emitChildrenChanged();
+  //co_await emitChildrenChanged();
 }
 
 Signal<>& WWebWidget::childrenChanged()
@@ -1206,7 +1209,7 @@ void WWebWidget::widgetAdded(WWidget *child)
     transientImpl_.reset(new TransientImpl());
   ++transientImpl_->addedChildren_;
 
-  emitChildrenChanged();
+  //co_await emitChildrenChanged();
 }
 
 std::vector<WWidget *> WWebWidget::children() const
@@ -2063,16 +2066,14 @@ void WWebWidget::getFormObjects(FormObjectsMap& formObjects)
     });
 }
 
-void WWebWidget::getDomChanges(std::vector<DomElement *>& result,
-			       WApplication *app)
+void WWebWidget::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   DomElement *e = DomElement::getForUpdate(this, domElementType());
   updateDom(*e, false);
   result.push_back(e);
 }
 
-void WWebWidget::getSDomChanges(std::vector<DomElement *>& result,
-				WApplication *app)
+void WWebWidget::getSDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   if (flags_.test(BIT_STUBBED)) {
     /*
@@ -2089,16 +2090,16 @@ void WWebWidget::getSDomChanges(std::vector<DomElement *>& result,
       scheduleRerender(true);
     } else {
       if (!app->session()->renderer().visibleOnly()) {
-	flags_.reset(BIT_STUBBED);
+        flags_.reset(BIT_STUBBED);
 
-	DomElement *stub = DomElement::getForUpdate(this, DomElementType::SPAN);
-	WWidget *self = selfWidget();
-	setRendered(true);
-	self->render(RenderFlag::Full);
-	DomElement *realElement = createDomElement(app);
-	app->theme()->apply(self, *realElement, MainElement);
-	stub->unstubWith(realElement, !flags_.test(BIT_HIDE_WITH_OFFSETS));
-	result.push_back(stub);
+        DomElement *stub = DomElement::getForUpdate(this, DomElementType::SPAN);
+        WWidget *self = selfWidget();
+        setRendered(true);
+        self->render(RenderFlag::Full);
+        DomElement *realElement = createDomElement(app);
+        app->theme()->apply(self, *realElement, MainElement);
+        stub->unstubWith(realElement, !flags_.test(BIT_HIDE_WITH_OFFSETS));
+        result.push_back(stub);
       }
     }
   } else {
@@ -2110,10 +2111,14 @@ void WWebWidget::getSDomChanges(std::vector<DomElement *>& result,
 
 void WWebWidget::doneRerender()
 {
-  iterateChildren
-    ([](WWidget *c) {
+  iterateChildren([](WWidget *c) {
       c->webWidget()->doneRerender();
-    });
+  });
+//  AsyncHandleWidgetMethod cd = [](WWidget *c) -> awaitable<void> {
+//      co_await c->webWidget()->doneRerender();
+//  };
+//  co_await iterateChildren(std::move(cd));
+//  co_return;
 }
 
 void WWebWidget::propagateRenderOk(bool deep)
@@ -2299,7 +2304,7 @@ DomElement *WWebWidget::createStubElement(WApplication *app)
   return stub;
 }
 
-DomElement *WWebWidget::createActualElement(WWidget *self, WApplication *app)
+DomElement * WWebWidget::createActualElement(WWidget *self, WApplication *app)
 {
   flags_.reset(BIT_STUBBED);
 
@@ -2767,11 +2772,12 @@ bool WWebWidget::isScrollVisible() const
   return flags_.test(BIT_IS_SCROLL_VISIBLE);
 }
 
-void WWebWidget::jsScrollVisibilityChanged(bool visible)
+awaitable<void> WWebWidget::jsScrollVisibilityChanged(bool visible)
 {
   flags_.set(BIT_IS_SCROLL_VISIBLE, visible);
   if (otherImpl_)
-    otherImpl_->scrollVisibilityChanged_.emit(visible);
+    co_await otherImpl_->scrollVisibilityChanged_.emit(visible);
+  co_return;
 }
 
 void WWebWidget::setThemeStyleEnabled(bool enabled)
@@ -2809,11 +2815,12 @@ void WWebWidget::setBaseZIndex(int zIndex)
   layoutImpl_->baseZIndex_ = zIndex;
 }
 
-void WWebWidget::emitChildrenChanged()
+awaitable<void> WWebWidget::emitChildrenChanged()
 {
   if (!flags_.test(BIT_BEING_DELETED) && otherImpl_) {
-    otherImpl_->childrenChanged_.emit();
+    co_await otherImpl_->childrenChanged_.emit();
   }
+  co_return;
 }
 
 }

@@ -212,20 +212,22 @@ private:
      */
     fourCharModel_->removeRows(0, fourCharModel_->rowCount());
 
-    for (int i = 0; i < 26; ++i) {
+    for (int i = 0; i < 26; ++i)
+    {
       int row = fourCharModel_->rowCount();
 
       /*
        * If the input is shorter than the server-side filter length,
        * then limit the number of matches and end with a '...'
        */
-      if (input.value().length() < 3 && i > 10) {
-	fourCharModel_->addString("...");
-	fourCharModel_->setData(row, 0, std::string(""), ItemDataRole::User);
-	fourCharModel_->setData(row, 0, std::string("Wt-more-data"),
-				ItemDataRole::StyleClass);
+      if (input.value().length() < 3 && i > 10)
+      {
+        fourCharModel_->addString("...");
+        fourCharModel_->setData(row, 0, std::string(""), ItemDataRole::User);
+        fourCharModel_->setData(row, 0, std::string("Wt-more-data"),
+                                ItemDataRole::StyleClass);
 
-	break;
+        break;
       }
 
       std::u32string v = input;

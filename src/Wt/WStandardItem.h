@@ -12,6 +12,7 @@
 #include <vector>
 #include <Wt/WModelIndex.h>
 #include <Wt/WGlobal.h>
+#include <Wt/AsioWrapper/asio.hpp>
 
 namespace Wt {
 
@@ -55,13 +56,13 @@ public:
    *
    * \sa setText()
    */
-  WStandardItem(const WString& text);
+//  WStandardItem(const WString& text);
 
-  /*! \brief Creates an item with an icon and a text.
-   *
-   * \sa setText(), setIcon()
-   */
-  WStandardItem(const std::string& iconUri, const WString& text);
+//  /*! \brief Creates an item with an icon and a text.
+//   *
+//   * \sa setText(), setIcon()
+//   */
+//  WStandardItem(const std::string& iconUri, const WString& text);
 
   /*! \brief Creates an item with an initial geometry.
    *
@@ -81,7 +82,7 @@ public:
    *
    * \sa text(), setData()
    */
-  void setText(const WString& text);
+  awaitable<void> setText(const WString& text);
 
   /*! \brief Returns the text.
    *
@@ -98,7 +99,7 @@ public:
    *
    * \sa icon(), setData()
    */
-  void setIcon(const std::string& uri);
+  awaitable<void> setIcon(const std::string& uri);
 
   /*! \brief Returns the icon url.
    *
@@ -115,7 +116,7 @@ public:
    *
    * \sa styleClass(), setData()
    */
-  void setStyleClass(const WString& styleClass);
+  awaitable<void> setStyleClass(const WString& styleClass);
 
   /*! \brief Returns the item style class.
    *
@@ -131,7 +132,7 @@ public:
    *
    * \sa toolTip(), setData()
    */
-  void setToolTip(const WString& toolTip);
+  awaitable<void> setToolTip(const WString& toolTip);
 
   /*! \brief Returns the tool tip.
    *
@@ -145,7 +146,7 @@ public:
    *
    * \sa setData()
    */
-  void setLink(const WLink& link);
+  awaitable<void> setLink(const WLink& link);
 
   /*! \brief Returns a link.
    *
@@ -168,7 +169,7 @@ public:
    *
    * \sa setCheckable(), setCheckState()
    */
-  void setChecked(bool checked);
+  awaitable<void> setChecked(bool checked);
 
   /*! \brief Returns whether the item is checked.
    *
@@ -186,7 +187,7 @@ public:
    *
    * \sa setCheckable(), setData()
    */
-  void setCheckState(CheckState checked);
+  awaitable<void> setCheckState(CheckState checked);
 
   /*! \brief Returns the item's check state.
    *
@@ -201,7 +202,7 @@ public:
    *
    * \sa ItemFlag, flags(), setCheckable()
    */
-  void setFlags(WFlags<ItemFlag> flags);
+  awaitable<void> setFlags(WFlags<ItemFlag> flags);
 
   /*! \brief Returns the flags.
    *
@@ -216,7 +217,7 @@ public:
    *
    * \sa setFlags(), setChecked()
    */
-  void setCheckable(bool checkable);
+  awaitable<void> setCheckable(bool checkable);
 
   /*! \brief Returns whether the item is checkable.
    *
@@ -241,7 +242,7 @@ public:
    */
   bool isTristate() const;
 
-  void setEditable(bool editable);
+  awaitable<void> setEditable(bool editable);
   bool isEditable() const;
 
   /*! \brief Sets item data.
@@ -250,7 +251,7 @@ public:
    *
    * \sa data()
    */
-  virtual void setData(const cpp17::any& data, ItemDataRole role = ItemDataRole::User);
+  virtual awaitable<void> setData(const cpp17::any& data, ItemDataRole role = ItemDataRole::User);
 
   /*! \brief Returns item data.
    *
@@ -450,8 +451,7 @@ public:
    *
    * \sa child().
    */
-  void setChild(int row, int column,
-		std::unique_ptr<WStandardItem> item);
+  awaitable<void> setChild(int row, int column, std::unique_ptr<WStandardItem> item);
 
   /*! \brief Sets a child item.
    *
@@ -463,7 +463,7 @@ public:
    *
    * \sa setChild(int, int, WStandardItem *).
    */
-  void setChild(int row, std::unique_ptr<WStandardItem> item);
+  awaitable<void> setChild(int row, std::unique_ptr<WStandardItem> item);
 
   /*! \brief Returns a child item.
    *
@@ -482,7 +482,7 @@ public:
    *
    * \sa child(), setChild(int, int, WStandardItem *)
    */
-  std::unique_ptr<WStandardItem> takeChild(int row, int column);
+  awaitable<std::unique_ptr<WStandardItem>> takeChild(int row, int column);
 
   /*! \brief Takes a column of children out of the item.
    *
@@ -618,7 +618,7 @@ public:
    * \sa compare(), WStandardItemModel::setSortRole()
    * \endif
    */
-  virtual void sortChildren(int column, SortOrder order);
+  virtual awaitable<void> sortChildren(int column, SortOrder order);
 
 protected:
   /*! \brief Create a copy of other.
@@ -671,7 +671,7 @@ private:
 
   std::unique_ptr<ColumnList> columns_;
 
-  void signalModelDataChange();
+  awaitable<void> signalModelDataChange();
   void adoptChild(int row, int column, WStandardItem *item);
   void orphanChild(WStandardItem *item);
   void recursiveSortChildren(int column, SortOrder order);

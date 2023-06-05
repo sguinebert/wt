@@ -1340,8 +1340,7 @@ protected:
   void scheduleRerender(bool laterOnly, WFlags<RepaintFlag> flags = None);
   bool needRerender() const { return flags_.test(BIT_NEED_RERENDER); }
 
-  virtual void getSDomChanges(std::vector<DomElement *>& result,
-			      WApplication *app) = 0;
+  virtual void getSDomChanges(std::vector<DomElement *>& result, WApplication *app) = 0;
   virtual bool needsToBeRendered() const = 0;
   bool isInLayout() const;
 

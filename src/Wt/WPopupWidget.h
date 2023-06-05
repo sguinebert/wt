@@ -95,8 +95,7 @@ public:
    */
   int autoHideDelay() const { return autoHideDelay_; }
 
-  virtual void setHidden(bool hidden,
-                         const WAnimation& animation = WAnimation()) override;
+  virtual void setHidden(bool hidden, const WAnimation& animation = WAnimation()) override;
 
   /*! \brief %Signal emitted when the popup is hidden.
    *

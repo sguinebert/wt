@@ -96,10 +96,10 @@ private:
   bool uploadFailed_;
 
   //! Slot triggered when the WFileUpload completed an upload.
-  void uploaded();
+  awaitable<void> uploaded();
 
   //! Slot triggered when the WFileUpload received an oversized file.
-  void fileTooLarge(::int64_t size);
+  awaitable<void> fileTooLarge(::int64_t size);
 
   //! Slot triggered when the users wishes to remove this attachment edit.
   void remove();

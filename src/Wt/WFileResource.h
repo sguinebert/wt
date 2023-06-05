@@ -70,7 +70,7 @@ public:
    * Set the location of the file on the local filesystem which must be
    * streamed for this resource.
    */
-  void setFileName(const std::string& fileName);
+  awaitable<void> setFileName(const std::string& fileName);
 
   /*! \brief Returns the filename.
    */

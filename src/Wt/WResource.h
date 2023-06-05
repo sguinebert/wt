@@ -243,7 +243,7 @@ public:
    * This does not work when the resource is deployed at an internal path using
    * setInternalPath().
    */
-  void setChanged();
+  awaitable<void> setChanged();
 
   /*! \brief Return "page not found" for prior resource URLs after change
    *

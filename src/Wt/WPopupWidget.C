@@ -75,10 +75,10 @@ void WPopupWidget::setHidden(bool hidden, const WAnimation& animation)
   if (!hidden && anchorWidget_)
     positionAt(anchorWidget_.get(), orientation_);
 
-  if (hidden)
-    this->hidden().emit();
-  else
-    this->shown().emit();
+//  if (hidden)
+//    co_await this->hidden().emit();
+//  else
+//    co_await this->shown().emit();
 
   if (!WWebWidget::canOptimizeUpdates() || isRendered()) {
     if (hidden)
@@ -88,6 +88,7 @@ void WPopupWidget::setHidden(bool hidden, const WAnimation& animation)
       doJavaScript("var o = " + jsRef() + ";"
 		   "if (o && o.wtPopup) o.wtPopup.shown();");
   }
+  //co_return;
 }
 
 void WPopupWidget::defineJS()

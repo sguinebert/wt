@@ -165,10 +165,9 @@ class WT_API WCssTextRule : public WCssRule
 public:
   /*! \brief Creates a CSS rule with a given selector and declarations.
    */
-  WCssTextRule(const std::string& selector, 
-	       const WT_USTRING& declarations);
+  WCssTextRule(const std::string& selector, const WT_USTRING& declarations);
 
-  virtual std::string declarations() override;
+    virtual std::string declarations() override;
 
 private:
   WT_USTRING declarations_;

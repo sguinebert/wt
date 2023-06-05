@@ -28,10 +28,10 @@ WStreamResource::~WStreamResource()
   beingDeleted();
 }
 
-void WStreamResource::setMimeType(const std::string& mimeType)
+awaitable<void> WStreamResource::setMimeType(const std::string& mimeType)
 {
   mimeType_ = mimeType;
-  setChanged();
+  co_await setChanged();
 }
 
 void WStreamResource::setBufferSize(int bufferSize)

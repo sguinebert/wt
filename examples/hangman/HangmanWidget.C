@@ -71,7 +71,7 @@ void HangmanWidget::newGame()
   statusText_->setText("");
 }
 
-void HangmanWidget::registerGuess(char c)
+awaitable<void> HangmanWidget::registerGuess(char c)
 {
   if (badGuesses_ < MaxGuesses) {
     bool correct = word_->guess(c);
@@ -90,7 +90,7 @@ void HangmanWidget::registerGuess(char c)
     language_->show();
     newGameButton_->show();
 
-    scoreUpdated_.emit(-10);
+    co_await scoreUpdated_.emit(-10);
   } else if (word_->won()) {
     statusText_->setText(tr("hangman.youWin"));
     images_->showImage(ImagesWidget::HURRAY);
@@ -99,6 +99,7 @@ void HangmanWidget::registerGuess(char c)
     language_->show();
     newGameButton_->show();
 
-    scoreUpdated_.emit(20 - badGuesses_);
+    co_await scoreUpdated_.emit(20 - badGuesses_);
   }
+  co_return;
 }

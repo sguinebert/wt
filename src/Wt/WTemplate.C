@@ -262,6 +262,20 @@ void WTemplate::iterateChildren(const HandleWidgetMethod& method) const
   }
 }
 
+awaitable<void> WTemplate::iterateChildren(AsyncHandleWidgetMethod &&method) const
+{
+  for (auto it = widgets_.begin(); it != widgets_.end(); ++it) {
+    WWidget *w = it->second.get();
+    if (w)
+#ifndef WT_TARGET_JAVA
+      co_await method(w);
+#else
+      co_await method.handle(w);
+#endif
+  }
+  co_return;
+}
+
 void WTemplate::bindWidget(const std::string& varName,
 			   std::unique_ptr<WWidget> widget)
 {

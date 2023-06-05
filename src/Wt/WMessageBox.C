@@ -203,39 +203,46 @@ WPushButton *WMessageBox::button(StandardButton b)
   return nullptr;
 }
 
-void WMessageBox::onButtonClick(StandardButton b)
+awaitable<void> WMessageBox::onButtonClick(StandardButton b)
 {
   result_ = b;
-  buttonClicked_.emit(b);
+  co_await buttonClicked_.emit(b);
 }
 
-void WMessageBox::onFinished()
+awaitable<void> WMessageBox::onFinished()
 {
   if (result() == DialogCode::Rejected) {
     if (escapeButton_) {
-      for (unsigned i = 0; i < buttons_.size(); ++i) {
-	if (buttons_[i].button == escapeButton_) {
-	  onButtonClick(buttons_[i].result);
-	  return;
-	}
+      for (unsigned i = 0; i < buttons_.size(); ++i)
+      {
+          if (buttons_[i].button == escapeButton_)
+          {
+              co_await onButtonClick(buttons_[i].result);
+              co_return;
+          }
       }
-    } else {
-      if (buttons_.size() == 1) {
-	onButtonClick(buttons_[0].result);
-	return;
-      } else {
-	WPushButton *b = button(StandardButton::Cancel);
-	if (b) {
-	  onButtonClick(StandardButton::Cancel);
-	  return;
-	}
-	b = button(StandardButton::No);
-	if (b) {
-	  onButtonClick(StandardButton::No);
-	  return;
-	}
+    }
+    else
+    {
+      if (buttons_.size() == 1)
+      {
+        co_await onButtonClick(buttons_[0].result);
+        co_return;
+      }
+      else
+      {
+        WPushButton *b = button(StandardButton::Cancel);
+        if (b) {
+          co_await onButtonClick(StandardButton::Cancel);
+          co_return;
+        }
+        b = button(StandardButton::No);
+        if (b) {
+          co_await onButtonClick(StandardButton::No);
+          co_return;
+        }
 
-	onButtonClick(StandardButton::None);
+        co_await onButtonClick(StandardButton::None);
       }
     }
   }

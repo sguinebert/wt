@@ -361,16 +361,16 @@ std::string WApplication::onePixelGifUrl()
 {
   if (environment().agentIsIElt(7)) {
     if (!onePixelGifR_) {
-      std::unique_ptr<WMemoryResource> w(new WMemoryResource("image/gif"));
-  
-      static const unsigned char gifData[]
-	= { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00,
-            0x80, 0x00, 0x00, 0xdb, 0xdf, 0xef, 0x00, 0x00, 0x00, 0x21,
-            0xf9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00,
-            0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44,
-            0x01, 0x00, 0x3b };
+      static constexpr unsigned char gifData[]
+          = { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00,
+             0x80, 0x00, 0x00, 0xdb, 0xdf, 0xef, 0x00, 0x00, 0x00, 0x21,
+             0xf9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00,
+             0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44,
+             0x01, 0x00, 0x3b };
 
-      w->setData(gifData, 43);
+      std::unique_ptr<WMemoryResource> w(new WMemoryResource("image/gif", std::vector<unsigned char>(gifData, gifData + sizeof(gifData))));
+
+      //w->setData(gifData, 43);
       onePixelGifR_ = std::move(w);
     }
 
@@ -388,7 +388,7 @@ WApplication::~WApplication()
   for (std::size_t i = 0; i < children_.size(); ++i) {
     WTimer *timer = dynamic_cast<WTimer*>(children_[i].get());
     if (timer) {
-      removeChild(timer);
+      this->removeChild(children_[i].get());
     }
   }
   timerRoot_ = nullptr;
@@ -1341,19 +1341,18 @@ std::string WApplication::internalPath() const
   return Utils::prepend(newInternalPath_, '/');
 }
 
-void WApplication::setInternalPath(const std::string& path, bool emitChange)
+awaitable<void> WApplication::setInternalPath(const std::string& path, bool emitChange)
 {
-
-  std::cerr << "setInternalPath(const std::string& path" << path << std::endl;
   enableInternalPaths();
 
   if (!session_->renderer().preLearning() && emitChange)
-    changeInternalPath(path);
+    co_await changeInternalPath(path);
   else
     newInternalPath_ = path;
 
   internalPathValid_ = true;
   internalPathIsChanged_ = true;
+  co_return;
 }
 
 void WApplication::setInternalPathValid(bool valid)
@@ -1366,28 +1365,28 @@ void WApplication::setInternalPathDefaultValid(bool valid)
   internalPathDefaultValid_ = valid;
 }
 
-bool WApplication::changeInternalPath(const std::string& aPath)
+awaitable<bool> WApplication::changeInternalPath(const std::string& aPath)
 {
   std::string path = Utils::prepend(aPath, '/');
 
   if (path != internalPath()) {
     renderedInternalPath_ = newInternalPath_ = path;
     internalPathValid_ = internalPathDefaultValid_;
-    internalPathChanged_.emit(newInternalPath_);
+    co_await internalPathChanged_.emit(newInternalPath_);
 
     if (!internalPathValid_)
-      internalPathInvalid_.emit(newInternalPath_);
+      co_await internalPathInvalid_.emit(newInternalPath_);
   }
 
-  return internalPathValid_;
+  co_return internalPathValid_;
 }
 
-bool WApplication::changedInternalPath(const std::string& path)
+awaitable<bool> WApplication::changedInternalPath(const std::string& path)
 {
   if (!environment().internalPathUsingFragments())
     session_->setPagePathInfo(path);
 
-  return changeInternalPath(path);
+  co_return co_await changeInternalPath(path);
 }
 
 std::string WApplication::bookmarkUrl() const

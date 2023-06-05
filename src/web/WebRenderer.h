@@ -151,7 +151,7 @@ private:
   void serveJavaScriptUpdate(WebResponse& response);
   void serveMainscript(WebResponse& response);
   void serveBootstrap(WebResponse& request);
-  void serveMainpage(WebResponse& response);
+  awaitable<void> serveMainpage(WebResponse& response);
   void serveMainAjax(WStringStream& out);
   void serveWidgetSet(WebResponse& request);
   void collectJavaScript();

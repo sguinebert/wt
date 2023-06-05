@@ -158,7 +158,7 @@ namespace Wt
           }
 
 
-          auto timer = asio::steady_timer(*http::detail::engines::get_thread_context(), std::chrono::microseconds::max());
+          auto timer = asio::steady_timer(*thread_context, std::chrono::microseconds::max());
           timer.async_wait(asio::bind_cancellation_slot(cancel_signal_.slot(), [this, transaction, cb = std::move(cb)] (auto ec) {
               async_connection(transaction, std::move(cb));
           }));

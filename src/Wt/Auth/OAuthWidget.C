@@ -28,9 +28,9 @@ OAuthWidget::OAuthWidget(const OAuthService& oAuthService)
   process_->authenticated().connect(this, &OAuthWidget::oAuthDone);
 }
 
-void OAuthWidget::oAuthDone(const Identity& identity)
+awaitable<void> OAuthWidget::oAuthDone(const Identity& identity)
 {
-  authenticated_.emit(process_.get(), identity);
+  co_await authenticated_.emit(process_.get(), identity);
 }
 
   }

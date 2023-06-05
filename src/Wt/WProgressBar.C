@@ -35,14 +35,14 @@ void WProgressBar::setValueStyleClass(const std::string& valueStyleClass)
   valueStyleClass_ = valueStyleClass;
 }
 
-void WProgressBar::setValue(double value)
+awaitable<void> WProgressBar::setValue(double value)
 {
   value_ = value;
 
-  valueChanged_.emit(value_);
+  co_await valueChanged_.emit(value_);
   
   if (value_ == max_)
-    progressCompleted_.emit();
+    co_await progressCompleted_.emit();
   
   changed_ = true;
   repaint();
@@ -81,8 +81,8 @@ void WProgressBar::setState(double minimum, double maximum, double value)
   if (value_ != value) {
     value_ = value;
 
-    if (value_ == max_)
-      progressCompleted_.emit();
+//    if (value_ == max_)
+//      co_await progressCompleted_.emit();
   }
 }
 

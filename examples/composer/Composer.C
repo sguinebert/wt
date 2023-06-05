@@ -293,7 +293,7 @@ void Composer::removeAttachment(AttachmentEdit *attachment)
   }
 }
 
-void Composer::sendIt()
+awaitable<void> Composer::sendIt()
 {
   if (!sending_) {
     sending_ = true;
@@ -302,11 +302,12 @@ void Composer::sendIt()
      * First save -- this will check for the sending_ state
      * signal if successfull.
      */
-    saveNow();
+    co_await saveNow();
   }
+  co_return;
 }
 
-void Composer::saveNow()
+awaitable<void> Composer::saveNow()
 {
   if (!saving_) {
     saving_ = true;
@@ -320,7 +321,7 @@ void Composer::saveNow()
 
     for (unsigned i = 0; i < attachments_.size() - 1; ++i) {
       if (attachments_[i]->uploadNow()) {
-	++attachmentsPending_;
+        ++attachmentsPending_;
 
 	// this will trigger attachmentDone() when done, see
 	// the AttachmentEdit constructor.
@@ -331,19 +332,21 @@ void Composer::saveNow()
     if (attachmentsPending_)
       setStatus(tr("msg.uploading"), "status");
     else
-      saved();
+      co_await saved();
   }
+  co_return;
 }
 
-void Composer::attachmentDone()
+awaitable<void> Composer::attachmentDone()
 {
   if (saving_) {
     --attachmentsPending_;
     std::cerr << "Attachments still: " << attachmentsPending_ << std::endl;
 
     if (attachmentsPending_ == 0)
-      saved();
+      co_await saved();
   }
+  co_return;
 }
 
 void Composer::setStatus(const WString& text, const WString& style)
@@ -352,7 +355,7 @@ void Composer::setStatus(const WString& text, const WString& style)
   statusMsg_->setStyleClass(style);
 }
 
-void Composer::saved()
+awaitable<void> Composer::saved()
 {
   /*
    * All attachments have been processed.
@@ -373,16 +376,17 @@ void Composer::saved()
     statusMsg_->setText(Wt::utf8("Draft saved at {1}").arg(timeStr));
 
     if (sending_) {
-      send.emit();
-      return;
+      co_await send.emit();
+      co_return;
     }
   }
 
   saving_ = false;
   sending_ = false;
+  co_return;
 }
 
-void Composer::discardIt()
+awaitable<void> Composer::discardIt()
 { 
-  discard.emit();
+  co_await discard.emit();
 }

@@ -381,11 +381,11 @@ namespace Wt
     dispositionType_ = dispositionType;
   }
 
-  void WResource::setChanged()
+  awaitable<void> WResource::setChanged()
   {
     generateUrl();
 
-    dataChanged_.emit();
+    co_await dataChanged_.emit();
   }
 
   void WResource::setInvalidAfterChanged(bool enabled)

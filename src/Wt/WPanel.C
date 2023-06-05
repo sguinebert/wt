@@ -31,8 +31,9 @@ WPanel::WPanel()
   impl_ = new WTemplate(WString::fromUTF8(TEMPLATE));
   setImplementation(std::unique_ptr<WWidget>(impl_));
 
-  implementStateless(&WPanel::doExpand, &WPanel::undoExpand);
-  implementStateless(&WPanel::doCollapse, &WPanel::undoCollapse);
+#warning "FIXME"
+//  implementStateless(&WPanel::doExpand, &WPanel::undoExpand);
+//  implementStateless(&WPanel::doCollapse, &WPanel::undoCollapse);
 
   std::unique_ptr<WContainerWidget> centralArea(new WContainerWidget());
 
@@ -190,22 +191,23 @@ void WPanel::setCollapsible(bool on)
   }
 }
 
-void WPanel::toggleCollapse()
+awaitable<void> WPanel::toggleCollapse()
 {
-  setCollapsed(!isCollapsed());
+  co_await setCollapsed(!isCollapsed());
 
   if(isCollapsed())
-    collapsed_.emit();
+    co_await collapsed_.emit();
   else
-    expanded_.emit();
+    co_await expanded_.emit();
+  co_return;
 }
 
-void WPanel::setCollapsed(bool on)
+awaitable<void> WPanel::setCollapsed(bool on)
 {
   if (on)
-    collapse();
+    co_await collapse();
   else
-    expand();
+    co_await expand();
 }
 
 bool WPanel::isCollapsed() const
@@ -213,22 +215,24 @@ bool WPanel::isCollapsed() const
   return centralArea()->isHidden();
 }
 
-void WPanel::collapse()
+awaitable<void> WPanel::collapse()
 {
   if (isCollapsible()) {
     collapseIcon_->showIcon2();
 
-    doCollapse();
+   co_await doCollapse();
   }
+  co_return;
 }
 
-void WPanel::expand()
+awaitable<void> WPanel::expand()
 {
   if (isCollapsible()) {
     collapseIcon_->showIcon1();
 
-    doExpand();
+    co_await doExpand();
   }
+  co_return;
 }
 
 void WPanel::setAnimation(const WAnimation& transition)
@@ -242,48 +246,48 @@ void WPanel::setAnimation(const WAnimation& transition)
     addStyleClass("Wt-animated");
 }
 
-void WPanel::doCollapse()
+awaitable<void> WPanel::doCollapse()
 {
   wasCollapsed_ = isCollapsed();
 
   centralArea()->animateHide(animation_);
 
-  collapsedSS_.emit(true);
+  co_await collapsedSS_.emit(true);
 }
 
-void WPanel::doExpand()
+awaitable<void> WPanel::doExpand()
 {
   wasCollapsed_ = isCollapsed();
 
   centralArea()->animateShow(animation_);
 
-  expandedSS_.emit(true);
+  co_await expandedSS_.emit(true);
 }
 
-void WPanel::undoCollapse()
+awaitable<void> WPanel::undoCollapse()
 {
   if (!wasCollapsed_)
-    expand();
+    co_await expand();
 
-  collapsedSS_.emit(false);
+  co_await collapsedSS_.emit(false);
 }
 
-void WPanel::undoExpand()
+awaitable<void> WPanel::undoExpand()
 {
   if (wasCollapsed_)
-    collapse();
+    co_await collapse();
 
-  expandedSS_.emit(false);
+  co_await expandedSS_.emit(false);
 }
 
-void WPanel::onCollapse()
+awaitable<void> WPanel::onCollapse()
 {
-  collapsed_.emit();
+  co_await collapsed_.emit();
 }
 
-void WPanel::onExpand()
+awaitable<void> WPanel::onExpand()
 {
-  expanded_.emit();
+  co_await expanded_.emit();
 }
 
 void WPanel::setCentralWidget(std::unique_ptr<WWidget> w)

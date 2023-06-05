@@ -301,10 +301,10 @@ private:
   WLength *WT_ARRAY padding_;
 
 protected:
-  virtual void           render(WFlags<RenderFlag> flags) override;
-  virtual void           updateDom(DomElement& element, bool all) override;
+  virtual void render(WFlags<RenderFlag> flags) override;
+  virtual void updateDom(DomElement& element, bool all) override;
   virtual DomElementType domElementType() const override;
-  virtual void           propagateRenderOk(bool deep) override;
+  virtual void propagateRenderOk(bool deep) override;
 
   friend class WAbstractToggleButton;
   friend class WLabel;

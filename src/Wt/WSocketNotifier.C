@@ -47,13 +47,13 @@ void WSocketNotifier::dummy()
 {
 }
 
-void WSocketNotifier::notify()
+awaitable<void> WSocketNotifier::notify()
 {
   beingNotified_ = true;
 
   observing_ptr<WSocketNotifier> self(this);
 
-  activated_.emit(socket_);
+  co_await activated_.emit(socket_);
 
   if (self) {
     beingNotified_ = false;

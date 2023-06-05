@@ -207,6 +207,11 @@ protected:
 
     if (/*!request.tooLarge() &&*/ !files.empty())
       fileUpload_->setFiles(files);
+
+
+    if (fileUpload_->uploadedFiles_.size() > fileUpload_->uploadesfiles_)
+      co_await fileUpload_->uploaded().emit();
+
     co_return;
   }
 
@@ -281,37 +286,40 @@ WFileUpload::~WFileUpload()
 
 void WFileUpload::onUploaded()
 {
+  uploadesfiles_++;
   if (flags_.test(BIT_UPLOADING)) {
     WApplication::instance()->enableUpdates(false);
     flags_.reset(BIT_UPLOADING);
   }
 }
 
-void WFileUpload::onData(::uint64_t current, ::uint64_t total)
+awaitable<void> WFileUpload::onData(::uint64_t current, ::uint64_t total)
 {
-  dataReceived_.emit(current, total);
+  co_await dataReceived_.emit(current, total);
 
   if (progressBar_ && flags_.test(BIT_UPLOADING)) {
     progressBar_->setRange(0, (double)total);
-    progressBar_->setValue((double)current);
+    co_await progressBar_->setValue((double)current);
 
     WApplication *app = WApplication::instance();
     app->triggerUpdate();
   }
+  co_return;
 }
 
-void WFileUpload::onDataExceeded(::uint64_t dataExceeded)
+awaitable<void> WFileUpload::onDataExceeded(::uint64_t dataExceeded)
 {
-  doJavaScript(WT_CLASS ".$('if" + id() + "').src='"
-	       + fileUploadTarget_->url() + "';");
-  if (flags_.test(BIT_UPLOADING)) {
+  doJavaScript(WT_CLASS ".$('if" + id() + "').src='" + fileUploadTarget_->url() + "';");
+  if (flags_.test(BIT_UPLOADING))
+  {
     flags_.reset(BIT_UPLOADING);
-    handleFileTooLarge(dataExceeded);
+    co_await handleFileTooLarge(dataExceeded);
 
     WApplication *app = WApplication::instance();
     app->triggerUpdate();
     app->enableUpdates(false);
   }
+  co_return;
 }
 
 void WFileUpload::enableAjax()
@@ -392,9 +400,9 @@ EventSignal<>& WFileUpload::changed()
   return *voidEventSignal(CHANGE_SIGNAL, true);
 }
 
-void WFileUpload::handleFileTooLarge(::int64_t fileSize)
+awaitable<void> WFileUpload::handleFileTooLarge(::int64_t fileSize)
 {
-  fileTooLarge().emit(fileSize);
+  co_await fileTooLarge().emit(fileSize);
 }
 
 void WFileUpload::setFileTextSize(int chars)
@@ -546,8 +554,7 @@ DomElementType WFileUpload::domElementType() const
   return fileUploadTarget_ ? DomElementType::FORM : DomElementType::INPUT;
 }
 
-void WFileUpload::getDomChanges(std::vector<DomElement *>& result,
-				WApplication *app)
+void WFileUpload::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   if (flags_.test(BIT_ENABLE_AJAX)) {
     DomElement *plainE = DomElement::getForUpdate(this, DomElementType::INPUT);
@@ -558,7 +565,7 @@ void WFileUpload::getDomChanges(std::vector<DomElement *>& result,
     WWebWidget::getDomChanges(result, app);
 }
 
-DomElement *WFileUpload::createDomElement(WApplication *app)
+DomElement * WFileUpload::createDomElement(WApplication *app)
 {
   DomElement *result = DomElement::createNew(domElementType());
   if (result->type() == DomElementType::FORM) {
@@ -668,8 +675,11 @@ void WFileUpload::setFormData(const FormData& formData)
 
   LOG_DEBUG("setFormData() : {} file(s)", formData.files.size());
 
-  if (!formData.files.empty())
-    uploaded().emit();
+  if (!formData.files.empty()) {
+    //co_await uploaded().emit();
+    LOG_ERROR("setFormData() : {} file(s) - uploaded() emit deactivated", formData.files.size());
+  }
+
 }
 
 void WFileUpload::setFiles(const std::vector<Http::UploadedFile>& files)
@@ -681,9 +691,9 @@ void WFileUpload::setFiles(const std::vector<Http::UploadedFile>& files)
       uploadedFiles_.push_back(files[i]);
 }
 
-void WFileUpload::setRequestTooLarge(::int64_t size)
+awaitable<void> WFileUpload::setRequestTooLarge(::int64_t size)
 {
-  fileTooLarge().emit(size);
+  co_await fileTooLarge().emit(size);
 }
 
 void WFileUpload::upload()

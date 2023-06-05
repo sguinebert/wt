@@ -157,21 +157,21 @@ bool UpdatePasswordWidget::validate()
   return valid;
 }
 
-void UpdatePasswordWidget::doUpdate()
+awaitable<void> UpdatePasswordWidget::doUpdate()
 {
   if (validate()) {
-    WT_USTRING password
-      = registrationModel_->valueText(RegistrationModel::ChoosePasswordField);
+    WT_USTRING password = registrationModel_->valueText(RegistrationModel::ChoosePasswordField);
     registrationModel_->passwordAuth()->updatePassword(user_, password);
-    registrationModel_->login().login(user_);
+    co_await registrationModel_->login().login(user_);
 
-    updated_.emit();
+    co_await updated_.emit();
   }
+  co_return;
 }
 
-void UpdatePasswordWidget::cancel()
+awaitable<void> UpdatePasswordWidget::cancel()
 {
-  canceled_.emit();
+  co_await canceled_.emit();
 }
 
   }

@@ -142,8 +142,8 @@ void WSuggestionPopup::render(WFlags<RenderFlag> flags)
   if (flags.test(RenderFlag::Full))
     defineJavaScript();
 
-  if (WApplication::instance()->environment().ajax())
-    doFilter(currentInputText_);
+//  if (WApplication::instance()->environment().ajax())
+//    co_await doFilter(currentInputText_);
 
   WPopupWidget::render(flags);
 }
@@ -159,8 +159,7 @@ void WSuggestionPopup::connectObjJS(EventSignalBase& s,
   s.connect(jsFunction);
 }
 
-void WSuggestionPopup::setModel(const std::shared_ptr<WAbstractItemModel>&
-				model)
+void WSuggestionPopup::setModel(const std::shared_ptr<WAbstractItemModel>& model)
 {
   if (model_) {
     /* disconnect slots from previous model */
@@ -312,6 +311,10 @@ void WSuggestionPopup::forEdit(WFormWidget *edit, WFlags<PopupTrigger> triggers)
     connectObjJS(edit->mouseMoved(), "editMouseMove");
   }
 
+  //connect to avoid awaitable<void> render
+  if (WApplication::instance()->environment().ajax())
+    edit->keyWentUp().connect(this, [this] (WKeyEvent keyevent) -> awaitable<void> { co_await this->doFilter(currentInputText_); });
+
   edits_.push_back(edit);
 }
 
@@ -344,18 +347,16 @@ void WSuggestionPopup::clearSuggestions()
   model_->removeRows(0, model_->rowCount());
 }
 
-void WSuggestionPopup::addSuggestion(const WString& suggestionText,
-				     const WString& suggestionValue)
+awaitable<void> WSuggestionPopup::addSuggestion(const WString& suggestionText, const WString& suggestionValue)
 {
   int row = model_->rowCount();
 
   if (model_->insertRow(row)) {
-    model_->setData(row, modelColumn_, cpp17::any(suggestionText), 
-		    ItemDataRole::Display);
+    co_await model_->setData(row, modelColumn_, cpp17::any(suggestionText), ItemDataRole::Display);
     if (!suggestionValue.empty())
-      model_->setData(row, modelColumn_, cpp17::any(suggestionValue),
-		      editRole());
+      co_await model_->setData(row, modelColumn_, cpp17::any(suggestionValue), editRole());
   }
+  co_return;
 }
 
 void WSuggestionPopup::setFilterLength(int length)
@@ -369,10 +370,10 @@ void WSuggestionPopup::scheduleFilter(std::string input)
   scheduleRender();
 }
 
-void WSuggestionPopup::doFilter(std::string input)
+awaitable<void> WSuggestionPopup::doFilter(std::string input)
 {
   filtering_ = true;
-  filterModel_.emit(WT_USTRING::fromUTF8(input));
+  co_await filterModel_.emit(WT_USTRING::fromUTF8(input));
   filtering_ = false;
 
   /*
@@ -397,7 +398,7 @@ bool WSuggestionPopup::partialResults() const
     return false;
 }
 
-void WSuggestionPopup::doActivate(std::string itemId, std::string editId)
+awaitable<void> WSuggestionPopup::doActivate(std::string itemId, std::string editId)
 {
   WFormWidget *edit = 0;
 
@@ -410,27 +411,28 @@ void WSuggestionPopup::doActivate(std::string itemId, std::string editId)
   if (edit == 0) {
     LOG_ERROR("activate from bogus editor");
 	currentItem_ = -1;
-	return;
+    co_return;
   }
 
   for (int i = 0; i < impl_->count(); ++i)
     if (impl_->widget(i)->id() == itemId) {
 	  currentItem_ = i;
-      activated_.emit(i, edit);
+      co_await activated_.emit(i, edit);
       if(edit) {
         WLineEdit *le = dynamic_cast<WLineEdit*>(edit);
         WTextArea *ta = dynamic_cast<WTextArea*>(edit);
         if (le) {
-          le->textInput().emit();
+          co_await le->textInput().emit();
         } else if (ta) {
-          ta->textInput().emit();
+          co_await ta->textInput().emit();
         }
-        edit->changed().emit();
+        co_await edit->changed().emit();
       }
-      return;
+      co_return;
     }
   currentItem_ = -1;
   LOG_ERROR("activate for bogus item");
+  co_return;
 }
 
 std::string WSuggestionPopup::generateMatcherJS(const Options& options)

@@ -181,33 +181,33 @@ namespace Wt {
       Wt::WDateTime retval;
 
       if (!date)
-    return retval;
+        return retval;
 
       switch (date->type) {
       case V_ASN1_UTCTIME:
       {
-    // decode asn.1 Universal time string
-    // Format further restricted by RFC 3280, section 4.1.2.5.1
-    int len = date->length;
-    const char *v = (const char *)date->data;
-    if (len == 13) {
-        retval =
-            Wt::WDateTime::fromString(std::string(v, v + 12),
-                                      "yyMMddHHmmss");
-    }
+        // decode asn.1 Universal time string
+        // Format further restricted by RFC 3280, section 4.1.2.5.1
+        int len = date->length;
+        const char *v = (const char *)date->data;
+        if (len == 13) {
+            retval =
+                Wt::WDateTime::fromString(std::string(v, v + 12),
+                                          "yyMMddHHmmss");
+        }
       }
       break;
       case V_ASN1_GENERALIZEDTIME:
       {
-    // decode asn.1 Universal time string
-    // Format further restricted by RFC 3280, section 4.1.2.5.1
-    int len = date->length;
-    const char *v = (const char *)date->data;
-    if (len == 15) {
-        retval =
-            Wt::WDateTime::fromString(std::string(v, v + 12),
-                                      "yyyyMMddHHmmss");
-    }
+        // decode asn.1 Universal time string
+        // Format further restricted by RFC 3280, section 4.1.2.5.1
+        int len = date->length;
+        const char *v = (const char *)date->data;
+        if (len == 15) {
+            retval =
+                Wt::WDateTime::fromString(std::string(v, v + 12),
+                                          "yyyyMMddHHmmss");
+        }
       }
       break;
       default:
@@ -226,11 +226,11 @@ namespace Wt {
 
       BIO *bioMem = BIO_new(BIO_s_mem());
       if (!PEM_write_bio_X509(bioMem, x509)) {
-	// error
+        // error
       } else {
-	char *thePem;
-	int pemLength = BIO_get_mem_data(bioMem, &thePem);
-	bio = std::string(thePem, thePem + pemLength);
+        char *thePem;
+        int pemLength = BIO_get_mem_data(bioMem, &thePem);
+        bio = std::string(thePem, thePem + pemLength);
       }
       BIO_free_all(bioMem);
       return bio;

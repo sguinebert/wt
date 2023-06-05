@@ -78,7 +78,7 @@ void RegistrationModel::setEmailPolicy(EmailPolicy policy)
   }
 }
 
-bool RegistrationModel::registerIdentified(const Identity& identity)
+awaitable<bool> RegistrationModel::registerIdentified(const Identity& identity)
 {
   idpIdentity_ = identity;
 
@@ -86,42 +86,43 @@ bool RegistrationModel::registerIdentified(const Identity& identity)
     User user = baseAuth()->identifyUser(idpIdentity_, users());
 
     if (user.isValid()) {
-      return loginUser(login_, user);
+      co_return co_await loginUser(login_, user);
     } else {
       switch (baseAuth()->identityPolicy()) {
       case IdentityPolicy::LoginName:
-	if (!idpIdentity_.name().empty())
-	  setValue(LoginNameField, idpIdentity_.name());
-	else if (!idpIdentity_.email().empty()) {
-	  std::string suggested = idpIdentity_.email();
-	  std::size_t i = suggested.find('@');
-	  if (i != std::string::npos)
-	    suggested = suggested.substr(0, i);
+          if (!idpIdentity_.name().empty())
+              setValue(LoginNameField, idpIdentity_.name());
+          else if (!idpIdentity_.email().empty()) {
+              std::string suggested = idpIdentity_.email();
+              std::size_t i = suggested.find('@');
+              if (i != std::string::npos)
+                  suggested = suggested.substr(0, i);
 
-	  setValue(LoginNameField, WString::fromUTF8(suggested));
-	}
+              setValue(LoginNameField, WString::fromUTF8(suggested));
+          }
 
-	break;
+          break;
       case IdentityPolicy::EmailAddress:
-	if (!idpIdentity_.email().empty())
-	  setValue(LoginNameField, WString::fromUTF8(idpIdentity_.email()));
-	break;
+          if (!idpIdentity_.email().empty())
+              setValue(LoginNameField, WString::fromUTF8(idpIdentity_.email()));
+          break;
 
       default:
-	break;
+          break;
       }
 
       if (!idpIdentity_.email().empty()) {
-	setValue(EmailField, idpIdentity_.email());
-	setValidation(EmailField, 
-		      WValidator::Result(ValidationState::Valid, 
-					 WString::Empty));
+          setValue(EmailField, idpIdentity_.email());
+          setValidation(EmailField,
+                        WValidator::Result(ValidationState::Valid,
+                                           WString::Empty));
       }
 
-      return false;
+      co_return false;
     }
-  } else
-    return false;
+  }
+
+  co_return false;
 }
 
 bool RegistrationModel::isVisible(Field field) const
@@ -286,13 +287,13 @@ RegistrationModel::confirmIsExistingUser() const
   return IdentityConfirmationMethod::ConfirmationNotPossible;
 }
   
-void RegistrationModel::existingUserConfirmed()
+awaitable<void> RegistrationModel::existingUserConfirmed()
 {
   if (idpIdentity_.isValid())
     existingUser_.addIdentity(idpIdentity_.provider(),
 			      WT_USTRING::fromUTF8(idpIdentity_.id()));
 
-  loginUser(login_, existingUser_);
+  co_await loginUser(login_, existingUser_);
 }
 
 void RegistrationModel::validatePasswordsMatchJS(WLineEdit *password,

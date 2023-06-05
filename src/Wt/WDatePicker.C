@@ -41,8 +41,7 @@ WDatePicker::WDatePicker(WLineEdit *forEdit)
 WDatePicker::~WDatePicker()
 { }
 
-void WDatePicker::create(std::unique_ptr<WInteractWidget> displayWidget,
-			 WLineEdit *forEdit)
+void WDatePicker::create(std::unique_ptr<WInteractWidget> displayWidget, WLineEdit *forEdit)
 {
   auto layout = std::make_unique<WContainerWidget>();
   layout_ = layout.get();
@@ -119,17 +118,17 @@ void WDatePicker::setFormat(const WT_USTRING& format)
   setDate(d);
 }
 
-void WDatePicker::setFromCalendar()
+awaitable<void> WDatePicker::setFromCalendar()
 {
   if (!calendar_->selection().empty()) {
     const WDate& calDate = *calendar_->selection().begin();
 
     forEdit_->setText(calDate.toString(format_));
-    forEdit_->textInput().emit();
-    forEdit_->changed().emit();
+    co_await forEdit_->textInput().emit();
+    co_await forEdit_->changed().emit();
   }
 
-  changed_.emit();
+  co_await changed_.emit();
 }
 
 WDate WDatePicker::date() const
@@ -151,24 +150,29 @@ void WDatePicker::setDate(const WDate& date)
   }
 }
 
-void WDatePicker::setFromLineEdit()
+awaitable<void> WDatePicker::setFromLineEdit()
 {
   WDate d = WDate::fromString(forEdit_->text(), format_);
 
   if (d.isValid()) {
-    if (calendar_->selection().empty()) {
+    if (calendar_->selection().empty())
+    {
       calendar_->select(d);
-      calendar_->selectionChanged().emit();
-    } else {
+      co_await calendar_->selectionChanged().emit();
+    }
+    else
+    {
       WDate j = Utils::first(calendar_->selection());
-      if (j != d) {
-	calendar_->select(d);
-	calendar_->selectionChanged().emit();
+      if (j != d)
+      {
+        calendar_->select(d);
+        co_await calendar_->selectionChanged().emit();
       }
     }
 
     calendar_->browseTo(d);
   }
+  co_return;
 }
 
 void WDatePicker::setEnabled(bool enabled)

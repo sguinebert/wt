@@ -89,13 +89,13 @@ public:
    *
    * \sa logout(), loggedIn()
    */
-  void login(const User& user, LoginState state = LoginState::Strong);
+  awaitable<void> login(const User& user, LoginState state = LoginState::Strong);
 
   /*! \brief Logs the current user out.
    *
    * Sets the state to LoginState::LoggedOut.
    */
-  void logout();
+  awaitable<void> logout();
 
   /*! \brief Returns the current login state.
    *

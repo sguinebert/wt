@@ -287,8 +287,8 @@ OAuthAccessToken::OAuthAccessToken(const std::string& accessToken,
 { }
 
 OAuthAccessToken::OAuthAccessToken(const std::string& accessToken,
-				   const WDateTime& expires,
-				   const std::string& refreshToken,
+                                   const WDateTime& expires,
+                                   const std::string& refreshToken,
                                    const std::string& idToken)
   : accessToken_(accessToken),
     refreshToken_(refreshToken),
@@ -407,9 +407,10 @@ void OAuthProcess::connectStartAuthenticate(EventSignalBase &s)
 }
 #endif
 
-void OAuthProcess::getIdentity(const OAuthAccessToken& token)
+awaitable<void> OAuthProcess::getIdentity(const OAuthAccessToken& token)
 {
   throw WException("OAuth::Process::Identity(): not specialized");
+  co_return;
 }
 
 void OAuthProcess::setError(const WString& error)
@@ -417,15 +418,15 @@ void OAuthProcess::setError(const WString& error)
   error_ = error;
 }
 
-void OAuthProcess::onOAuthDone()
+awaitable<void> OAuthProcess::onOAuthDone()
 {
   bool success = error_.empty();
 
-  authorized().emit(success ? token_ : OAuthAccessToken::Invalid);
+  co_await authorized().emit(success ? token_ : OAuthAccessToken::Invalid);
 
   if (success && authenticate_) {
     authenticate_ = false;
-    getIdentity(token_);
+    co_await getIdentity(token_);
   }
 #ifndef WT_TARGET_JAVA
   else if (!WApplication::instance()->environment().javaScript())
@@ -434,6 +435,7 @@ void OAuthProcess::onOAuthDone()
 
   if (doneCallbackConnection_.isConnected())
     doneCallbackConnection_.disconnect();
+  co_return;
 }
 
 #ifndef WT_TARGET_JAVA
@@ -497,8 +499,7 @@ void OAuthProcess::requestToken(std::string_view authorizationCode)
   }
 }
 
-void OAuthProcess::handleToken(AsioWrapper::error_code err,
-			       const Http::Message& response)
+awaitable<void> OAuthProcess::handleToken(AsioWrapper::error_code err, const Http::Message& response)
 {
   if (!err)
     doParseTokenResponse(response);
@@ -514,8 +515,9 @@ void OAuthProcess::handleToken(AsioWrapper::error_code err,
     redirectEndpoint_->haveMoreData();
 #endif
   } else {
-    onOAuthDone();
+    co_await onOAuthDone();
   }
+  co_return;
 }
 
 void OAuthProcess::doParseTokenResponse(const Http::Message& response)

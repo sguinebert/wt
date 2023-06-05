@@ -500,14 +500,14 @@ private:
   void createDefaultGui();
 
   void addAnchor(WTemplate *t, MediaPlayerButtonId id, const char *bindId,
-		 const std::string& styleClass,
-		 const std::string& altText = std::string());
+                 const std::string& styleClass,
+                 const std::string& altText = std::string());
   void addText(WTemplate *t, MediaPlayerTextId id, const char *bindId,
 	       const std::string& styleClass);
   void addProgressBar(WTemplate *t, MediaPlayerProgressBarId id,
-		      const char *bindId,
-		      const std::string& styleClass,
-		      const std::string& valueStyleClass);
+                      const char *bindId,
+                      const std::string& styleClass,
+                      const std::string& valueStyleClass);
   JSignal<>& signal(const char *name);
   JSignal<double>& signalDouble(const char *name, const std::string& expr);
 

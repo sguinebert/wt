@@ -107,13 +107,13 @@ public:
    *
    * Returns whether the user could be logged in.
    */
-  virtual bool login(Login& login);
+  virtual awaitable<bool> login(Login& login);
 
   /*! \brief Logs the user out.
    *
    * This also removes the remember-me cookie for the user.
    */
-  virtual void logout(Login& login);
+  virtual awaitable<void> logout(Login& login);
 
   /*! \brief Processes an email token.
    *

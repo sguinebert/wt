@@ -64,8 +64,8 @@ private:
   void checkPassword();
   void checkPassword2();
   bool validate();
-  void doUpdate();
-  void cancel();
+  awaitable<void> doUpdate();
+  awaitable<void> cancel();
 };
 
   }

@@ -214,34 +214,34 @@ bool WTimePicker::wrapAroundEnabled() const
   return sbhour_->wrapAroundEnabled();
 }
 
-void WTimePicker::hourValueChanged()
+awaitable<void> WTimePicker::hourValueChanged()
 {
   if (sbhour_->validate() == ValidationState::Valid)
-    selectionChanged_.emit();
+    co_await selectionChanged_.emit();
 }
 
-void WTimePicker::minuteValueChanged()
+awaitable<void> WTimePicker::minuteValueChanged()
 {
   if (sbminute_->validate() == ValidationState::Valid)
-    selectionChanged_.emit();
+    co_await selectionChanged_.emit();
 }
 
-void WTimePicker::secondValueChanged()
+awaitable<void> WTimePicker::secondValueChanged()
 {
   if (sbsecond_->validate() == ValidationState::Valid)
-    selectionChanged_.emit();
+    co_await selectionChanged_.emit();
 }
 
-void WTimePicker::msecValueChanged()
+awaitable<void> WTimePicker::msecValueChanged()
 {
   if (sbmillisecond_->validate() == ValidationState::Valid)
-    selectionChanged_.emit();
+    co_await selectionChanged_.emit();
 }
 
-void WTimePicker::ampmValueChanged()
+awaitable<void> WTimePicker::ampmValueChanged()
 {
   if (cbAP_->validate() == ValidationState::Valid)
-    selectionChanged_.emit();
+    co_await selectionChanged_.emit();
 }
 
 bool WTimePicker::formatAp() const

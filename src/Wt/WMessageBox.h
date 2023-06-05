@@ -246,8 +246,8 @@ private:
 
   void create();
 
-  void onFinished();
-  void onButtonClick(StandardButton b);
+  awaitable<void> onFinished();
+  awaitable<void> onButtonClick(StandardButton b);
   void mappedButtonClick(StandardButton b);
 
   static StandardButton order_[];

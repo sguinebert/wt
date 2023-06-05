@@ -31,10 +31,10 @@ WFileResource::~WFileResource()
   beingDeleted();
 }
 
-void WFileResource::setFileName(const std::string& fileName)
+awaitable<void> WFileResource::setFileName(const std::string& fileName)
 {
   fileName_ = fileName;
-  setChanged();
+  co_await setChanged();
 }
 
 void WFileResource::handleRequest(const Http::Request& request,

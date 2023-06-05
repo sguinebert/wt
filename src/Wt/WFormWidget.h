@@ -144,9 +144,7 @@ public:
 
   virtual void refresh() override;
 
-  virtual void setToolTip(const WString& text,
-			  TextFormat textFormat = TextFormat::Plain)
-    override;
+  virtual void setToolTip(const WString& text, TextFormat textFormat = TextFormat::Plain) override;
 
   virtual bool canReceiveFocus() const override;
   virtual int tabIndex() const override;
@@ -156,6 +154,7 @@ protected:
   std::shared_ptr<WValidator> validator_;
   std::unique_ptr<JSlot> validateJs_, filterInput_, removeEmptyText_;
   WString emptyText_;
+  WValidator::Result validState_;
 
   // also used in WAbstractToggleButton
   static const char *CHANGE_SIGNAL;

@@ -111,15 +111,14 @@ public:
    *
    * The default proxy implementation calls sourceModel()->setData(mapToSource(index), value, role)
    */
-  virtual bool setData(const WModelIndex& index, const cpp17::any& value,
-                       ItemDataRole role = ItemDataRole::Edit) override;
+  virtual awaitable<bool> setData(const WModelIndex& index, const cpp17::any& value,
+                                  ItemDataRole role = ItemDataRole::Edit) override;
 
   /*! \brief Sets the data at the given model index.
    *
    * The default proxy implementation calls sourceModel()->setData(mapToSource(index), values)
    */
-  virtual bool setItemData(const WModelIndex& index, const DataMap& values)
-    override;
+  virtual awaitable<bool> setItemData(const WModelIndex& index, const DataMap& values) override;
 
   /*! \brief Returns the flags for an item.
    *
@@ -177,9 +176,7 @@ public:
    * to the row and parent in the source model, and forwards the
    * dropEvent call to the source model.
    */
-  virtual void dropEvent(const WDropEvent& e, DropAction action,
-			 int row, int column, const WModelIndex& parent)
-    override;
+  virtual awaitable<void> dropEvent(const WDropEvent& e, DropAction action, int row, int column, const WModelIndex& parent) override;
 
   /*! \brief Converts a model index to a raw pointer that remains valid
    *         while the model's layout is changed.

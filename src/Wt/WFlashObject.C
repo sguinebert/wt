@@ -187,8 +187,7 @@ std::string WFlashObject::jsFlashRef() const
   return WT_CLASS ".getElement('" + id() + "_flash')";
 }
 
-void WFlashObject::getDomChanges(std::vector<DomElement *>& result,
-                                 WApplication *app)
+void WFlashObject::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   WWebWidget::getDomChanges(result, app);
   if (sizeChanged_) {

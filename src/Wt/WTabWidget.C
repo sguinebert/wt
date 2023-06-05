@@ -70,8 +70,8 @@ std::unique_ptr<WWidget> WTabWidget::removeTab(WWidget *child)
     std::unique_ptr<WWidget> result = item->removeContents();
     menu_->removeItem(item);
     return result;
-  } else
-    return std::unique_ptr<WWidget>();
+  }
+  return std::unique_ptr<WWidget>();
 }
 
 int WTabWidget::count() const
@@ -94,9 +94,9 @@ int WTabWidget::indexOf(WWidget *widget) const
   return Utils::indexOf(contentsWidgets_, widget);
 }
 
-void WTabWidget::setCurrentIndex(int index)
+awaitable<void> WTabWidget::setCurrentIndex(int index)
 {
-  menu_->select(index);
+  co_await menu_->select(index);
 }
 
 int WTabWidget::currentIndex() const
@@ -104,9 +104,9 @@ int WTabWidget::currentIndex() const
   return menu_->currentIndex();
 }
 
-void WTabWidget::setCurrentWidget(WWidget *widget)
+awaitable<void> WTabWidget::setCurrentWidget(WWidget *widget)
 {
-  setCurrentIndex(indexOf(widget));
+  co_await setCurrentIndex(indexOf(widget));
 }
 
 WWidget *WTabWidget::currentWidget() const
@@ -149,10 +149,10 @@ bool WTabWidget::isTabCloseable(int index)
   return menu_->itemAt(index)->isCloseable();
 }
 
-void WTabWidget::closeTab(int index)
+awaitable<void> WTabWidget::closeTab(int index)
 {
   setTabHidden(index, true);
-  tabClosed_.emit(index);
+  co_await tabClosed_.emit(index);
 }
 
 void WTabWidget::setTabText(int index, const WString& label)
@@ -184,9 +184,9 @@ bool WTabWidget::internalPathEnabled() const
   return menu_->internalPathEnabled();
 }
 
-void WTabWidget::setInternalPathEnabled(const std::string& basePath)
+awaitable<void> WTabWidget::setInternalPathEnabled(const std::string& basePath)
 {
-  menu_->setInternalPathEnabled(basePath);
+  co_await menu_->setInternalPathEnabled(basePath);
 }
 
 const std::string& WTabWidget::internalBasePath() const
@@ -194,19 +194,19 @@ const std::string& WTabWidget::internalBasePath() const
   return menu_->internalBasePath();
 }
 
-void WTabWidget::setInternalBasePath(const std::string& path)
+awaitable<void> WTabWidget::setInternalBasePath(const std::string& path)
 {
-  menu_->setInternalBasePath(path);
+  co_await menu_->setInternalBasePath(path);
 }
 
-void WTabWidget::onItemSelected(WMenuItem *item)
+awaitable<void> WTabWidget::onItemSelected(WMenuItem *item)
 {
-  currentChanged_.emit(menu_->currentIndex());
+  co_await currentChanged_.emit(menu_->currentIndex());
 }
 
-void WTabWidget::onItemClosed(WMenuItem *item)
+awaitable<void> WTabWidget::onItemClosed(WMenuItem *item)
 {
-  closeTab(menu_->indexOf(item));
+  co_await closeTab(menu_->indexOf(item));
 }
 
 WStackedWidget *WTabWidget::contentsStack() const

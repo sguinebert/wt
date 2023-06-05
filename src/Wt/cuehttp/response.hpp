@@ -24,10 +24,7 @@
 #include <span>
 #include <type_traits>
 
-
 #include "cookies.hpp"
-//#include "deps/fmt/fmt.h"
-//#include "deps/fmt/compile.h"
 #include <Wt/fmt/format.h>
 #include <Wt/fmt/compile.h>
 //#include "detail/body_stream.hpp"

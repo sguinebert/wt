@@ -105,12 +105,12 @@ void WAbstractMedia::setFormData(const FormData& formData)
     boost::split(attributes, formData.values[0], boost::is_any_of(";"));
     if (attributes.size() == 6) {
       try {
-	volume_ = Utils::stod(attributes[0]);
+        volume_ = Utils::stod(attributes[0]);
       } catch (const std::exception& e) {
         volume_ = -1;
       }
       try {
-	current_ = Utils::stod(attributes[1]);
+        current_ = Utils::stod(attributes[1]);
       } catch (const std::exception& e) {
         current_ = -1;
       }
@@ -240,7 +240,7 @@ void WAbstractMedia::loadJavaScript()
   }
 }
 
-DomElement *WAbstractMedia::createDomElement(WApplication *app)
+DomElement * WAbstractMedia::createDomElement(WApplication *app)
 {
   loadJavaScript();
 
@@ -343,8 +343,7 @@ std::string WAbstractMedia::jsMediaRef() const
   }
 }
 
-void WAbstractMedia::getDomChanges(std::vector<DomElement *>& result,
-				   WApplication *app)
+void WAbstractMedia::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   if (!mediaId_.empty()) {
     DomElement *media = DomElement::getForUpdate(mediaId_, DomElementType::DIV);
@@ -427,6 +426,17 @@ void WAbstractMedia::iterateChildren(const HandleWidgetMethod& method) const
 #else
     method.handle(alternative_.get());
 #endif
+}
+
+awaitable<void> WAbstractMedia::iterateChildren(AsyncHandleWidgetMethod &&method) const
+{
+  if (alternative_)
+#ifndef WT_TARGET_JAVA
+    co_await method(alternative_.get());
+#else
+    co_await method.handle(alternative_.get());
+#endif
+  co_return;
 }
 
 void WAbstractMedia::enableAjax() 

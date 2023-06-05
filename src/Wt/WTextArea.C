@@ -112,6 +112,7 @@ void WTextArea::setFormData(const FormData& formData)
     Utils::replace(value, '\r', "");
     content_ = WT_USTRING::fromUTF8(value, true);
   }
+  return;
 }
 
 WT_USTRING WTextArea::valueText() const

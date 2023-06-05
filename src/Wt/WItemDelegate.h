@@ -128,9 +128,9 @@ public:
    *
    * \sa createEditor(), editState()
    */
-  virtual void setModelData(const cpp17::any& editState,
-			    WAbstractItemModel *model,
-			    const WModelIndex& index) const override;
+  virtual awaitable<void> setModelData(const cpp17::any& editState,
+                                       WAbstractItemModel *model,
+                                       const WModelIndex& index) const override;
 
   /*! \brief Returns the current edit state.
    *
@@ -293,8 +293,8 @@ private:
   WImage *iconWidget(WidgetRef& w, const WModelIndex& index, bool autoCreate = false);
   IndexAnchor *anchorWidget(WidgetRef& w, const WModelIndex& index, bool autoCreate = false);
 
-  void onCheckedChange(IndexCheckBox *checkBox) const;
-  void doCloseEditor(WWidget *editor, bool save) const;
+  awaitable<void> onCheckedChange(IndexCheckBox *checkBox) const;
+  awaitable<void> doCloseEditor(WWidget *editor, bool save) const;
 };
 
 }

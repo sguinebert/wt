@@ -25,7 +25,7 @@ private:
   std::unique_ptr<OAuthProcess> process_;
   Signal<OAuthProcess *, Identity> authenticated_;
 
-  void oAuthDone(const Identity& identity);
+  awaitable<void> oAuthDone(const Identity& identity);
 };
 
   }

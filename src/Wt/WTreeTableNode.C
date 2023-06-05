@@ -20,8 +20,7 @@ WTreeTableNode::WTreeTableNode(const WString& labelText,
     row_(nullptr)
 { }
 
-void WTreeTableNode::insertChildNode(int index,
-				     std::unique_ptr<WTreeNode> node)
+void WTreeTableNode::insertChildNode(int index, std::unique_ptr<WTreeNode> node)
 {
   if (table_)
     (dynamic_cast<WTreeTableNode *>(node.get()))->setTable(table_);

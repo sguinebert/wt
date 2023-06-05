@@ -69,7 +69,7 @@ void WLineEdit::setText(const WT_USTRING& text)
     flags_.set(BIT_CONTENT_CHANGED);
     repaint();
 
-    validate();
+    //validate();
 
     applyEmptyText();
   }
@@ -133,8 +133,7 @@ void WLineEdit::updateDom(DomElement& element, bool all)
 {
   if (all || flags_.test(BIT_CONTENT_CHANGED)) {
     WT_USTRING t = content_;
-    if (!mask_.empty() && (inputMaskFlags_.test(
-			   InputMaskFlag::KeepMaskWhileBlurred)))
+    if (!mask_.empty() && (inputMaskFlags_.test(InputMaskFlag::KeepMaskWhileBlurred)))
       t = displayContent_;
     if (!all || !t.empty())
       element.setProperty(Wt::Property::Value, t.toUTF8());
@@ -170,8 +169,7 @@ void WLineEdit::updateDom(DomElement& element, bool all)
   WFormWidget::updateDom(element, all);
 }
 
-void WLineEdit::getDomChanges(std::vector<DomElement *>& result,
-			      WApplication *app)
+void WLineEdit::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   if (app->environment().agentIsIE() && flags_.test(BIT_ECHO_MODE_CHANGED)) {
     DomElement *e = DomElement::getForUpdate(this, domElementType());
@@ -208,8 +206,9 @@ void WLineEdit::setFormData(const FormData& formData)
   if (!Utils::isEmpty(formData.values)) {
     const std::string& value = formData.values[0];
     displayContent_ = inputText(WT_USTRING::fromUTF8(value, true));
-    content_ = removeSpaces(displayContent_);
+    content_ = removeSpaces(displayContent_); //displayContent_.trim();
   }
+  return;
 }
 
 WT_USTRING WLineEdit::valueText() const

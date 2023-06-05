@@ -130,7 +130,7 @@ public:
    *
    * Only one aggregate can be defined per \p parentColumn.
    */
-  void addAggregate(int parentColumn, int firstColumn, int lastColumn);
+  awaitable<void> addAggregate(int parentColumn, int firstColumn, int lastColumn);
 
   virtual WModelIndex mapFromSource(const WModelIndex& sourceIndex)
     const override;
@@ -140,32 +140,26 @@ public:
   virtual void setSourceModel(const std::shared_ptr<WAbstractItemModel>&
 			      sourceModel) override;
 
-  virtual void expandColumn(int column) override;
-  virtual void collapseColumn(int column) override;
+  virtual awaitable<void> expandColumn(int column) override;
+  virtual awaitable<void> collapseColumn(int column) override;
 
   virtual int columnCount(const WModelIndex& parent = WModelIndex())
     const override;
   virtual int rowCount(const WModelIndex& parent = WModelIndex())
     const override;
 
-  virtual WFlags<HeaderFlag> headerFlags
-    (int section, Orientation orientation = Orientation::Horizontal)
-    const override;
+  virtual WFlags<HeaderFlag> headerFlags(int section, Orientation orientation = Orientation::Horizontal) const override;
 
-  virtual bool setHeaderData
-    (int section, Orientation orientation, const cpp17::any& value,
-     ItemDataRole role = ItemDataRole::Edit) override;
+  virtual awaitable<bool> setHeaderData(int section, Orientation orientation, const cpp17::any& value,
+                                        ItemDataRole role = ItemDataRole::Edit) override;
   virtual cpp17::any headerData
     (int section, Orientation orientation = Orientation::Horizontal,
      ItemDataRole role = ItemDataRole::Display) const override;
 
   virtual WModelIndex parent(const WModelIndex& index) const override;
-  virtual WModelIndex index(int row, int column,
-			    const WModelIndex& parent = WModelIndex())
-    const override;
+  virtual WModelIndex index(int row, int column, const WModelIndex& parent = WModelIndex()) const override;
 
-  virtual void sort(int column, 
-		    SortOrder order = SortOrder::Ascending) override;
+  virtual awaitable<void> sort(int column, SortOrder order = SortOrder::Ascending) override;
 
 private:
   struct Aggregate {
@@ -199,46 +193,37 @@ private:
 
   std::vector<Wt::Signals::connection> modelConnections_;
 
-  void expand(Aggregate& aggregate);
-  void collapse(Aggregate& aggregate);
+  awaitable<void> expand(Aggregate& aggregate);
+  awaitable<void> collapse(Aggregate& aggregate);
 
-  void propagateBeginRemove(const WModelIndex& proxyIndex,
-			    int start, int end);
-  void propagateEndRemove(const WModelIndex& proxyIndex,
-			  int start, int end);
-  void propagateBeginInsert(const WModelIndex& proxyIndex,
-			    int start, int end);
-  void propagateEndInsert(const WModelIndex& proxyIndex,
-			  int start, int end);
+  awaitable<void> propagateBeginRemove(const WModelIndex& proxyIndex, int start, int end);
+  awaitable<void> propagateEndRemove(const WModelIndex& proxyIndex, int start, int end);
+  awaitable<void> propagateBeginInsert(const WModelIndex& proxyIndex, int start, int end);
+  awaitable<void> propagateEndInsert(const WModelIndex& proxyIndex, int start, int end);
 
   int lastVisibleSourceNotAfter(int sourceColumn) const;
   int firstVisibleSourceNotBefore(int sourceColumn) const;
   
-  void sourceColumnsAboutToBeInserted(const WModelIndex& parent,
-				      int start, int end);
+  void sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end);
   void sourceColumnsInserted(const WModelIndex& parent, int start, int end);
 
-  void sourceColumnsAboutToBeRemoved(const WModelIndex& parent,
-				     int start, int end);
+  void sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   void sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
 
-  void sourceRowsAboutToBeInserted(const WModelIndex& parent,
-				   int start, int end);
-  void sourceRowsInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceRowsInserted(const WModelIndex& parent, int start, int end);
 
-  void sourceRowsAboutToBeRemoved(const WModelIndex& parent,
-				  int start, int end);
-  void sourceRowsRemoved(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceRowsRemoved(const WModelIndex& parent, int start, int end);
 
-  void sourceDataChanged(const WModelIndex& topLeft,
-			 const WModelIndex& bottomRight);
+  awaitable<void> sourceDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight);
 
-  void sourceHeaderDataChanged(Orientation orientation, int start, int end);
+  awaitable<void> sourceHeaderDataChanged(Orientation orientation, int start, int end);
 
-  void sourceLayoutAboutToBeChanged();
-  void sourceLayoutChanged();
+  awaitable<void> sourceLayoutAboutToBeChanged();
+  awaitable<void> sourceLayoutChanged();
 
-  void sourceModelReset();
+  awaitable<void> sourceModelReset();
 };
 
 }

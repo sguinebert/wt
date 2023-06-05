@@ -100,47 +100,46 @@ void AuthWidget::setInternalBasePath(const std::string& basePath)
   basePath_ = Utils::append(Utils::prepend(basePath, '/'), '/');;
 }
 
-void AuthWidget::onPathChange(const std::string& path)
+awaitable<void> AuthWidget::onPathChange(const std::string& path)
 {
-  handleRegistrationPath(path);
+  co_await handleRegistrationPath(path);
 }
 
-bool AuthWidget::handleRegistrationPath(const std::string& path)
+awaitable<bool> AuthWidget::handleRegistrationPath(const std::string& path)
 {
   if (!basePath_.empty()) {
-    WApplication *app = WApplication::instance();
+      WApplication *app = WApplication::instance();
 
-    if (app->internalPathMatches(basePath_)) {
-      std::string ap = app->internalSubPath(basePath_);
+      if (app->internalPathMatches(basePath_)) {
+          std::string ap = app->internalSubPath(basePath_);
 
-      if (ap == "register/") {
-	registerNewUser();
-	return true;
+          if (ap == "register/") {
+              co_await registerNewUser();
+              co_return true;
+          }
       }
-    }
   }
 
-  return false;
+  co_return false;
 }
 
-void AuthWidget::registerNewUser()
+awaitable<void> AuthWidget::registerNewUser()
 {
-  registerNewUser(Identity::Invalid);
+  co_await registerNewUser(Identity::Invalid);
 }
 
-void AuthWidget::registerNewUser(const Identity& oauth)
+awaitable<void> AuthWidget::registerNewUser(const Identity& oauth)
 {
-  showDialog(tr("Wt.Auth.registration"), createRegistrationView(oauth));
+  showDialog(tr("Wt.Auth.registration"), co_await createRegistrationView(oauth));
 }
 
-WDialog *AuthWidget::showDialog(const WString& title,
-				std::unique_ptr<WWidget> contents)
+WDialog *AuthWidget::showDialog(const WString& title, std::unique_ptr<WWidget> contents)
 {
   if (contents) {
     dialog_.reset(new WDialog(title));
     dialog_->contents()->addWidget(std::move(contents));
-    dialog_->contents()->childrenChanged()
-      .connect(this, &AuthWidget::closeDialog);
+    dialog_->finished().connect(this, &AuthWidget::closeDialog);
+    //dialog_->contents()->childrenChanged().connect(this, &AuthWidget::closeDialog);
 
     dialog_->footer()->hide();
 
@@ -159,7 +158,7 @@ WDialog *AuthWidget::showDialog(const WString& title,
   return dialog_.get();
 }
 
-void AuthWidget::closeDialog()
+awaitable<void> AuthWidget::closeDialog()
 {
   if (dialog_) {
 #ifdef WT_TARGET_JAVA
@@ -180,10 +179,11 @@ void AuthWidget::closeDialog()
       std::string ap = app->internalSubPath(basePath_);
 
       if (ap == "register/") {
-        app->setInternalPath(basePath_, false);
+        co_await app->setInternalPath(basePath_, false);
       }
     }
   }
+  co_return;
 }
 
 std::unique_ptr<RegistrationModel> AuthWidget::createRegistrationModel()
@@ -201,16 +201,16 @@ std::unique_ptr<RegistrationModel> AuthWidget::createRegistrationModel()
   return result;
 }
 
-std::unique_ptr<WWidget> AuthWidget::createRegistrationView(const Identity& id)
+awaitable<std::unique_ptr<WWidget>> AuthWidget::createRegistrationView(const Identity& id)
 {
   auto model = createRegistrationModel();
 
   if (id.isValid())
-    model->registerIdentified(id);
+    co_await model->registerIdentified(id);
 
   std::unique_ptr<RegistrationWidget> w(new RegistrationWidget(this));
   w->setModel(std::move(model));
-  return std::move(w);
+  co_return std::move(w);
 }
 
 void AuthWidget::handleLostPassword()
@@ -253,9 +253,9 @@ std::unique_ptr<WDialog> AuthWidget::createPasswordPromptDialog(Login& login)
   return std::make_unique<PasswordPromptDialog>(login, model_);
 }
 
-void AuthWidget::logout()
+awaitable<void> AuthWidget::logout()
 {
-  model_->logout(login_);
+  co_await model_->logout(login_);
 }
 
 void AuthWidget::displayError(const WString& m)
@@ -451,7 +451,7 @@ void AuthWidget::createSamlLoginView()
 }
 #endif // WT_HAS_SAML
 
-void AuthWidget::oAuthDone(OAuthProcess *oauth, const Identity& identity)
+awaitable<void> AuthWidget::oAuthDone(OAuthProcess *oauth, const Identity& identity)
 {
   /*
    * FIXME: perhaps consider moving this to the model with signals or
@@ -460,14 +460,13 @@ void AuthWidget::oAuthDone(OAuthProcess *oauth, const Identity& identity)
   if (identity.isValid()) {
     LOG_SECURE("{}: identified: as {}, {}, {}", oauth->service().name(), identity.id(), identity.name(), identity.email());
 
-    std::unique_ptr<AbstractUserDatabase::Transaction>
-      t(model_->users().startTransaction());
+    std::unique_ptr<AbstractUserDatabase::Transaction> t(model_->users().startTransaction());
 
     User user = model_->baseAuth()->identifyUser(identity, model_->users());
     if (user.isValid())
-      model_->loginUser(login_, user);
+      co_await model_->loginUser(login_, user);
     else
-      registerNewUser(identity);
+      co_await registerNewUser(identity);
 
     if (t.get())
       t->commit();
@@ -475,10 +474,11 @@ void AuthWidget::oAuthDone(OAuthProcess *oauth, const Identity& identity)
     LOG_SECURE("{}: error: {}", oauth->service().name(), oauth->error());
     displayError(oauth->error());
   }
+  co_return;
 }
 
 #ifdef WT_HAS_SAML
-void AuthWidget::samlDone(Saml::Process *process, const Identity &identity)
+awaitable<void> AuthWidget::samlDone(Saml::Process *process, const Identity &identity)
 {
   if (identity.isValid()) {
     LOG_SECURE("{}: identified: as {}, {}, {}", process->service().name(), identity.id(), identity.name(), identity.email());
@@ -488,9 +488,9 @@ void AuthWidget::samlDone(Saml::Process *process, const Identity &identity)
 
     User user = model_->baseAuth()->identifyUser(identity, model_->users());
     if (user.isValid())
-      model_->loginUser(login_, user);
+      co_await model_->loginUser(login_, user);
     else
-      registerNewUser(identity);
+      co_await registerNewUser(identity);
 
     if (t.get())
       t->commit();
@@ -498,18 +498,20 @@ void AuthWidget::samlDone(Saml::Process *process, const Identity &identity)
     LOG_SECURE("{}: error: {}", process->service().name(), process->error());
     displayError(process->error());
   }
+  co_return;
 }
 #endif // WT_HAS_SAML
 
-void AuthWidget::attemptPasswordLogin()
+awaitable<void> AuthWidget::attemptPasswordLogin()
 {
   updateModel(model_.get());
  
   if (model_->validate()) {
-    if (!model_->login(login_))
+    if (!co_await model_->login(login_))
       updatePasswordLoginView();
   } else
     updatePasswordLoginView();
+  co_return;
 }
 
 void AuthWidget::createLoggedInView()
@@ -524,16 +526,15 @@ void AuthWidget::createLoggedInView()
   logout->clicked().connect(this, &AuthWidget::logout);
 }
 
-void AuthWidget::processEnvironment()
+awaitable<void> AuthWidget::processEnvironment()
 {
   const WEnvironment& env = WApplication::instance()->environment();
 
   if (registrationEnabled_)
-    if (handleRegistrationPath(env.internalPath()))
-      return;
+    if (co_await handleRegistrationPath(env.internalPath()))
+      co_return;
 
-  std::string emailToken
-    = model_->baseAuth()->parseEmailToken(env.internalPath());
+  std::string emailToken = model_->baseAuth()->parseEmailToken(env.internalPath());
 
   if (!emailToken.empty()) {
     EmailTokenResult result = model_->processEmailToken(emailToken);
@@ -550,7 +551,7 @@ void AuthWidget::processEnvironment()
     case EmailTokenState::EmailConfirmed:
       displayInfo(tr("Wt.Auth.info-email-confirmed"));
       User user = result.user();
-      model_->loginUser(login_, user);
+      co_await model_->loginUser(login_, user);
     }
 
     /*
@@ -558,13 +559,14 @@ void AuthWidget::processEnvironment()
      * session ID, losing the dialog.
      */
     if (WApplication::instance()->environment().ajax())
-      WApplication::instance()->setInternalPath("/");
+      co_await WApplication::instance()->setInternalPath("/");
 
-    return;
+    co_return;
   }
 
   User user = model_->processAuthToken();
-  model_->loginUser(login_, user, LoginState::Weak);
+  co_await model_->loginUser(login_, user, LoginState::Weak);
+  co_return;
 }
 
   }

@@ -166,12 +166,13 @@ private:
   std::vector<std::unique_ptr<SignalBase> > signals_;
   ToggleButtonConfig       *config_;
 
-  void handleClick() {
+  awaitable<void> handleClick() {
     for (unsigned i = 0; i < config_->states().size(); ++i)
       if (boost::ends_with(styleClass().toUTF8(), config_->states()[i])) {
-	(dynamic_cast<Signal<> *>(signals_[i].get()))->emit();
-	break;
+        co_await(dynamic_cast<Signal<> *>(signals_[i].get()))->emit();
+        break;
       }
+    co_return;
   }
 };
 
@@ -250,7 +251,7 @@ public:
 
   bool isExpanded();
 
-  void adjustChildrenHeight(int diff);
+  awaitable<void> adjustChildrenHeight(int diff);
   void normalizeSpacers();
 
   void selfCheck();
@@ -265,8 +266,8 @@ public:
 
   void renderSelected(bool selected, int column);
 
-  void doExpand();
-  void doCollapse();
+  awaitable<void> doExpand();
+  awaitable<void> doCollapse();
 
   WWidget *cellWidget(int column);
 
@@ -453,6 +454,8 @@ void WTreeViewNode::updateGraphics(bool isLast, bool isEmpty)
 
       expandButton->signal(0).connect(this, &WTreeViewNode::doExpand);
       expandButton->signal(1).connect(this, &WTreeViewNode::doCollapse);
+//      expandButton->signal(0).connect(this, [this]() ->awaitable<void> { co_await this->doExpand(); });
+//      expandButton->signal(1).connect(this, [this]() ->awaitable<void> { co_await this->doCollapse(); });
 
       expandButton->setState(isExpanded() ? 1 : 0);
     }
@@ -576,10 +579,10 @@ WWidget *WTreeViewNode::cellWidget(int column)
   }
 }
 
-void WTreeViewNode::doExpand()
+awaitable<void> WTreeViewNode::doExpand()
 {
   if (isExpanded())
-    return;
+    co_return;
 
   loadChildren();
 
@@ -592,18 +595,18 @@ void WTreeViewNode::doExpand()
   childContainer()->show();
 
   if (parentNode())
-    parentNode()->adjustChildrenHeight(childrenHeight_);
+    co_await parentNode()->adjustChildrenHeight(childrenHeight_);
 
   view_->adjustRenderedNode(this, renderedRow());
   view_->scheduleRerender(WTreeView::RenderState::NeedAdjustViewPort);
 
-  view_->expanded_.emit(index_);
+  co_await view_->expanded_.emit(index_);
 }
 
-void WTreeViewNode::doCollapse()
+awaitable<void> WTreeViewNode::doCollapse()
 {
   if (!isExpanded())
-    return;
+    co_return;
 
   ToggleButton *expandButton = nodeWidget_->resolve<ToggleButton *>("expand");
   if (expandButton)
@@ -614,11 +617,11 @@ void WTreeViewNode::doCollapse()
   childContainer()->hide();
 
   if (parentNode())
-    parentNode()->adjustChildrenHeight(-childrenHeight_);
+    co_await parentNode()->adjustChildrenHeight(-childrenHeight_);
 
   view_->renderedRowsChanged(renderedRow(), -childrenHeight_);
 
-  view_->collapsed_.emit(index_);
+  co_await view_->collapsed_.emit(index_);
 }
 
 bool WTreeViewNode::isExpanded()
@@ -670,7 +673,7 @@ void WTreeViewNode::loadChildren()
   }
 }
 
-void WTreeViewNode::adjustChildrenHeight(int diff)
+awaitable<void> WTreeViewNode::adjustChildrenHeight(int diff)
 {
   childrenHeight_ += diff;
 
@@ -678,10 +681,11 @@ void WTreeViewNode::adjustChildrenHeight(int diff)
     WTreeViewNode *parent = parentNode();
 
     if (parent)
-      parent->adjustChildrenHeight(diff);
+      co_await parent->adjustChildrenHeight(diff);
     else
-      view_->pageChanged().emit();
+      view_->PageTabCallBack_(); //co_await view_->pageChanged().emit();
   }
+  co_return;
 }
 
 WContainerWidget *WTreeViewNode::childContainer()
@@ -1319,9 +1323,9 @@ int WTreeView::calcOptimalRenderedRowCount() const
     return viewportHeight_ + 5; // some margin... something inaccurate going on?
 }
 
-void WTreeView::setModel(const std::shared_ptr<WAbstractItemModel>& model)
+awaitable<void> WTreeView::setModel(const std::shared_ptr<WAbstractItemModel>& model)
 {
-  WAbstractItemView::setModel(model);
+  co_await WAbstractItemView::setModel(model);
 
   typedef WTreeView Self;
 
@@ -1331,9 +1335,11 @@ void WTreeView::setModel(const std::shared_ptr<WAbstractItemModel>& model)
   modelConnections_.push_back(model->columnsAboutToBeRemoved().connect
 			      (this, &Self::modelColumnsAboutToBeRemoved));
   modelConnections_.push_back(model->columnsRemoved().connect
-			      (this, &Self::modelColumnsRemoved));
+                  (this, &Self::modelColumnsRemoved));
+
+  //model->rowsInserted().connect(&Self::modelRowsInserted);
   modelConnections_.push_back(model->rowsInserted().connect
-			      (this, &Self::modelRowsInserted));
+                  (this, &Self::modelRowsInserted));
   modelConnections_.push_back(model->rowsAboutToBeRemoved().connect
 			      (this, &Self::modelRowsAboutToBeRemoved));
   modelConnections_.push_back(model->rowsRemoved().connect
@@ -1357,7 +1363,8 @@ void WTreeView::setModel(const std::shared_ptr<WAbstractItemModel>& model)
     columns_.erase(columns_.begin() + columns_.size() - 1);
   }
 
-  pageChanged().emit();
+  //co_await pageChanged().emit();
+   PageTabCallBack_();
 }
 
 void WTreeView::scheduleRerender(RenderState what)
@@ -1575,7 +1582,10 @@ void WTreeView::rerenderTree()
 
   setRootNodeStyle();
 
-  pageChanged().emit();
+  //auto future = asio::use_awaitable_t<void>{}.(pageChanged().emit());
+
+  //co_await pageChanged().emit();
+  PageTabCallBack_();
 
   adjustToViewport();
 }
@@ -1590,15 +1600,16 @@ void WTreeView::onViewportChange(WScrollEvent e)
 
 void WTreeView::contentsSizeChanged(int width, int height)
 {
-  viewportHeight_
-    = static_cast<int>(std::ceil(height / rowHeight().toPixels()));
+  viewportHeight_ = static_cast<int>(std::ceil(height / rowHeight().toPixels()));
 
   scheduleRerender(RenderState::NeedAdjustViewPort);
 }
 
-void WTreeView::onItemEvent(std::string nodeAndColumnId, std::string type,
-			    std::string extra1, std::string extra2,
-			    WMouseEvent event)
+awaitable<void> WTreeView::onItemEvent(std::string nodeAndColumnId,
+                                       std::string type,
+                                       std::string extra1,
+                                       std::string extra2,
+                                       WMouseEvent event)
 {
   // nodeId and columnId are combined because WSignal needed to be changed
   // since MSVS 2012 does not support >5 arguments in std::bind()
@@ -1611,36 +1622,36 @@ void WTreeView::onItemEvent(std::string nodeAndColumnId, std::string type,
    */
   if (nodeAndColumnId.empty() && skipNextMouseEvent_) {
     skipNextMouseEvent_ = false; 
-    return;
+    co_return;
   } else if (!nodeAndColumnId.empty()) {
     skipNextMouseEvent_ = true;
   }
 
   if (type == "clicked") {
-    handleClick(index, event);
+    co_await handleClick(index, event);
   } else if (type == "dblclicked") {
-    handleDoubleClick(index, event);
+    co_await handleDoubleClick(index, event);
   } else if (type == "mousedown") {
-    handleMouseDown(index, event);
+    co_await handleMouseDown(index, event);
   } else if (type == "mouseup") {
-    handleMouseUp(index, event);
+    co_await handleMouseUp(index, event);
   } else if (type == "drop") {
     WDropEvent e(WApplication::instance()->decodeObject(extra1), extra2, event);
-    dropEvent(e, index);
+    co_await dropEvent(e, index);
   }
 }
 
-void WTreeView::onRowDropEvent(std::string nodeAndColumnId,
+awaitable<void> WTreeView::onRowDropEvent(std::string nodeAndColumnId,
                                std::string sourceId, std::string mimeType, std::string side,
                                WMouseEvent event)
 {
   WModelIndex index = calculateModelIndex(nodeAndColumnId);
   WDropEvent e(WApplication::instance()->decodeObject(sourceId), mimeType, event);
 
-  dropEvent(e, index, side == "top" ? Side::Top : Side::Bottom);
+  co_await dropEvent(e, index, side == "top" ? Side::Top : Side::Bottom);
 }
 
-void WTreeView::onItemTouchEvent(std::string nodeAndColumnId, std::string type, WTouchEvent event)
+awaitable<void> WTreeView::onItemTouchEvent(std::string nodeAndColumnId, std::string type, WTouchEvent event)
 {
   // nodeId and columnId are combined because WSignal needed to be changed
   // since MSVS 2012 does not support >5 arguments in std::bind()
@@ -1648,11 +1659,12 @@ void WTreeView::onItemTouchEvent(std::string nodeAndColumnId, std::string type, 
   index.push_back(calculateModelIndex(nodeAndColumnId));
 
   if (type == "touchselect")
-    handleTouchSelect(index, event);
+    co_await handleTouchSelect(index, event);
   else if (type == "touchstart")
-    handleTouchStart(index, event);
+    co_await handleTouchStart(index, event);
   else if (type == "touchend")
-    handleTouchEnd(index, event);
+    co_await handleTouchEnd(index, event);
+  co_return;
 }
 
 WModelIndex WTreeView::calculateModelIndex(std::string nodeAndColumnId)
@@ -1697,8 +1709,7 @@ WModelIndex WTreeView::calculateModelIndex(std::string nodeAndColumnId)
   return index;
 }
 
-int WTreeView::subTreeHeight(const WModelIndex& index,
-			     int lowerBound, int upperBound) const
+int WTreeView::subTreeHeight(const WModelIndex& index, int lowerBound, int upperBound) const
 {
   int result = 0;
 
@@ -1711,13 +1722,14 @@ int WTreeView::subTreeHeight(const WModelIndex& index,
   if (model() && isExpanded(index)) {
     int childCount = model()->rowCount(index);
 
-    for (int i = 0; i < childCount; ++i) {
+    for (int i = 0; i < childCount; ++i)
+    {
       WModelIndex childIndex = model()->index(i, 0, index);
 
       result += subTreeHeight(childIndex, upperBound - result);
 
       if (result >= upperBound)
-	return result;
+        return result;
     }
   }
 
@@ -1775,73 +1787,79 @@ void WTreeView::setCollapsed(const WModelIndex& index)
 #endif
 }
 
-void WTreeView::setExpanded(const WModelIndex& index, bool expanded)
+awaitable<void> WTreeView::setExpanded(const WModelIndex& index, bool expanded)
 {
   if (isExpanded(index) != expanded) {
     WWidget *w = widgetForIndex(index);
 
     WTreeViewNode *node = w ? dynamic_cast<WTreeViewNode *>(w) : nullptr;
 
-    if (node) {
+    if (node)
+    {
       if (expanded)
-	node->doExpand();
+        co_await node->doExpand();
       else
-	node->doCollapse();
-    } else {
+        co_await node->doCollapse();
+    }
+    else
+    {
       int height = subTreeHeight(index);
 
       if (expanded)
-	expandedSet_.insert(index);
+        expandedSet_.insert(index);
       else
-	setCollapsed(index);
+        setCollapsed(index);
 
-      if (w) {
-	RowSpacer *spacer = dynamic_cast<RowSpacer *>(w);
+      if (w)
+      {
+        RowSpacer *spacer = dynamic_cast<RowSpacer *>(w);
 
-	int diff = subTreeHeight(index) - height;
+        int diff = subTreeHeight(index) - height;
 
-	spacer->setRows(spacer->rows() + diff);
-	spacer->node()->adjustChildrenHeight(diff);
+        spacer->setRows(spacer->rows() + diff);
+        co_await spacer->node()->adjustChildrenHeight(diff);
 
-	renderedRowsChanged(renderedRow(index, spacer,
-					renderLowerBound(), renderUpperBound()),
-			    diff);
+        renderedRowsChanged(renderedRow(index, spacer,
+                                        renderLowerBound(), renderUpperBound()),
+                            diff);
       }
     }
   }
+  co_return;
 }
 
-void WTreeView::expand(const WModelIndex& index)
+awaitable<void> WTreeView::expand(const WModelIndex& index)
 {
-  setExpanded(index, true);
+  co_await setExpanded(index, true);
 }
 
-void WTreeView::collapse(const WModelIndex& index)
+awaitable<void> WTreeView::collapse(const WModelIndex& index)
 {
-  setExpanded(index, false);
+  co_await setExpanded(index, false);
 }
 
-void WTreeView::collapseAll()
+awaitable<void> WTreeView::collapseAll()
 {
   while (!expandedSet_.empty())
-    collapse(Utils::first(expandedSet_));
+    co_await collapse(Utils::first(expandedSet_));
+  co_return;
 }
 
-void WTreeView::expandToDepth(int depth)
+awaitable<void> WTreeView::expandToDepth(int depth)
 {
   if (depth > 0)
-    expandChildrenToDepth(rootIndex(), depth);
+    co_await expandChildrenToDepth(rootIndex(), depth);
 }
 
-void WTreeView::expandChildrenToDepth(const WModelIndex& index, int depth)
+awaitable<void> WTreeView::expandChildrenToDepth(const WModelIndex& index, int depth)
 {
   for (int i = 0; i < model()->rowCount(index); ++i) {
     WModelIndex c = model()->index(i, 0, index);
 
-    expand(c);
+    co_await expand(c);
 
     if (depth > 1)
-      expandChildrenToDepth(c, depth - 1);
+      co_await expandChildrenToDepth(c, depth - 1);
   }
 }
 
@@ -1995,15 +2013,14 @@ void WTreeView::modelColumnsRemoved(const WModelIndex& parent,
     currentSortColumn_ = -1;
 }
 
-void WTreeView::modelRowsInserted(const WModelIndex& parent,
-				  int start, int end)
+awaitable<void> WTreeView::modelRowsInserted(const WModelIndex& parent, int start, int end)
 {
   int count = end - start + 1;
-  shiftModelIndexes(parent, start, count);
+  co_await shiftModelIndexes(parent, start, count);
 
   if (renderState_ == RenderState::NeedRerender || 
       renderState_ == RenderState::NeedRerenderData)
-    return;
+    co_return;
 
   WWidget *parentWidget = widgetForIndex(parent);
 
@@ -2025,26 +2042,26 @@ void WTreeView::modelRowsInserted(const WModelIndex& parent,
 	else if (parentNode->bottomSpacerHeight() != 0)
 	  startWidget = parentNode->bottomSpacer();
 
-	parentNode->adjustChildrenHeight(count);
+    co_await parentNode->adjustChildrenHeight(count);
 	parentNode->shiftModelIndexes(start, count);
 
 	if (startWidget && startWidget == parentNode->topSpacer()) {
 	  parentNode->addTopSpacerHeight(count);
-	  if (renderedRowsChange)
-	    renderedRowsChanged(renderedRow(model()->index(start, 0, parent),
-					    parentNode->topSpacer(),
-					    renderLowerBound(),
-					    renderUpperBound()),
-				count);
+      if (renderedRowsChange)
+        renderedRowsChanged(renderedRow(model()->index(start, 0, parent),
+                                        parentNode->topSpacer(),
+                                        renderLowerBound(),
+                                        renderUpperBound()),
+                            count);
 
 	} else if (startWidget && startWidget == parentNode->bottomSpacer()) {
 	  parentNode->addBottomSpacerHeight(count);
-	  if (renderedRowsChange)
-	    renderedRowsChanged(renderedRow(model()->index(start, 0, parent),
-					    parentNode->bottomSpacer(),
-					    renderLowerBound(),
-					    renderUpperBound()),
-				count);
+      if (renderedRowsChange)
+        renderedRowsChanged(renderedRow(model()->index(start, 0, parent),
+                                        parentNode->bottomSpacer(),
+                                        renderLowerBound(),
+                                        renderUpperBound()),
+                            count);
 	} else {
 	  int maxRenderHeight
 	    = firstRenderedRow_ + std::max(validRowCount_, viewportHeight_)
@@ -2081,15 +2098,14 @@ void WTreeView::modelRowsInserted(const WModelIndex& parent,
 	    int targetSize = containerIndex + nodesToAdd + 1;
 
 	    int extraBottomSpacer = 0;
-	    while (parentNode->childContainer()->count() > targetSize) {
-	      WTreeViewNode *n
-		= dynamic_cast<WTreeViewNode *>(parentNode->childContainer()
-						->widget(targetSize - 1));
+        while (parentNode->childContainer()->count() > targetSize)
+        {
+          WTreeViewNode *n = dynamic_cast<WTreeViewNode *>(parentNode->childContainer()->widget(targetSize - 1));
 	      assert(n);
 	      extraBottomSpacer += n->renderedHeight();
 
 	      if (renderedRowsChange)
-		validRowCount_ -= n->renderedHeight();
+            validRowCount_ -= n->renderedHeight();
 
 	      n->removeFromParent();
 	    }
@@ -2101,13 +2117,12 @@ void WTreeView::modelRowsInserted(const WModelIndex& parent,
 	  }
 
 	  if (first && renderedRowsChange)
-	    renderedRowsChanged(first->renderedRow(renderLowerBound(),
-						   renderUpperBound()),
-				nodesToAdd);
+        renderedRowsChanged(first->renderedRow(renderLowerBound(), renderUpperBound()), nodesToAdd);
 
 	  // Update graphics if the last node has changed, i.e. if we are
 	  // adding rows at the back
-	  if (end == model()->rowCount(parent) - 1 && start >= 1) {
+      if (end == model()->rowCount(parent) - 1 && start >= 1)
+      {
 	    WTreeViewNode *n = dynamic_cast<WTreeViewNode *>
 	      (parentNode->widgetForModelRow(start - 1));
 
@@ -2127,7 +2142,7 @@ void WTreeView::modelRowsInserted(const WModelIndex& parent,
 	RowSpacer *s = dynamic_cast<RowSpacer *>(parentWidget);
 
 	s->setRows(s->rows() + count);
-	s->node()->adjustChildrenHeight(count);
+    co_await s->node()->adjustChildrenHeight(count);
 
 	if (renderedRowsChange)
 	  renderedRowsChanged
@@ -2141,10 +2156,10 @@ void WTreeView::modelRowsInserted(const WModelIndex& parent,
      * parentWidget is 0: it means it is not even part of any spacer.
      */
   }
+  co_return;
 }
 
-void WTreeView::modelRowsAboutToBeRemoved(const WModelIndex& parent,
-					  int start, int end)
+awaitable<void> WTreeView::modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   int count = end - start + 1;
 
@@ -2223,11 +2238,10 @@ void WTreeView::modelRowsAboutToBeRemoved(const WModelIndex& parent,
     }
   }
 
-  shiftModelIndexes(parent, start, -count);
+  co_await shiftModelIndexes(parent, start, -count);
 }
 
-void WTreeView::modelRowsRemoved(const WModelIndex& parent,
-				 int start, int end)
+awaitable<void> WTreeView::modelRowsRemoved(const WModelIndex& parent, int start, int end)
 {
   int count = end - start + 1;
 
@@ -2235,55 +2249,61 @@ void WTreeView::modelRowsRemoved(const WModelIndex& parent,
       renderState_ != RenderState::NeedRerenderData) {
     WWidget *parentWidget = widgetForIndex(parent);
 
-    if (parentWidget) {
+    if (parentWidget)
+    {
       WTreeViewNode *parentNode = dynamic_cast<WTreeViewNode *>(parentWidget);
 
-      if (parentNode) {
-	if (parentNode->childrenLoaded()) {
-	  parentNode->normalizeSpacers();
-	  parentNode->adjustChildrenHeight(-removedHeight_);
-	  parentNode->shiftModelIndexes(start, -count);
+      if (parentNode)
+      {
+        if (parentNode->childrenLoaded())
+        {
+          parentNode->normalizeSpacers();
+          co_await parentNode->adjustChildrenHeight(-removedHeight_);
+          parentNode->shiftModelIndexes(start, -count);
 
-	  // Update graphics for last node in parent, if we are removing rows
-	  // at the back. This is not affected by widgetForModelRow() returning
-	  // accurate information of rows just deleted and indexes not yet
-	  // shifted
-	  if (end >= model()->rowCount(parent) && start >= 1) {
-	    WTreeViewNode *n = dynamic_cast<WTreeViewNode *>
-	      (parentNode->widgetForModelRow(start - 1));
+          // Update graphics for last node in parent, if we are removing rows
+          // at the back. This is not affected by widgetForModelRow() returning
+          // accurate information of rows just deleted and indexes not yet
+          // shifted
+          if (end >= model()->rowCount(parent) && start >= 1)
+          {
+            WTreeViewNode *n = dynamic_cast<WTreeViewNode *>
+              (parentNode->widgetForModelRow(start - 1));
 
-	    if (n)
-	      n->updateGraphics(true, !model()->hasChildren(n->modelIndex()));
-	  }
-	} /* else:
-	     children not loaded -- so we do not need to bother
-	  */
+            if (n)
+              n->updateGraphics(true, !model()->hasChildren(n->modelIndex()));
+          }
+        } /* else:
+             children not loaded -- so we do not need to bother
+          */
 
-	// Update graphics for parent when all rows have been removed
+        // Update graphics for parent when all rows have been removed
         if (model()->rowCount(parent) == 0 && count != 0)
-	  parentNode->updateGraphics(parentNode->isLast(), true);
-      } else {
-	/*
-	 * Only if the parent is in fact expanded, the spacer reduces
-	 * in size
-	 */
-	if (isExpanded(parent)) {
-	  RowSpacer *s = dynamic_cast<RowSpacer *>(parentWidget);
-	  WTreeViewNode *node = s->node();
-	  s->setRows(s->rows() - removedHeight_); // could delete s!
-	  node->adjustChildrenHeight(-removedHeight_);
+          parentNode->updateGraphics(parentNode->isLast(), true);
+      }
+      else
+      {
+        /*
+         * Only if the parent is in fact expanded, the spacer reduces
+         * in size
+         */
+        if (isExpanded(parent)) {
+          RowSpacer *s = dynamic_cast<RowSpacer *>(parentWidget);
+          WTreeViewNode *node = s->node();
+          s->setRows(s->rows() - removedHeight_); // could delete s!
+          co_await node->adjustChildrenHeight(-removedHeight_);
         }
       }
     } else {
       /*
-	parentWidget is 0: it means it is not even part of any spacer.
+        parentWidget is 0: it means it is not even part of any spacer.
       */
     }
   }
 
-  if (renderState_ != RenderState::NeedRerender && 
-      renderState_ != RenderState::NeedRerenderData)
+  if (renderState_ != RenderState::NeedRerender && renderState_ != RenderState::NeedRerenderData)
     renderedRowsChanged(firstRemovedRow_, -removedHeight_);
+  co_return;
 }
 
 void WTreeView::modelDataChanged(const WModelIndex& topLeft,
@@ -2833,18 +2853,18 @@ shiftModelIndexes(const WModelIndex& parent, int start, int count,
   return removed;
 }
 
-void WTreeView::shiftModelIndexes(const WModelIndex& parent,
-				  int start, int count)
+awaitable<void> WTreeView::shiftModelIndexes(const WModelIndex& parent, int start, int count)
 {
   shiftModelIndexes(parent, start, count, model(), expandedSet_);
 
   int removed = shiftModelIndexes(parent, start, count, model(),
 				  selectionModel()->selection_);
 
-  shiftEditorRows(parent, start, count, false);
+  co_await shiftEditorRows(parent, start, count, false);
 
   if (removed)
-    selectionChanged().emit();
+    co_await selectionChanged().emit();
+  co_return;
 }
 
 void WTreeView::modelLayoutAboutToBeChanged()
@@ -2854,15 +2874,16 @@ void WTreeView::modelLayoutAboutToBeChanged()
   WAbstractItemView::modelLayoutAboutToBeChanged();
 }
 
-void WTreeView::modelLayoutChanged()
+awaitable<void> WTreeView::modelLayoutChanged()
 {
-  WAbstractItemView::modelLayoutChanged();
+  co_await WAbstractItemView::modelLayoutChanged();
 
   expandedSet_ = WModelIndex::decodeFromRawIndexes(expandedSet_);
 
   renderedNodes_.clear();
 
-  pageChanged().emit();
+  PageTabCallBack_();
+  //co_await pageChanged().emit();
 }
 
 void WTreeView::addRenderedNode(WTreeViewNode *node)
@@ -2966,7 +2987,8 @@ void WTreeView::setCurrentPage(int page)
 
   contents_->setOffsets(-viewportTop_ * rowHeight().toPixels(), Side::Top);
 
-  pageChanged().emit();
+  //co_await pageChanged().emit();
+  PageTabCallBack_();
 
   scheduleRerender(RenderState::NeedAdjustViewPort);
 }
@@ -2991,8 +3013,7 @@ int WTreeView::pageSize() const
 
 void WTreeView::scrollTo(const WModelIndex& index, ScrollHint hint)
 {
-  const int row = getIndexRow(index, rootIndex(), 0,
-                              std::numeric_limits<int>::max());
+  const int row = getIndexRow(index, rootIndex(), 0, std::numeric_limits<int>::max());
 
   WApplication *app = WApplication::instance();
 
@@ -3000,24 +3021,24 @@ void WTreeView::scrollTo(const WModelIndex& index, ScrollHint hint)
     if (viewportHeight_ != UNKNOWN_VIEWPORT_HEIGHT) {
       if (hint == ScrollHint::EnsureVisible) {
         if (viewportTop_ + viewportHeight_ <= row)
-	  hint = ScrollHint::PositionAtBottom;
-	else if (row < viewportTop_)
-	  hint = ScrollHint::PositionAtTop;
+          hint = ScrollHint::PositionAtBottom;
+        else if (row < viewportTop_)
+          hint = ScrollHint::PositionAtTop;
       }
 
       switch (hint) {
       case ScrollHint::PositionAtTop:
-	viewportTop_ = row; break;
+        viewportTop_ = row; break;
       case ScrollHint::PositionAtBottom:
-	viewportTop_ = row - viewportHeight_ + 1; break;
+        viewportTop_ = row - viewportHeight_ + 1; break;
       case ScrollHint::PositionAtCenter:
-	viewportTop_ = row - viewportHeight_/2 + 1; break;
+        viewportTop_ = row - viewportHeight_/2 + 1; break;
       default:
-	break;
+        break;
       }
 
       if (hint != ScrollHint::EnsureVisible) {
-	scheduleRerender(RenderState::NeedAdjustViewPort);
+        scheduleRerender(RenderState::NeedAdjustViewPort);
       }
     }
 
@@ -3029,7 +3050,8 @@ void WTreeView::scrollTo(const WModelIndex& index, ScrollHint hint)
       << "," << (int)hint << ");});";
 
     doJavaScript(s.str());
-  } else
+  }
+  else
     setCurrentPage(row / pageSize());
 }
 

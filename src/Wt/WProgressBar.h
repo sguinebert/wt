@@ -71,7 +71,7 @@ public:
    *
    * \p value must be a value between minimum() and maximum().
    */
-  void setValue(double value);
+  awaitable<void> setValue(double value);
 
   /*! \brief Returns the current progress.
    */

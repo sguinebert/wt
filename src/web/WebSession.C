@@ -427,7 +427,7 @@ std::string_view clientAddress(http::request& request, const Wt::Configuration &
   }
 }
 
-void WebSession::setLoaded()
+awaitable<void> WebSession::setLoaded()
 {
   bool wasSuspended = state_ == State::Suspended;
   setState(State::Loaded, controller_->configuration().sessionTimeout());
@@ -437,16 +437,18 @@ void WebSession::setLoaded()
       app_->doJavaScript(WT_CLASS ".history.removeSessionId()");
       sessionIdInUrl_ = false;
     }
-    app_->unsuspended().emit();
+    co_await app_->unsuspended().emit();
   }
+  co_return;
 }
 
-void WebSession::setExpectLoad()
+awaitable<void> WebSession::setExpectLoad()
 {
   if (controller_->configuration().ajaxPuzzle())
     setState(State::ExpectLoad, controller_->configuration().bootstrapTimeout());
   else
-    setLoaded();
+    co_await setLoaded();
+  co_return;
 }
 
 void WebSession::setState(State state, int timeout)
@@ -551,7 +553,7 @@ bool WebSession::useUglyInternalPaths() const
 #endif
 }
 
-std::string WebSession::bootstrapUrl(const WebResponse& response, BootstrapOption option) const
+std::string WebSession::bootstrapUrl(const WebResponse& /*response*/, BootstrapOption option) const
 {
   switch (option) {
   case BootstrapOption::KeepInternalPath: {
@@ -609,7 +611,7 @@ std::string WebSession::bootstrapUrl(const WebResponse& response, BootstrapOptio
   return std::string();
 }
 
-std::string WebSession::bootstrapUrl(http::context *context, BootstrapOption option) const
+std::string WebSession::bootstrapUrl(http::context */*context*/, BootstrapOption option) const
 {
   switch (option) {
   case BootstrapOption::KeepInternalPath: {
@@ -963,7 +965,7 @@ void WebSession::kill()
   unlockRecursiveEventLoop();
 }
 
-void WebSession::checkTimers()
+awaitable<void> WebSession::checkTimers()
 {
   WContainerWidget *timers = app_->timerRoot();
 
@@ -981,7 +983,8 @@ void WebSession::checkTimers()
   WMouseEvent dummy;
 
   for (unsigned i = 0; i < expired.size(); ++i)
-    expired[i]->clicked().emit(dummy);
+    co_await expired[i]->clicked().emit(dummy); //cf timerWidget_->clicked in WTimer
+  co_return;
 }
 
 void WebSession::redirect(const std::string& url)
@@ -1347,8 +1350,21 @@ awaitable<void> WebSession::Handler::destroy()
     co_await session_->processQueuedEvents(*this);
     if (session_->triggerUpdate_)
       session_->pushUpdates();
-    else if (response_ && session_->state_ != State::Dead)
+    else if (response_ && session_->state_ != State::Dead) {
+      if (!session_->env_->ajax()) //move elsewhere
+      {
+        try {
+          co_await session_->checkTimers();
+        } catch (std::exception& e) {
+          LOG_ERROR("Exception while triggering timers {}", e.what());
+          RETHROW(e);
+        } catch (...) {
+          LOG_ERROR("Exception while triggering timers");
+          throw;
+        }
+      }
       session()->render(*this);
+    }
 
     Utils::erase(session_->handlers_, this);
   }
@@ -1448,13 +1464,26 @@ awaitable<void> WebSession::doRecursiveEventLoop()
    * In that case, we do not need to finish it.
    */
   if (handler->request())
-    handler->session()->notifySignal(WEvent(WEvent::Impl(handler)));
+    co_await handler->session()->notifySignal(WEvent(WEvent::Impl(handler)));
   else
     if (app_->updatesEnabled())
       app_->triggerUpdate();
 
-  if (handler->response())
+  if (handler->response()) {
+    if (!env_->ajax()) //move elsewhere
+    {
+      try {
+        co_await checkTimers();
+      } catch (std::exception& e) {
+        LOG_ERROR("Exception while triggering timers {}", e.what());
+        RETHROW(e);
+      } catch (...) {
+        LOG_ERROR("Exception while triggering timers");
+        throw;
+      }
+    }
     handler->session()->render(*handler);
+  }
 
   if (state_ == State::Dead) {
     recursiveEventHandler_ = nullptr;
@@ -1506,7 +1535,7 @@ awaitable<void> WebSession::doRecursiveEventLoop()
     throw WException("doRecursiveEventLoop(): session was killed");
   }
 
-  setLoaded();
+  co_await setLoaded();
 
   /*
    * We use recursiveEventHandler_ != 0 to postpone rendering: we only want
@@ -1802,7 +1831,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
                 else // progressiveBoot_
                     setState(State::Loaded, conf.bootstrapTimeout());
             } else
-                setLoaded();
+                co_await setLoaded();
           } else {
             /*
              * Delay application start
@@ -1838,7 +1867,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
 
             co_await app_->notify(WEvent(WEvent::Impl(&handler)));
 
-            setExpectLoad();
+            co_await setExpectLoad();
           }
           break;
         default:
@@ -1867,7 +1896,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
           else if (requestE == "script") {
             context->setResponseType(http::ResponseType::Script);
             if (state_ == State::Loaded)
-                setExpectLoad();
+                co_await setExpectLoad();
           } else if (requestE == "style") {
             flushBootStyleResponse();
 
@@ -2006,16 +2035,19 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
           {
             doNotify = true;
 
-            if (env_->ajax()) {
+            if (env_->ajax())
+            {
                 if (state_ != State::ExpectLoad &&
                     state_ != State::Suspended &&
-                    handler.context()->responseType() == http::ResponseType::Update) {
-                    setLoaded();
+                    handler.context()->responseType() == http::ResponseType::Update)
+                {
+                    co_await setLoaded();
                 }
             } else if (state_ != State::ExpectLoad &&
                        !(state_ == State::Suspended && requestForResource) &&
-                       !controller_->limitPlainHtmlSessions()) {
-                setLoaded();
+                       !controller_->limitPlainHtmlSessions())
+            {
+                co_await setLoaded();
             }
           }
         } else {
@@ -2679,8 +2711,21 @@ awaitable<void> WebSession::notify(const WEvent& event)
     {
       WT_CALL_FUNCTION(event.impl_.function);
 
-      if (event.impl_.handler->context())
+      if (event.impl_.handler->context()){
+        if (!env_->ajax()) //move elsewhere
+        {
+          try {
+            co_await checkTimers();
+          } catch (std::exception& e) {
+            LOG_ERROR("Exception while triggering timers {}", e.what());
+            RETHROW(e);
+          } catch (...) {
+            LOG_ERROR("Exception while triggering timers");
+            throw;
+          }
+        }
         render(*event.impl_.handler);
+      }
     }
     catch (std::exception& e)
     {
@@ -2727,6 +2772,18 @@ awaitable<void> WebSession::notify(const WEvent& event)
     WebSession::Handler::instance()->setRequest(context);
 
   if (event.impl_.renderOnly) {
+    if (!env_->ajax()) //move elsewhere
+    {
+      try {
+        co_await checkTimers();
+      } catch (std::exception& e) {
+        LOG_ERROR("Exception while triggering timers {}", e.what());
+        RETHROW(e);
+      } catch (...) {
+        LOG_ERROR("Exception while triggering timers");
+        throw;
+      }
+    }
     render(*handler);
     co_return;
   }
@@ -2747,6 +2804,18 @@ awaitable<void> WebSession::notify(const WEvent& event)
       app_->handleJavaScriptError("unknown error");
     }
     renderer_.setJSSynced(false);
+    if (!env_->ajax()) //move elsewhere
+    {
+      try {
+        co_await checkTimers();
+      } catch (std::exception& e) {
+        LOG_ERROR("Exception while triggering timers {}", e.what());
+        RETHROW(e);
+      } catch (...) {
+        LOG_ERROR("Exception while triggering timers");
+        throw;
+      }
+    }
     render(*handler);
     co_return;
   }
@@ -2761,6 +2830,18 @@ awaitable<void> WebSession::notify(const WEvent& event)
 
   switch (state_) {
   case State::JustCreated:
+    if (!env_->ajax()) //move elsewhere
+    {
+      try {
+        co_await checkTimers();
+      } catch (std::exception& e) {
+        LOG_ERROR("Exception while triggering timers {}", e.what());
+        RETHROW(e);
+      } catch (...) {
+        LOG_ERROR("Exception while triggering timers");
+        throw;
+      }
+    }
     render(*handler);
 
     break;
@@ -2840,20 +2921,31 @@ awaitable<void> WebSession::notify(const WEvent& event)
           env_->enableAjax(context);
           app_->enableAjax();
           if (env_->internalPath().length() > 1)
-            changeInternalPath(env_->internalPath(), context);
+            co_await changeInternalPath(env_->internalPath(), context);
         } else {
           std::string hashE { context->getParameter("_") };
           if (!hashE.empty())
-            changeInternalPath(hashE, context);
+            co_await changeInternalPath(hashE, context);
         }
       }
-
+      if (!env_->ajax()) //move elsewhere
+      {
+        try {
+          co_await checkTimers();
+        } catch (std::exception& e) {
+          LOG_ERROR("Exception while triggering timers {}", e.what());
+          RETHROW(e);
+        } catch (...) {
+          LOG_ERROR("Exception while triggering timers");
+          throw;
+        }
+      }
       render(*handler);
     } else {
       // a normal request to a loaded application
       try {
         if (context->postDataExceeded())
-          app_->requestTooLarge().emit(context->postDataExceeded());
+          co_await app_->requestTooLarge().emit(context->postDataExceeded());
       } catch (std::exception& e) {
         LOG_ERROR("Exception in WApplication::requestTooLarge {}", e.what());
         RETHROW(e);
@@ -3055,7 +3147,7 @@ awaitable<void> WebSession::notify(const WEvent& event)
 
         try {
           handler->nextSignal = -1;
-	      notifySignal(event);
+          co_await notifySignal(event);
 	    } catch (std::exception& e) {
 	      LOG_ERROR("error during event handling: {}", e.what());
 	      RETHROW(e);
@@ -3076,11 +3168,11 @@ awaitable<void> WebSession::notify(const WEvent& event)
       env_->parameters_ = handler->context()->req().getParameters();// handler->context()->getParameterMap();
 
       if (!hashE.empty())
-        changeInternalPath(hashE, context);
+        co_await changeInternalPath(hashE, context);
       else if (auto subpath = context->pathInfo(applicationUrl_); !subpath.empty()) {
-        changeInternalPath(std::string(subpath), context);
+        co_await changeInternalPath(std::string(subpath), context);
 	  } else
-        changeInternalPath("", context);
+        co_await changeInternalPath("", context);
 	}
 
     if (signalE.empty()) {
@@ -3102,7 +3194,21 @@ awaitable<void> WebSession::notify(const WEvent& event)
 	}
 
     if (handler->context() && !recursiveEventHandler_)
-      render(*handler);
+    {
+        if (!env_->ajax()) //move elsewhere
+        {
+            try {
+              co_await checkTimers();
+            } catch (std::exception& e) {
+              LOG_ERROR("Exception while triggering timers {}", e.what());
+              RETHROW(e);
+            } catch (...) {
+              LOG_ERROR("Exception while triggering timers");
+              throw;
+            }
+        }
+       render(*handler);
+    }
       }
     }
   case State::Dead:
@@ -3110,20 +3216,22 @@ awaitable<void> WebSession::notify(const WEvent& event)
   }
 }
 
-void WebSession::changeInternalPath(const std::string& path, WebResponse *response)
+awaitable<void> WebSession::changeInternalPath(const std::string& path, WebResponse *response)
 {
   if (!app_->internalPathIsChanged_)
-    if (!app_->changedInternalPath(path))
+    if (!co_await app_->changedInternalPath(path))
       if (response->responseType() == WebResponse::ResponseType::Page)
         response->setStatus(404);
+  co_return;
 }
 
-void WebSession::changeInternalPath(const std::string &path, http::context *context)
+awaitable<void> WebSession::changeInternalPath(const std::string &path, http::context *context)
 {
   if (!app_->internalPathIsChanged_)
-    if (!app_->changedInternalPath(path))
+    if (!co_await app_->changedInternalPath(path))
       if (context->responseType() == http::ResponseType::Page)
         context->status(404);
+  co_return;
 }
 
 EventType WebSession::getEventType(const WEvent& event) const
@@ -3266,16 +3374,18 @@ void WebSession::render(Handler& handler)
    */
 
   try {
-    if (!env_->ajax())
-      try {
-        checkTimers();
-      } catch (std::exception& e) {
-        LOG_ERROR("Exception while triggering timers {}", e.what());
-        RETHROW(e);
-      } catch (...) {
-        LOG_ERROR("Exception while triggering timers");
-        throw;
-      }
+//    if (!env_->ajax()) //move elsewhere
+//    {
+//      try {
+//        co_await checkTimers();
+//      } catch (std::exception& e) {
+//        LOG_ERROR("Exception while triggering timers {}", e.what());
+//        RETHROW(e);
+//      } catch (...) {
+//        LOG_ERROR("Exception while triggering timers");
+//        throw;
+//      }
+//    }
 
     if (app_ && app_->hasQuit())
       kill();
@@ -3351,7 +3461,7 @@ void WebSession::serveResponse(Handler& handler)
   handler.flushResponse();
 }
 
-void WebSession::propagateFormValues(const WEvent& e, const std::string& se)
+awaitable<void> WebSession::propagateFormValues(const WEvent& e, const std::string& se)
 {
   //const WebRequest& request = *e.impl_.handler->request();
   auto context = e.impl_.handler->context();
@@ -3390,8 +3500,9 @@ void WebSession::propagateFormValues(const WEvent& e, const std::string& se)
         continue; // Do not update form data of a disabled or invisible widget
       obj->setFormData(getFormData(context, se + formName));
     } else
-      obj->setRequestTooLarge(context->postDataExceeded());
+      co_await obj->setRequestTooLarge(context->postDataExceeded());
   }
+  co_return;
 }
 
 WObject::FormData WebSession::getFormData(const WebRequest& request, const std::string& name)
@@ -3456,7 +3567,7 @@ WebSession::getSignalProcessingOrder(const WEvent& e) const
   return highPriority;
 }
 
-void WebSession::notifySignal(const WEvent& e)
+awaitable<void> WebSession::notifySignal(const WEvent& e)
 {
   WebSession::Handler* handler = e.impl_.handler;
   auto context = handler->context();
@@ -3469,7 +3580,7 @@ void WebSession::notifySignal(const WEvent& e)
 
   for (unsigned i = handler->nextSignal; i < handler->signalOrder.size(); ++i) {
     if (!context)
-      return;
+      co_return;
 
     //const WebRequest& request = *handler.request();
 
@@ -3478,7 +3589,7 @@ void WebSession::notifySignal(const WEvent& e)
     std::string signalE { getSignal(context, se) };
 
     if (signalE.empty())
-      return;
+      co_return;
 
     LOG_DEBUG("signal: {}", signalE);
 
@@ -3488,10 +3599,10 @@ void WebSession::notifySignal(const WEvent& e)
 
     if (signalE == "none" || signalE == "load") {
       if (signalE == "load") {
-    if (!renderer_.checkResponsePuzzle(context))
-	  app_->quit();
-	else
-	  setLoaded();
+        if (!renderer_.checkResponsePuzzle(context))
+          app_->quit();
+        else
+          co_await setLoaded();
       }
 
       // We will want invisible changes now too.
@@ -3499,7 +3610,7 @@ void WebSession::notifySignal(const WEvent& e)
     } else if (signalE == "keepAlive") {
       // Do nothing
     } else if (signalE != "poll") {
-      propagateFormValues(e, se);
+      co_await propagateFormValues(e, se);
 
       // Save pending changes (e.g. from resource completion)
       // This is needed because we will discard changes from learned
@@ -3513,10 +3624,10 @@ void WebSession::notifySignal(const WEvent& e)
       if (signalE == "hash") {
         std::string hashE { context->getParameter(se + "_") };
         if (!hashE.empty()) {
-          changeInternalPath(hashE, context);
+          co_await changeInternalPath(hashE, context);
           app_->doJavaScript(WT_CLASS ".scrollHistory();");
         } else
-          changeInternalPath("", context);
+          co_await changeInternalPath("", context);
       } else {
         for (unsigned k = 0; k < 3; ++k) {
           SignalKind kind = (SignalKind)k;
@@ -3536,7 +3647,7 @@ void WebSession::notifySignal(const WEvent& e)
           } else
             s = decodeSignal(signalE, k == 0);
 
-              processSignal(s, se, context, kind);
+          co_await processSignal(s, se, context, kind);
 
           if (kind == SignalKind::LearnedStateless && discardStateless)
             renderer_.discardChanges();
@@ -3546,6 +3657,7 @@ void WebSession::notifySignal(const WEvent& e)
   }
 
   app_->justRemovedSignals().clear();
+  co_return;
 }
 
 void WebSession::processSignal(EventSignalBase *s, const std::string& se,
@@ -3564,7 +3676,7 @@ void WebSession::processSignal(EventSignalBase *s, const std::string& se,
   case SignalKind::Dynamic:
     JavaScriptEvent jsEvent;
     jsEvent.get(request, se);
-    s->processDynamic(jsEvent);
+    //s->processDynamic(jsEvent);
 
     // ! handler.request() may be 0 now, if there was a
     // ! recursive call.
@@ -3573,11 +3685,11 @@ void WebSession::processSignal(EventSignalBase *s, const std::string& se,
   }
 }
 
-void WebSession::processSignal(EventSignalBase *s, const std::string &se,
+awaitable<void> WebSession::processSignal(EventSignalBase *s, const std::string &se,
                                http::context *context, SignalKind kind)
 {
   if (!s)
-    return;
+    co_return;
 
   switch (kind) {
   case SignalKind::LearnedStateless:
@@ -3589,13 +3701,14 @@ void WebSession::processSignal(EventSignalBase *s, const std::string &se,
   case SignalKind::Dynamic:
     JavaScriptEvent jsEvent;
     jsEvent.get(context, se);
-    s->processDynamic(jsEvent);
+    co_await s->processDynamic(jsEvent);
 
     // ! handler.request() may be 0 now, if there was a
     // ! recursive call.
     // ! what with other slots triggered after the one that
     // ! did the recursive call ? That's very bad ??
   }
+  co_return;
 }
 
 void WebSession::setPagePathInfo(const std::string& path)

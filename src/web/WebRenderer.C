@@ -294,29 +294,29 @@ void WebRenderer::streamRedirectJS(WStringStream& out,
     " window.location.href=" << WWebWidget::jsStringLiteral(redirect) << ";\n";
 }
 
-void WebRenderer::serveResponse(WebResponse& response)
+void WebRenderer::serveResponse(WebResponse& /*response*/)
 {
-  session_.setTriggerUpdate(false);
+//  session_.setTriggerUpdate(false);
 
-  switch (response.responseType()) {
-  case WebResponse::ResponseType::Update:
-    serveJavaScriptUpdate(response);
-    break;
-  case WebResponse::ResponseType::Page:
-    initialStyleRendered_ = false;
-    ++pageId_;
-    if (session_.app())
-      serveMainpage(response);
-    else
-      serveBootstrap(response);
-    break;
-  case WebResponse::ResponseType::Script:
-    bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
-    if (!hybridPage)
-      setRendered(false);
-    serveMainscript(response);
-    break;
-  }
+//  switch (response.responseType()) {
+//  case WebResponse::ResponseType::Update:
+//    serveJavaScriptUpdate(response);
+//    break;
+//  case WebResponse::ResponseType::Page:
+//    initialStyleRendered_ = false;
+//    ++pageId_;
+//    if (session_.app())
+//      serveMainpage(response);
+//    else
+//      serveBootstrap(response);
+//    break;
+//  case WebResponse::ResponseType::Script:
+//    bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
+//    if (!hybridPage)
+//      setRendered(false);
+//    serveMainscript(response);
+//    break;
+//  }
 }
 
 void WebRenderer::setPageVars(FileServe& page)
@@ -1274,7 +1274,7 @@ void WebRenderer::collectJavaScript()
 	 */
 	visibleOnly_ = false;
 
-	collectJavaScriptUpdate(invisibleJS_);
+    collectJavaScriptUpdate(invisibleJS_);
 
 	if (invisibleJS_.length() < (unsigned)twoPhaseThreshold_) {
 	  collectedJS1_ << invisibleJS_.str();
@@ -2168,176 +2168,177 @@ void WebRenderer::renderStyleSheet(WStringStream& out,
  * serveMainscript() we only need to serve an update, not render the whole
  * interface.
  */
-void WebRenderer::serveMainpage(WebResponse& response)
-{
-  ++expectedAckId_;
-  session_.sessionIdChanged_ = false;
+//awaitable<void> WebRenderer::serveMainpage(WebResponse& response)
+//{
+//  ++expectedAckId_;
+//  session_.sessionIdChanged_ = false;
 
-  Configuration& conf = session_.controller()->configuration();
+//  Configuration& conf = session_.controller()->configuration();
 
-  WApplication *app = session_.app();
+//  WApplication *app = session_.app();
 
-  /*
-   * This implements the redirect for Post-Redirect-Get, or when the
-   * internal path changed.
-   *
-   * Post-Redirect-Get does not work properly though: refresh() may misbehave
-   * and have unintended side effects ?
-   */
-  if (!app->environment().ajax()
-      && (/*response.requestMethod() == "POST"
-	  || */(app->internalPathIsChanged_
-		&& app->renderedInternalPath_ != app->newInternalPath_))) {
-    app->renderedInternalPath_ = app->newInternalPath_;
+//  /*
+//   * This implements the redirect for Post-Redirect-Get, or when the
+//   * internal path changed.
+//   *
+//   * Post-Redirect-Get does not work properly though: refresh() may misbehave
+//   * and have unintended side effects ?
+//   */
+//  if (!app->environment().ajax()
+//      && (/*response.requestMethod() == "POST"
+//	  || */(app->internalPathIsChanged_
+//		&& app->renderedInternalPath_ != app->newInternalPath_))) {
+//    app->renderedInternalPath_ = app->newInternalPath_;
 
-    if (session_.state() == WebSession::State::JustCreated &&
-	conf.progressiveBoot(app->environment().internalPath())) {
-      session_.redirect
-	(session_.fixRelativeUrl
-	 (session_.bookmarkUrl(app->newInternalPath_)));
-      session_.kill();
-    } else {
-      session_.redirect
-	(session_.fixRelativeUrl
-	 (session_.mostRelativeUrl(app->newInternalPath_)));
-    }
-  }
+//    if (session_.state() == WebSession::State::JustCreated &&
+//	conf.progressiveBoot(app->environment().internalPath())) {
+//      session_.redirect
+//	(session_.fixRelativeUrl
+//	 (session_.bookmarkUrl(app->newInternalPath_)));
+//      session_.kill();
+//    } else {
+//      session_.redirect
+//	(session_.fixRelativeUrl
+//	 (session_.mostRelativeUrl(app->newInternalPath_)));
+//    }
+//  }
 
-  std::string redirect = session_.getRedirect();
+//  std::string redirect = session_.getRedirect();
 
-  if (!redirect.empty()) {
-    response.setStatus(302); // Should be 303 in fact ?
-    response.setRedirect(redirect);
-    setHeaders(response, "text/html; charset=UTF-8");
-    return;
-  }
+//  if (!redirect.empty()) {
+//    response.setStatus(302); // Should be 303 in fact ?
+//    response.setRedirect(redirect);
+//    setHeaders(response, "text/html; charset=UTF-8");
+//    co_return;
+//  }
 
-  WWebWidget *mainWebWidget = app->domRoot_.get();
+//  WWebWidget *mainWebWidget = app->domRoot_.get();
 
-  visibleOnly_ = true;
+//  visibleOnly_ = true;
 
-  /*
-   * The element to render. This automatically creates loading stubs
-   * for invisible widgets, which is also what we want for
-   * non-JavaScript versions.
-   */
-  DomElement *mainElement = mainWebWidget->createSDomElement(app);
-  setRendered(true);
-  setJSSynced(true);
+//  /*
+//   * The element to render. This automatically creates loading stubs
+//   * for invisible widgets, which is also what we want for
+//   * non-JavaScript versions.
+//   */
+//  DomElement *mainElement = mainWebWidget->createSDomElement(app);
+//  setRendered(true);
+//  setJSSynced(true);
 
-  WStringStream styleSheets;
+//  WStringStream styleSheets;
 
-  if (app->theme()) {
-    std::vector<WLinkedCssStyleSheet> sheets = app->theme()->styleSheets();
+//  if (app->theme()) {
+//    std::vector<WLinkedCssStyleSheet> sheets = app->theme()->styleSheets();
 
-    for (unsigned i = 0; i < sheets.size(); ++i)
-      renderStyleSheet(styleSheets, sheets[i], app);
-  }
+//    for (unsigned i = 0; i < sheets.size(); ++i)
+//      renderStyleSheet(styleSheets, sheets[i], app);
+//  }
 
-  for (unsigned i = 0; i < app->styleSheets_.size(); ++i)
-    renderStyleSheet(styleSheets, app->styleSheets_[i], app);
+//  for (unsigned i = 0; i < app->styleSheets_.size(); ++i)
+//    renderStyleSheet(styleSheets, app->styleSheets_[i], app);
 
-  app->styleSheetsAdded_ = 0;
-  initialStyleRendered_ = true;
+//  app->styleSheetsAdded_ = 0;
+//  initialStyleRendered_ = true;
 
-  beforeLoadJS_.clear();
-  for (unsigned i = 0; i < app->scriptLibraries_.size(); ++i) {
-    std::string url = app->scriptLibraries_[i].uri;
-    styleSheets << "<script src=";
-    DomElement::htmlAttributeValue(styleSheets, session_.fixRelativeUrl(url));
-    styleSheets << "></script>\n";
+//  beforeLoadJS_.clear();
+//  for (unsigned i = 0; i < app->scriptLibraries_.size(); ++i) {
+//    std::string url = app->scriptLibraries_[i].uri;
+//    styleSheets << "<script src=";
+//    DomElement::htmlAttributeValue(styleSheets, session_.fixRelativeUrl(url));
+//    styleSheets << "></script>\n";
 
-    beforeLoadJS_ << app->scriptLibraries_[i].beforeLoadJS;
-  }
-  app->scriptLibrariesAdded_ = 0;
+//    beforeLoadJS_ << app->scriptLibraries_[i].beforeLoadJS;
+//  }
+//  app->scriptLibrariesAdded_ = 0;
 
-  app->newBeforeLoadJavaScript_ = app->beforeLoadJavaScript_.length();
+//  app->newBeforeLoadJavaScript_ = app->beforeLoadJavaScript_.length();
 
-  bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
-  FileServe page(hybridPage ? skeletons::Hybrid_html1 : skeletons::Plain_html1);
+//  bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
+//  FileServe page(hybridPage ? skeletons::Hybrid_html1 : skeletons::Plain_html1);
 
-  setPageVars(page);
-  page.setVar("SESSION_ID", session_.sessionId());
+//  setPageVars(page);
+//  page.setVar("SESSION_ID", session_.sessionId());
 
-  std::string url
-    = (app->environment().agentIsSpiderBot() || !session_.useUrlRewriting())
-    ? session_.bookmarkUrl(app->newInternalPath_)
-    : session_.mostRelativeUrl(app->newInternalPath_);
+//  std::string url
+//    = (app->environment().agentIsSpiderBot() || !session_.useUrlRewriting())
+//    ? session_.bookmarkUrl(app->newInternalPath_)
+//    : session_.mostRelativeUrl(app->newInternalPath_);
 
-  url = session_.fixRelativeUrl(url);
+//  url = session_.fixRelativeUrl(url);
 
-  url = Wt::Utils::replace(url, '&', "&amp;");
-  page.setVar("RELATIVE_URL", url);
+//  url = Wt::Utils::replace(url, '&', "&amp;");
+//  page.setVar("RELATIVE_URL", url);
 
-  if (conf.inlineCss()) {
-    WStringStream css;
-    app->styleSheet().cssText(css, true);
-    page.setVar("STYLESHEET", css.str());
-  } else
-    page.setVar("STYLESHEET", "");
+//  if (conf.inlineCss()) {
+//    WStringStream css;
+//    app->styleSheet().cssText(css, true);
+//    page.setVar("STYLESHEET", css.str());
+//  } else
+//    page.setVar("STYLESHEET", "");
 
-  page.setVar("STYLESHEETS", styleSheets.str());
+//  page.setVar("STYLESHEETS", styleSheets.str());
 
-  page.setVar("TITLE", WWebWidget::escapeText(app->title()).toUTF8());
+//  page.setVar("TITLE", WWebWidget::escapeText(app->title()).toUTF8());
 
-  app->titleChanged_ = false;
+//  app->titleChanged_ = false;
 
-  std::string contentType = "text/html; charset=UTF-8";
+//  std::string contentType = "text/html; charset=UTF-8";
 
-  setCaching(response, false);
-  response.addHeader("X-Frame-Options", "SAMEORIGIN");
-  setHeaders(response, contentType);
+//  setCaching(response, false);
+//  response.addHeader("X-Frame-Options", "SAMEORIGIN");
+//  setHeaders(response, contentType);
 
-  currentFormObjectsList_ = createFormObjectsList(app);
+//  currentFormObjectsList_ = createFormObjectsList(app);
 
-  if (hybridPage)
-    streamBootContent(response, page, true);
+//  if (hybridPage)
+//    streamBootContent(response, page, true);
 
-  WStringStream out(response.out());
-  page.streamUntil(out, "HTML");
+//  WStringStream out(response.out());
+//  page.streamUntil(out, "HTML");
 
-  DomElement::TimeoutList timeouts;
-  {
-    EscapeOStream js;
-    EscapeOStream eout(out);
-    mainElement->asHTML(eout, js, timeouts);
+//  DomElement::TimeoutList timeouts;
+//  {
+//    EscapeOStream js;
+//    EscapeOStream eout(out);
+//    mainElement->asHTML(eout, js, timeouts);
 
-    /*
-     * invisibleJS_ is being streamed as the first JavaScript inside
-     * collectJavaScript(). This is where this belongs since between
-     * the HTML and the script there may already be changes (because
-     * of server push) that delete elements that were rendered.
-     */
-    invisibleJS_ << js.str();
-    delete mainElement;
+//    /*
+//     * invisibleJS_ is being streamed as the first JavaScript inside
+//     * collectJavaScript(). This is where this belongs since between
+//     * the HTML and the script there may already be changes (because
+//     * of server push) that delete elements that were rendered.
+//     */
+//    invisibleJS_ << js.str();
+//    delete mainElement;
 
-    app->domRoot_->doneRerender();
-  }
+//    app->domRoot_->doneRerender();
+//  }
 
-  int refresh;
-  if (app->environment().ajax()) {
-    WStringStream str;
-    DomElement::createTimeoutJs(str, timeouts, app);
-    app->doJavaScript(str.str());
+//  int refresh;
+//  if (app->environment().ajax()) {
+//    WStringStream str;
+//    DomElement::createTimeoutJs(str, timeouts, app);
+//    app->doJavaScript(str.str());
 
-    refresh = 1000000;
-  } else {
-    if (app->hasQuit() || conf.sessionTimeout() == -1)
-      refresh = 1000000;
-    else {
-      refresh = conf.sessionTimeout() / 3;
-      for (unsigned i = 0; i < timeouts.size(); ++i)
-	refresh = std::min(refresh, 1 + timeouts[i].msec/1000);
-    }
-  }
-  page.setVar("REFRESH", std::to_string(refresh));
+//    refresh = 1000000;
+//  } else {
+//    if (app->hasQuit() || conf.sessionTimeout() == -1)
+//      refresh = 1000000;
+//    else {
+//      refresh = conf.sessionTimeout() / 3;
+//      for (unsigned i = 0; i < timeouts.size(); ++i)
+//	refresh = std::min(refresh, 1 + timeouts[i].msec/1000);
+//    }
+//  }
+//  page.setVar("REFRESH", std::to_string(refresh));
 
-  page.stream(out);
+//  page.stream(out);
 
-  app->internalPathIsChanged_ = false;
+//  app->internalPathIsChanged_ = false;
 
-  out.spool(response.out());
-}
+//  out.spool(response.out());
+//  co_return;
+//}
 
 int WebRenderer::loadScriptLibraries(WStringStream& out,
 				     WApplication *app, int count)
@@ -2408,20 +2409,21 @@ void WebRenderer::collectChanges(std::vector<DomElement *>& changes)
 
     std::multimap<int, WWidget *> depthOrder;
 
-    for (UpdateMap::const_iterator i = updateMap_.begin();
-	 i != updateMap_.end(); ++i) {
+    for (auto i = updateMap_.begin(); i != updateMap_.end(); ++i)
+    {
       int depth = 1;
 
       WWidget *ww = *i;
       WWidget *w = ww;
       for (; w->parent(); ++depth)
-	w = w->parent();
+        w = w->parent();
 
-      if (w != app->domRoot_.get() && w != app->domRoot2_.get()) {
-	LOG_DEBUG("ignoring: {} ({}) {} ({})", ww->id(), DESCRIBE(ww), w->id(), DESCRIBE(w));
+      if (w != app->domRoot_.get() && w != app->domRoot2_.get())
+      {
+        LOG_DEBUG("ignoring: {} ({}) {} ({})", ww->id(), DESCRIBE(ww), w->id(), DESCRIBE(w));
 
-	// not in displayed widgets: will be removed from the update list
-	depth = 0;
+        // not in displayed widgets: will be removed from the update list
+        depth = 0;
       }
 
 #ifndef WT_TARGET_JAVA
@@ -2431,37 +2433,38 @@ void WebRenderer::collectChanges(std::vector<DomElement *>& changes)
 #endif // WT_TARGET_JAVA
     }
 
-    for (std::multimap<int, WWidget *>::const_iterator i = depthOrder.begin();
-	 i != depthOrder.end(); ++i) {
+    for (auto i = depthOrder.begin(); i != depthOrder.end(); ++i)
+    {
       UpdateMap::iterator j = updateMap_.find(i->second);
-      if (j != updateMap_.end()) {
-	WWidget *w = i->second;
+      if (j != updateMap_.end())
+      {
+        WWidget *w = i->second;
 
-	// depth == 0: remove it from the update list
-	if (i->first == 0) {
-	  w->webWidget()->propagateRenderOk();
-	  continue;
-	}
+        // depth == 0: remove it from the update list
+        if (i->first == 0) {
+          w->webWidget()->propagateRenderOk();
+          continue;
+        }
 
-	LOG_DEBUG("updating: {} ({})", w->id(), DESCRIBE(w));
+        LOG_DEBUG("updating: {} ({})", w->id(), DESCRIBE(w));
 
-	if (!learning_ && visibleOnly_) {
-	  if (w->isRendered()) {
-	    w->getSDomChanges(changes, app);
+        if (!learning_ && visibleOnly_) {
+          if (w->isRendered()) {
+            w->getSDomChanges(changes, app);
 
-	    /* if (!w->isVisible()) {
-	      // We should postpone rendering the changes -- but
-	      // at the same time need to propageRenderOk() now for stateless
-	      // slot learning to work properly.
-	      w->getSDomChanges(changes, app);
-	    } else
-	      w->getSDomChanges(changes, app); */
-	  } else {
-	    LOG_DEBUG("Ignoring: {}", w->id());
-	  }
-	} else {
-	  w->getSDomChanges(changes, app);
-	}
+            /* if (!w->isVisible()) {
+              // We should postpone rendering the changes -- but
+              // at the same time need to propageRenderOk() now for stateless
+              // slot learning to work properly.
+              w->getSDomChanges(changes, app);
+            } else
+              w->getSDomChanges(changes, app); */
+          } else {
+            LOG_DEBUG("Ignoring: {}", w->id());
+          }
+        } else {
+          w->getSDomChanges(changes, app);
+        }
       }
     }
   } while (!learning_ && moreUpdates_);
@@ -2661,19 +2664,18 @@ void WebRenderer::preLearnStateless(WApplication *app, WStringStream& out)
 
   WApplication::SignalMap& ss = session_.app()->exposedSignals();
 
-  for (WApplication::SignalMap::iterator i = ss.begin();
-       i != ss.end(); ) {
+  for (WApplication::SignalMap::iterator i = ss.begin(); i != ss.end(); ++i)
+  {
     Wt::EventSignalBase* s = i->second;
 
     if (s->owner() == app)
       s->processPreLearnStateless(this);
-    else if (s->canAutoLearn()) {
+    else if (s->canAutoLearn())
+    {
       WWidget *ww = static_cast<WWidget *>(s->owner());
       if (ww && ww->isRendered())
-	s->processPreLearnStateless(this);
+        s->processPreLearnStateless(this);
     }
-
-    ++i;
   }
 
   out << statelessJS_.str();

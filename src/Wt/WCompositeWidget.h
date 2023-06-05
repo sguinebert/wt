@@ -262,8 +262,7 @@ protected:
 
   std::unique_ptr<WWidget> takeImplementation();
 
-  virtual void getSDomChanges(std::vector<DomElement *>& result,
-			      WApplication *app) override;
+  virtual void getSDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   virtual bool needsToBeRendered() const override;
 
   virtual int boxPadding(Orientation orientation) const override;

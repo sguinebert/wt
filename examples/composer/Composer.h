@@ -154,20 +154,20 @@ private:
    *
    * Tries to save the mail message, and if succesfull, sends it.
    */
-  void sendIt();
+  awaitable<void> sendIt();
 
   /*! \brief Slot attached to the Save now button.
    *
    * Tries to save the mail message, and gives feedback on failure
    * and on success.
    */
-  void saveNow();
+  awaitable<void> saveNow();
 
   /*! \brief Slot attached to the Discard button.
    *
    * Discards the current message: emits the discard event.
    */
-  void discardIt();
+  awaitable<void> discardIt();
 
   /*! \brief Slotcalled when an attachment has been uploaded.
    *
@@ -176,7 +176,7 @@ private:
    * to the AttachmentEdit control signals that are emitted when
    * an attachment has been processed.
    */
-  void attachmentDone();
+  awaitable<void> attachmentDone();
 
 private:
   // create the user-interface
@@ -185,7 +185,7 @@ private:
   /*! \brief All attachments have been processed, determine the result
    *         of saving the message.
    */
-  void saved();
+  awaitable<void> saved();
 
   /*! \brief Set the status, and apply the given style.
    */

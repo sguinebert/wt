@@ -89,7 +89,7 @@ public:
    * The authorized() signal should be connected before calling this
    * function.
    */
-  void processEnvironment();
+  awaitable<void> processEnvironment();
 
   /*! \brief Returns true if the request was a valid OAuth request
    * with the correct parameters.
@@ -127,7 +127,7 @@ public:
 
 protected:
   AbstractUserDatabase *db_;
-  void authEvent();
+  awaitable<void> authEvent();
 private:
   void sendResponse(const std::string& param);
   int authCodeExpSecs_;

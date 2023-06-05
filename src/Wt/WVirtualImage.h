@@ -89,7 +89,7 @@ public:
    *
    * \sa scrollTo()
    */
-  void scroll(::int64_t dx, ::int64_t dy);
+  awaitable<void> scroll(::int64_t dx, ::int64_t dy);
 
   /*! \brief Scrolls the viewport of the image to a specific coordinate.
    *
@@ -97,7 +97,7 @@ public:
    *
    * \sa scroll()
    */
-  void scrollTo(::int64_t x, ::int64_t y);
+  awaitable<void> scrollTo(::int64_t x, ::int64_t y);
 
   /*! \brief Returns the virtual image width.
    *
@@ -235,7 +235,7 @@ private:
   ::int64_t currentX_;
   ::int64_t currentY_;
 
-  void mouseUp(const WMouseEvent& e);
+  awaitable<void> mouseUp(const WMouseEvent& e);
 
   Rect neighbourhood(::int64_t x, ::int64_t y, int marginX, int marginY);
   ::int64_t gridKey(::int64_t i, ::int64_t j);
@@ -248,7 +248,7 @@ private:
   void cleanGrid();
   bool visible(::int64_t i, ::int64_t j) const;
 
-  void internalScrollTo(::int64_t x, ::int64_t y, bool moveViewPort);
+  awaitable<void> internalScrollTo(::int64_t x, ::int64_t y, bool moveViewPort);
 };
 
 }

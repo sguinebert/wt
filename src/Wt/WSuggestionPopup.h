@@ -295,7 +295,7 @@ public:
    * \sa removeEdit()
    */
   void forEdit(WFormWidget *edit,
-	       WFlags<PopupTrigger> popupTriggers = PopupTrigger::Editing);
+               WFlags<PopupTrigger> popupTriggers = PopupTrigger::Editing);
 
   /*! \brief Removes the edit field from the list of assisted editors.
    *
@@ -328,8 +328,7 @@ public:
    *
    * \sa clearSuggestions(), setModel()
    */
-  void addSuggestion(const WString& suggestionText,
-		     const WString& suggestionValue = WString::Empty);
+  awaitable<void> addSuggestion(const WString& suggestionText, const WString& suggestionValue = WString::Empty);
 
   /*! \brief Sets the model to be used for the suggestions.
    *
@@ -515,8 +514,8 @@ private:
 
   void init();
   void scheduleFilter(std::string input);
-  void doFilter(std::string input);
-  void doActivate(std::string itemId, std::string editId);
+  awaitable<void> doFilter(std::string input);
+  awaitable<void> doActivate(std::string itemId, std::string editId);
   void connectObjJS(EventSignalBase& s, const std::string& methodName);
 
   void modelRowsInserted(const WModelIndex& parent, int start, int end);

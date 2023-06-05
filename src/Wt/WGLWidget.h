@@ -3427,7 +3427,7 @@ setClientSideMouseHandler("(function(){") +
 
 protected:
   virtual DomElementType domElementType() const override;
-  virtual DomElement *createDomElement(WApplication *app) override;
+  virtual DomElement * createDomElement(WApplication *app) override;
   virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
   virtual void updateDom(DomElement &element, bool all) override;
 

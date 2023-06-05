@@ -420,7 +420,7 @@ void WebController::socketSelected(int descriptor, WSocketNotifier::Type type)
 }
 
 #ifdef WT_THREADED
-void WebController::socketNotify(int descriptor, WSocketNotifier::Type type)
+awaitable<void> WebController::socketNotify(int descriptor, WSocketNotifier::Type type)
 {
   WSocketNotifier *notifier = nullptr;
   {
@@ -434,7 +434,8 @@ void WebController::socketNotify(int descriptor, WSocketNotifier::Type type)
   }
 
   if (notifier)
-    notifier->notify();
+    co_await notifier->notify();
+  co_return;
 }
 #endif // WT_THREADED
 
@@ -587,7 +588,7 @@ awaitable<bool> WebController::requestDataReceived(http::context *context, uintm
   co_return true;
 }
 
-void WebController::updateResourceProgress(const UpdateResourceProgressParams &params)
+awaitable<void> WebController::updateResourceProgress(const UpdateResourceProgressParams &params)
 {
   WApplication *app = WApplication::instance();
 
@@ -604,10 +605,11 @@ void WebController::updateResourceProgress(const UpdateResourceProgressParams &p
   if (resource) {
     ::int64_t dataExceeded = params.postDataExceeded;
     if (dataExceeded)
-      resource->dataExceeded().emit(dataExceeded);
+      co_await resource->dataExceeded().emit(dataExceeded);
     else
-      resource->dataReceived().emit(params.current, params.total);
+      co_await resource->dataReceived().emit(params.current, params.total);
   }
+  co_return;
 }
 
 awaitable<bool> WebController::handleApplicationEvent(const std::shared_ptr<ApplicationEvent>& event)

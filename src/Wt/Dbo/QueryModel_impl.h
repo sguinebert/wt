@@ -172,12 +172,12 @@ void QueryModel<Result>::setCurrentRow(int row) const
 }
 
 template <class Result>
-bool QueryModel<Result>::setData(const WModelIndex& index,
+awaitable<bool> QueryModel<Result>::setData(const WModelIndex& index,
                                  const cpp17::any& value, ItemDataRole role)
 {
   if (role == ItemDataRole::Edit) {
     {
-      Transaction transaction(query_.session());
+      //Transaction transaction(query_.session());
 
       Result& result = resultRow(index.row());
 
@@ -189,14 +189,15 @@ bool QueryModel<Result>::setData(const WModelIndex& index,
 
       query_result_traits<Result>::setValue(result, column, dbValue);
 
-      transaction.commit();
+      query_.session().flush();
+      //transaction.commit();
     }
 
     invalidateRow(index.row());
 
-    return true;
+    co_return true;
   } else
-    return false;
+    co_return false;
 }
 
 template <class Result>
@@ -400,8 +401,7 @@ void QueryModel<Result>::deleteRow(Result& result)
 }
 
 template <class Result>
-bool QueryModel<Result>::insertRows(int row, int count,
-				    const WModelIndex& parent)
+bool QueryModel<Result>::insertRows(int row, int count, const WModelIndex& parent)
 {
   if (row != rowCount())
     throw Exception("QueryModel: only supporting row insertion at end");
@@ -416,8 +416,7 @@ bool QueryModel<Result>::insertRows(int row, int count,
      * Insert also into cache, this avoids a useless insert+query
      * when insertion is followed by setData() calls.
      */
-    if (cacheStart_ != -1
-	&& cacheStart_ + (int)cache_.size() == row + i)
+    if (cacheStart_ != -1 && cacheStart_ + (int)cache_.size() == row + i)
       cache_.push_back(r);
   }
 
@@ -429,8 +428,7 @@ bool QueryModel<Result>::insertRows(int row, int count,
 }
 
 template <class Result>
-bool QueryModel<Result>::removeRows(int row, int count,
-				    const WModelIndex& parent)
+bool QueryModel<Result>::removeRows(int row, int count, const WModelIndex& parent)
 {
   beginRemoveRows(parent, row, row + count - 1);
   

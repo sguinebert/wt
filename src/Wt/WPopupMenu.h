@@ -257,8 +257,8 @@ private:
   int autoHideDelay_;
 
   awaitable<void> exec();
-  void cancel();
-  void done(WMenuItem *result);
+  awaitable<void> cancel();
+  awaitable<void> done(WMenuItem *result);
   void popupImpl();
   void prepareRender(WApplication *app);
   void adjustPadding();

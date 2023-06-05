@@ -52,7 +52,7 @@ protected:
 
   WTemplateFormView *impl_;
 
-  void check();
+  awaitable<void> check();
 };
 
   }

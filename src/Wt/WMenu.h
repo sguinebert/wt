@@ -331,7 +331,7 @@ public:
    *
    * \sa select(int), currentItem(), WMenuItem::select()
    */
-  void select(WMenuItem *item);
+  awaitable<void> select(WMenuItem *item);
 
   /*! \brief Selects an item.
    *
@@ -342,7 +342,7 @@ public:
    *
    * \sa select(WMenuItem *), currentIndex()
    */
-  void select(int index);
+  awaitable<void> select(int index);
 
   /*! \brief %Signal which indicates that a new item was selected.
    *
@@ -377,7 +377,7 @@ public:
    *
    * \sa close(int), WMenuItem::close()
    */
-  void close(WMenuItem *item);
+  awaitable<void> close(WMenuItem *item);
 
   /*! \brief Closes an item.
    *
@@ -386,7 +386,7 @@ public:
    *
    * \sa close(WMenuItem *)
    */
-  void close(int index);
+  awaitable<void> close(int index);
 
   /*! \brief Returns the items.
    *
@@ -502,7 +502,7 @@ public:
    *
    * \sa WMenuItem::setPathComponent().
    */
-  void setInternalPathEnabled(const std::string& basePath = "");
+  awaitable<void> setInternalPathEnabled(const std::string& basePath = "");
 
   /*! \brief Returns whether the menu generates internal paths entries.
    *
@@ -516,7 +516,7 @@ public:
    *
    * \sa setInternalPathEnabled(), internalBasePath()
    */
-  void setInternalBasePath(const std::string& basePath);
+  awaitable<void> setInternalBasePath(const std::string& basePath);
 
   /*! \brief Returns the internal base path.
    *
@@ -574,7 +574,7 @@ protected:
    * You may want to reimplement this if you want to customize the internal
    * path handling.
    */
-  virtual void internalPathChanged(const std::string& path);
+  virtual awaitable<void> internalPathChanged(const std::string& path);
 
   /*! \brief Returns the index of the item to be selected after hides.
    *
@@ -606,7 +606,7 @@ protected:
    * is \c true). The latter may be \c false in case an internal path
    * change itself is the reason for selection.
    */
-  virtual void select(int index, bool changePath);
+  virtual awaitable<void> select(int index, bool changePath);
 
 private:
   WContainerWidget *ul_;
@@ -618,18 +618,18 @@ private:
   Signal<WMenuItem *> itemSelected_, itemSelectRendered_;
   Signal<WMenuItem *> itemClosed_;
 
-  void handleInternalPathChange(const std::string& path);
+  awaitable<void> handleInternalPathChange(const std::string& path);
 
   int current_;
   int previousStackIndex_;
   bool needSelectionEventUpdate_;
 
   void updateItemsInternalPath();
-  void itemPathChanged(WMenuItem *item);
-  void selectVisual(WMenuItem *item);
-  void undoSelectVisual();
-  void selectVisual(int item, bool changePath, bool showContents);
-  void onItemHidden(int index, bool hidden);
+  awaitable<void> itemPathChanged(WMenuItem *item);
+  awaitable<void> selectVisual(WMenuItem *item);
+  awaitable<void> undoSelectVisual();
+  awaitable<void> selectVisual(int item, bool changePath, bool showContents);
+  void onItemHidden(int index, bool hidden); //disabled
 
   friend class WMenuItem;
 

@@ -161,11 +161,11 @@ void WTimeEdit::propagateSetEnabled(bool enabled)
   WLineEdit::propagateSetEnabled(enabled);
 }
 
-void WTimeEdit::setFromTimePicker()
+awaitable<void> WTimeEdit::setFromTimePicker()
 {
   setTime(timePicker_->time());
-  textInput().emit();
-  changed().emit();
+  co_await textInput().emit();
+  co_await changed().emit();
 }
 
 void WTimeEdit::setFromLineEdit()

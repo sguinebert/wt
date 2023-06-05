@@ -173,7 +173,7 @@ void WStackedWidget::render(WFlags<RenderFlag> flags)
   if (widgetsAdded_ || flags.test(RenderFlag::Full)) {
     for (int i = 0; i < count(); ++i)
       if (!canOptimizeUpdates() || (widget(i)->isHidden() != (currentIndex_ != i)))
-	widget(i)->setHidden(currentIndex_ != i);
+        widget(i)->setHidden(currentIndex_ != i);
     widgetsAdded_ = false;
   }
 
@@ -192,13 +192,12 @@ void WStackedWidget::setCurrentWidget(WWidget *widget)
   setCurrentIndex(indexOf(widget));
 }
 
-DomElement *WStackedWidget::createDomElement(WApplication *app)
+DomElement * WStackedWidget::createDomElement(WApplication *app)
 {
   return WContainerWidget::createDomElement(app);
 }
 
-void WStackedWidget::getDomChanges(std::vector<DomElement *>& result,
-				   WApplication *app)
+void WStackedWidget::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   WContainerWidget::getDomChanges(result, app);
 }

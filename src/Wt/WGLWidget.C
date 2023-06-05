@@ -153,7 +153,7 @@ std::string WGLWidget::glObjJsRef() const
     "})()";
 }
 
-DomElement *WGLWidget::createDomElement(WApplication *app)
+DomElement * WGLWidget::createDomElement(WApplication *app)
 {
   DomElement *result = nullptr;
 
@@ -197,8 +197,7 @@ void WGLWidget::updateDom(DomElement &element, bool all)
   WInteractWidget::updateDom(element, all);
 }
 
-void WGLWidget::getDomChanges(std::vector<DomElement *>& result,
-			      WApplication *app)
+void WGLWidget::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
 {
   WWebWidget::getDomChanges(result, app);
 }
@@ -254,10 +253,9 @@ void WGLWidget::render(WFlags<RenderFlag> flags)
 {
   if (flags.test(RenderFlag::Full)) {
     if (!pImpl_) {
-      if (renderOptions_.test(GLRenderOption::ClientSide) &&
-	  WApplication::instance()->environment().webGL()) {
-	pImpl_.reset(new WClientGLWidget(this));
-      } else {
+        if (renderOptions_.test(GLRenderOption::ClientSide) && WApplication::instance()->environment().webGL()) {
+            pImpl_.reset(new WClientGLWidget(this));
+        } else {
 #ifndef WT_TARGET_JAVA
 #ifdef WT_USE_OPENGL
 	if (renderOptions_.test(GLRenderOption::ServerSide)) {
