@@ -14,7 +14,7 @@
 
 BOOST_AUTO_TEST_CASE( test_signals1 )
 {
-  Wt::Signal<> signal;
+  Wt::Signal<void()> signal;
 
   bool success = false;
 
@@ -29,16 +29,16 @@ BOOST_AUTO_TEST_CASE( test_signals1 )
 
 BOOST_AUTO_TEST_CASE( test_signals2 )
 {
-  //Wt::Signals::connection connection;
-
+  //Wt::Signals::Connection connection;
+  Wt::Observer::Connection connection;
   {
-    Wt::Signal<> signal;
-    /*connection =*/ signal.connect([](){
+    Wt::Signal<void()> signal;
+    connection = signal.connect([](){
       std::cout << "What this does does not matter" << std::endl;
     });
   }
 
-  Wt::Signal<> signal2;
+  Wt::Signal<void()> signal2;
   signal2.connect([](){
     std::cout << "What this does also does not matter" << std::endl;
   });
@@ -48,37 +48,37 @@ BOOST_AUTO_TEST_CASE( test_signals2 )
   // cause the check below to fail. In that case, valgrind will also
   // detect an invalid read.
 
-//  BOOST_REQUIRE(!connection.isConnected());
+  BOOST_REQUIRE(!connection.isConnected());
 
-//  connection.disconnect();
+  connection.disconnect();
 
-//  BOOST_REQUIRE(!connection.isConnected());
+  BOOST_REQUIRE(!connection.isConnected());
 }
 
 BOOST_AUTO_TEST_CASE( test_signals3 )
 {
-  Wt::Signal<> signal;
+  Wt::Signal<void()> signal;
 
   bool executed = false;
 
-  /*auto connection =*/ signal.connect([&](){
+  auto connection = signal.connect([&](){
     executed = true;
   });
 
-  //Wt::Signals::connection connectionCopy = connection;
+  auto connectionCopy = connection;
 
-//  BOOST_REQUIRE(connection.isConnected());
-//  BOOST_REQUIRE(connectionCopy.isConnected());
+  BOOST_REQUIRE(connection.isConnected());
+  BOOST_REQUIRE(connectionCopy.isConnected());
   BOOST_REQUIRE(signal.isConnected());
 
   signal();
 
   BOOST_REQUIRE(executed);
 
-//  connectionCopy.disconnect();
+  connectionCopy.disconnect();
 
-//  BOOST_REQUIRE(!connection.isConnected());
-//  BOOST_REQUIRE(!connectionCopy.isConnected());
+  BOOST_REQUIRE(!connection.isConnected());
+  BOOST_REQUIRE(!connectionCopy.isConnected());
   BOOST_REQUIRE(!signal.isConnected());
 
   executed = false;
@@ -90,10 +90,11 @@ BOOST_AUTO_TEST_CASE( test_signals3 )
 
 BOOST_AUTO_TEST_CASE( test_signals4 )
 {
-  Wt::Signal<> signal;
-  Wt::Signals::connection connection;
+  Wt::Signal<void()> signal;
+  //Wt::Signals::connection connection;
+  Wt::Observer::Connection connection;
 
-  /*connection =*/ signal.connect([&](){
+  connection = signal.connect([&](){
     connection.disconnect();
   });
 
@@ -106,7 +107,7 @@ BOOST_AUTO_TEST_CASE( test_signals4 )
 class DeleteMe : public Wt::WObject
 {
 public:
-  Wt::Signal<> signal;
+  Wt::Signal<void()> signal;
   void doDelete() {
     delete this;
   }
@@ -119,7 +120,7 @@ BOOST_AUTO_TEST_CASE( test_signals5 )
   bool before = false;
   bool after = false;
 
-  Wt::Signal<> signal;
+  Wt::Signal<void()> signal;
   signal.connect([&](){
     before = true;
   });
@@ -151,13 +152,13 @@ BOOST_AUTO_TEST_CASE( test_signals6 )
   bool before = false;
   bool after = false;
 
-  /*auto conn1 =*/ dm->signal.connect([&](){
+  auto conn1 = dm->signal.connect([&](){
     before = true;
   });
-  /*auto conn2 =*/ dm->signal.connect([dm](){
+  auto conn2 = dm->signal.connect([dm](){
     delete dm;
   });
-  /*auto conn3 =*/ dm->signal.connect([&](){
+  auto conn3 = dm->signal.connect([&](){
     after = true;
   });
 
@@ -165,9 +166,9 @@ BOOST_AUTO_TEST_CASE( test_signals6 )
 
   BOOST_REQUIRE(before);
   BOOST_REQUIRE(after);
-//  BOOST_REQUIRE(!conn1.isConnected());
-//  BOOST_REQUIRE(!conn2.isConnected());
-//  BOOST_REQUIRE(!conn3.isConnected());
+  BOOST_REQUIRE(!conn1.isConnected());
+  BOOST_REQUIRE(!conn2.isConnected());
+  BOOST_REQUIRE(!conn3.isConnected());
 }
 
 BOOST_AUTO_TEST_CASE( test_signals7 )
@@ -177,11 +178,11 @@ BOOST_AUTO_TEST_CASE( test_signals7 )
   bool before = false;
   bool after = false;
 
-  /*auto conn1 =*/ dm->signal.connect([&](){
+  auto conn1 = dm->signal.connect([&](){
     before = true;
   });
   /*auto conn2 =*/ //dm->signal.connect<&DeleteMe::doDelete>(dm);
-  /*auto conn3 =*/ dm->signal.connect([&](){
+  auto conn3 = dm->signal.connect([&](){
     after = true;
   });
 
@@ -189,9 +190,9 @@ BOOST_AUTO_TEST_CASE( test_signals7 )
 
   BOOST_REQUIRE(before);
   BOOST_REQUIRE(after);
-//  BOOST_REQUIRE(!conn1.isConnected());
+  BOOST_REQUIRE(!conn1.isConnected());
 //  BOOST_REQUIRE(!conn2.isConnected());
-//  BOOST_REQUIRE(!conn3.isConnected());
+  BOOST_REQUIRE(!conn3.isConnected());
 }
 
 BOOST_AUTO_TEST_CASE( test_signals8 )
@@ -227,7 +228,7 @@ BOOST_AUTO_TEST_CASE( test_signals8 )
 // This test should not leak
 BOOST_AUTO_TEST_CASE( test_signals9 )
 {
-  Wt::Signal<> signal;
+  Wt::Signal<void()> signal;
 
   signal.connect([](){
     throw 4;
@@ -244,7 +245,7 @@ BOOST_AUTO_TEST_CASE( test_signals10 )
 {
   int i = 0;
 
-  Wt::Signal<> signal;
+  Wt::Signal<void()> signal;
   signal.connect([&i,&signal]{
     signal.connect([&i]{
       ++i;
@@ -263,7 +264,7 @@ BOOST_AUTO_TEST_CASE( test_signals11 )
 {
   int i = 0;
 
-  Wt::Signal<> signal;
+  Wt::Signal<void()> signal;
   signal.connect([&i,&signal]{
     ++i;
     signal.connect([&i]{
@@ -304,7 +305,7 @@ BOOST_AUTO_TEST_CASE( test_signals12 )
 {
   // Test self-assignment
   int i = 0;
-  Wt::Signal<> signal;
+  Wt::Signal<void()> signal;
   /*Wt::Signals::connection conn =*/ signal.connect([&i]{ ++i; });
 //  BOOST_REQUIRE(conn.isConnected());
   signal();
@@ -319,7 +320,7 @@ BOOST_AUTO_TEST_CASE( test_signals13 )
 {
   // Test moved from state
   // Moved from state should be equivalent to default-constructed state
-//  Wt::Signal<> signal;
+//  Wt::Signal<void()> signal;
 //  Wt::Signals::connection conn = signal.connect([]{});
 //  BOOST_REQUIRE(conn.isConnected());
 //  Wt::Signals::connection conn2 = std::move(conn);
@@ -381,7 +382,7 @@ BOOST_AUTO_TEST_CASE( test_signals14 )
     mutable bool *b_;
   };
 
-  Wt::Signal<> signal;
+  Wt::Signal<void()> signal;
   Wt::Signals::connection conn;
   bool destroyed = false;
 

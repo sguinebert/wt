@@ -66,6 +66,8 @@ class Spin_Mutex final
 /// </summary>
 class ST_Policy
 {
+    friend class Connection;
+    template<typename ST_Policy> friend class Observer;
     public:
 
     template <typename T, typename L>
@@ -136,6 +138,8 @@ class ST_Policy
 template <typename Mutex = Spin_Mutex>
 class TS_Policy
 {
+    friend class Connection;
+    template<typename TS_Policy> friend class Observer;
     mutable Mutex mutex;
 
     public:

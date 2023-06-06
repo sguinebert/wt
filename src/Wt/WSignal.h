@@ -227,8 +227,15 @@ private:
  * \ingroup signalslot
  */
 
+// Creating aliases when using nano-signal-slot will increase the maintainability of your code
+// especially if you are choosing to use the alternative policies.
+//using NanoPolicy = ::Nano::ST_Policy_Safe;
+
 //template <class... A>
 //using Signal = ::Nano::Signal<A...> ;
+
+//using Observer = ::Nano::Observer<NanoPolicy>;
+
 
 #ifndef WT_CNOR
 template <class... A>
@@ -413,7 +420,7 @@ public:
     Wt::Signals::connection connect(T *target, void (V::*method)());
   template <class F> Wt::Signals::connection connect(F function);
   template <class F> Wt::Signals::connection connect(const WObject *target,
-						     F function);
+                             F function);
 };
 
 #endif // WT_CNOR

@@ -2,9 +2,14 @@
 
 #include "nano_function.hpp"
 #include "nano_observer.hpp"
+#include <iostream>
 
 namespace Nano
 {
+
+//namespace Signals {
+//    using Connection = Observer<MT_Policy>::Connection;
+//}
 
 template <typename R>
 struct is_asio_awaitable : std::false_type {};
@@ -59,45 +64,66 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
 
     //-------------------------------------------------------------------CONNECT
 
-    template <typename L>
-    void connect(L* instance)
-    {
-        observer::insert(function::template bind(instance), this);
-    }
-    template <typename L>
-    void connect(L&& instance)
-    {
-        connect(std::addressof(instance));
-    }
+    std::vector<std::any> store;
 
+    template <typename L>
+    observer::Connection connect(L* instance)
+    {
+        return observer::insert(function::template bind(instance), this);
+    }
+    template <typename L>
+    observer::Connection connect(L&& instance)
+    {
+
+        /* it is a reference to a functor (example a lambda passed by ref) */
+        if constexpr(std::is_lvalue_reference_v<L>) {
+            return connect(std::addressof(instance));
+        }
+        /* the size of the object L is less than the size of a pointer */
+//        else if constexpr (sizeof(std::remove_pointer_t<L>) <= sizeof(void*))
+//        {
+//        }
+        /* allocate & copy the lambda in the heap and keep shared_ptr in std::any inside Connection*/
+        else {
+            using f_type = std::remove_pointer_t<std::remove_reference_t<L>>;
+
+            //auto shrd = std::shared_ptr<f_type>(new f_type(std::move(instance)));
+            auto shrd = std::make_shared<f_type>(std::move(instance));
+            //std::cerr << "test rvalue lambda store and call " << std::addressof(*shrd) << " // " << shrd.get() << std::endl;
+            return observer::insert(function::template bind(shrd.get()), this, std::move(shrd));
+        }
+    }
+    /* static function connection */
     template <RT(*fun_ptr)(Args...)>
     void connect()
     {
         observer::insert(function::template bind<fun_ptr>(), this);
     }
-
+    /* connect to a member method of a class T passed by pointer*/
     template <typename T, RT(T::*mem_ptr)(Args...)>
     void connect(T* instance)
     {
         insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
+    /* connect to a member const method of a class T passed by pointer */
     template <typename T, RT(T::*mem_ptr)(Args...) const>
     void connect(T* instance)
     {
         insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
-
+    /* connect to a member method of a class T passed by ref*/
     template <typename T, RT(T::*mem_ptr)(Args...)>
     void connect(T& instance)
     {
         connect<mem_ptr, T>(std::addressof(instance));
     }
+    /* connect to a member const method of a class T passed by ref */
     template <typename T, RT(T::*mem_ptr)(Args...) const>
     void connect(T& instance)
     {
         connect<mem_ptr, T>(std::addressof(instance));
     }
-
+    /* implementions detail of the connection to a member method of a class T */
     template <auto mem_ptr, typename T>
     void connect(T* instance)
     {
@@ -171,15 +197,16 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     }
 
     template <typename... Uref>
+    requires(is_asio_awaitable_v<RT>)
     //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
     boost::asio::awaitable<void>
-    emit(Uref&&... args) /*-> requires(is_asio_awaitable_v<RT>)*/
+    emit(Uref&&... args)
     {
         co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
     }
 
     template <typename... Uref>
-    requires(!is_asio_awaitable_v<RT>)
+        requires(!is_asio_awaitable_v<RT>)
     void operator()(Uref&&... args)
     {
         observer::template for_each<function>(std::forward<Uref>(args)...);
@@ -188,7 +215,7 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     template <typename... Uref>
     //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
     boost::asio::awaitable<void>
-    operator()(Uref&&... args) /*-> requires(is_asio_awaitable_v<RT>)*/
+    operator()(Uref&&... args)
     {
         co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
     }
