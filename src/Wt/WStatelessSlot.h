@@ -55,10 +55,8 @@ public:
 
 protected:
   WStatelessSlot(WObject *target, WObjectMethod method);
-  WStatelessSlot(WObject *target, WObjectMethod method,
-		 WObjectMethod undoMethod);
-  WStatelessSlot(WObject *target, WObjectMethod method,
-		 const std::string& javaScript);
+  WStatelessSlot(WObject *target, WObjectMethod method, WObjectMethod undoMethod);
+  WStatelessSlot(WObject *target, WObjectMethod method, const std::string& javaScript);
 
 private:
   void reimplementPreLearn(WObjectMethod undoMethod);

@@ -265,11 +265,10 @@ EventSignalBase::~EventSignalBase()
 #ifndef WT_CNOR
 Wt::Signals::connection
 EventSignalBase::connectStateless(WObject::Method method,
-				  WObject *target,
-				  WStatelessSlot *slot)
+                                  WObject *target,
+                                  WStatelessSlot *slot)
 {
-  Wt::Signals::connection c
-    = dummy_.connect(std::bind(method, target), target);
+  Wt::Signals::connection c = dummy_.connect(std::bind(method, target), target);
   if (slot->addConnection(this))
     connections_.push_back(StatelessConnection(c, target, slot));
 

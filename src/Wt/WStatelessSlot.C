@@ -13,16 +13,14 @@ WStatelessSlot::WStatelessSlot(WObject* obj, WObjectMethod method)
     learned_(false)
 { }
 
-WStatelessSlot::WStatelessSlot(WObject* obj, WObjectMethod method, 
-			       WObjectMethod undomethod)
+WStatelessSlot::WStatelessSlot(WObject* obj, WObjectMethod method, WObjectMethod undomethod)
   : target_(obj),
     method_(method),
     undoMethod_(undomethod),
     learned_(false)
 { }
 
-WStatelessSlot::WStatelessSlot(WObject* obj, WObjectMethod method,
-			       const std::string& javaScript)
+WStatelessSlot::WStatelessSlot(WObject* obj, WObjectMethod method, const std::string& javaScript)
   : target_(obj),
     method_(method),
     undoMethod_(nullptr),
