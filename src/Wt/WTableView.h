@@ -232,10 +232,10 @@ private:
 
   ColumnWidget *columnContainer(int renderedColumn) const;
 
-  awaitable<void> modelColumnsInserted(const WModelIndex& parent, int start, int end);
-  awaitable<void> modelColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
-  awaitable<void> modelRowsInserted(const WModelIndex& parent, int start, int end);
-  awaitable<void> modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  void modelColumnsInserted(const WModelIndex& parent, int start, int end);
+  void modelColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  void modelRowsInserted(const WModelIndex& parent, int start, int end);
+  void modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   void modelRowsRemoved(const WModelIndex& parent, int start, int end);
   virtual void modelDataChanged(const WModelIndex& topLeft,
 				const WModelIndex& bottomRight) override;
@@ -296,8 +296,8 @@ private:
     override;
   virtual void selectRange(const WModelIndex& first, const WModelIndex& last)
     override;
-  awaitable<void> shiftModelIndexRows(int start, int count);
-  awaitable<void> shiftModelIndexColumns(int start, int count);
+  void shiftModelIndexRows(int start, int count);
+  void shiftModelIndexColumns(int start, int count);
   void renderSelected(bool selected, const WModelIndex& index);
   int renderedColumnsCount() const;
 

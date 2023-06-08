@@ -130,15 +130,14 @@ public:
    *
    * Only one aggregate can be defined per \p parentColumn.
    */
-  awaitable<void> addAggregate(int parentColumn, int firstColumn, int lastColumn);
+  void addAggregate(int parentColumn, int firstColumn, int lastColumn);
 
   virtual WModelIndex mapFromSource(const WModelIndex& sourceIndex)
     const override;
   virtual WModelIndex mapToSource(const WModelIndex& proxyIndex)
     const override;
 
-  virtual void setSourceModel(const std::shared_ptr<WAbstractItemModel>&
-			      sourceModel) override;
+  virtual void setSourceModel(const std::shared_ptr<WAbstractItemModel>& sourceModel) override;
 
   virtual awaitable<void> expandColumn(int column) override;
   virtual awaitable<void> collapseColumn(int column) override;
@@ -161,7 +160,7 @@ public:
 
   virtual awaitable<void> sort(int column, SortOrder order = SortOrder::Ascending) override;
 
-  awaitable<void> sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end);
+  void sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end);
 private:
   struct Aggregate {
     int parentSrc_;
@@ -194,13 +193,13 @@ private:
 
   std::vector<Nano::Observer<>::Connection> modelConnections_;
 
-  awaitable<void> expand(Aggregate& aggregate);
-  awaitable<void> collapse(Aggregate& aggregate);
+  void expand(Aggregate& aggregate);
+  void collapse(Aggregate& aggregate);
 
-  awaitable<void> propagateBeginRemove(const WModelIndex& proxyIndex, int start, int end);
-  awaitable<void> propagateEndRemove(const WModelIndex& proxyIndex, int start, int end);
-  awaitable<void> propagateBeginInsert(const WModelIndex& proxyIndex, int start, int end);
-  awaitable<void> propagateEndInsert(const WModelIndex& proxyIndex, int start, int end);
+  void propagateBeginRemove(const WModelIndex& proxyIndex, int start, int end);
+  void propagateEndRemove(const WModelIndex& proxyIndex, int start, int end);
+  void propagateBeginInsert(const WModelIndex& proxyIndex, int start, int end);
+  void propagateEndInsert(const WModelIndex& proxyIndex, int start, int end);
 
   int lastVisibleSourceNotAfter(int sourceColumn) const;
   int firstVisibleSourceNotBefore(int sourceColumn) const;
@@ -211,10 +210,10 @@ private:
   void sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   void sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
 
-  awaitable<void> sourceRowsInserted(const WModelIndex& parent, int start, int end);
+  void sourceRowsInserted(const WModelIndex& parent, int start, int end);
 
-  awaitable<void> sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
-  awaitable<void> sourceRowsRemoved(const WModelIndex& parent, int start, int end);
+  void sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  void sourceRowsRemoved(const WModelIndex& parent, int start, int end);
 
   awaitable<void> sourceDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight);
 

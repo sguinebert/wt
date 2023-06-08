@@ -159,22 +159,25 @@ int WStandardChartProxyModel::rowCount() const
 
 awaitable<void> WStandardChartProxyModel::sourceModelModified()
 {
-  co_await changed().emit();
+  changed().emit();
+  co_return;
 }
 
-awaitable<void> WStandardChartProxyModel::onSourceModelModified(WModelIndex, int, int)
+void WStandardChartProxyModel::onSourceModelModified(WModelIndex, int, int)
 {
-  co_await changed().emit();
+  changed().emit();
 }
 
 awaitable<void> WStandardChartProxyModel::onheaderDataChanged(Orientation, int, int)
 {
-    co_await changed().emit();
+  changed().emit();
+  co_return;
 }
 
 awaitable<void> WStandardChartProxyModel::onDataChanged(WModelIndex, WModelIndex)
 {
-    co_await changed().emit();
+  changed().emit();
+  co_return;
 }
 
   }

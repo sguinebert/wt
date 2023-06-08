@@ -383,51 +383,51 @@ void WAbstractItemModel::beginInsertColumns(const WModelIndex& parent, int first
   columnsAboutToBeInserted().emit(parent_, first, last);
 }
 
-awaitable<void> WAbstractItemModel::endInsertColumns()
+void WAbstractItemModel::endInsertColumns()
 {
-  co_await columnsInserted().emit(parent_, first_, last_);
+  columnsInserted().emit(parent_, first_, last_);
 }
 
-awaitable<void> WAbstractItemModel::beginInsertRows(const WModelIndex& parent, int first, int last)
+void WAbstractItemModel::beginInsertRows(const WModelIndex& parent, int first, int last)
 {
   first_ = first;
   last_ = last;
   parent_ = parent;
 
-  co_await rowsAboutToBeInserted().emit((WModelIndex&)parent, first, last);
+  rowsAboutToBeInserted().emit((WModelIndex&)parent, first, last);
 }
 
-awaitable<void> WAbstractItemModel::endInsertRows()
+void WAbstractItemModel::endInsertRows()
 {
-  co_await rowsInserted().emit(parent_, first_, last_);
+  rowsInserted().emit(parent_, first_, last_);
 }
 
-awaitable<void> WAbstractItemModel::beginRemoveColumns(const WModelIndex& parent, int first, int last)
-{
-  first_ = first;
-  last_ = last;
-  parent_ = parent;
-
-  co_await columnsAboutToBeRemoved().emit((WModelIndex&)parent, first, last);
-}
-
-awaitable<void> WAbstractItemModel::endRemoveColumns()
-{
-  co_await columnsRemoved().emit(parent_, first_, last_);
-}
-
-awaitable<void> WAbstractItemModel::beginRemoveRows(const WModelIndex& parent, int first, int last)
+void WAbstractItemModel::beginRemoveColumns(const WModelIndex& parent, int first, int last)
 {
   first_ = first;
   last_ = last;
   parent_ = parent;
 
-  co_await rowsAboutToBeRemoved().emit((WModelIndex&)parent, first, last);
+  columnsAboutToBeRemoved().emit((WModelIndex&)parent, first, last);
 }
 
-awaitable<void> WAbstractItemModel::endRemoveRows()
+void WAbstractItemModel::endRemoveColumns()
 {
-  co_await rowsRemoved().emit(parent_, first_, last_);
+  columnsRemoved().emit(parent_, first_, last_);
+}
+
+void WAbstractItemModel::beginRemoveRows(const WModelIndex& parent, int first, int last)
+{
+  first_ = first;
+  last_ = last;
+  parent_ = parent;
+
+  rowsAboutToBeRemoved().emit((WModelIndex&)parent, first, last);
+}
+
+void WAbstractItemModel::endRemoveRows()
+{
+  rowsRemoved().emit(parent_, first_, last_);
 }
 
 WModelIndexList WAbstractItemModel::match(const WModelIndex& start,

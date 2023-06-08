@@ -69,9 +69,9 @@ awaitable<void> WStringListModel::setStringList(const std::vector<WString>& stri
   int newSize = strings.size();
 
   if (newSize > currentSize)
-    co_await beginInsertRows(WModelIndex(), currentSize, newSize - 1);
+    beginInsertRows(WModelIndex(), currentSize, newSize - 1);
   else if (newSize < currentSize)
-    co_await beginRemoveRows(WModelIndex(), newSize, currentSize - 1);
+    beginRemoveRows(WModelIndex(), newSize, currentSize - 1);
 
   displayData_ = strings;
   flags_.clear();
@@ -80,9 +80,9 @@ awaitable<void> WStringListModel::setStringList(const std::vector<WString>& stri
   otherData_ = nullptr;
 
   if (newSize > currentSize)
-    co_await endInsertRows();
+    endInsertRows();
   else if (newSize < currentSize)
-    co_await endRemoveRows();
+    endRemoveRows();
 
   int numChanged = std::min(currentSize, newSize);
 

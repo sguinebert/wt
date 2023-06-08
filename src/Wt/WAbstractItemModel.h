@@ -694,7 +694,7 @@ public:
    *
    * \sa columnsRemoved(), beginRemoveColumns()
    */
-  virtual Signal<awaitable<void>(WModelIndex, int, int)>& columnsAboutToBeRemoved() { return columnsAboutToBeRemoved_; }
+  virtual Signal<void(WModelIndex, int, int)>& columnsAboutToBeRemoved() { return columnsAboutToBeRemoved_; }
  
   /*! \brief %Signal emitted after a number of columns were inserted.
    *
@@ -704,7 +704,7 @@ public:
    *
    * \sa columnsAboutToBeInserted(), endInsertColumns()
    */
-  virtual Signal<awaitable<void>(WModelIndex, int, int)>& columnsInserted() { return columnsInserted_; }
+  virtual Signal<void(WModelIndex, int, int)>& columnsInserted() { return columnsInserted_; }
 
   /*! \brief %Signal emitted after a number of columns were removed.
    *
@@ -713,7 +713,7 @@ public:
    *
    * \sa columnsAboutToBeRemoved(), endRemoveColumns()
    */
-  virtual Signal<awaitable<void>(WModelIndex, int, int)>& columnsRemoved() { return columnsRemoved_; }
+  virtual Signal<void(WModelIndex, int, int)>& columnsRemoved() { return columnsRemoved_; }
 
   /*! \brief %Signal emitted before a number of rows will be inserted.
    *
@@ -723,7 +723,7 @@ public:
    *
    * \sa rowsInserted(), beginInsertRows()
    */
-  virtual Signal<awaitable<void>(WModelIndex, int, int)>& rowsAboutToBeInserted() { return rowsAboutToBeInserted_; }
+  virtual Signal<void(WModelIndex, int, int)>& rowsAboutToBeInserted() { return rowsAboutToBeInserted_; }
 
   /*! \brief %Signal emitted before a number of rows will be removed.
    *
@@ -733,7 +733,7 @@ public:
    *
    * \sa rowsRemoved(), beginRemoveRows()
    */
-  virtual Signal<awaitable<void>(WModelIndex, int, int)>& rowsAboutToBeRemoved() { return rowsAboutToBeRemoved_; }
+  virtual Signal<void(WModelIndex, int, int)>& rowsAboutToBeRemoved() { return rowsAboutToBeRemoved_; }
  
   /*! \brief %Signal emitted after a number of rows were inserted.
    *
@@ -742,7 +742,7 @@ public:
    *
    * \sa rowsAboutToBeInserted(), endInsertRows()
    */
-  Signal<awaitable<void>(WModelIndex, int, int)>&
+  Signal<void(WModelIndex, int, int)>&
   rowsInserted() { return rowsInserted_; }
 
   /*! \brief %Signal emitted after a number of rows were removed.
@@ -752,7 +752,7 @@ public:
    *
    * \sa rowsAboutToBeRemoved(), endRemoveRows()
    */
-  Signal<awaitable<void>(WModelIndex, int, int)>& rowsRemoved() { return rowsRemoved_; }
+  Signal<void(WModelIndex, int, int)>& rowsRemoved() { return rowsRemoved_; }
 
   /*! \brief %Signal emitted when some data was changed.
    *
@@ -851,7 +851,7 @@ protected:
    *
    * \sa endInsertRows(), insertRows(), rowsAboutToBeInserted
    */  
-  awaitable<void> beginInsertRows(const WModelIndex& parent, int first, int last);
+  void beginInsertRows(const WModelIndex& parent, int first, int last);
 
   /*! \brief Method to be called before removing columns.
    *
@@ -862,7 +862,7 @@ protected:
    *
    * \sa endRemoveColumns(), removeColumns(), columnsAboutToBeRemoved
    */
-  awaitable<void> beginRemoveColumns(const WModelIndex& parent, int first, int last);
+  void beginRemoveColumns(const WModelIndex& parent, int first, int last);
 
   /*! \brief Method to be called before removing rows.
    *
@@ -873,31 +873,31 @@ protected:
    *
    * \sa endRemoveRows(), removeRows(), rowsAboutToBeRemoved
    */  
-  awaitable<void> beginRemoveRows(const WModelIndex& parent, int first, int last);
+  void beginRemoveRows(const WModelIndex& parent, int first, int last);
 
   /*! \brief Method to be called after inserting columns.
    *
    * \sa beginInsertColumns()
    */
-  awaitable<void> endInsertColumns();
+  void endInsertColumns();
 
   /*! \brief Method to be called after inserting rows.
    *
    * \sa beginInsertRows()
    */  
-  awaitable<void> endInsertRows();
+  void endInsertRows();
 
   /*! \brief Method to be called after removing columns.
    *
    * \sa beginRemoveColumns()
    */  
-  awaitable<void> endRemoveColumns();
+  void endRemoveColumns();
 
   /*! \brief Method to be called after removing rows.
    *
    * \sa beginRemoveRows()
    */
-  awaitable<void> endRemoveRows();
+  void endRemoveRows();
 
   /*! \brief Copy data to an index in this model.
    *
@@ -912,14 +912,13 @@ private:
   WModelIndex parent_;
 
   Signal<void(WModelIndex, int, int)> columnsAboutToBeInserted_;
-  Signal<awaitable<void>(WModelIndex, int, int)> columnsAboutToBeRemoved_;
-  Signal<awaitable<void>(WModelIndex, int, int)> columnsInserted_;
-  Signal<awaitable<void>(WModelIndex, int, int)> columnsRemoved_;
-  Signal<awaitable<void>(WModelIndex, int, int)> rowsAboutToBeInserted_;
-  Signal<awaitable<void>(WModelIndex, int, int)> rowsAboutToBeRemoved_;
-  Signal<awaitable<void>(WModelIndex, int, int)> rowsInserted_;
-  //boost::signals2::signal<void(WModelIndex, int, int)> rowsInserted_;
-  Signal<awaitable<void>(WModelIndex, int, int)> rowsRemoved_;
+  Signal<void(WModelIndex, int, int)> columnsAboutToBeRemoved_;
+  Signal<void(WModelIndex, int, int)> columnsInserted_;
+  Signal<void(WModelIndex, int, int)> columnsRemoved_;
+  Signal<void(WModelIndex, int, int)> rowsAboutToBeInserted_;
+  Signal<void(WModelIndex, int, int)> rowsAboutToBeRemoved_;
+  Signal<void(WModelIndex, int, int)> rowsInserted_;
+  Signal<void(WModelIndex, int, int)> rowsRemoved_;
   Signal<awaitable<void>(WModelIndex, WModelIndex)> dataChanged_;
   Signal<awaitable<void>(Orientation, int, int)> headerDataChanged_;
   Signal<awaitable<void>()> layoutAboutToBeChanged_;

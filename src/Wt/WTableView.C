@@ -1338,7 +1338,7 @@ WWidget* WTableView::headerWidget(int column, bool contentsOnly)
     return result;
 }
 
-awaitable<void> WTableView::shiftModelIndexRows(int start, int count)
+void WTableView::shiftModelIndexRows(int start, int count)
 {
   WModelIndexSet& set = selectionModel()->selection_;
   
@@ -1371,29 +1371,33 @@ awaitable<void> WTableView::shiftModelIndexRows(int start, int count)
     set.insert(newIndex);
   }
 
-  co_await shiftEditorRows(rootIndex(), start, count, true);
+  shiftEditorRows(rootIndex(), start, count, true);
 
   if (!toErase.empty())
     selectionChanged().emit();
-  co_return;
+  //co_return;
 }
 
-awaitable<void> WTableView::shiftModelIndexColumns(int start, int count)
+void WTableView::shiftModelIndexColumns(int start, int count)
 {
   WModelIndexSet& set = selectionModel()->selection_;
   
   std::vector<WModelIndex> toShift;
   std::vector<WModelIndex> toErase;
 
-  for (WModelIndexSet::iterator it = set.begin(); it != set.end(); ++it) {
-    if (count < 0) {
-      if ((*it).column() < start - count) {
-	toErase.push_back(*it);
-	continue;
+  for (WModelIndexSet::iterator it = set.begin(); it != set.end(); ++it)
+  {
+    if (count < 0)
+    {
+      if ((*it).column() < start - count)
+      {
+        toErase.push_back(*it);
+        continue;
       }
     }
 
-    if ((*it).column() >= start) {
+    if ((*it).column() >= start)
+    {
       toShift.push_back(*it);
       toErase.push_back(*it);
     }
@@ -1409,18 +1413,18 @@ awaitable<void> WTableView::shiftModelIndexColumns(int start, int count)
     set.insert(newIndex);
   }
 
-  co_await shiftEditorColumns(rootIndex(), start, count, true);
+  shiftEditorColumns(rootIndex(), start, count, true);
 
 //#warning "no automatic when shift"
   if (!toShift.empty() || !toErase.empty())
    selectionChanged().emit();
-  co_return;
+  //co_return;
 }
 
-awaitable<void> WTableView::modelColumnsInserted(const WModelIndex& parent, int start, int end)
+void WTableView::modelColumnsInserted(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
-    co_return;
+    return;
 
   int count = end - start + 1;
   int width = 0;
@@ -1430,7 +1434,7 @@ awaitable<void> WTableView::modelColumnsInserted(const WModelIndex& parent, int 
     width += (int)columnInfo(i).width.toPixels() + 7;
   }
 
-  co_await shiftModelIndexColumns(start, end - start + 1);
+  shiftModelIndexColumns(start, end - start + 1);
 
   if (ajaxMode())
     canvas_->setWidth(canvas_->width().toPixels() + width);
@@ -1442,24 +1446,27 @@ awaitable<void> WTableView::modelColumnsInserted(const WModelIndex& parent, int 
   if (start > (lastColumn() + 1) || 
       renderState_ == RenderState::NeedRerender || 
       renderState_ == RenderState::NeedRerenderData)
-    co_return;
+    return;
 
   scheduleRerender(RenderState::NeedRerenderData);
   adjustSize();
 }
 
-awaitable<void> WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+void WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
-    co_return;
+    return;
 
   for (int r = 0; r < model()->rowCount(); r++) {
+//    for (int c = start; c <= end; c++) {
+//      co_await closeEditor(model()->index(r, c), true);
+//    }
     for (int c = start; c <= end; c++) {
-      co_await closeEditor(model()->index(r, c), true);
+      closeEditor(model()->index(r, c));
     }
   }
 
-  co_await shiftModelIndexColumns(start, -(end - start + 1));
+  shiftModelIndexColumns(start, -(end - start + 1));
 
   int count = end - start + 1;
   int width = 0;
@@ -1486,7 +1493,7 @@ awaitable<void> WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& pare
   if (start > lastColumn() || 
       renderState_ == RenderState::NeedRerender || 
       renderState_ == RenderState::NeedRerenderData)
-    co_return;
+    return;
 
   resetGeometry();
 
@@ -1494,13 +1501,13 @@ awaitable<void> WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& pare
   adjustSize();
 }
 
-awaitable<void> WTableView::modelRowsInserted(const WModelIndex& parent, int start, int end)
+void WTableView::modelRowsInserted(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
-    co_return;
+    return;
 
   int count = end - start + 1;
-  co_await shiftModelIndexRows(start, count);
+  shiftModelIndexRows(start, count);
 
   computeRenderedArea();
 
@@ -1517,7 +1524,7 @@ awaitable<void> WTableView::modelRowsInserted(const WModelIndex& parent, int sta
     scheduleRerender(RenderState::NeedRerenderData);
 
   adjustSize();
-  co_return;
+  //co_return;
 }
 
 namespace {
@@ -1532,18 +1539,21 @@ int calcOverlap(int start1, int end1,
 
 }
 
-awaitable<void> WTableView::modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+void WTableView::modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
-    co_return;
+    return;
 
   for (int c = 0; c < columnCount(); c++) {
+//    for (int r = start; r <= end; r++) {
+//      co_await closeEditor(model()->index(r, c), false);
+//    }
     for (int r = start; r <= end; r++) {
-      co_await closeEditor(model()->index(r, c), false);
+      closeEditor(model()->index(r, c));
     }
   }
 
-  co_await shiftModelIndexRows(start, -(end - start + 1));
+  shiftModelIndexRows(start, -(end - start + 1));
 
   int overlapTop = calcOverlap(0, spannerCount(Side::Top),
 			       start, end + 1);
@@ -1566,7 +1576,7 @@ awaitable<void> WTableView::modelRowsAboutToBeRemoved(const WModelIndex& parent,
     setSpannerCount(Side::Top, spannerCount(Side::Top) - overlapTop);
     setSpannerCount(Side::Bottom, spannerCount(Side::Bottom) + overlapTop);
   }
-  co_return;
+  //co_return;
 }
 
 void WTableView::modelRowsRemoved(const WModelIndex& parent, int start, int end)

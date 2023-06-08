@@ -892,22 +892,21 @@ awaitable<void> WAbstractItemView::setSelectedIndexes(const WModelIndexSet& inde
 
   clearSelection();
 
-  for (WModelIndexSet::const_iterator i = indexes.begin();
-       i != indexes.end(); ++i)
+  for (WModelIndexSet::const_iterator i = indexes.begin(); i != indexes.end(); ++i)
     internalSelect(*i, SelectionFlag::Select);
 
-  co_await selectionChanged_.emit();
+  selectionChanged_.emit();
 }
 
-awaitable<void> WAbstractItemView::extendSelection(const WModelIndex& index)
+void WAbstractItemView::extendSelection(const WModelIndex& index)
 {
   if (selectionModel_->selection_.empty())
     internalSelect(index, SelectionFlag::Select);
-  else {
-    if (selectionBehavior() == SelectionBehavior::Rows &&
-	index.column() != 0) {
-      co_await extendSelection(model_->index(index.row(), 0, index.parent()));
-      co_return;
+  else
+  {
+    if (selectionBehavior() == SelectionBehavior::Rows && index.column() != 0) {
+      extendSelection(model_->index(index.row(), 0, index.parent()));
+      return;
     }
   }
 
@@ -929,11 +928,11 @@ awaitable<void> WAbstractItemView::extendSelection(const WModelIndex& index)
     clearSelection();
     selectRange(index, bottom);
   }
-  co_await selectionChanged_.emit();
+  selectionChanged_.emit();
 }
 
 
-awaitable<void> WAbstractItemView::extendSelection(const std::vector<WModelIndex>& indices)
+void WAbstractItemView::extendSelection(const std::vector<WModelIndex>& indices)
 {
   const WModelIndex &firstIndex = indices[0];
   const WModelIndex &secondIndex = indices[indices.size()-1];
@@ -944,7 +943,7 @@ awaitable<void> WAbstractItemView::extendSelection(const std::vector<WModelIndex
       selectRange(firstIndex, secondIndex);
   }
 
-  co_await selectionChanged_.emit();
+  selectionChanged_.emit();
 }
 
 bool WAbstractItemView::isSelected(const WModelIndex& index) const
@@ -952,70 +951,67 @@ bool WAbstractItemView::isSelected(const WModelIndex& index) const
   return selectionModel_->isSelected(index);
 }
 
-awaitable<void> WAbstractItemView::select(const WModelIndex& index, SelectionFlag option)
+void WAbstractItemView::select(const WModelIndex& index, SelectionFlag option)
 {
   if (internalSelect(index, option))
-    co_await selectionChanged_.emit();
-  co_return;
+    selectionChanged_.emit();
+  //co_return;
 }
 
-awaitable<void> WAbstractItemView::selectionHandleClick(const WModelIndex& index,
-					     WFlags<KeyboardModifier> modifiers)
+void WAbstractItemView::selectionHandleClick(const WModelIndex& index, WFlags<KeyboardModifier> modifiers)
 {
   if (selectionMode_ == SelectionMode::None)
-    co_return;
+    return;
 
   if (selectionMode_ == SelectionMode::Extended) {
     if (modifiers.test(KeyboardModifier::Shift))
-      co_await extendSelection(index);
+      extendSelection(index);
     else {
       if (!(modifiers & (KeyboardModifier::Control | 
 			 KeyboardModifier::Meta))) {
 	if (!dragEnabled_)
-      co_await select(index, SelectionFlag::ClearAndSelect);
+      select(index, SelectionFlag::ClearAndSelect);
 	else {
 	  if (!isSelected(index))
-        co_await select(index, SelectionFlag::ClearAndSelect);
+        select(index, SelectionFlag::ClearAndSelect);
 	  else
 	    delayedClearAndSelectIndex_ = index;
 	}
       } else
-    co_await select(index, SelectionFlag::ToggleSelect);
+        select(index, SelectionFlag::ToggleSelect);
     }
   } else {
     if (!(modifiers & (KeyboardModifier::Control | 
 		      KeyboardModifier::Meta)).empty() &&
 	isSelected(index)) {
       clearSelection();
-      co_await selectionChanged_.emit();
+      selectionChanged_.emit();
     } else
-      co_await select(index, SelectionFlag::Select);
+      select(index, SelectionFlag::Select);
   }
-  co_return;
+  //co_return;
 }
 
-awaitable<void> WAbstractItemView::selectionHandleTouch(const std::vector<WModelIndex>& indices,
-					     const WTouchEvent& event)
+void WAbstractItemView::selectionHandleTouch(const std::vector<WModelIndex>& indices, const WTouchEvent& event)
 {
   if (selectionMode_ == SelectionMode::None)
-    co_return;
+    return;
 
   const WModelIndex &index = indices[0];
 
   if (selectionMode_ == SelectionMode::Extended) {
     if (event.touches().size() > 1)
-      co_await extendSelection(indices);
+      extendSelection(indices);
     else {
-      co_await select(index, SelectionFlag::ToggleSelect);
+      select(index, SelectionFlag::ToggleSelect);
     }
   } else {
     if (isSelected(index)) {
       clearSelection();
-      co_await selectionChanged_.emit();
+      selectionChanged_.emit();
     } else
-      co_await select(index, SelectionFlag::ClearAndSelect);
+      select(index, SelectionFlag::ClearAndSelect);
   }
-  co_return;
 }
 
 WModelIndexSet WAbstractItemView::selectedIndexes() const
@@ -1374,7 +1370,7 @@ awaitable<void> WAbstractItemView::handleClick(const WModelIndex& index, const W
   if (dragEnabled_ && delayedClearAndSelectIndex_.isValid()) {
     Coordinates delta = event.dragDelta();
     if ((delta.x < 0 ? -delta.x : delta.x) < 4 && (delta.y < 0 ? -delta.y : delta.y) < 4)
-      co_await select(delayedClearAndSelectIndex_, SelectionFlag::ClearAndSelect);
+      select(delayedClearAndSelectIndex_, SelectionFlag::ClearAndSelect);
   }
 
   bool doEdit = index.isValid() && editTriggers().test(EditTrigger::SingleClicked);
@@ -1406,7 +1402,7 @@ awaitable<void> WAbstractItemView::handleMouseDown(const WModelIndex& index, con
   delayedClearAndSelectIndex_ = WModelIndex();
 
   if (index.isValid() && event.button() == MouseButton::Left)
-    co_await selectionHandleClick(index, event.modifiers());
+    selectionHandleClick(index, event.modifiers());
 
   if (doEdit)
     co_await edit(index);
@@ -1438,7 +1434,7 @@ awaitable<void> WAbstractItemView::handleTouchSelect(const std::vector<WModelInd
       co_await edit(index);
   }
   if (indices[0].isValid() && indices[indices.size()-1].isValid()){
-    co_await selectionHandleTouch(indices, event);
+    selectionHandleTouch(indices, event);
   }
 
   co_await touchStart_.emit((WModelIndex&)index, (WTouchEvent&)event);
@@ -1592,7 +1588,7 @@ bool WAbstractItemView::isEditing(const WModelIndex& index) const
   return editedItems_.find(index) != editedItems_.end();
 }
 
-awaitable<bool> WAbstractItemView::shiftEditorRows(const WModelIndex& parent,
+bool WAbstractItemView::shiftEditorRows(const WModelIndex& parent,
                                                    int start, int count,
                                                    bool persistWhenShifted)
 {
@@ -1648,16 +1644,19 @@ awaitable<bool> WAbstractItemView::shiftEditorRows(const WModelIndex& parent,
       }
     }
 
+//    for (unsigned i = 0; i < toClose.size(); ++i)
+//      co_await closeEditor(toClose[i], true);
+
     for (unsigned i = 0; i < toClose.size(); ++i)
-      co_await closeEditor(toClose[i], true);
+      closeEditor(toClose[i]);
 
     editedItems_ = newMap;
   }
 
-  co_return result;
+  return result;
 }
 
-awaitable<bool> WAbstractItemView::shiftEditorColumns(const WModelIndex& parent,
+bool WAbstractItemView::shiftEditorColumns(const WModelIndex& parent,
                                                       int start, int count,
                                                       bool persistWhenShifted)
 {
@@ -1707,13 +1706,16 @@ awaitable<bool> WAbstractItemView::shiftEditorColumns(const WModelIndex& parent,
       }
     }
 
+    //    for (unsigned i = 0; i < toClose.size(); ++i)
+    //      co_await closeEditor(toClose[i], true);
+
     for (unsigned i = 0; i < toClose.size(); ++i)
-      co_await closeEditor(toClose[i], true);
+      closeEditor(toClose[i]);
 
     editedItems_ = newMap;
   }
 
-  co_return result;
+  return result;
 }
 
 bool WAbstractItemView::isValid(const WModelIndex& index) const

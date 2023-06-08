@@ -400,19 +400,19 @@ void WSortFilterProxyModel::sourceColumnsAboutToBeInserted(const WModelIndex& pa
   beginInsertColumns(mapFromSource(parent), start, end);
 }
 
-awaitable<void> WSortFilterProxyModel::sourceColumnsInserted(const WModelIndex& parent, int start, int end)
+void WSortFilterProxyModel::sourceColumnsInserted(const WModelIndex& parent, int start, int end)
 {
-  co_await endInsertColumns();
+  endInsertColumns();
 }
 
-awaitable<void> WSortFilterProxyModel::sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+void WSortFilterProxyModel::sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 { 
-  co_await beginRemoveColumns(mapFromSource(parent), start, end);
+  beginRemoveColumns(mapFromSource(parent), start, end);
 }
 
-awaitable<void> WSortFilterProxyModel::sourceColumnsRemoved(const WModelIndex& parent, int start, int end)
+void WSortFilterProxyModel::sourceColumnsRemoved(const WModelIndex& parent, int start, int end)
 { 
-  co_await endRemoveColumns();
+  endRemoveColumns();
 }
 
 void WSortFilterProxyModel::sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end)
@@ -437,19 +437,19 @@ void WSortFilterProxyModel::sourceRowsAboutToBeInserted(const WModelIndex& paren
   itemFromIndex(pparent);
 }
 
-awaitable<void> WSortFilterProxyModel::sourceRowsInserted(const WModelIndex& parent, int start, int end)
+void WSortFilterProxyModel::sourceRowsInserted(const WModelIndex& parent, int start, int end)
 {
   startShiftModelIndexes(parent, end + 1, (end - start + 1), mappedIndexes_);
 
   if (inserting_)
-    co_return;
+    return;
 
   int count = end - start + 1;
 
   WModelIndex pparent = mapFromSource(parent);
   // distinguish between invalid parent being root item or being filtered out
   if (parent.isValid() && !pparent.isValid())
-    co_return;
+    return;
   Item *item = itemFromIndex(pparent);
 
   // Shift existing entries in proxyRowMap, and reserve place in sourceRowMap
@@ -462,37 +462,37 @@ awaitable<void> WSortFilterProxyModel::sourceRowsInserted(const WModelIndex& par
   item->sourceRowMap_.insert(item->sourceRowMap_.begin() + start, count, -1);
 
   if (!dynamic_)
-    co_return;
+    return;
 
   for (int row = start; row <= end; ++row) {
     int newMappedRow = mappedInsertionPoint(row, item);
     if (newMappedRow != -1) {
-      co_await beginInsertRows(pparent, newMappedRow, newMappedRow);
+      beginInsertRows(pparent, newMappedRow, newMappedRow);
       item->proxyRowMap_.insert(item->proxyRowMap_.begin() + newMappedRow, row);
       rebuildSourceRowMap(item); // insertion may have shifted some
-      co_await endInsertRows();
+      endInsertRows();
     } else
       item->sourceRowMap_[row] = -1;
   }
-  co_return;
+  //co_return;
 }
 
-awaitable<void> WSortFilterProxyModel::sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+void WSortFilterProxyModel::sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   WModelIndex pparent = mapFromSource(parent);
   // distinguish between invalid parent being root item or being filtered out
   if (parent.isValid() && !pparent.isValid())
-    co_return;
+    return;
   Item *item = itemFromIndex(pparent);
 
   for (int row = start; row <= end; ++row) {
     int mappedRow = item->sourceRowMap_[row];
 
     if (mappedRow != -1) {
-      co_await beginRemoveRows(pparent, mappedRow, mappedRow);
+      beginRemoveRows(pparent, mappedRow, mappedRow);
       item->proxyRowMap_.erase(item->proxyRowMap_.begin() + mappedRow);
       rebuildSourceRowMap(item); // erase may have shifted some
-      co_await endRemoveRows();
+      endRemoveRows();
     }
   }
 
@@ -558,17 +558,17 @@ awaitable<void> WSortFilterProxyModel::sourceDataChanged(const WModelIndex& topL
       if (newMappedRow != oldMappedRow)
       {
         if (oldMappedRow != -1) {
-          co_await beginRemoveRows(parent, oldMappedRow, oldMappedRow);
+          beginRemoveRows(parent, oldMappedRow, oldMappedRow);
           item->proxyRowMap_.erase(item->proxyRowMap_.begin() + oldMappedRow);
           rebuildSourceRowMap(item);
-          co_await endRemoveRows();
+          endRemoveRows();
         }
 
         if (newMappedRow != -1) {
-          co_await beginInsertRows(parent, newMappedRow, newMappedRow);
+          beginInsertRows(parent, newMappedRow, newMappedRow);
           item->proxyRowMap_.insert(item->proxyRowMap_.begin() + newMappedRow, row);
           rebuildSourceRowMap(item);
-          co_await endInsertRows();
+          endInsertRows();
         }
 
         propagateDataChange = false;

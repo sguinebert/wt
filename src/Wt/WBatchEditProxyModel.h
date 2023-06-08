@@ -200,15 +200,15 @@ private:
   mutable ItemMap mappedIndexes_;
 
   void sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end);
-  awaitable<void> sourceColumnsInserted(const WModelIndex& parent, int start, int end);
+  void sourceColumnsInserted(const WModelIndex& parent, int start, int end);
 
-  awaitable<void> sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
-  awaitable<void> sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
+  void sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  void sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
 
   void sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end);
-  awaitable<void> sourceRowsInserted(const WModelIndex& parent, int start, int end);
+  void sourceRowsInserted(const WModelIndex& parent, int start, int end);
 
-  awaitable<void> sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  void sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   void sourceRowsRemoved(const WModelIndex& parent, int start, int end);
 
   awaitable<void> sourceDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight);

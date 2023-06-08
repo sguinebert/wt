@@ -450,10 +450,10 @@ void WBatchEditProxyModel::sourceColumnsAboutToBeInserted(const WModelIndex& par
   beginInsertColumns(mapFromSource(parent), start, end);
 }
 
-awaitable<void> WBatchEditProxyModel::sourceColumnsInserted(const WModelIndex& parent, int start, int end)
+void WBatchEditProxyModel::sourceColumnsInserted(const WModelIndex& parent, int start, int end)
 {
   if (isRemoved(parent))
-    co_return;
+    return;
 
   WModelIndex pparent = mapFromSource(parent);
   Item *item = itemFromIndex(pparent);
@@ -469,7 +469,7 @@ awaitable<void> WBatchEditProxyModel::sourceColumnsInserted(const WModelIndex& p
       if (!submitting_) {
           beginInsertColumns(pparent, proxyColumn, proxyColumn);
           shiftColumns(item, proxyColumn, 1);
-          co_await endInsertColumns();
+          endInsertColumns();
       } else {
           // The insert is being submitted. We do not need to shift
           // anything: the proxy indexes do not change
@@ -491,16 +491,16 @@ awaitable<void> WBatchEditProxyModel::sourceColumnsInserted(const WModelIndex& p
 
       beginInsertColumns(pparent, proxyColumn, proxyColumn);
       shiftColumns(item, proxyColumn, 1);
-      co_await endInsertColumns();
+      endInsertColumns();
     }
   }
-  co_return;
+  //co_return;
 }
 
-awaitable<void> WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+void WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 { 
   if (isRemoved(parent))
-    co_return;
+    return;
 
   WModelIndex pparent = mapFromSource(parent);
   Item *item = itemFromIndex(pparent);
@@ -511,11 +511,11 @@ awaitable<void> WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModel
     int proxyColumn = adjustedProxyColumn(item, start);
 
     if (proxyColumn >= 0) {
-      co_await beginRemoveColumns(pparent, proxyColumn, proxyColumn);
+      beginRemoveColumns(pparent, proxyColumn, proxyColumn);
 
       shiftColumns(item, proxyColumn, -1);
 
-      co_await endRemoveColumns();
+      endRemoveColumns();
     } else {
       // Was removed. We do not need to shift anything: the 'proxy'
       // indexes do not change
@@ -523,21 +523,21 @@ awaitable<void> WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModel
       item->removedColumns_.erase(item->removedColumns_.begin() + remi);
     }
   }
-  co_return;
+  //co_return;
 }
 
-awaitable<void> WBatchEditProxyModel::sourceColumnsRemoved(const WModelIndex& parent, int start, int end)
+void WBatchEditProxyModel::sourceColumnsRemoved(const WModelIndex& parent, int start, int end)
 {
   if (isRemoved(parent))
-    co_return;
+    return;
 
-  co_await endRemoveColumns();
+  endRemoveColumns();
 }
 
-awaitable<void> WBatchEditProxyModel::sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+void WBatchEditProxyModel::sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   if (isRemoved(parent))
-    co_return;
+    return;
 
   WModelIndex pparent = mapFromSource(parent);
   Item *item = itemFromIndex(pparent);
@@ -548,13 +548,13 @@ awaitable<void> WBatchEditProxyModel::sourceRowsAboutToBeRemoved(const WModelInd
     int proxyRow = adjustedProxyRow(item, start);
 
     if (proxyRow >= 0) {
-      co_await beginRemoveRows(pparent, proxyRow, proxyRow);
+      beginRemoveRows(pparent, proxyRow, proxyRow);
 
       deleteItemsUnder(item, proxyRow);
 
       shiftRows(item, proxyRow, -1);
 
-      co_await endRemoveRows();
+      endRemoveRows();
     } else {
       // Was removed. We do not need to shift anything: the 'proxy'
       // indexes do not change and also items at indexes for which the
@@ -565,7 +565,7 @@ awaitable<void> WBatchEditProxyModel::sourceRowsAboutToBeRemoved(const WModelInd
   }
   
   startShiftModelIndexes(parent, start, -(end - start + 1), mappedIndexes_);
-  co_return;
+  //co_return;
 }
 
 void WBatchEditProxyModel::deleteItemsUnder(Item *item, int row)
@@ -593,10 +593,10 @@ void WBatchEditProxyModel::sourceRowsRemoved(const WModelIndex& parent, int star
 void WBatchEditProxyModel::sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end)
 { }
 
-awaitable<void> WBatchEditProxyModel::sourceRowsInserted(const WModelIndex& parent, int start, int end)
+void WBatchEditProxyModel::sourceRowsInserted(const WModelIndex& parent, int start, int end)
 {
   if (isRemoved(parent))
-    co_return;
+    return;
   
   startShiftModelIndexes(parent, start, (end - start + 1), mappedIndexes_);
 
@@ -612,9 +612,9 @@ awaitable<void> WBatchEditProxyModel::sourceRowsInserted(const WModelIndex& pare
     if (proxyRow >= 0)
     {
       if (!submitting_) {
-        co_await beginInsertRows(pparent, proxyRow, proxyRow);
+        beginInsertRows(pparent, proxyRow, proxyRow);
         shiftRows(item, proxyRow, 1);
-        co_await endInsertRows();
+        endInsertRows();
       } else {
         // The insert is being submitted. We do not need to shift anything:
         // the 'proxy' indexes do not change
@@ -644,12 +644,12 @@ awaitable<void> WBatchEditProxyModel::sourceRowsInserted(const WModelIndex& pare
       int remi = -proxyRow - 1;
       proxyRow = item->removedRows_[remi];
 
-      co_await beginInsertRows(pparent, proxyRow, proxyRow);
+      beginInsertRows(pparent, proxyRow, proxyRow);
       shiftRows(item, proxyRow, 1);
-      co_await endInsertRows();
+      endInsertRows();
     }
   }
-  co_return;
+  //co_return;
 }
 
 awaitable<void> WBatchEditProxyModel::sourceDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight)
@@ -1072,7 +1072,7 @@ awaitable<void> WBatchEditProxyModel::commitAll()
   submitting_ = false;
   co_return;
 }
-
+#warning "no need awaitable"
 awaitable<void> WBatchEditProxyModel::revertAll()
 {
   for (auto i = mappedIndexes_.begin(); i != mappedIndexes_.end(); ++i)
@@ -1091,7 +1091,7 @@ awaitable<void> WBatchEditProxyModel::revertAll()
       beginInsertColumns(proxyIndex, column, 1);
       item->removedColumns_.erase(item->removedColumns_.begin());
       shiftColumns(item, column, 1);
-      co_await endInsertColumns();
+      endInsertColumns();
     }
 
     while (!item->insertedRows_.empty())
@@ -1101,10 +1101,10 @@ awaitable<void> WBatchEditProxyModel::revertAll()
     {
       int row = item->removedRows_[0];
 
-      co_await beginInsertRows(proxyIndex, row, 1);
+      beginInsertRows(proxyIndex, row, 1);
       item->removedRows_.erase(item->removedRows_.begin());
       shiftRows(item, row, 1);
-      co_await endInsertRows();
+      endInsertRows();
     }
 
     for (auto j = item->editedValues_.begin(); j != item->editedValues_.end();)

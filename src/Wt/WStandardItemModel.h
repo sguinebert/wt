@@ -396,9 +396,9 @@ public:
 protected:
 #ifndef DOXYGEN_ONLY
   void beginInsertColumns(const WModelIndex& parent, int first, int last);
-  awaitable<void> beginInsertRows(const WModelIndex& parent, int first, int last);
-  awaitable<void> beginRemoveColumns(const WModelIndex& parent, int first, int last);
-  awaitable<void> beginRemoveRows(const WModelIndex& parent, int first, int last);
+  void beginInsertRows(const WModelIndex& parent, int first, int last);
+  void beginRemoveColumns(const WModelIndex& parent, int first, int last);
+  void beginRemoveRows(const WModelIndex& parent, int first, int last);
 #endif // DOXYGEN_ONLY
 
   virtual awaitable<void> copyData(const WModelIndex& sIndex, const WModelIndex& dIndex) override;

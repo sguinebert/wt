@@ -313,36 +313,36 @@ void WAggregateProxyModel
   topLevel_ = Aggregate();
 }
 
-awaitable<void> WAggregateProxyModel::addAggregate(int parentColumn, int firstColumn, int lastColumn)
+void WAggregateProxyModel::addAggregate(int parentColumn, int firstColumn, int lastColumn)
 {
   Aggregate *added = topLevel_.add(Aggregate(parentColumn, firstColumn, lastColumn));
 
-  co_await collapse(*added);
+  collapse(*added);
 }
 
-awaitable<void> WAggregateProxyModel::propagateBeginRemove(const WModelIndex& proxyIndex, int start, int end)
+void WAggregateProxyModel::propagateBeginRemove(const WModelIndex& proxyIndex, int start, int end)
 {
   // should be beginRemoveColumns(), but endRemoveColumns() calls cannot
   // be nested
-  co_await columnsAboutToBeRemoved().emit((WModelIndex&)proxyIndex, start, end);
+  columnsAboutToBeRemoved().emit((WModelIndex&)proxyIndex, start, end);
 
   unsigned int rc = rowCount(proxyIndex);
   for (unsigned i = 0; i < rc; ++i)
-    co_await propagateBeginRemove(index(i, 0, proxyIndex), start, end);
+    propagateBeginRemove(index(i, 0, proxyIndex), start, end);
 }
 
-awaitable<void> WAggregateProxyModel::propagateEndRemove(const WModelIndex& proxyIndex, int start, int end)
+void WAggregateProxyModel::propagateEndRemove(const WModelIndex& proxyIndex, int start, int end)
 {
   // should be endRemoveColumns(), but endRemoveColumns() calls cannot
   // be nested
-  co_await columnsRemoved().emit((WModelIndex&)proxyIndex, start, end);
+  columnsRemoved().emit((WModelIndex&)proxyIndex, start, end);
 
   unsigned int rc = rowCount(proxyIndex);
   for (unsigned i = 0; i < rc; ++i)
-    co_await propagateEndRemove(index(i, 0, proxyIndex), start, end);
+    propagateEndRemove(index(i, 0, proxyIndex), start, end);
 }
 
-awaitable<void> WAggregateProxyModel::propagateBeginInsert(const WModelIndex& proxyIndex, int start, int end)
+void WAggregateProxyModel::propagateBeginInsert(const WModelIndex& proxyIndex, int start, int end)
 {
   // should be beginInsertColumns(), but endInsertColumns() calls cannot
   // be nested
@@ -350,18 +350,18 @@ awaitable<void> WAggregateProxyModel::propagateBeginInsert(const WModelIndex& pr
 
   unsigned int rc = rowCount(proxyIndex);
   for (unsigned i = 0; i < rc; ++i)
-    co_await propagateBeginInsert(index(i, 0, proxyIndex), start, end);
+    propagateBeginInsert(index(i, 0, proxyIndex), start, end);
 }
 
-awaitable<void> WAggregateProxyModel::propagateEndInsert(const WModelIndex& proxyIndex, int start, int end)
+void WAggregateProxyModel::propagateEndInsert(const WModelIndex& proxyIndex, int start, int end)
 {
   // should be endInsertColumns(), but endInsertColumns() calls cannot
   // be nested
-  co_await columnsInserted().emit((WModelIndex&)proxyIndex, start, end);
+  columnsInserted().emit((WModelIndex&)proxyIndex, start, end);
 
   unsigned int rc = rowCount(proxyIndex);
   for (unsigned i = 0; i < rc; ++i)
-    co_await propagateEndInsert(index(i, 0, proxyIndex), start, end);
+    propagateEndInsert(index(i, 0, proxyIndex), start, end);
 }
 
 awaitable<void> WAggregateProxyModel::expandColumn(int column)
@@ -370,7 +370,7 @@ awaitable<void> WAggregateProxyModel::expandColumn(int column)
   Aggregate *ag = topLevel_.findAggregate(sourceColumn);
 
   if (ag)
-    co_await expand(*ag);
+    expand(*ag);
   co_return;
 }
 
@@ -380,11 +380,11 @@ awaitable<void> WAggregateProxyModel::collapseColumn(int column)
   Aggregate *ag = topLevel_.findAggregate(sourceColumn);
 
   if (ag)
-    co_await collapse(*ag);
+    collapse(*ag);
   co_return;
 }
 
-awaitable<void> WAggregateProxyModel::expand(Aggregate& aggregate)
+void WAggregateProxyModel::expand(Aggregate& aggregate)
 {
   int c = topLevel_.mapFromSource(aggregate.parentSrc_);
   if (c >= 0) {
@@ -395,15 +395,15 @@ awaitable<void> WAggregateProxyModel::expand(Aggregate& aggregate)
 				     (aggregate.lastChildSrc_));
     aggregate.collapsed_ = true;
 
-    co_await propagateBeginInsert(WModelIndex(), c1, c2);
+    propagateBeginInsert(WModelIndex(), c1, c2);
     aggregate.collapsed_ = false;
-    co_await propagateEndInsert(WModelIndex(), c1, c2);
+    propagateEndInsert(WModelIndex(), c1, c2);
   } else
     aggregate.collapsed_ = false;
-  co_return;
+  //co_return;
 }
 
-awaitable<void> WAggregateProxyModel::collapse(Aggregate& aggregate)
+void WAggregateProxyModel::collapse(Aggregate& aggregate)
 {
   int c = topLevel_.mapFromSource(aggregate.parentSrc_);
   if (c >= 0) {
@@ -412,12 +412,12 @@ awaitable<void> WAggregateProxyModel::collapse(Aggregate& aggregate)
     int c2 = topLevel_.mapFromSource(lastVisibleSourceNotAfter
 				     (aggregate.lastChildSrc_));
 
-    co_await propagateBeginRemove(WModelIndex(), c1, c2);
+    propagateBeginRemove(WModelIndex(), c1, c2);
     aggregate.collapsed_ = true;
-    co_await propagateEndRemove(WModelIndex(), c1, c2);
+    propagateEndRemove(WModelIndex(), c1, c2);
   } else
     aggregate.collapsed_ = true;
-  co_return;
+  //co_return;
 }
 
 WModelIndex WAggregateProxyModel::mapFromSource(const WModelIndex& sourceIndex)
@@ -559,40 +559,40 @@ void WAggregateProxyModel::sourceColumnsRemoved(const WModelIndex& parent, int s
 		   "source model column removal");
 }
 
-awaitable<void> WAggregateProxyModel::sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end)
+void WAggregateProxyModel::sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end)
 {
   WModelIndex proxyParent = mapFromSource(parent);
 
   if (proxyParent.isValid() || !parent.isValid())
-    co_await beginInsertRows(proxyParent, start, end);
-  co_return;
+    beginInsertRows(proxyParent, start, end);
+  //co_return;
 }
 
-awaitable<void> WAggregateProxyModel::sourceRowsInserted(const WModelIndex& parent, int start, int end)
+void WAggregateProxyModel::sourceRowsInserted(const WModelIndex& parent, int start, int end)
 {
   WModelIndex proxyParent = mapFromSource(parent);
 
   if (proxyParent.isValid() || !parent.isValid())
-    co_await endInsertRows();
-  co_return;
+    endInsertRows();
+  //co_return;
 }
 
-awaitable<void> WAggregateProxyModel::sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+void WAggregateProxyModel::sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   WModelIndex proxyParent = mapFromSource(parent);
 
   if (proxyParent.isValid() || !parent.isValid())
-    co_await beginRemoveRows(proxyParent, start, end);
-  co_return;
+    beginRemoveRows(proxyParent, start, end);
+  //co_return;
 }
 
-awaitable<void> WAggregateProxyModel::sourceRowsRemoved(const WModelIndex& parent, int start, int end)
+void WAggregateProxyModel::sourceRowsRemoved(const WModelIndex& parent, int start, int end)
 { 
   WModelIndex proxyParent = mapFromSource(parent);
 
   if (proxyParent.isValid() || !parent.isValid())
-    co_await endRemoveRows();
-  co_return;
+    endRemoveRows();
+  //co_return;
 }
 
 int WAggregateProxyModel::firstVisibleSourceNotBefore(int column) const

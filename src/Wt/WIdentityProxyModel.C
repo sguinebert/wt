@@ -159,46 +159,46 @@ void WIdentityProxyModel
   beginInsertColumns(mapFromSource(parent), start, end);
 }
 
-awaitable<void> WIdentityProxyModel
+void WIdentityProxyModel
 ::sourceColumnsInserted(const WModelIndex &parent, int start, int end)
 {
-  co_await endInsertColumns();
+  endInsertColumns();
 }
 
-awaitable<void> WIdentityProxyModel
+void WIdentityProxyModel
 ::sourceColumnsAboutToBeRemoved(const WModelIndex &parent, int start, int end)
 {
-  co_await beginRemoveColumns(mapFromSource(parent), start, end);
+  beginRemoveColumns(mapFromSource(parent), start, end);
 }
 
-awaitable<void> WIdentityProxyModel
+void WIdentityProxyModel
 ::sourceColumnsRemoved(const WModelIndex &parent, int start, int end)
 {
-  co_await endRemoveColumns();
+  endRemoveColumns();
 }
 
-awaitable<void> WIdentityProxyModel
+void WIdentityProxyModel
 ::sourceRowsAboutToBeInserted(const WModelIndex &parent, int start, int end)
 {
-  co_await beginInsertRows(mapFromSource(parent), start, end);
+  beginInsertRows(mapFromSource(parent), start, end);
 }
 
-awaitable<void> WIdentityProxyModel
+void WIdentityProxyModel
 ::sourceRowsInserted(const WModelIndex &parent, int start, int end)
 {
-  co_await endInsertRows();
+  endInsertRows();
 }
 
-awaitable<void> WIdentityProxyModel
-::sourceRowsAboutToBeRemoved(const WModelIndex &parent, int start, int end)
+void
+WIdentityProxyModel::sourceRowsAboutToBeRemoved(const WModelIndex &parent, int start, int end)
 {
-  co_await beginRemoveRows(mapFromSource(parent), start, end);
+  beginRemoveRows(mapFromSource(parent), start, end);
 }
 
-awaitable<void> WIdentityProxyModel
+void WIdentityProxyModel
 ::sourceRowsRemoved(const WModelIndex &parent, int start, int end)
 {
-  co_await endRemoveRows();
+  endRemoveRows();
 }
 
 awaitable<void> WIdentityProxyModel

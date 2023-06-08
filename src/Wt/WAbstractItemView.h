@@ -409,7 +409,7 @@ public:
    *
    * \sa setSelectedIndexes(), selectionModel()
    */
-  awaitable<void> select(const WModelIndex& index, SelectionFlag option = SelectionFlag::Select);
+  void select(const WModelIndex& index, SelectionFlag option = SelectionFlag::Select);
 
   /*! \brief Returns wheter an item is selected.
    *
@@ -1123,8 +1123,8 @@ protected:
 
   void bindObjJS(JSlot& slot, const std::string& jsMethod);
   void connectObjJS(EventSignalBase& s, const std::string& jsMethod);
-  awaitable<bool> shiftEditorRows(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
-  awaitable<bool> shiftEditorColumns(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
+  bool shiftEditorRows(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
+  bool shiftEditorColumns(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
   void persistEditor(const WModelIndex& index);
 
 private:
@@ -1197,11 +1197,10 @@ private:
   virtual WWidget *headerWidget(int column, bool contentsOnly = true) = 0;
   virtual WText *headerSortIconWidget(int column);
 
-  awaitable<void> selectionHandleClick(const WModelIndex& index,
-			    WFlags<KeyboardModifier> modifiers);
-  awaitable<void> selectionHandleTouch(const std::vector<WModelIndex>& indices, const WTouchEvent& event);
-  awaitable<void> extendSelection(const WModelIndex& index);
-  awaitable<void> extendSelection(const std::vector<WModelIndex>& index);
+  void selectionHandleClick(const WModelIndex& index, WFlags<KeyboardModifier> modifiers);
+  void selectionHandleTouch(const std::vector<WModelIndex>& indices, const WTouchEvent& event);
+  void extendSelection(const WModelIndex& index);
+  void extendSelection(const std::vector<WModelIndex>& index);
   virtual void selectRange(const WModelIndex& first, const WModelIndex& last) = 0;
 
   void checkDragSelection();

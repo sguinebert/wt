@@ -2023,14 +2023,14 @@ void WTreeView::modelColumnsRemoved(const WModelIndex& parent, int start, int en
     currentSortColumn_ = -1;
 }
 
-awaitable<void> WTreeView::modelRowsInserted(const WModelIndex& parent, int start, int end)
+void WTreeView::modelRowsInserted(const WModelIndex& parent, int start, int end)
 {
   int count = end - start + 1;
-  co_await shiftModelIndexes(parent, start, count);
+  shiftModelIndexes(parent, start, count);
 
   if (renderState_ == RenderState::NeedRerender || 
       renderState_ == RenderState::NeedRerenderData)
-    co_return;
+    return;
 
   WWidget *parentWidget = widgetForIndex(parent);
 
@@ -2166,10 +2166,10 @@ awaitable<void> WTreeView::modelRowsInserted(const WModelIndex& parent, int star
      * parentWidget is 0: it means it is not even part of any spacer.
      */
   }
-  co_return;
+  //co_return;
 }
 
-awaitable<void> WTreeView::modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+void WTreeView::modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   int count = end - start + 1;
 
@@ -2196,22 +2196,22 @@ awaitable<void> WTreeView::modelRowsAboutToBeRemoved(const WModelIndex& parent, 
 	      WModelIndex childIndex = model()->index(i, 0, parent);
 
 	      if (i == start && renderedRowsChange)
-		firstRemovedRow_ = renderedRow(childIndex, w);
+            firstRemovedRow_ = renderedRow(childIndex, w);
 
 	      int childHeight = subTreeHeight(childIndex);
 
 	      if (renderedRowsChange)
-		removedHeight_ += childHeight;
+            removedHeight_ += childHeight;
 
 	      s->setRows(s->rows() - childHeight);
 	    } else {
 	      WTreeViewNode *node = dynamic_cast<WTreeViewNode *>(w);
 
 	      if (renderedRowsChange) {
-		if (i == start)
-		  firstRemovedRow_ = node->renderedRow();
+            if (i == start)
+              firstRemovedRow_ = node->renderedRow();
 
-		removedHeight_ += node->renderedHeight();
+            removedHeight_ += node->renderedHeight();
 	      }
 
 	      node->removeFromParent();
@@ -2248,7 +2248,7 @@ awaitable<void> WTreeView::modelRowsAboutToBeRemoved(const WModelIndex& parent, 
     }
   }
 
-  co_await shiftModelIndexes(parent, start, -count);
+  shiftModelIndexes(parent, start, -count);
 }
 
 void WTreeView::modelRowsRemoved(const WModelIndex& parent, int start, int end)
@@ -2862,18 +2862,18 @@ shiftModelIndexes(const WModelIndex& parent, int start, int count,
   return removed;
 }
 
-awaitable<void> WTreeView::shiftModelIndexes(const WModelIndex& parent, int start, int count)
+void WTreeView::shiftModelIndexes(const WModelIndex& parent, int start, int count)
 {
   shiftModelIndexes(parent, start, count, model(), expandedSet_);
 
   int removed = shiftModelIndexes(parent, start, count, model(),
 				  selectionModel()->selection_);
 
-  co_await shiftEditorRows(parent, start, count, false);
+  shiftEditorRows(parent, start, count, false);
 
   if (removed)
     selectionChanged().emit();
-  co_return;
+  //co_return;
 }
 
 void WTreeView::modelLayoutAboutToBeChanged()

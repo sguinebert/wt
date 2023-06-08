@@ -301,8 +301,8 @@ private:
   void modelColumnsAboutToBeRemoved(const WModelIndex& parent,
 				    int start, int end);
   void modelColumnsRemoved(const WModelIndex& parent, int start, int end);
-  awaitable<void> modelRowsInserted(const WModelIndex& parent, int start, int end);
-  awaitable<void> modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  void modelRowsInserted(const WModelIndex& parent, int start, int end);
+  void modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   void modelRowsRemoved(const WModelIndex& parent, int start, int end);
   virtual void modelDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight) override;
   virtual void modelLayoutAboutToBeChanged() override;
@@ -324,7 +324,7 @@ private:
   int calcOptimalFirstRenderedRow() const;
   int calcOptimalRenderedRowCount() const;
 
-  awaitable<void> shiftModelIndexes(const WModelIndex& parent, int start, int count);
+  void shiftModelIndexes(const WModelIndex& parent, int start, int count);
   static int shiftModelIndexes(const WModelIndex& parent, int start, int count,
                                const std::shared_ptr<WAbstractItemModel>& model,
                                WModelIndexSet& set);

@@ -168,10 +168,10 @@ public:
    *
    * Implementations should trigger this signal in order to update the chart.
    */
-  virtual Signal<awaitable<void>()>& changed() { return changed_; }
+  virtual Signal<void()>& changed() { return changed_; }
 
 private:
-  Signal<awaitable<void>()> changed_;
+  Signal<void()> changed_;
 };
 
   }
