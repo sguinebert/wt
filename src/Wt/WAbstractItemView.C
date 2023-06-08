@@ -57,9 +57,9 @@ public:
             tr("Wt.WAbstractItemView.PageBar.Last")));
     lastButton_->clicked().connect(this, &DefaultPagingBar::showLastPage);
 
-    view_->setPageTabCallBack([this]() { this->update(); });
+    //view_->setPageTabCallBack([this]() { this->update(); });
 
-    //view_->pageChanged().connect(this, &DefaultPagingBar::update);
+    view_->pageChanged().connect<&DefaultPagingBar::update>(this);
 
     update();
   }
@@ -1347,7 +1347,7 @@ awaitable<void> WAbstractItemView::modelLayoutChanged()
 
   scheduleRerender(RenderState::NeedRerenderData);
 
-  co_await selectionChanged().emit();
+  selectionChanged().emit();
 }
 
 std::unique_ptr<WWidget> WAbstractItemView::createPageNavigationBar()
@@ -1524,26 +1524,22 @@ awaitable<void> WAbstractItemView::closeEditor(const WModelIndex& index, bool sa
   }
 }
 
-//void WAbstractItemView::closeEditor(const WModelIndex &index)
-//{
-//  EditorMap::iterator i = editedItems_.find(index);
+void WAbstractItemView::closeEditor(const WModelIndex &index)
+{
+  EditorMap::iterator i = editedItems_.find(index);
 
-//  if (i != editedItems_.end()) {
-//    Editor editor = i->second;
+  if (i != editedItems_.end()) {
+    Editor editor = i->second;
 
-//    WModelIndex closed = index;
-//#ifndef WT_TARGET_JAVA
-//    editedItems_.erase(i);
-//#else
-//    editedItems_.erase(index);
-//#endif
-
-////    if (editOptions_.test(EditOption::SaveWhenClosed))
-////      co_await saveEditedValue(closed, editor);
-
-//    modelDataChanged(closed, closed);
-//  }
-//}
+    WModelIndex closed = index;
+#ifndef WT_TARGET_JAVA
+    editedItems_.erase(i);
+#else
+    editedItems_.erase(index);
+#endif
+    modelDataChanged(closed, closed);
+  }
+}
 
 awaitable<void> WAbstractItemView::closeEditors(bool saveData)
 {

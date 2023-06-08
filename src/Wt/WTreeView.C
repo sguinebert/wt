@@ -252,7 +252,7 @@ public:
 
   bool isExpanded();
 
-  awaitable<void> adjustChildrenHeight(int diff);
+  void adjustChildrenHeight(int diff);
   void normalizeSpacers();
 
   void selfCheck();
@@ -596,7 +596,7 @@ awaitable<void> WTreeViewNode::doExpand()
   childContainer()->show();
 
   if (parentNode())
-    co_await parentNode()->adjustChildrenHeight(childrenHeight_);
+    parentNode()->adjustChildrenHeight(childrenHeight_);
 
   view_->adjustRenderedNode(this, renderedRow());
   view_->scheduleRerender(WTreeView::RenderState::NeedAdjustViewPort);
@@ -618,7 +618,7 @@ awaitable<void> WTreeViewNode::doCollapse()
   childContainer()->hide();
 
   if (parentNode())
-    co_await parentNode()->adjustChildrenHeight(-childrenHeight_);
+    parentNode()->adjustChildrenHeight(-childrenHeight_);
 
   view_->renderedRowsChanged(renderedRow(), -childrenHeight_);
 
@@ -674,7 +674,7 @@ void WTreeViewNode::loadChildren()
   }
 }
 
-awaitable<void> WTreeViewNode::adjustChildrenHeight(int diff)
+void WTreeViewNode::adjustChildrenHeight(int diff)
 {
   childrenHeight_ += diff;
 
@@ -682,11 +682,10 @@ awaitable<void> WTreeViewNode::adjustChildrenHeight(int diff)
     WTreeViewNode *parent = parentNode();
 
     if (parent)
-      co_await parent->adjustChildrenHeight(diff);
+      parent->adjustChildrenHeight(diff);
     else
-      view_->PageTabCallBack_(); //co_await view_->pageChanged().emit();
+      view_->pageChanged().emit();
   }
-  co_return;
 }
 
 WContainerWidget *WTreeViewNode::childContainer()
@@ -1376,8 +1375,8 @@ awaitable<void> WTreeView::setModel(const std::shared_ptr<WAbstractItemModel>& m
     columns_.erase(columns_.begin() + columns_.size() - 1);
   }
 
-  //co_await pageChanged().emit();
-   PageTabCallBack_();
+  pageChanged().emit();
+  //PageTabCallBack_();
 }
 
 void WTreeView::scheduleRerender(RenderState what)
@@ -1597,8 +1596,8 @@ void WTreeView::rerenderTree()
 
   //auto future = asio::use_awaitable_t<void>{}.(pageChanged().emit());
 
-  //co_await pageChanged().emit();
-  PageTabCallBack_();
+  pageChanged().emit();
+  //PageTabCallBack_();
 
   adjustToViewport();
 }
@@ -1830,7 +1829,7 @@ awaitable<void> WTreeView::setExpanded(const WModelIndex& index, bool expanded)
         int diff = subTreeHeight(index) - height;
 
         spacer->setRows(spacer->rows() + diff);
-        co_await spacer->node()->adjustChildrenHeight(diff);
+        spacer->node()->adjustChildrenHeight(diff);
 
         renderedRowsChanged(renderedRow(index, spacer,
                                         renderLowerBound(), renderUpperBound()),
@@ -2053,7 +2052,7 @@ awaitable<void> WTreeView::modelRowsInserted(const WModelIndex& parent, int star
 	else if (parentNode->bottomSpacerHeight() != 0)
 	  startWidget = parentNode->bottomSpacer();
 
-    co_await parentNode->adjustChildrenHeight(count);
+    parentNode->adjustChildrenHeight(count);
 	parentNode->shiftModelIndexes(start, count);
 
 	if (startWidget && startWidget == parentNode->topSpacer()) {
@@ -2153,7 +2152,7 @@ awaitable<void> WTreeView::modelRowsInserted(const WModelIndex& parent, int star
 	RowSpacer *s = dynamic_cast<RowSpacer *>(parentWidget);
 
 	s->setRows(s->rows() + count);
-    co_await s->node()->adjustChildrenHeight(count);
+    s->node()->adjustChildrenHeight(count);
 
 	if (renderedRowsChange)
 	  renderedRowsChanged
@@ -2252,7 +2251,7 @@ awaitable<void> WTreeView::modelRowsAboutToBeRemoved(const WModelIndex& parent, 
   co_await shiftModelIndexes(parent, start, -count);
 }
 
-awaitable<void> WTreeView::modelRowsRemoved(const WModelIndex& parent, int start, int end)
+void WTreeView::modelRowsRemoved(const WModelIndex& parent, int start, int end)
 {
   int count = end - start + 1;
 
@@ -2269,7 +2268,7 @@ awaitable<void> WTreeView::modelRowsRemoved(const WModelIndex& parent, int start
         if (parentNode->childrenLoaded())
         {
           parentNode->normalizeSpacers();
-          co_await parentNode->adjustChildrenHeight(-removedHeight_);
+          parentNode->adjustChildrenHeight(-removedHeight_);
           parentNode->shiftModelIndexes(start, -count);
 
           // Update graphics for last node in parent, if we are removing rows
@@ -2302,7 +2301,7 @@ awaitable<void> WTreeView::modelRowsRemoved(const WModelIndex& parent, int start
           RowSpacer *s = dynamic_cast<RowSpacer *>(parentWidget);
           WTreeViewNode *node = s->node();
           s->setRows(s->rows() - removedHeight_); // could delete s!
-          co_await node->adjustChildrenHeight(-removedHeight_);
+          node->adjustChildrenHeight(-removedHeight_);
         }
       }
     } else {
@@ -2314,7 +2313,6 @@ awaitable<void> WTreeView::modelRowsRemoved(const WModelIndex& parent, int start
 
   if (renderState_ != RenderState::NeedRerender && renderState_ != RenderState::NeedRerenderData)
     renderedRowsChanged(firstRemovedRow_, -removedHeight_);
-  co_return;
 }
 
 void WTreeView::modelDataChanged(const WModelIndex& topLeft,
@@ -2874,7 +2872,7 @@ awaitable<void> WTreeView::shiftModelIndexes(const WModelIndex& parent, int star
   co_await shiftEditorRows(parent, start, count, false);
 
   if (removed)
-    co_await selectionChanged().emit();
+    selectionChanged().emit();
   co_return;
 }
 
@@ -2893,8 +2891,8 @@ awaitable<void> WTreeView::modelLayoutChanged()
 
   renderedNodes_.clear();
 
-  PageTabCallBack_();
-  //co_await pageChanged().emit();
+  //PageTabCallBack_();
+  pageChanged().emit();
 }
 
 void WTreeView::addRenderedNode(WTreeViewNode *node)
@@ -2998,8 +2996,8 @@ void WTreeView::setCurrentPage(int page)
 
   contents_->setOffsets(-viewportTop_ * rowHeight().toPixels(), Side::Top);
 
-  //co_await pageChanged().emit();
-  PageTabCallBack_();
+  pageChanged().emit();
+  //PageTabCallBack_();
 
   scheduleRerender(RenderState::NeedAdjustViewPort);
 }

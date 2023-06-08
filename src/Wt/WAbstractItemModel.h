@@ -743,7 +743,6 @@ public:
    * \sa rowsAboutToBeInserted(), endInsertRows()
    */
   Signal<awaitable<void>(WModelIndex, int, int)>&
-  //boost::signals2::signal<void(WModelIndex, int, int)>&
   rowsInserted() { return rowsInserted_; }
 
   /*! \brief %Signal emitted after a number of rows were removed.

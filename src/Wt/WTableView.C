@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2009 Emweb bv, Herent, Belgium.
  *
  * See the LICENSE file for terms of use.
@@ -1006,8 +1006,8 @@ void WTableView::rerenderData()
 		renderedFirstColumn_, 
 		renderedLastColumn_);
   } else {
-    //pageChanged().emit();
-    PageTabCallBack_();
+    pageChanged().emit();
+    //PageTabCallBack_();
 
     while (plainTable_->rowCount() > 1)
       plainTable_->removeRow(plainTable_->rowCount() - 1);
@@ -1345,14 +1345,15 @@ awaitable<void> WTableView::shiftModelIndexRows(int start, int count)
   std::vector<WModelIndex> toShift;
   std::vector<WModelIndex> toErase;
 
-  for (WModelIndexSet::iterator it
-	 = set.lower_bound(model()->index(start, 0, rootIndex()));
-       it != set.end(); ++it) {
+  for (auto it = set.lower_bound(model()->index(start, 0, rootIndex())); it != set.end(); ++it)
+  {
 
-    if (count < 0) {
-      if ((*it).row() < start - count) {
-	toErase.push_back(*it);
-	continue;
+    if (count < 0)
+    {
+      if ((*it).row() < start - count)
+      {
+        toErase.push_back(*it);
+        continue;
       }
     }
 
@@ -1373,7 +1374,7 @@ awaitable<void> WTableView::shiftModelIndexRows(int start, int count)
   co_await shiftEditorRows(rootIndex(), start, count, true);
 
   if (!toErase.empty())
-    co_await selectionChanged().emit();
+    selectionChanged().emit();
   co_return;
 }
 
@@ -1412,7 +1413,7 @@ awaitable<void> WTableView::shiftModelIndexColumns(int start, int count)
 
 //#warning "no automatic when shift"
   if (!toShift.empty() || !toErase.empty())
-   co_await selectionChanged().emit();
+   selectionChanged().emit();
   co_return;
 }
 

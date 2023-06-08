@@ -668,7 +668,7 @@ public:
    */
   awaitable<void> closeEditor(const WModelIndex& index, bool saveData);
 
-  //void closeEditor(const WModelIndex& index);
+  void closeEditor(const WModelIndex& index);
 
   /*! \brief Closes all open editors.
    *
@@ -778,7 +778,7 @@ public:
    *
    * \sa select(), setSelectionMode(), setSelectionBehavior()
    */
-  Signal<awaitable<void>()>& selectionChanged() { return selectionChanged_; }
+  Signal<void()>& selectionChanged() { return selectionChanged_; }
 
   /*! \brief %Signal emitted when page information was updated.
    *
@@ -789,7 +789,7 @@ public:
    *
    * \sa createPageNavigationBar()
    */
-  Signal<awaitable<void>()>& pageChanged() { return pageChanged_; }
+  Signal<void()>& pageChanged() { return pageChanged_; }
 
   /*! \brief Returns the signal emitted when a column is resized by the user.
    *
@@ -904,10 +904,10 @@ public:
    */
   EventSignal<WKeyEvent>& keyWentUp();
 
-  std::function<void()> PageTabCallBack_;
-  void setPageTabCallBack(std::function<void()>&& cb) {
-    PageTabCallBack_ = std::move(cb);
-  }
+//  std::function<void()> PageTabCallBack_;
+//  void setPageTabCallBack(std::function<void()>&& cb) {
+//    PageTabCallBack_ = std::move(cb);
+//  }
  
 protected:
   /*! \brief Creates a new item view.
@@ -1182,8 +1182,8 @@ private:
   Signal<awaitable<void>(std::vector<WModelIndex>, WTouchEvent)> touchStarted_;
   Signal<awaitable<void>(std::vector<WModelIndex>, WTouchEvent)> touchMoved_;
   Signal<awaitable<void>(std::vector<WModelIndex>, WTouchEvent)> touchEnded_;
-  Signal<awaitable<void>()> selectionChanged_;
-  Signal<awaitable<void>()> pageChanged_;
+  Signal<void()> selectionChanged_;
+  Signal<void()> pageChanged_;
 
   WFlags<EditTrigger> editTriggers_;
   WFlags<EditOption> editOptions_;

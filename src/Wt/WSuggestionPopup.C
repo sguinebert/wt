@@ -163,19 +163,25 @@ void WSuggestionPopup::setModel(const std::shared_ptr<WAbstractItemModel>& model
 {
   if (model_) {
     /* disconnect slots from previous model */
-    for (unsigned i = 0; i < modelConnections_.size(); ++i)
-      modelConnections_[i].disconnect();
-    modelConnections_.clear();
+//    for (unsigned i = 0; i < modelConnections_.size(); ++i)
+//      modelConnections_[i].disconnect();
+//    modelConnections_.clear();
+    model_->rowsInserted().disconnect<&WSuggestionPopup::modelRowsInserted>(this);
+    model_->rowsRemoved().disconnect<&WSuggestionPopup::modelRowsRemoved>(this);
+    model_->dataChanged().disconnect<&WSuggestionPopup::modelDataChanged>(this);
+    model_->layoutChanged().disconnect<&WSuggestionPopup::modelLayoutChanged>(this);
+    model_->modelReset().disconnect<&WSuggestionPopup::modelLayoutChanged>(this);
   }
+
 
   model_ = model;
 
   /* connect slots to new model */
-  modelConnections_.push_back(model_->rowsInserted().connect<&WSuggestionPopup::modelRowsInserted>(this));
-  modelConnections_.push_back(model_->rowsRemoved().connect<&WSuggestionPopup::modelRowsRemoved>(this));
-  modelConnections_.push_back(model_->dataChanged().connect<&WSuggestionPopup::modelDataChanged>(this));
-  modelConnections_.push_back(model_->layoutChanged().connect<&WSuggestionPopup::modelLayoutChanged>(this));
-  modelConnections_.push_back(model_->modelReset().connect<&WSuggestionPopup::modelLayoutChanged>(this));
+  model_->rowsInserted().connect<&WSuggestionPopup::modelRowsInserted>(this);
+  model_->rowsRemoved().connect<&WSuggestionPopup::modelRowsRemoved>(this);
+  model_->dataChanged().connect<&WSuggestionPopup::modelDataChanged>(this);
+  model_->layoutChanged().connect<&WSuggestionPopup::modelLayoutChanged>(this);
+  model_->modelReset().connect<&WSuggestionPopup::modelLayoutChanged>(this);
 
   setModelColumn(modelColumn_);
 }

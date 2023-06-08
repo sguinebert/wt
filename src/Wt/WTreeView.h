@@ -303,7 +303,7 @@ private:
   void modelColumnsRemoved(const WModelIndex& parent, int start, int end);
   awaitable<void> modelRowsInserted(const WModelIndex& parent, int start, int end);
   awaitable<void> modelRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
-  awaitable<void> modelRowsRemoved(const WModelIndex& parent, int start, int end);
+  void modelRowsRemoved(const WModelIndex& parent, int start, int end);
   virtual void modelDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight) override;
   virtual void modelLayoutAboutToBeChanged() override;
   virtual awaitable<void> modelLayoutChanged() override;
