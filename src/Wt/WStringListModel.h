@@ -57,13 +57,13 @@ public:
    *
    * \sa setStringList()
    */
-  void insertString(int row, const WString& string);
+  awaitable<void> insertString(int row, const WString& string);
 
   /*! \brief Adds a string.
    *
    * \sa setStringList()
    */
-  void addString(const WString& string);
+  awaitable<void> addString(const WString& string);
 
   /*! \brief Returns the string list.
    *
@@ -91,11 +91,9 @@ public:
   virtual awaitable<bool> setData(const WModelIndex& index, const cpp17::any& value,
                                   ItemDataRole role = ItemDataRole::Edit) override;
 
-  virtual cpp17::any data(const WModelIndex& index, ItemDataRole role = ItemDataRole::Display)
-    const override;
+  virtual cpp17::any data(const WModelIndex& index, ItemDataRole role = ItemDataRole::Display) const override;
 
-  virtual int rowCount(const WModelIndex& parent = WModelIndex())
-    const override;
+  virtual int rowCount(const WModelIndex& parent = WModelIndex()) const override;
 
   virtual bool insertRows(int row, int count, const WModelIndex& parent = WModelIndex()) override;
 

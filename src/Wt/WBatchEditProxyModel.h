@@ -202,7 +202,7 @@ private:
   void sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end);
   awaitable<void> sourceColumnsInserted(const WModelIndex& parent, int start, int end);
 
-  void sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  awaitable<void> sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   awaitable<void> sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
 
   void sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end);

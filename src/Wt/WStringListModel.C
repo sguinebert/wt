@@ -69,9 +69,9 @@ awaitable<void> WStringListModel::setStringList(const std::vector<WString>& stri
   int newSize = strings.size();
 
   if (newSize > currentSize)
-    beginInsertRows(WModelIndex(), currentSize, newSize - 1);
+    co_await beginInsertRows(WModelIndex(), currentSize, newSize - 1);
   else if (newSize < currentSize)
-    beginRemoveRows(WModelIndex(), newSize, currentSize - 1);
+    co_await beginRemoveRows(WModelIndex(), newSize, currentSize - 1);
 
   displayData_ = strings;
   flags_.clear();
@@ -80,9 +80,9 @@ awaitable<void> WStringListModel::setStringList(const std::vector<WString>& stri
   otherData_ = nullptr;
 
   if (newSize > currentSize)
-    endInsertRows();
+    co_await endInsertRows();
   else if (newSize < currentSize)
-    endRemoveRows();
+    co_await endRemoveRows();
 
   int numChanged = std::min(currentSize, newSize);
 
@@ -91,15 +91,15 @@ awaitable<void> WStringListModel::setStringList(const std::vector<WString>& stri
   co_return;
 }
 
-void WStringListModel::addString(const WString& string)
+awaitable<void> WStringListModel::addString(const WString& string)
 {
-  insertString(rowCount(), string);
+  co_await insertString(rowCount(), string);
 }
 
-void WStringListModel::insertString(int row, const WString& string)
+awaitable<void> WStringListModel::insertString(int row, const WString& string)
 {
   insertRows(row, 1);
-  setData(row, 0, string);
+  co_await setData(row, 0, string);
 }
 
 int WStringListModel::rowCount(const WModelIndex& parent) const
@@ -184,13 +184,11 @@ bool WStringListModel::removeRows(int row, int count, const WModelIndex& parent)
 {
   if (!parent.isValid()) {
     beginRemoveRows(parent, row, row + count - 1);
-    displayData_.erase(displayData_.begin() + row,
-		       displayData_.begin() + row + count);
+    displayData_.erase(displayData_.begin() + row, displayData_.begin() + row + count);
     if (!flags_.empty())
       flags_.erase(flags_.begin() + row, flags_.begin() + row + count);
     if (otherData_)
-      otherData_->erase(otherData_->begin() + row,
-			otherData_->begin() + row + count);
+      otherData_->erase(otherData_->begin() + row, otherData_->begin() + row + count);
     endRemoveRows();
 
     return true;

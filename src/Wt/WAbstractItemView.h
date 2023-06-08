@@ -668,7 +668,7 @@ public:
    */
   awaitable<void> closeEditor(const WModelIndex& index, bool saveData);
 
-  void closeEditor(const WModelIndex& index);
+  //void closeEditor(const WModelIndex& index);
 
   /*! \brief Closes all open editors.
    *
@@ -1124,7 +1124,7 @@ protected:
   void bindObjJS(JSlot& slot, const std::string& jsMethod);
   void connectObjJS(EventSignalBase& s, const std::string& jsMethod);
   awaitable<bool> shiftEditorRows(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
-  bool shiftEditorColumns(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
+  awaitable<bool> shiftEditorColumns(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
   void persistEditor(const WModelIndex& index);
 
 private:

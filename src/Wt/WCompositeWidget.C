@@ -479,7 +479,6 @@ void WCompositeWidget::setImplementation(std::unique_ptr<WWidget> widget)
   impl_ = std::move(widget);
   impl_->setParentWidget(this);
 
-#warning "Problem ?"
   WWidget *p = parent();
   if (p && p->loaded())
     impl_->load();

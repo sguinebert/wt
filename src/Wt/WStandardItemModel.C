@@ -305,26 +305,25 @@ void WStandardItemModel::beginInsertColumns(const WModelIndex& parent,
 		   first, last - first + 1);
 }
 
-void WStandardItemModel::beginInsertRows(const WModelIndex& parent,
-					 int first, int last)
+awaitable<void> WStandardItemModel::beginInsertRows(const WModelIndex& parent, int first, int last)
 {
-  WAbstractItemModel::beginInsertRows(parent, first, last);
+  co_await WAbstractItemModel::beginInsertRows(parent, first, last);
 
   insertHeaderData(rowHeaderData_, rowHeaderFlags_, itemFromIndex(parent, true), first, last - first + 1);
 }
 
-void WStandardItemModel::beginRemoveColumns(const WModelIndex& parent,
+awaitable<void> WStandardItemModel::beginRemoveColumns(const WModelIndex& parent,
 					    int first, int last)
 {
-  WAbstractItemModel::beginRemoveColumns(parent, first, last);
+  co_await WAbstractItemModel::beginRemoveColumns(parent, first, last);
 
   removeHeaderData(columnHeaderData_, columnHeaderFlags_, itemFromIndex(parent, true), first, last - first + 1);
 }
 
-void WStandardItemModel::beginRemoveRows(const WModelIndex& parent,
+awaitable<void> WStandardItemModel::beginRemoveRows(const WModelIndex& parent,
 					 int first, int last)
 { 
-  WAbstractItemModel::beginRemoveRows(parent, first, last);
+  co_await WAbstractItemModel::beginRemoveRows(parent, first, last);
 
   removeHeaderData(rowHeaderData_, rowHeaderFlags_, itemFromIndex(parent, true), first, last - first + 1);
 }

@@ -1377,7 +1377,7 @@ awaitable<void> WTableView::shiftModelIndexRows(int start, int count)
   co_return;
 }
 
-void WTableView::shiftModelIndexColumns(int start, int count)
+awaitable<void> WTableView::shiftModelIndexColumns(int start, int count)
 {
   WModelIndexSet& set = selectionModel()->selection_;
   
@@ -1408,12 +1408,12 @@ void WTableView::shiftModelIndexColumns(int start, int count)
     set.insert(newIndex);
   }
 
-  shiftEditorColumns(rootIndex(), start, count, true);
+  co_await shiftEditorColumns(rootIndex(), start, count, true);
 
-#warning "no automatic when shift"
-//  if (!toShift.empty() || !toErase.empty())
-//   co_await selectionChanged().emit();
-//  co_return;
+//#warning "no automatic when shift"
+  if (!toShift.empty() || !toErase.empty())
+   co_await selectionChanged().emit();
+  co_return;
 }
 
 awaitable<void> WTableView::modelColumnsInserted(const WModelIndex& parent, int start, int end)
@@ -1429,7 +1429,7 @@ awaitable<void> WTableView::modelColumnsInserted(const WModelIndex& parent, int 
     width += (int)columnInfo(i).width.toPixels() + 7;
   }
 
-  shiftModelIndexColumns(start, end - start + 1);
+  co_await shiftModelIndexColumns(start, end - start + 1);
 
   if (ajaxMode())
     canvas_->setWidth(canvas_->width().toPixels() + width);
@@ -1447,18 +1447,18 @@ awaitable<void> WTableView::modelColumnsInserted(const WModelIndex& parent, int 
   adjustSize();
 }
 
-void WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+awaitable<void> WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
     co_return;
 
   for (int r = 0; r < model()->rowCount(); r++) {
     for (int c = start; c <= end; c++) {
-      closeEditor(model()->index(r, c));
+      co_await closeEditor(model()->index(r, c), true);
     }
   }
 
-  shiftModelIndexColumns(start, -(end - start + 1));
+  co_await shiftModelIndexColumns(start, -(end - start + 1));
 
   int count = end - start + 1;
   int width = 0;

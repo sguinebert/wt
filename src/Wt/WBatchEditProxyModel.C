@@ -445,7 +445,7 @@ int WBatchEditProxyModel::rowCount(const WModelIndex& parent) const
 void WBatchEditProxyModel::sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end)
 {
   if (isRemoved(parent))
-    co_return;
+    return;
 
   beginInsertColumns(mapFromSource(parent), start, end);
 }
@@ -467,7 +467,7 @@ awaitable<void> WBatchEditProxyModel::sourceColumnsInserted(const WModelIndex& p
     if (proxyColumn >= 0)
     {
       if (!submitting_) {
-          co_await beginInsertColumns(pparent, proxyColumn, proxyColumn);
+          beginInsertColumns(pparent, proxyColumn, proxyColumn);
           shiftColumns(item, proxyColumn, 1);
           co_await endInsertColumns();
       } else {
@@ -489,7 +489,7 @@ awaitable<void> WBatchEditProxyModel::sourceColumnsInserted(const WModelIndex& p
       int remi = -proxyColumn - 1;
       proxyColumn = item->removedColumns_[remi];
 
-      co_await beginInsertColumns(pparent, proxyColumn, proxyColumn);
+      beginInsertColumns(pparent, proxyColumn, proxyColumn);
       shiftColumns(item, proxyColumn, 1);
       co_await endInsertColumns();
     }
@@ -497,10 +497,10 @@ awaitable<void> WBatchEditProxyModel::sourceColumnsInserted(const WModelIndex& p
   co_return;
 }
 
-void WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+awaitable<void> WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 { 
   if (isRemoved(parent))
-    return;
+    co_return;
 
   WModelIndex pparent = mapFromSource(parent);
   Item *item = itemFromIndex(pparent);
@@ -511,7 +511,7 @@ void WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModelIndex& pare
     int proxyColumn = adjustedProxyColumn(item, start);
 
     if (proxyColumn >= 0) {
-      beginRemoveColumns(pparent, proxyColumn, proxyColumn);
+      co_await beginRemoveColumns(pparent, proxyColumn, proxyColumn);
 
       shiftColumns(item, proxyColumn, -1);
 
@@ -523,6 +523,7 @@ void WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModelIndex& pare
       item->removedColumns_.erase(item->removedColumns_.begin() + remi);
     }
   }
+  co_return;
 }
 
 awaitable<void> WBatchEditProxyModel::sourceColumnsRemoved(const WModelIndex& parent, int start, int end)
@@ -1087,7 +1088,7 @@ awaitable<void> WBatchEditProxyModel::revertAll()
     {
       int column = item->removedColumns_[0];
 
-      co_await beginInsertColumns(proxyIndex, column, 1);
+      beginInsertColumns(proxyIndex, column, 1);
       item->removedColumns_.erase(item->removedColumns_.begin());
       shiftColumns(item, column, 1);
       co_await endInsertColumns();

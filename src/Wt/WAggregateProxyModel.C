@@ -324,7 +324,7 @@ awaitable<void> WAggregateProxyModel::propagateBeginRemove(const WModelIndex& pr
 {
   // should be beginRemoveColumns(), but endRemoveColumns() calls cannot
   // be nested
-  columnsAboutToBeRemoved().emit((WModelIndex&)proxyIndex, start, end);
+  co_await columnsAboutToBeRemoved().emit((WModelIndex&)proxyIndex, start, end);
 
   unsigned int rc = rowCount(proxyIndex);
   for (unsigned i = 0; i < rc; ++i)

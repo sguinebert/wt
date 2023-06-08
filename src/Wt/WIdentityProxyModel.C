@@ -165,10 +165,10 @@ awaitable<void> WIdentityProxyModel
   co_await endInsertColumns();
 }
 
-void WIdentityProxyModel
+awaitable<void> WIdentityProxyModel
 ::sourceColumnsAboutToBeRemoved(const WModelIndex &parent, int start, int end)
 {
-  beginRemoveColumns(mapFromSource(parent), start, end);
+  co_await beginRemoveColumns(mapFromSource(parent), start, end);
 }
 
 awaitable<void> WIdentityProxyModel

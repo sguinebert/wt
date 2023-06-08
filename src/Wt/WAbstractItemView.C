@@ -1524,26 +1524,26 @@ awaitable<void> WAbstractItemView::closeEditor(const WModelIndex& index, bool sa
   }
 }
 
-void WAbstractItemView::closeEditor(const WModelIndex &index)
-{
-  EditorMap::iterator i = editedItems_.find(index);
+//void WAbstractItemView::closeEditor(const WModelIndex &index)
+//{
+//  EditorMap::iterator i = editedItems_.find(index);
 
-  if (i != editedItems_.end()) {
-    Editor editor = i->second;
+//  if (i != editedItems_.end()) {
+//    Editor editor = i->second;
 
-    WModelIndex closed = index;
-#ifndef WT_TARGET_JAVA
-    editedItems_.erase(i);
-#else
-    editedItems_.erase(index);
-#endif
+//    WModelIndex closed = index;
+//#ifndef WT_TARGET_JAVA
+//    editedItems_.erase(i);
+//#else
+//    editedItems_.erase(index);
+//#endif
 
-//    if (editOptions_.test(EditOption::SaveWhenClosed))
-//      co_await saveEditedValue(closed, editor);
+////    if (editOptions_.test(EditOption::SaveWhenClosed))
+////      co_await saveEditedValue(closed, editor);
 
-    modelDataChanged(closed, closed);
-  }
-}
+//    modelDataChanged(closed, closed);
+//  }
+//}
 
 awaitable<void> WAbstractItemView::closeEditors(bool saveData)
 {
@@ -1661,7 +1661,7 @@ awaitable<bool> WAbstractItemView::shiftEditorRows(const WModelIndex& parent,
   co_return result;
 }
 
-bool WAbstractItemView::shiftEditorColumns(const WModelIndex& parent,
+awaitable<bool> WAbstractItemView::shiftEditorColumns(const WModelIndex& parent,
                                                       int start, int count,
                                                       bool persistWhenShifted)
 {
@@ -1673,7 +1673,8 @@ bool WAbstractItemView::shiftEditorColumns(const WModelIndex& parent,
 
     EditorMap newMap;
 
-    for (auto i = editedItems_.begin(); i != editedItems_.end(); ++i) {
+    for (auto i = editedItems_.begin(); i != editedItems_.end(); ++i)
+    {
       WModelIndex c = i->first;
 
       WModelIndex p = c.parent();
@@ -1711,12 +1712,12 @@ bool WAbstractItemView::shiftEditorColumns(const WModelIndex& parent,
     }
 
     for (unsigned i = 0; i < toClose.size(); ++i)
-      closeEditor(toClose[i]);
+      co_await closeEditor(toClose[i], true);
 
     editedItems_ = newMap;
   }
 
-  return result;
+  co_return result;
 }
 
 bool WAbstractItemView::isValid(const WModelIndex& index) const

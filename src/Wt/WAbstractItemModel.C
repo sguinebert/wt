@@ -402,13 +402,13 @@ awaitable<void> WAbstractItemModel::endInsertRows()
   co_await rowsInserted().emit(parent_, first_, last_);
 }
 
-void WAbstractItemModel::beginRemoveColumns(const WModelIndex& parent, int first, int last)
+awaitable<void> WAbstractItemModel::beginRemoveColumns(const WModelIndex& parent, int first, int last)
 {
   first_ = first;
   last_ = last;
   parent_ = parent;
 
-  columnsAboutToBeRemoved().emit((WModelIndex&)parent, first, last);
+  co_await columnsAboutToBeRemoved().emit((WModelIndex&)parent, first, last);
 }
 
 awaitable<void> WAbstractItemModel::endRemoveColumns()

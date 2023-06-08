@@ -514,7 +514,7 @@ void WStandardItem::insertRows(int row, int count)
     for (unsigned i = 0; i < cc; ++i) {
       Column& c = (*columns_)[i];
       for (int j = 0; j < count; ++j)
-	c.insert(c.begin() + row + j, std::unique_ptr<WStandardItem>());
+    c.insert(c.begin() + row + j, std::unique_ptr<WStandardItem>());
     }
 
     renumberRows(row + count);
