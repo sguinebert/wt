@@ -56,7 +56,13 @@ void WAbstractDataSeries3D
   if (model != model_) {
     // handle previous model
     if (model_ && chart_) {
-      clearConnections(connections_);
+      //clearConnections(connections_);
+        model_->modelReset().disconnect<&WCartesian3DChart::onModelReset>(chart_);
+        model_->dataChanged().disconnect<&WCartesian3DChart::onDataChanged>(chart_);
+        model_->rowsInserted().disconnect<&WCartesian3DChart::onSourceModelModified>(chart_);
+        model_->columnsInserted().disconnect<&WCartesian3DChart::onSourceModelModified>(chart_);
+        model_->rowsRemoved().disconnect<&WCartesian3DChart::onSourceModelModified>(chart_);
+        model_->columnsRemoved().disconnect<&WCartesian3DChart::onSourceModelModified>(chart_);
     }
     rangeCached_ = false;
 
@@ -65,30 +71,12 @@ void WAbstractDataSeries3D
 
     if (model_ && chart_) {
       chart_->updateChart(ChartUpdates::GLContext);
-      connections_.push_back
-	(model_->modelReset().connect
-	 (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			    ChartUpdates::GLTextures | ChartUpdates::GLContext)));
-      connections_.push_back
-	(model_->dataChanged().connect
-	 (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			    ChartUpdates::GLTextures | ChartUpdates::GLContext)));
-      connections_.push_back
-	(model_->rowsInserted().connect
-	 (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			    ChartUpdates::GLTextures | ChartUpdates::GLContext)));
-      connections_.push_back
-	(model_->columnsInserted().connect
-	 (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			    ChartUpdates::GLTextures | ChartUpdates::GLContext)));
-      connections_.push_back
-	(model_->rowsRemoved().connect
-	 (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			    ChartUpdates::GLTextures | ChartUpdates::GLContext)));
-      connections_.push_back
-	(model_->columnsRemoved().connect
-	 (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			    ChartUpdates::GLTextures | ChartUpdates::GLContext)));
+      model_->modelReset().connect<&WCartesian3DChart::onModelReset>(chart_);
+      model_->dataChanged().connect<&WCartesian3DChart::onDataChanged>(chart_);
+      model_->rowsInserted().connect<&WCartesian3DChart::onSourceModelModified>(chart_);
+      model_->columnsInserted().connect<&WCartesian3DChart::onSourceModelModified>(chart_);
+      model_->rowsRemoved().connect<&WCartesian3DChart::onSourceModelModified>(chart_);
+      model_->columnsRemoved().connect<&WCartesian3DChart::onSourceModelModified>(chart_);
     }
   }
 }
@@ -241,37 +229,24 @@ void WAbstractDataSeries3D::setChart(WCartesian3DChart *chart)
     return;
   else if (chart_)
     chart_->removeDataSeries(this);
+//  if (chart_ && model_)
+//    clearConnections(connections_);
+  model_->modelReset().disconnect<&WCartesian3DChart::onModelReset>(chart_);
+  model_->dataChanged().disconnect<&WCartesian3DChart::onDataChanged>(chart_);
+  model_->rowsInserted().disconnect<&WCartesian3DChart::onSourceModelModified>(chart_);
+  model_->columnsInserted().disconnect<&WCartesian3DChart::onSourceModelModified>(chart_);
+  model_->rowsRemoved().disconnect<&WCartesian3DChart::onSourceModelModified>(chart_);
+  model_->columnsRemoved().disconnect<&WCartesian3DChart::onSourceModelModified>(chart_);
 
-  if (chart_ && model_)
-    clearConnections(connections_);
-  
   chart_ = chart;
 
   if (chart_ && model_) {
-    connections_.push_back
-      (model_->modelReset().connect
-       (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			  ChartUpdates::GLTextures | ChartUpdates::GLContext)));
-    connections_.push_back
-      (model_->dataChanged().connect
-       (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			  ChartUpdates::GLTextures | ChartUpdates::GLContext)));
-    connections_.push_back
-      (model_->rowsInserted().connect
-       (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			  ChartUpdates::GLTextures | ChartUpdates::GLContext)));
-    connections_.push_back
-      (model_->columnsInserted().connect
-       (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			  ChartUpdates::GLTextures | ChartUpdates::GLContext)));
-    connections_.push_back
-      (model_->rowsRemoved().connect
-       (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			  ChartUpdates::GLTextures | ChartUpdates::GLContext)));
-    connections_.push_back
-      (model_->columnsRemoved().connect
-       (chart_, std::bind(&WCartesian3DChart::updateChart, chart_,
-			  ChartUpdates::GLTextures | ChartUpdates::GLContext)));
+    model_->modelReset().connect<&WCartesian3DChart::onModelReset>(chart_);
+    model_->dataChanged().connect<&WCartesian3DChart::onDataChanged>(chart_);
+    model_->rowsInserted().connect<&WCartesian3DChart::onSourceModelModified>(chart_);
+    model_->columnsInserted().connect<&WCartesian3DChart::onSourceModelModified>(chart_);
+    model_->rowsRemoved().connect<&WCartesian3DChart::onSourceModelModified>(chart_);
+    model_->columnsRemoved().connect<&WCartesian3DChart::onSourceModelModified>(chart_);
   }
 }
 

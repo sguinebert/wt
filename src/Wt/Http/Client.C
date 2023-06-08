@@ -707,7 +707,7 @@ private:
     co_return;
   }
 
-  awaitable<void> emitBodyReceived(const std::string& text) {
+  awaitable<void> emitBodyReceived(std::string& text) {
 #ifdef WT_THREADED
     std::lock_guard<std::mutex> lock(clientMutex_);
 #endif // WT_THREADED
@@ -1110,15 +1110,15 @@ awaitable<void> Client::emitDone(AsioWrapper::error_code err, const Message& res
 {
   impl_.reset();
   redirectCount_ = 0;
-  co_await done_.emit(err, response);
+  co_await done_.emit(err, (Message&)response);
 }
 
-awaitable<void> Client::emitHeadersReceived(const Message& response)
+awaitable<void> Client::emitHeadersReceived(Message& response)
 {
   co_await headersReceived_.emit(response);
 }
 
-awaitable<void> Client::emitBodyReceived(const std::string& data)
+awaitable<void> Client::emitBodyReceived(std::string& data)
 {
   co_await bodyDataReceived_.emit(data);
 }

@@ -221,7 +221,7 @@ public:
    *
    * The index of the newly activated tab is passed as an argument.
    */
-  Signal<int>& currentChanged() { return currentChanged_; }
+  Signal<awaitable<void>(int)>& currentChanged() { return currentChanged_; }
 
   /*! \brief Closes a tab at \p index.
    *
@@ -238,7 +238,7 @@ public:
    *
    * \sa closeTab(), setTabCloseable()
    */
-  Signal<int>& tabClosed() { return tabClosed_; }
+  Signal<awaitable<void>(int)>& tabClosed() { return tabClosed_; }
 
   /*! \brief Returns the contents stack.
    *
@@ -256,8 +256,8 @@ public:
 
 
 private:
-  Signal<int> currentChanged_;
-  Signal<int> tabClosed_;
+  Signal<awaitable<void>(int)> currentChanged_;
+  Signal<awaitable<void>(int)> tabClosed_;
   WContainerWidget *layout_;
   WMenu            *menu_;
 

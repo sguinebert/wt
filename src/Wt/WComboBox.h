@@ -67,6 +67,9 @@ public:
   /*! \brief Creates an empty combo-box..
    */
   WComboBox();
+   /*! \brief Creates a combo-box..
+   */
+  WComboBox(std::vector<WString>& strings);
 
   /*! \brief Adds an option item.
    *
@@ -213,7 +216,7 @@ public:
    *
    * \sa sactivated(), currentIndex()
    */
-  Signal<int>& activated() { return activated_; }
+  Signal<awaitable<void>(int)>& activated() { return activated_; }
 
   /*! \brief %Signal emitted when the selection changed.
    *
@@ -221,7 +224,7 @@ public:
    *
    * \sa activated(), currentText()
    */
-  Signal<WString>& sactivated() { return sactivated_; }
+  Signal<awaitable<void>(WString)>& sactivated() { return sactivated_; }
 
   /*! \brief Enables the ability to have 'no currently selected' item.
    *
@@ -252,13 +255,15 @@ private:
   bool currentlyConnected_;
   bool noSelectionEnabled_;
 
-  std::vector<Wt::Signals::connection> modelConnections_;
+  std::vector<Nano::Observer<>::Connection> modelConnections_;
 
-  Signal<int> activated_;
-  Signal<WString> sactivated_;
+  Signal<awaitable<void>(int)> activated_;
+  Signal<awaitable<void>(WString)> sactivated_;
 
   void layoutChanged();
   void itemsChanged();
+  void onSourceChanged(WModelIndex, int, int);
+  void onDataChanged(WModelIndex, WModelIndex);
   awaitable<void> propagateChange();
 
   void rowsInserted(const WModelIndex &index, int from, int to);

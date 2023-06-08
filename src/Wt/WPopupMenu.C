@@ -226,7 +226,7 @@ void WPopupMenu::setCurrent(int index)
 void WPopupMenu::connectSignals(WPopupMenu * const topLevel)
 {
   topLevel_ = topLevel;
-  itemSelected().connect(topLevel, &WPopupMenu::done);
+  itemSelected().connect<&WPopupMenu::done>(topLevel);
 
   for (int i = 0; i < count(); ++i) {
     WMenuItem *item = itemAt(i);

@@ -140,7 +140,7 @@ awaitable<bool> WStringListModel::setData(const WModelIndex& index,
     (*otherData_)[index.row()][role] = value;
   }
 
-  co_await dataChanged().emit(index, index);
+  co_await dataChanged().emit((WModelIndex&)index, (WModelIndex&)index);
 
   co_return true;
 }

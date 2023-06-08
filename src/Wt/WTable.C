@@ -462,7 +462,7 @@ void WTable::iterateChildren(const HandleWidgetMethod &method) const
   }
 }
 
-awaitable<void> WTable::iterateChildren(AsyncHandleWidgetMethod &&method) const
+awaitable<void> WTable::iterateChildren2(AsyncHandleWidgetMethod &&method) const
 {
   for (const auto &row : rows_) {
     for (const auto &cell : row->cells_) {

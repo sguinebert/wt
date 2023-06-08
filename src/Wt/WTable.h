@@ -235,7 +235,7 @@ protected:
 
   virtual void iterateChildren(const HandleWidgetMethod &method) const override;
 
-  virtual awaitable<void> iterateChildren(AsyncHandleWidgetMethod&& method) const override;
+  virtual awaitable<void> iterateChildren2(AsyncHandleWidgetMethod&& method) const override;
 
 private:
   DomElement *createRowDomElement(int row, bool withIds, WApplication *app);

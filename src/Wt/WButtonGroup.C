@@ -163,7 +163,7 @@ int WButtonGroup::generateId() const
   return id;
 }
 
-Signal<WRadioButton *>& WButtonGroup::checkedChanged()
+Signal<awaitable<void>(WRadioButton *)>& WButtonGroup::checkedChanged()
 {
   if (!checkedChangedConnected_) {
     checkedChangedConnected_ = true;

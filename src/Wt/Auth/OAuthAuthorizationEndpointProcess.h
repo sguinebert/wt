@@ -106,7 +106,7 @@ public:
    * This signal supplies the scope as argument.
    *
    */
-  Signal<std::string>& authorized() { return authorized_; }
+  Signal<awaitable<void>(std::string)>& authorized() { return authorized_; }
 
   /*! \brief Authorize the given scope and redirect the user.
    *
@@ -137,7 +137,7 @@ private:
   OAuthClient client_;
   bool validRequest_;
   Login& login_;
-  Signal<std::string> authorized_;
+  Signal<awaitable<void>(std::string)> authorized_;
 };
 
 }

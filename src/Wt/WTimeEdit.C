@@ -27,7 +27,7 @@ WTimeEdit::WTimeEdit()
   changed().connect(this, &WTimeEdit::setFromLineEdit);
 
   timePicker_ = new WTimePicker(this);
-  timePicker_->selectionChanged().connect(this, &WTimeEdit::setFromTimePicker);
+  timePicker_->selectionChanged().connect<&WTimeEdit::setFromTimePicker>(this);
   timePicker_->setWrapAroundEnabled(true);
 }
 

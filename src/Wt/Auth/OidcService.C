@@ -34,8 +34,7 @@ LOGGER("Auth.OidcService");
     httpClient_->setTimeout(std::chrono::seconds(15));
     httpClient_->setMaximumResponseSize(10 * 1024);
 
-    httpClient_->done().connect(this, std::bind(&OidcProcess::handleResponse,
-                                       this, std::placeholders::_1, std::placeholders::_2));
+    httpClient_->done().connect<&OidcProcess::handleResponse>(this);
 
     std::vector<Http::Message::Header> headers;
     headers.push_back(Http::Message::Header("Authorization",
@@ -83,7 +82,7 @@ LOGGER("Auth.OidcService");
       if (!ok) {
         LOG_ERROR("could not parse Json: '{}'", response.body());
         setError(ERROR_MSG("badjson"));
-        co_await authenticated().emit(Identity::Invalid);
+        co_await authenticated().emit((Identity)Identity::Invalid);
       } else {
         co_await authenticated().emit(parseClaims(userInfo));
       }
@@ -96,7 +95,7 @@ LOGGER("Auth.OidcService");
         LOG_ERROR("with: {}", response.body());
       }
 
-      co_await authenticated().emit(Identity::Invalid);
+      co_await authenticated().emit((Identity)Identity::Invalid);
     }
     co_return;
   }

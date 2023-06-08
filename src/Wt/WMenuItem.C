@@ -87,8 +87,16 @@ void WMenuItem::create(const std::string& iconPath, const WString& text,
   if (!iconPath.empty())
     setIcon(iconPath);
 
-  if (!separator_)
-    setText(text);
+  if (!separator_) {
+    //setText(text);
+    /* simplification  */
+    if (!text_) {
+        text_ = anchor()->addWidget(std::make_unique<WLabel>());
+        text_->setTextFormat(TextFormat::Plain);
+    }
+
+    text_->setText(text);
+  }
 }
 
 WMenuItem::~WMenuItem()
@@ -167,7 +175,7 @@ std::string WMenuItem::icon() const
     return std::string();
 }
 
-void WMenuItem::setText(const WString& text)
+awaitable<void> WMenuItem::setText(const WString& text)
 {
   if (!text_) {
     text_ = anchor()->addWidget(std::make_unique<WLabel>());
@@ -191,16 +199,17 @@ void WMenuItem::setText(const WString& text)
 
     for (unsigned i = 0; i < result.length(); ++i) {
       if (std::isspace((unsigned char)result[i]))
-	result[i] = '-';
-      else if (std::isalnum((unsigned char)result[i]))
-	result[i] = std::tolower((unsigned char)result[i]);
-      else
-	result[i] = '_';
+        result[i] = '-';
+          else if (std::isalnum((unsigned char)result[i]))
+        result[i] = std::tolower((unsigned char)result[i]);
+          else
+        result[i] = '_';
     }
 
-    setPathComponent(result);
+    co_await setPathComponent(result);
     customPathComponent_ = false;
   }
+  co_return;
 }
 
 WString WMenuItem::text() const
@@ -300,7 +309,11 @@ void WMenuItem::setCheckable(bool checkable)
   if (isCheckable() != checkable) {
     if (checkable) {
       checkBox_ = anchor()->insertWidget(0, std::make_unique<WCheckBox>());
-      setText(text());
+      //setText(text());
+      if (!text_) {
+        text_ = anchor()->addWidget(std::make_unique<WLabel>());
+        text_->setTextFormat(TextFormat::Plain);
+      }
 
       text_->setBuddy(checkBox_);
 

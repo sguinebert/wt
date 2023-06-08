@@ -703,7 +703,7 @@ public:
    * \note If you want to use this signal, you must connect a signal listener
    *       before the chart is rendered.
    */
-  Signal<double, double>& zoomRangeChanged() { return zoomRangeChanged_; }
+  Signal<awaitable<void>(double, double)>& zoomRangeChanged() { return zoomRangeChanged_; }
 
   /*! \brief Sets the zoom level for this axis.
    *
@@ -1074,7 +1074,7 @@ private:
   // for 3D charts, don't call update when the labelangle is tempor. changed
   bool             renderingMirror_;
 
-  Signal<double, double> zoomRangeChanged_;
+  Signal<awaitable<void>(double, double)> zoomRangeChanged_;
 
   struct Segment {
     double minimum, maximum;

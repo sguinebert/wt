@@ -79,7 +79,7 @@ awaitable<void> OAuthAuthorizationEndpointProcess::processEnvironment()
   if (state)
     state_ = *state;
 
-  login_.changed().connect(this, &OAuthAuthorizationEndpointProcess::authEvent);
+  login_.changed().connect<&OAuthAuthorizationEndpointProcess::authEvent>(this);
   const std::string *prompt = WApplication::instance()->environment().getParameter("prompt");
   if (login_.loggedIn()) {
     co_await authorized_.emit(scope_);

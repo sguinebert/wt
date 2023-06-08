@@ -5260,7 +5260,7 @@ awaitable<void> WCartesianChart::jsSeriesSelected(double x, double y)
     co_await seriesSelected_.emit(closestSeries,
                    mapFromDeviceWithoutTransform(closestPointBeforeSeriesTransform, closestSeries->axis()));
   } else {
-    co_await seriesSelected_.emit(0, mapFromDeviceWithoutTransform(closestPointBeforeSeriesTransform, Axis::Y));
+    co_await seriesSelected_.emit(nullptr, mapFromDeviceWithoutTransform(closestPointBeforeSeriesTransform, Axis::Y));
   }
   co_return;
 }

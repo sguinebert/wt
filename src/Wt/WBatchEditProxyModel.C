@@ -66,44 +66,56 @@ WBatchEditProxyModel::~WBatchEditProxyModel()
 void WBatchEditProxyModel
 ::setSourceModel(const std::shared_ptr<WAbstractItemModel>& model)
 {
-  for (unsigned i = 0; i < modelConnections_.size(); ++i)
-    modelConnections_[i].disconnect();
-  modelConnections_.clear();
+//  for (unsigned i = 0; i < modelConnections_.size(); ++i)
+//    modelConnections_[i].disconnect();
+//  modelConnections_.clear();
+
+  using Self = WBatchEditProxyModel;
+
+  auto oldmodel = sourceModel();
+  oldmodel->columnsAboutToBeInserted().disconnect<&Self::sourceColumnsAboutToBeInserted>(this);
+  oldmodel->columnsInserted().disconnect<&Self::sourceColumnsInserted>(this);
+  oldmodel->columnsAboutToBeRemoved().disconnect<&Self::sourceColumnsAboutToBeRemoved>(this);
+  oldmodel->columnsRemoved().disconnect<&Self::sourceColumnsRemoved>(this);
+  oldmodel->rowsAboutToBeInserted().disconnect<&Self::sourceRowsAboutToBeInserted>(this);
+  oldmodel->rowsInserted().disconnect<&Self::sourceRowsInserted>(this);
+  oldmodel->rowsAboutToBeRemoved().disconnect<&Self::sourceRowsAboutToBeRemoved>(this);
+  oldmodel->rowsRemoved().disconnect<&Self::sourceRowsRemoved>(this);
+  oldmodel->dataChanged().disconnect<&Self::sourceDataChanged>(this);
+  oldmodel->headerDataChanged().disconnect<&Self::sourceHeaderDataChanged>(this);
+  oldmodel->layoutAboutToBeChanged().disconnect<&Self::sourceLayoutAboutToBeChanged>(this);
+  oldmodel->layoutChanged().disconnect<&Self::sourceLayoutChanged>(this);
+  oldmodel->modelReset().disconnect<&Self::sourceModelReset>(this);
 
   WAbstractProxyModel::setSourceModel(model);
 
-  modelConnections_.push_back(sourceModel()->columnsAboutToBeInserted().connect
-     (this, &WBatchEditProxyModel::sourceColumnsAboutToBeInserted));
-  modelConnections_.push_back(sourceModel()->columnsInserted().connect
-     (this, &WBatchEditProxyModel::sourceColumnsInserted));
+  model->columnsAboutToBeInserted().connect<&Self::sourceColumnsAboutToBeInserted>(this);
+  model->columnsInserted().connect<&Self::sourceColumnsInserted>(this);
+  model->columnsAboutToBeRemoved().connect<&Self::sourceColumnsAboutToBeRemoved>(this);
+  model->columnsRemoved().connect<&Self::sourceColumnsRemoved>(this);
+  model->rowsAboutToBeInserted().connect<&Self::sourceRowsAboutToBeInserted>(this);
+  model->rowsInserted().connect<&Self::sourceRowsInserted>(this);
+  model->rowsAboutToBeRemoved().connect<&Self::sourceRowsAboutToBeRemoved>(this);
+  model->rowsRemoved().connect<&Self::sourceRowsRemoved>(this);
+  model->dataChanged().connect<&Self::sourceDataChanged>(this);
+  model->headerDataChanged().connect<&Self::sourceHeaderDataChanged>(this);
+  model->layoutAboutToBeChanged().connect<&Self::sourceLayoutAboutToBeChanged>(this);
+  model->layoutChanged().connect<&Self::sourceLayoutChanged>(this);
+  model->modelReset().connect<&Self::sourceModelReset>(this);
 
-  modelConnections_.push_back(sourceModel()->columnsAboutToBeRemoved().connect
-     (this, &WBatchEditProxyModel::sourceColumnsAboutToBeRemoved));
-  modelConnections_.push_back(sourceModel()->columnsRemoved().connect
-     (this, &WBatchEditProxyModel::sourceColumnsRemoved));
-
-  modelConnections_.push_back(sourceModel()->rowsAboutToBeInserted().connect
-     (this, &WBatchEditProxyModel::sourceRowsAboutToBeInserted));
-  modelConnections_.push_back(sourceModel()->rowsInserted().connect
-     (this, &WBatchEditProxyModel::sourceRowsInserted));
-
-  modelConnections_.push_back(sourceModel()->rowsAboutToBeRemoved().connect
-     (this, &WBatchEditProxyModel::sourceRowsAboutToBeRemoved));
-  modelConnections_.push_back(sourceModel()->rowsRemoved().connect
-     (this, &WBatchEditProxyModel::sourceRowsRemoved));
-
-  modelConnections_.push_back(sourceModel()->dataChanged().connect
-     (this, &WBatchEditProxyModel::sourceDataChanged));
-  modelConnections_.push_back(sourceModel()->headerDataChanged().connect
-     (this, &WBatchEditProxyModel::sourceHeaderDataChanged));
-
-  modelConnections_.push_back(sourceModel()->layoutAboutToBeChanged().connect
-     (this, &WBatchEditProxyModel::sourceLayoutAboutToBeChanged));
-  modelConnections_.push_back(sourceModel()->layoutChanged().connect
-     (this, &WBatchEditProxyModel::sourceLayoutChanged));
-
-  modelConnections_.push_back(sourceModel()->modelReset().connect
-     (this, &WBatchEditProxyModel::sourceModelReset));
+//  modelConnections_.push_back(sourceModel()->columnsAboutToBeInserted().connect<&WBatchEditProxyModel::sourceColumnsAboutToBeInserted>(this));
+//  modelConnections_.push_back(sourceModel()->columnsInserted().connect<&WBatchEditProxyModel::sourceColumnsInserted>(this));
+//  modelConnections_.push_back(sourceModel()->columnsAboutToBeRemoved().connect<&WBatchEditProxyModel::sourceColumnsAboutToBeRemoved>(this));
+//  modelConnections_.push_back(sourceModel()->columnsRemoved().connect<&WBatchEditProxyModel::sourceColumnsRemoved>(this));
+//  modelConnections_.push_back(sourceModel()->rowsAboutToBeInserted().connect<&WBatchEditProxyModel::sourceRowsAboutToBeInserted>(this));
+//  modelConnections_.push_back(sourceModel()->rowsInserted().connect<&WBatchEditProxyModel::sourceRowsInserted>(this));
+//  modelConnections_.push_back(sourceModel()->rowsAboutToBeRemoved().connect<&WBatchEditProxyModel::sourceRowsAboutToBeRemoved>(this));
+//  modelConnections_.push_back(sourceModel()->rowsRemoved().connect<&WBatchEditProxyModel::sourceRowsRemoved>(this));
+//  modelConnections_.push_back(sourceModel()->dataChanged().connect<&WBatchEditProxyModel::sourceDataChanged>(this));
+//  modelConnections_.push_back(sourceModel()->headerDataChanged().connect<&WBatchEditProxyModel::sourceHeaderDataChanged>(this));
+//  modelConnections_.push_back(sourceModel()->layoutAboutToBeChanged().connect<&WBatchEditProxyModel::sourceLayoutAboutToBeChanged>(this));
+//  modelConnections_.push_back(sourceModel()->layoutChanged().connect<&WBatchEditProxyModel::sourceLayoutChanged>(this));
+//  modelConnections_.push_back(sourceModel()->modelReset().connect<&WBatchEditProxyModel::sourceModelReset>(this));
 
   resetMappings();
 }
@@ -430,12 +442,12 @@ int WBatchEditProxyModel::rowCount(const WModelIndex& parent) const
     return sourceModel()->rowCount(mapToSource(parent));
 }
 
-awaitable<void> WBatchEditProxyModel::sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end)
+void WBatchEditProxyModel::sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end)
 {
   if (isRemoved(parent))
     co_return;
 
-  co_await beginInsertColumns(mapFromSource(parent), start, end);
+  beginInsertColumns(mapFromSource(parent), start, end);
 }
 
 awaitable<void> WBatchEditProxyModel::sourceColumnsInserted(const WModelIndex& parent, int start, int end)
@@ -485,10 +497,10 @@ awaitable<void> WBatchEditProxyModel::sourceColumnsInserted(const WModelIndex& p
   co_return;
 }
 
-awaitable<void> WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+void WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 { 
   if (isRemoved(parent))
-    co_return;
+    return;
 
   WModelIndex pparent = mapFromSource(parent);
   Item *item = itemFromIndex(pparent);
@@ -499,7 +511,7 @@ awaitable<void> WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModel
     int proxyColumn = adjustedProxyColumn(item, start);
 
     if (proxyColumn >= 0) {
-      co_await beginRemoveColumns(pparent, proxyColumn, proxyColumn);
+      beginRemoveColumns(pparent, proxyColumn, proxyColumn);
 
       shiftColumns(item, proxyColumn, -1);
 
@@ -511,7 +523,6 @@ awaitable<void> WBatchEditProxyModel::sourceColumnsAboutToBeRemoved(const WModel
       item->removedColumns_.erase(item->removedColumns_.begin() + remi);
     }
   }
-  co_return;
 }
 
 awaitable<void> WBatchEditProxyModel::sourceColumnsRemoved(const WModelIndex& parent, int start, int end)
@@ -761,7 +772,7 @@ awaitable<bool> WBatchEditProxyModel::setData(const WModelIndex& index,
       i->second[ItemDataRole::Display] = value;
   }
 
-  co_await dataChanged().emit(index, index);
+  co_await dataChanged().emit((WModelIndex&)index, (WModelIndex&)index);
 
   co_return true;
 }

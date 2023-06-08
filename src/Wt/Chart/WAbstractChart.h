@@ -241,7 +241,7 @@ private:
 
   // connections with the current model, used to disconnect from a model
   // when the model changes.
-  std::vector<Wt::Signals::connection> modelConnections_;
+  std::vector<Nano::Observer<>::Connection> modelConnections_;
 
 protected:
   virtual void modelChanged();

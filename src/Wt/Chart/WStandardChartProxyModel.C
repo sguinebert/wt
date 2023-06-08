@@ -19,22 +19,14 @@ WStandardChartProxyModel
     markerScaleFactor_(0.0)
 #endif // WT_TARGET_JAVA
 {
-  sourceModel->columnsInserted().connect(
-	this, &WStandardChartProxyModel::sourceModelModified);
-  sourceModel->columnsRemoved().connect(
-	this, &WStandardChartProxyModel::sourceModelModified);
-  sourceModel->rowsInserted().connect(
-	this, &WStandardChartProxyModel::sourceModelModified);
-  sourceModel->rowsRemoved().connect(
-	this, &WStandardChartProxyModel::sourceModelModified);
-  sourceModel->dataChanged().connect(
-	this, &WStandardChartProxyModel::sourceModelModified);
-  sourceModel->headerDataChanged().connect(
-	this, &WStandardChartProxyModel::sourceModelModified);
-  sourceModel->layoutChanged().connect(
-	this, &WStandardChartProxyModel::sourceModelModified);
-  sourceModel->modelReset().connect(
-	this, &WStandardChartProxyModel::sourceModelModified);
+    sourceModel->columnsInserted().connect<&WStandardChartProxyModel::onSourceModelModified>(this);
+    sourceModel->columnsRemoved().connect<&WStandardChartProxyModel::onSourceModelModified>(this);
+    sourceModel->rowsInserted().connect<&WStandardChartProxyModel::onSourceModelModified>(this);
+    sourceModel->rowsRemoved().connect<&WStandardChartProxyModel::onSourceModelModified>(this);
+    sourceModel->dataChanged().connect<&WStandardChartProxyModel::onDataChanged>(this);
+    sourceModel->headerDataChanged().connect<&WStandardChartProxyModel::onheaderDataChanged>(this);
+    sourceModel->layoutChanged().connect<&WStandardChartProxyModel::sourceModelModified>(this);
+    sourceModel->modelReset().connect<&WStandardChartProxyModel::sourceModelModified>(this);
 }
 
 WStandardChartProxyModel::~WStandardChartProxyModel()
@@ -52,9 +44,7 @@ WString WStandardChartProxyModel::displayData(int row, int column) const
 
 WString WStandardChartProxyModel::headerData(int column) const
 {
-  return asString(sourceModel_->headerData(column, 
-					   Orientation::Horizontal, 
-					   ItemDataRole::Display));
+  return asString(sourceModel_->headerData(column, Orientation::Horizontal, ItemDataRole::Display));
 }
 
 WString WStandardChartProxyModel::toolTip(int row, int column) const
@@ -170,6 +160,21 @@ int WStandardChartProxyModel::rowCount() const
 awaitable<void> WStandardChartProxyModel::sourceModelModified()
 {
   co_await changed().emit();
+}
+
+awaitable<void> WStandardChartProxyModel::onSourceModelModified(WModelIndex, int, int)
+{
+  co_await changed().emit();
+}
+
+awaitable<void> WStandardChartProxyModel::onheaderDataChanged(Orientation, int, int)
+{
+    co_await changed().emit();
+}
+
+awaitable<void> WStandardChartProxyModel::onDataChanged(WModelIndex, WModelIndex)
+{
+    co_await changed().emit();
 }
 
   }

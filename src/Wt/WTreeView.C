@@ -149,9 +149,10 @@ public:
       for (unsigned i = 0; i < config_->states().size(); ++i)
 	signals_.push_back(std::unique_ptr<JSignal<> >(new JSignal<>(this, "t-" +  config_->states()[i])));
     } else {
+#warning "FIX ME"
       clicked().connect(this, &ToggleButton::handleClick);
-      for (unsigned i = 0; i < config_->states().size(); ++i)
-	signals_.push_back(std::unique_ptr<Signal<> >(new Signal<>()));
+//      for (unsigned i = 0; i < config_->states().size(); ++i)
+//        signals_.push_back(std::unique_ptr<Signal<awaitable<void>()> >(new Signal<awaitable<void>()>()));
     }
   }
 
@@ -169,7 +170,7 @@ private:
   awaitable<void> handleClick() {
     for (unsigned i = 0; i < config_->states().size(); ++i)
       if (boost::ends_with(styleClass().toUTF8(), config_->states()[i])) {
-        co_await (dynamic_cast<Signal<> *>(signals_[i].get()))->emit();
+//        co_await (dynamic_cast<Signal<awaitable<void>()> *>(signals_[i].get()))->emit();
         break;
       }
     co_return;
@@ -1325,35 +1326,47 @@ int WTreeView::calcOptimalRenderedRowCount() const
 
 awaitable<void> WTreeView::setModel(const std::shared_ptr<WAbstractItemModel>& model)
 {
+  using Self = WTreeView;
+
+  auto oldmodel = WAbstractItemView::model();
+  oldmodel->columnsInserted().disconnect<&Self::modelColumnsInserted>(this);
+  oldmodel->columnsAboutToBeRemoved().disconnect<&Self::modelColumnsAboutToBeRemoved>(this);
+  oldmodel->columnsRemoved().disconnect<&Self::modelColumnsRemoved>(this);
+  oldmodel->rowsInserted().disconnect<&Self::modelRowsInserted>(this);
+  oldmodel->rowsAboutToBeRemoved().disconnect<&Self::modelRowsAboutToBeRemoved>(this);
+  oldmodel->rowsRemoved().disconnect<&Self::modelRowsRemoved>(this);
+  oldmodel->dataChanged().disconnect<&Self::modelDataChanged>(this);
+  oldmodel->headerDataChanged().disconnect<&Self::modelHeaderDataChanged>(this);
+  oldmodel->layoutAboutToBeChanged().disconnect<&Self::modelLayoutAboutToBeChanged>(this);
+  oldmodel->layoutChanged().disconnect<&Self::modelLayoutChanged>(this);
+  oldmodel->modelReset().disconnect<&Self::modelReset>(this);
+
   co_await WAbstractItemView::setModel(model);
 
-  typedef WTreeView Self;
+  model->columnsInserted().connect<&Self::modelColumnsInserted>(this);
+  model->columnsAboutToBeRemoved().connect<&Self::modelColumnsAboutToBeRemoved>(this);
+  model->columnsRemoved().connect<&Self::modelColumnsRemoved>(this);
+  model->rowsInserted().connect<&Self::modelRowsInserted>(this);
+  model->rowsAboutToBeRemoved().connect<&Self::modelRowsAboutToBeRemoved>(this);
+  model->rowsRemoved().connect<&Self::modelRowsRemoved>(this);
+  model->dataChanged().connect<&Self::modelDataChanged>(this);
+  model->headerDataChanged().connect<&Self::modelHeaderDataChanged>(this);
+  model->layoutAboutToBeChanged().connect<&Self::modelLayoutAboutToBeChanged>(this);
+  model->layoutChanged().connect<&Self::modelLayoutChanged>(this);
+  model->modelReset().connect<&Self::modelReset>(this);
 
   /* connect slots to new model */
-  modelConnections_.push_back(model->columnsInserted().connect
-			      (this, &Self::modelColumnsInserted));
-  modelConnections_.push_back(model->columnsAboutToBeRemoved().connect
-			      (this, &Self::modelColumnsAboutToBeRemoved));
-  modelConnections_.push_back(model->columnsRemoved().connect
-                  (this, &Self::modelColumnsRemoved));
-
-  //model->rowsInserted().connect(&Self::modelRowsInserted);
-  modelConnections_.push_back(model->rowsInserted().connect
-                  (this, &Self::modelRowsInserted));
-  modelConnections_.push_back(model->rowsAboutToBeRemoved().connect
-			      (this, &Self::modelRowsAboutToBeRemoved));
-  modelConnections_.push_back(model->rowsRemoved().connect
-			      (this, &Self::modelRowsRemoved));
-  modelConnections_.push_back(model->dataChanged().connect
-			      (this, &Self::modelDataChanged));
-  modelConnections_.push_back(model->headerDataChanged().connect
-			      (this, &Self::modelHeaderDataChanged));
-  modelConnections_.push_back(model->layoutAboutToBeChanged().connect
-			      (this, &Self::modelLayoutAboutToBeChanged));
-  modelConnections_.push_back(model->layoutChanged().connect
-			      (this, &Self::modelLayoutChanged));
-  modelConnections_.push_back(model->modelReset().connect
-			      (this, &Self::modelReset));
+//  modelConnections_.push_back(model->columnsInserted().connect<&Self::modelColumnsInserted>(this));
+//  modelConnections_.push_back(model->columnsAboutToBeRemoved().connect<&Self::modelColumnsAboutToBeRemoved>(this));
+//  modelConnections_.push_back(model->columnsRemoved().connect<&Self::modelColumnsRemoved>(this));
+//  modelConnections_.push_back(model->rowsInserted().connect<&Self::modelRowsInserted>(this));
+//  modelConnections_.push_back(model->rowsAboutToBeRemoved().connect<&Self::modelRowsAboutToBeRemoved>(this));
+//  modelConnections_.push_back(model->rowsRemoved().connect<&Self::modelRowsRemoved>(this));
+//  modelConnections_.push_back(model->dataChanged().connect<&Self::modelDataChanged>(this));
+//  modelConnections_.push_back(model->headerDataChanged().connect<&Self::modelHeaderDataChanged>(this));
+//  modelConnections_.push_back(model->layoutAboutToBeChanged().connect<&Self::modelLayoutAboutToBeChanged>(this));
+//  modelConnections_.push_back(model->layoutChanged().connect<&Self::modelLayoutChanged>(this));
+//  modelConnections_.push_back(model->modelReset().connect<&Self::modelReset>(this));
 
   expandedSet_.clear();
 
@@ -1913,8 +1926,7 @@ WWidget *WTreeView::widgetForIndex(const WModelIndex& index) const
   }
 }
 
-void WTreeView::modelColumnsInserted(const WModelIndex& parent,
-				     int start, int end)
+void WTreeView::modelColumnsInserted(const WModelIndex& parent, int start, int end)
 {
   int count = end - start + 1;
   if (!parent.isValid()) {
@@ -1992,8 +2004,7 @@ void WTreeView::modelColumnsAboutToBeRemoved(const WModelIndex& parent,
     scheduleRerender(RenderState::NeedRerenderData);
 }
 
-void WTreeView::modelColumnsRemoved(const WModelIndex& parent,
-				    int start, int end)
+void WTreeView::modelColumnsRemoved(const WModelIndex& parent, int start, int end)
 {
   if (renderState_ == RenderState::NeedRerender ||
       renderState_ == RenderState::NeedRerenderData)

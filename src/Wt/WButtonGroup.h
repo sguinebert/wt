@@ -175,7 +175,7 @@ public:
    *
    * The argument passed is the new checkedButton().
    */
-  Signal<WRadioButton *>& checkedChanged();
+  Signal<awaitable<void>(WRadioButton *)>& checkedChanged();
 
 private:
   struct Button {
@@ -184,7 +184,7 @@ private:
   };
 
   std::vector<Button> buttons_;
-  Signal<WRadioButton *> checkedChanged_;
+  Signal<awaitable<void>(WRadioButton *)> checkedChanged_;
   bool                   checkedChangedConnected_;
 
   void uncheckOthers(WRadioButton *button);

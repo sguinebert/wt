@@ -67,7 +67,7 @@ void WMessageBox::create()
 
   rejectWhenEscapePressed();
 
-  finished().connect(this, &WMessageBox::onFinished);
+  finished().connect<&WMessageBox::onFinished>(this);
 }
 
 WPushButton *WMessageBox::addButton(StandardButton result)
@@ -209,7 +209,7 @@ awaitable<void> WMessageBox::onButtonClick(StandardButton b)
   co_await buttonClicked_.emit(b);
 }
 
-awaitable<void> WMessageBox::onFinished()
+awaitable<void> WMessageBox::onFinished(DialogCode)
 {
   if (result() == DialogCode::Rejected) {
     if (escapeButton_) {
@@ -271,7 +271,8 @@ awaitable<StandardButton> WMessageBox::show(const WString& caption,
                                             const WAnimation& animation)
 {
   WMessageBox box(caption, text, Icon::Information, buttons);
-  box.buttonClicked().connect(&box, &WMessageBox::accept);
+  //box.buttonClicked().connect<&WMessageBox::accept>(&box);
+  box.buttonClicked().connect([box = &box] (StandardButton) { box->accept(); });
   co_await box.exec(animation);
   co_return box.buttonResult();
 }

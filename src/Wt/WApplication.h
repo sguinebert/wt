@@ -971,11 +971,11 @@ public:
    *       to use WString in the future).
    * \endif
    */
-  Signal<std::string>& internalPathChanged();
+  Signal<awaitable<void>(std::string)>& internalPathChanged();
 
   /*! \brief %Signal which indicates that an invalid internal path is navigated.
    */
-  Signal<std::string>& internalPathInvalid() { return internalPathInvalid_; }
+  Signal<awaitable<void>(std::string)>& internalPathInvalid() { return internalPathInvalid_; }
 
   /*! \brief Redirects the application to another location.
    *
@@ -1853,7 +1853,7 @@ public:
    *
    * The integer parameter is the request size that was received in bytes.
    */
-  Signal< ::int64_t>& requestTooLarge() { return requestTooLarge_; }
+  Signal<awaitable<void>(::int64_t)>& requestTooLarge() { return requestTooLarge_; }
 
   /** @name Global keyboard and mouse events
    */
@@ -2032,7 +2032,7 @@ public:
    * the application not being rendered.
    * Eg. Wt uses this to trigger a login as a result of single sign-on.
    */
-  Signal<>& unsuspended() { return unsuspended_; }
+  Signal<awaitable<void>()>& unsuspended() { return unsuspended_; }
 
 protected:
   /*! \brief Notifies an event to the application.
@@ -2222,8 +2222,8 @@ protected:
    */
   virtual void handleJavaScriptError(std::string_view errorText);
 private:
-  Signal< ::int64_t > requestTooLarge_;
-  Signal<> unsuspended_;
+  Signal<awaitable<void>(::int64_t)> requestTooLarge_;
+  Signal<awaitable<void>()> unsuspended_;
 
   struct ScriptLibrary {
     ScriptLibrary(const std::string& uri, const std::string& symbol);
@@ -2277,7 +2277,7 @@ private:
   std::unique_ptr<WCombinedLocalizedStrings> localizedStrings_;
   WLocale locale_;
   std::string renderedInternalPath_, newInternalPath_;
-  Signal<std::string> internalPathChanged_, internalPathInvalid_;
+  Signal<awaitable<void>(std::string)> internalPathChanged_, internalPathInvalid_;
   bool internalPathIsChanged_, internalPathDefaultValid_, internalPathValid_;
   int serverPush_;
   bool serverPushChanged_;

@@ -1284,7 +1284,7 @@ void WApplication::enableInternalPaths()
   }
 }
 
-Signal<std::string>& WApplication::internalPathChanged()
+Signal<awaitable<void>(std::string)>& WApplication::internalPathChanged()
 {
   enableInternalPaths();
 

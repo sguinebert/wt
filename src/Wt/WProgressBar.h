@@ -106,7 +106,7 @@ public:
    *
    * \sa setValue()
    */
-  Signal<double>& valueChanged() { return valueChanged_; }
+  Signal<awaitable<void>(double)>& valueChanged() { return valueChanged_; }
 
   /*! \brief A %signal that indicates when 100% is reached.
    *
@@ -114,7 +114,7 @@ public:
    *
    * \sa setValue()
    */
-  Signal<>& progressCompleted() { return progressCompleted_; }
+  Signal<awaitable<void>()>& progressCompleted() { return progressCompleted_; }
 
   virtual void resize(const WLength& width, const WLength& height) override;
 
@@ -146,8 +146,8 @@ private:
 
   void onChange();
 
-  Signal<double> valueChanged_;
-  Signal<> progressCompleted_;
+  Signal<awaitable<void>(double)> valueChanged_;
+  Signal<awaitable<void>()> progressCompleted_;
   
   double percentage() const;
 };

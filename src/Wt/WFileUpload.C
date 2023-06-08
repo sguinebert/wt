@@ -257,8 +257,8 @@ void WFileUpload::create()
   if (methodIframe) {
     fileUploadTarget_.reset(new WFileUploadResource(this));
     fileUploadTarget_->setUploadProgress(true);
-    fileUploadTarget_->dataReceived().connect(this, &WFileUpload::onData);
-    fileUploadTarget_->dataExceeded().connect(this, &WFileUpload::onDataExceeded);
+    fileUploadTarget_->dataReceived().connect<&WFileUpload::onData>(this);
+    fileUploadTarget_->dataExceeded().connect<&WFileUpload::onDataExceeded>(this);
 
     setJavaScriptMember(WT_RESIZE_JS,
 			"function(self, w, h) {"

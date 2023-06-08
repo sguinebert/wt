@@ -291,7 +291,7 @@ void WWebWidget::setDecorationStyle(const WCssDecorationStyle& style)
 void WWebWidget::iterateChildren(const HandleWidgetMethod& method) const
 { }
 
-awaitable<void> WWebWidget::iterateChildren(AsyncHandleWidgetMethod &&method) const
+awaitable<void> WWebWidget::iterateChildren2(AsyncHandleWidgetMethod &&method) const
 { co_return; }
 
 std::string WWebWidget::renderRemoveJs(bool recursive)
@@ -356,7 +356,7 @@ void WWebWidget::widgetRemoved(WWidget *child, bool renderRemove)
   //co_await emitChildrenChanged();
 }
 
-Signal<>& WWebWidget::childrenChanged()
+Signal<awaitable<void>()>& WWebWidget::childrenChanged()
 {
   if (!otherImpl_)
     otherImpl_.reset(new OtherImpl(this));
@@ -2473,10 +2473,13 @@ void WWebWidget::load()
 {
   flags_.set(BIT_LOADED);
 
-  iterateChildren
-    ([&](WWidget *c) {
+//  std::function<awaitable<void>(WWidget *c)> func = [&](WWidget *c) -> awaitable<void> {
+//      co_await doLoad(c);
+//      co_return;
+//  };
+  iterateChildren([&](WWidget *c) {
       doLoad(c);
-    });
+  });
 
   if (flags_.test(BIT_HIDE_WITH_OFFSETS))
     parent()->setHideWithOffsets(true);
@@ -2759,7 +2762,7 @@ void WWebWidget::setScrollVisibilityMargin(int margin)
   }
 }
 
-Signal<bool> &WWebWidget::scrollVisibilityChanged()
+Signal<awaitable<void>(bool)> &WWebWidget::scrollVisibilityChanged()
 {
   if (!otherImpl_)
     otherImpl_.reset(new OtherImpl(this));

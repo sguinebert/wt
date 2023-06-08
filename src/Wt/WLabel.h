@@ -161,7 +161,7 @@ protected:
   virtual void propagateSetEnabled(bool enabled) override;
 
   virtual void		 iterateChildren(const HandleWidgetMethod &method) const override;
-  virtual awaitable<void> iterateChildren(AsyncHandleWidgetMethod&& method) const override;
+  virtual awaitable<void> iterateChildren2(AsyncHandleWidgetMethod&& method) const override;
 
   void updateImage(DomElement& element, bool all, WApplication *app, int pos);
   void updateText(DomElement& element, bool all, WApplication *app, int pos);

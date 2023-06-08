@@ -54,7 +54,7 @@ RegistrationWidget::~RegistrationWidget()
 void RegistrationWidget::setModel(std::unique_ptr<RegistrationModel> model)
 {
   if (!model_ && model)
-    model->login().changed().connect(this, &RegistrationWidget::close);
+      model->login().changed().connect<&RegistrationWidget::close>(this);
 
   model_ = std::move(model);
 }
@@ -152,7 +152,7 @@ void RegistrationWidget::update()
         const OAuthService *service = model_->oAuth()[i];
 
         OAuthWidget *w = icons->addWidget(std::make_unique<OAuthWidget>(*service));
-        w->authenticated().connect(this, &RegistrationWidget::oAuthDone);
+        w->authenticated().connect<&RegistrationWidget::oAuthDone>(this);
       }
 
 #ifdef WT_HAS_SAML
@@ -292,11 +292,11 @@ awaitable<void> RegistrationWidget::confirmIsYou()
     {
       confirmPasswordLogin_.reset(new Login());
       co_await confirmPasswordLogin_->login(model_->existingUser(), LoginState::Weak);
-      confirmPasswordLogin_->changed().connect(this, &RegistrationWidget::confirmedIsYou);
+      confirmPasswordLogin_->changed().connect<&RegistrationWidget::confirmedIsYou>(this);
 
       isYouDialog_ = authWidget_->createPasswordPromptDialog(*confirmPasswordLogin_);
       isYouDialog_->finished().connect
-        ([this] {
+          ([this] (DialogCode){
 #ifdef WT_TARGET_JAVA
            delete isYouDialog_.release();
 #endif

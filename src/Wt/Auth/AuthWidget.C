@@ -79,10 +79,10 @@ void AuthWidget::init()
   created_ = false;
 
   WApplication *app = WApplication::instance();
-  app->internalPathChanged().connect(this, &AuthWidget::onPathChange);
+  app->internalPathChanged().connect<&AuthWidget::onPathChange>(this);
   app->theme()->apply(this, this, AuthWidgets);
 
-  login_.changed().connect(this, &AuthWidget::onLoginChange);
+  login_.changed().connect<&AuthWidget::onLoginChange>(this);
 }
 
 void AuthWidget::setModel(std::unique_ptr<AuthModel> model)
@@ -138,7 +138,7 @@ WDialog *AuthWidget::showDialog(const WString& title, std::unique_ptr<WWidget> c
   if (contents) {
     dialog_.reset(new WDialog(title));
     dialog_->contents()->addWidget(std::move(contents));
-    dialog_->finished().connect(this, &AuthWidget::closeDialog);
+    dialog_->finished().connect<&AuthWidget::onFinished>(this);
     //dialog_->contents()->childrenChanged().connect(this, &AuthWidget::closeDialog);
 
     dialog_->footer()->hide();
@@ -234,8 +234,8 @@ void AuthWidget::letUpdatePassword(const User& user, bool promptPassword)
   showDialog(tr("Wt.Auth.updatepassword"), std::move(updatePasswordView));
 
   if (defaultUpdatePasswordWidget) {
-    defaultUpdatePasswordWidget->updated().connect(this, &AuthWidget::closeDialog);
-    defaultUpdatePasswordWidget->canceled().connect(this, &AuthWidget::closeDialog);
+    defaultUpdatePasswordWidget->updated().connect<&AuthWidget::closeDialog>(this);
+    defaultUpdatePasswordWidget->canceled().connect<&AuthWidget::closeDialog>(this);
   }
 }
 
@@ -258,11 +258,22 @@ awaitable<void> AuthWidget::logout()
   co_await model_->logout(login_);
 }
 
+awaitable<void> AuthWidget::onFinished(DialogCode)
+{
+  co_await closeDialog();
+
+}
+
+awaitable<void> AuthWidget::onFinished2(StandardButton)
+{
+    co_await closeDialog();
+}
+
 void AuthWidget::displayError(const WString& m)
 {
   messageBox_.reset(new WMessageBox(tr("Wt.Auth.error"), m, 
 				    Icon::None, StandardButton::Ok));
-  messageBox_->buttonClicked().connect(this, &AuthWidget::closeDialog);
+  messageBox_->buttonClicked().connect<&AuthWidget::onFinished2>(this);
   messageBox_->show();
 }
 
@@ -270,7 +281,7 @@ void AuthWidget::displayInfo(const WString& m)
 {
   messageBox_.reset(new WMessageBox(tr("Wt.Auth.notice"), m, 
 				    Icon::None, StandardButton::Ok));
-  messageBox_->buttonClicked().connect(this, &AuthWidget::closeDialog);
+  messageBox_->buttonClicked().connect<&AuthWidget::onFinished2>(this);
   messageBox_->show();
 }
 
@@ -426,7 +437,7 @@ void AuthWidget::createOAuthLoginView()
 
       OAuthWidget *w
 	= icons->addWidget(std::make_unique<OAuthWidget>(*service));
-      w->authenticated().connect(this, &AuthWidget::oAuthDone);
+      w->authenticated().connect<&AuthWidget::oAuthDone>(this);
     }
   }
 }
@@ -445,7 +456,7 @@ void AuthWidget::createSamlLoginView()
 
     for (const Saml::Service *saml : model()->saml()) {
       Saml::Widget *w = icons->addNew<Saml::Widget>(*saml);
-      w->authenticated().connect(this, &AuthWidget::samlDone);
+      w->authenticated().connect<&AuthWidget::samlDone>(this);
     }
   }
 }

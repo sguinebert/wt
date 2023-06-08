@@ -308,7 +308,7 @@ public:
    * The first argument is the number of bytes received so far,
    * and the second argument is the total number of bytes.
    */
-  Signal< ::uint64_t, ::uint64_t>& dataReceived() { return dataReceived_; }
+  Signal<awaitable<void>(::uint64_t, ::uint64_t)>& dataReceived() { return dataReceived_; }
 
   virtual void enableAjax() override;
 
@@ -346,7 +346,7 @@ private:
 
   JSignal< ::int64_t> fileTooLarge_;
 
-  Signal< ::uint64_t, ::uint64_t> dataReceived_;
+  Signal<awaitable<void>(::uint64_t, ::uint64_t)> dataReceived_;
 
   Core::observing_ptr<WInteractWidget> displayWidget_;
   JSlot displayWidgetRedirect_;

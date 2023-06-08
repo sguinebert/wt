@@ -607,7 +607,7 @@ awaitable<void> WebController::updateResourceProgress(const UpdateResourceProgre
     if (dataExceeded)
       co_await resource->dataExceeded().emit(dataExceeded);
     else
-      co_await resource->dataReceived().emit(params.current, params.total);
+      co_await resource->dataReceived().emit((::int64_t)params.current, (::int64_t)params.total);
   }
   co_return;
 }

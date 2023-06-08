@@ -189,7 +189,7 @@ public:
     WApplication::UpdateLock lock(app);
 #endif
     process_->doneCallbackConnection_ =
-        app->unsuspended().connect(process_, &OAuthProcess::onOAuthDone);
+        app->unsuspended().connect<&OAuthProcess::onOAuthDone>(process_);
 
     std::string redirectTo = app->makeAbsoluteUrl(app->url(process_->startInternalPath_));
     o <<
@@ -238,7 +238,7 @@ public:
       WApplication::UpdateLock lock(app);
 #endif
       process_->doneCallbackConnection_ =
-        app->unsuspended().connect(process_, &OAuthProcess::onOAuthDone);
+          app->unsuspended().connect<&OAuthProcess::onOAuthDone>(process_);
 
       std::string redirectTo = app->makeAbsoluteUrl(app->url(process_->startInternalPath_));
       o <<
@@ -330,7 +330,7 @@ OAuthProcess::OAuthProcess(const OAuthService& service,
 
 #ifndef WT_TARGET_JAVA
   if (!app->environment().javaScript())
-    authenticated().connect(this, &OAuthProcess::handleAuthComplete);
+    authenticated().connect<&OAuthProcess::handleAuthComplete>(this);
 #endif // WT_TARGET_JAVA
 }
 
@@ -422,7 +422,7 @@ awaitable<void> OAuthProcess::onOAuthDone()
 {
   bool success = error_.empty();
 
-  co_await authorized().emit(success ? token_ : OAuthAccessToken::Invalid);
+  co_await authorized().emit(success ? token_ : (OAuthAccessToken)OAuthAccessToken::Invalid);
 
   if (success && authenticate_) {
     authenticate_ = false;
@@ -439,7 +439,7 @@ awaitable<void> OAuthProcess::onOAuthDone()
 }
 
 #ifndef WT_TARGET_JAVA
-void OAuthProcess::handleAuthComplete()
+void OAuthProcess::handleAuthComplete(Identity)
 {
   redirectEndpoint_->haveMoreData();
 }
@@ -463,9 +463,7 @@ void OAuthProcess::requestToken(std::string_view authorizationCode)
 
   httpClient_.reset(new Http::Client());
   httpClient_->setTimeout(std::chrono::seconds(15));
-  httpClient_->done().connect
-    (this, std::bind(&OAuthProcess::handleToken, this,
-		     std::placeholders::_1, std::placeholders::_2));
+  httpClient_->done().connect<&OAuthProcess::handleToken>(this);
 
   std::string clientId = Wt::Utils::urlEncode(service_.clientId());
   std::string clientSecret = Wt::Utils::urlEncode(service_.clientSecret());

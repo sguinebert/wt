@@ -878,12 +878,12 @@ void WEnvironment::parseCookies(const std::string& cookie,
       result[cookieName] = cookieValue;
   }
 }
-Signal<WDialog *>& WEnvironment::dialogExecuted() const
+Signal<awaitable<void>(WDialog *)>& WEnvironment::dialogExecuted() const
 {
   throw WException("Internal error");
 }
 
-Signal<WPopupMenu *>& WEnvironment::popupExecuted() const
+Signal<awaitable<void>(WPopupMenu *)>& WEnvironment::popupExecuted() const
 {
   throw WException("Internal error");
 }

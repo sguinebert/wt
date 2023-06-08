@@ -358,7 +358,7 @@ void WDataSeries::setModel(const std::shared_ptr<WAbstractChartModel>& model)
 #ifdef WT_TARGET_JAVA
     modelConnections_.push_back(model_->changed().connect(this, std::bind(&WDataSeries::modelReset, this)));
 #else // !WT_TARGET_JAVA
-    modelConnections_.push_back(model_->changed().connect(std::bind(&WDataSeries::modelReset, this)));
+    modelConnections_.push_back(model_->changed().connect<&WDataSeries::modelReset>(this));
 #endif // WT_TARGET_JAVA
   }
 

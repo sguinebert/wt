@@ -418,8 +418,7 @@ std::string WCompositeWidget::javaScriptMember(const std::string& name) const
   return impl_->javaScriptMember(name);
 }
 
-void WCompositeWidget::callJavaScriptMember(const std::string& name,
-					    const std::string& args)
+void WCompositeWidget::callJavaScriptMember(const std::string& name, const std::string& args)
 {
   impl_->callJavaScriptMember(name, args);
 }
@@ -480,6 +479,7 @@ void WCompositeWidget::setImplementation(std::unique_ptr<WWidget> widget)
   impl_ = std::move(widget);
   impl_->setParentWidget(this);
 
+#warning "Problem ?"
   WWidget *p = parent();
   if (p && p->loaded())
     impl_->load();
@@ -551,7 +551,7 @@ void WCompositeWidget::setScrollVisibilityMargin(int margin)
   impl_->webWidget()->setScrollVisibilityMargin(margin);
 }
 
-Signal<bool> &WCompositeWidget::scrollVisibilityChanged()
+Signal<awaitable<void>(bool)> &WCompositeWidget::scrollVisibilityChanged()
 {
   return impl_->webWidget()->scrollVisibilityChanged();
 }

@@ -187,13 +187,13 @@ public:
    *
    * \sa setExpanded(), expanded()
    */
-  Signal<WModelIndex>& collapsed() { return collapsed_; }
+  Signal<awaitable<void>(WModelIndex)>& collapsed() { return collapsed_; }
 
   /*! \brief %Signal emitted when a node is expanded.
    *
    * \sa setExpanded(), collapsed()
    */
-  Signal<WModelIndex>& expanded() { return expanded_; }
+  Signal<awaitable<void>(WModelIndex)>& expanded() { return expanded_; }
 
   virtual WWidget *itemWidget(const WModelIndex& index) const override;
   virtual awaitable<void> setModel(const std::shared_ptr<WAbstractItemModel>& model) override;
@@ -248,7 +248,7 @@ private:
 
   bool rootIsDecorated_, column1Fixed_;
 
-  Signal<WModelIndex>  collapsed_, expanded_;
+  Signal<awaitable<void>(WModelIndex)>  collapsed_, expanded_;
 
   // in rows, as indicated by the current position of the viewport:
   int viewportTop_, viewportHeight_;

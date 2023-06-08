@@ -1539,7 +1539,7 @@ public:
    *
    * \sa setSeriesSelectionEnabled()
    */
-  Signal<const WDataSeries *, WPointF>& seriesSelected() { return seriesSelected_; }
+  Signal<awaitable<void>(const WDataSeries *, WPointF)>& seriesSelected() { return seriesSelected_; }
 
   /*! \brief Sets the series that is currently selected.
    *
@@ -1727,7 +1727,7 @@ private:
   WBrush loadingBackground_;
   bool cObjCreated_;
 
-  Signal<const WDataSeries *, WPointF> seriesSelected_;
+  Signal<awaitable<void>(const WDataSeries *, WPointF)> seriesSelected_;
   JSignal<double, double> jsSeriesSelected_;
 
   typedef std::map<const WDataSeries *, WJavaScriptHandle<WPainterPath> > PainterPathMap;

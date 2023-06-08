@@ -196,13 +196,13 @@ private:
   ItemDataRole dirtyIndicationRole_;
   cpp17::any dirtyIndicationData_;
 
-  std::vector<Wt::Signals::connection> modelConnections_;
+  std::vector<Nano::Observer<>::Connection> modelConnections_;
   mutable ItemMap mappedIndexes_;
 
-  awaitable<void> sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end);
+  void sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end);
   awaitable<void> sourceColumnsInserted(const WModelIndex& parent, int start, int end);
 
-  awaitable<void> sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
+  void sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   awaitable<void> sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
 
   void sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end);

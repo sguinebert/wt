@@ -259,44 +259,56 @@ WAggregateProxyModel::~WAggregateProxyModel()
 void WAggregateProxyModel
 ::setSourceModel(const std::shared_ptr<WAbstractItemModel>& model)
 {
-  for (unsigned i = 0; i < modelConnections_.size(); ++i)
-    modelConnections_[i].disconnect();
-  modelConnections_.clear();
+//  for (unsigned i = 0; i < modelConnections_.size(); ++i)
+//    modelConnections_[i].disconnect();
+//  modelConnections_.clear();
+
+  using Self = WAggregateProxyModel;
+
+  auto oldmodel = sourceModel();
+  oldmodel->columnsAboutToBeInserted().disconnect<&Self::sourceColumnsAboutToBeInserted>(this);
+  oldmodel->columnsInserted().disconnect<&Self::sourceColumnsInserted>(this);
+  oldmodel->columnsAboutToBeRemoved().disconnect<&Self::sourceColumnsAboutToBeRemoved>(this);
+  oldmodel->columnsRemoved().disconnect<&Self::sourceColumnsRemoved>(this);
+  oldmodel->rowsAboutToBeInserted().disconnect<&Self::sourceRowsAboutToBeInserted>(this);
+  oldmodel->rowsInserted().disconnect<&Self::sourceRowsInserted>(this);
+  oldmodel->rowsAboutToBeRemoved().disconnect<&Self::sourceRowsAboutToBeRemoved>(this);
+  oldmodel->rowsRemoved().disconnect<&Self::sourceRowsRemoved>(this);
+  oldmodel->dataChanged().disconnect<&Self::sourceDataChanged>(this);
+  oldmodel->headerDataChanged().disconnect<&Self::sourceHeaderDataChanged>(this);
+  oldmodel->layoutAboutToBeChanged().disconnect<&Self::sourceLayoutAboutToBeChanged>(this);
+  oldmodel->layoutChanged().disconnect<&Self::sourceLayoutChanged>(this);
+  oldmodel->modelReset().disconnect<&Self::sourceModelReset>(this);
 
   WAbstractProxyModel::setSourceModel(model);
 
-  modelConnections_.push_back(sourceModel()->columnsAboutToBeInserted().connect
-     (this, &WAggregateProxyModel::sourceColumnsAboutToBeInserted));
-  modelConnections_.push_back(sourceModel()->columnsInserted().connect
-     (this, &WAggregateProxyModel::sourceColumnsInserted));
+  model->columnsAboutToBeInserted().connect<&Self::sourceColumnsAboutToBeInserted>(this);
+  model->columnsInserted().connect<&Self::sourceColumnsInserted>(this);
+  model->columnsAboutToBeRemoved().connect<&Self::sourceColumnsAboutToBeRemoved>(this);
+  model->columnsRemoved().connect<&Self::sourceColumnsRemoved>(this);
+  model->rowsAboutToBeInserted().connect<&Self::sourceRowsAboutToBeInserted>(this);
+  model->rowsInserted().connect<&Self::sourceRowsInserted>(this);
+  model->rowsAboutToBeRemoved().connect<&Self::sourceRowsAboutToBeRemoved>(this);
+  model->rowsRemoved().connect<&Self::sourceRowsRemoved>(this);
+  model->dataChanged().connect<&Self::sourceDataChanged>(this);
+  model->headerDataChanged().connect<&Self::sourceHeaderDataChanged>(this);
+  model->layoutAboutToBeChanged().connect<&Self::sourceLayoutAboutToBeChanged>(this);
+  model->layoutChanged().connect<&Self::sourceLayoutChanged>(this);
+  model->modelReset().connect<&Self::sourceModelReset>(this);
 
-  modelConnections_.push_back(sourceModel()->columnsAboutToBeRemoved().connect
-     (this, &WAggregateProxyModel::sourceColumnsAboutToBeRemoved));
-  modelConnections_.push_back(sourceModel()->columnsRemoved().connect
-     (this, &WAggregateProxyModel::sourceColumnsRemoved));
-
-  modelConnections_.push_back(sourceModel()->rowsAboutToBeInserted().connect
-     (this, &WAggregateProxyModel::sourceRowsAboutToBeInserted));
-  modelConnections_.push_back(sourceModel()->rowsInserted().connect
-     (this, &WAggregateProxyModel::sourceRowsInserted));
-
-  modelConnections_.push_back(sourceModel()->rowsAboutToBeRemoved().connect
-     (this, &WAggregateProxyModel::sourceRowsAboutToBeRemoved));
-  modelConnections_.push_back(sourceModel()->rowsRemoved().connect
-     (this, &WAggregateProxyModel::sourceRowsRemoved));
-
-  modelConnections_.push_back(sourceModel()->dataChanged().connect
-     (this, &WAggregateProxyModel::sourceDataChanged));
-  modelConnections_.push_back(sourceModel()->headerDataChanged().connect
-     (this, &WAggregateProxyModel::sourceHeaderDataChanged));
-
-  modelConnections_.push_back(sourceModel()->layoutAboutToBeChanged().connect
-     (this, &WAggregateProxyModel::sourceLayoutAboutToBeChanged));
-  modelConnections_.push_back(sourceModel()->layoutChanged().connect
-     (this, &WAggregateProxyModel::sourceLayoutChanged));
-
-  modelConnections_.push_back(sourceModel()->modelReset().connect
-     (this, &WAggregateProxyModel::sourceModelReset));
+//  modelConnections_.push_back(sourceModel()->columnsAboutToBeInserted().connect<&WAggregateProxyModel::sourceColumnsAboutToBeInserted>(this));
+//  modelConnections_.push_back(sourceModel()->columnsInserted().connect<&WAggregateProxyModel::sourceColumnsInserted>(this));
+//  modelConnections_.push_back(sourceModel()->columnsAboutToBeRemoved().connect<&WAggregateProxyModel::sourceColumnsAboutToBeRemoved>(this));
+//  modelConnections_.push_back(sourceModel()->columnsRemoved().connect<&WAggregateProxyModel::sourceColumnsRemoved>(this));
+//  modelConnections_.push_back(sourceModel()->rowsAboutToBeInserted().connect<&WAggregateProxyModel::sourceRowsAboutToBeInserted>(this));
+//  modelConnections_.push_back(sourceModel()->rowsInserted().connect<&WAggregateProxyModel::sourceRowsInserted>(this));
+//  modelConnections_.push_back(sourceModel()->rowsAboutToBeRemoved().connect<&WAggregateProxyModel::sourceRowsAboutToBeRemoved>(this));
+//  modelConnections_.push_back(sourceModel()->rowsRemoved().connect<&WAggregateProxyModel::sourceRowsRemoved>(this));
+//  modelConnections_.push_back(sourceModel()->dataChanged().connect<&WAggregateProxyModel::sourceDataChanged>(this));
+//  modelConnections_.push_back(sourceModel()->headerDataChanged().connect<&WAggregateProxyModel::sourceHeaderDataChanged>(this));
+//  modelConnections_.push_back(sourceModel()->layoutAboutToBeChanged().connect<&WAggregateProxyModel::sourceLayoutAboutToBeChanged>(this));
+//  modelConnections_.push_back(sourceModel()->layoutChanged().connect<&WAggregateProxyModel::sourceLayoutChanged>(this));
+//  modelConnections_.push_back(sourceModel()->modelReset().connect<&WAggregateProxyModel::sourceModelReset>(this));
 
   topLevel_ = Aggregate();
 }
@@ -312,7 +324,7 @@ awaitable<void> WAggregateProxyModel::propagateBeginRemove(const WModelIndex& pr
 {
   // should be beginRemoveColumns(), but endRemoveColumns() calls cannot
   // be nested
-  co_await columnsAboutToBeRemoved().emit(proxyIndex, start, end);
+  columnsAboutToBeRemoved().emit((WModelIndex&)proxyIndex, start, end);
 
   unsigned int rc = rowCount(proxyIndex);
   for (unsigned i = 0; i < rc; ++i)
@@ -323,7 +335,7 @@ awaitable<void> WAggregateProxyModel::propagateEndRemove(const WModelIndex& prox
 {
   // should be endRemoveColumns(), but endRemoveColumns() calls cannot
   // be nested
-  co_await columnsRemoved().emit(proxyIndex, start, end);
+  co_await columnsRemoved().emit((WModelIndex&)proxyIndex, start, end);
 
   unsigned int rc = rowCount(proxyIndex);
   for (unsigned i = 0; i < rc; ++i)
@@ -334,7 +346,7 @@ awaitable<void> WAggregateProxyModel::propagateBeginInsert(const WModelIndex& pr
 {
   // should be beginInsertColumns(), but endInsertColumns() calls cannot
   // be nested
-  co_await columnsAboutToBeInserted().emit(proxyIndex, start, end);
+  columnsAboutToBeInserted().emit((WModelIndex&)proxyIndex, start, end);
 
   unsigned int rc = rowCount(proxyIndex);
   for (unsigned i = 0; i < rc; ++i)
@@ -345,7 +357,7 @@ awaitable<void> WAggregateProxyModel::propagateEndInsert(const WModelIndex& prox
 {
   // should be endInsertColumns(), but endInsertColumns() calls cannot
   // be nested
-  co_await columnsInserted().emit(proxyIndex, start, end);
+  co_await columnsInserted().emit((WModelIndex&)proxyIndex, start, end);
 
   unsigned int rc = rowCount(proxyIndex);
   for (unsigned i = 0; i < rc; ++i)
@@ -605,7 +617,7 @@ awaitable<void> WAggregateProxyModel::sourceDataChanged(const WModelIndex& topLe
     WModelIndex br = mapFromSource(sourceModel()->index(bottomRight.row(),
 							r,
 							bottomRight.parent()));
-    co_await dataChanged().emit(tl, br);
+    co_await dataChanged().emit((WModelIndex&)tl, (WModelIndex&)br);
   }
   co_return;
 }

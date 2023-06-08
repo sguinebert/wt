@@ -140,7 +140,7 @@ public:
    *
    * The signal argument provides the new value.
    */
-  Signal<WString>& valueChanged() { return valueChanged_; }
+  Signal<awaitable<void>(WString)>& valueChanged() { return valueChanged_; }
 
   /*! \brief Displays the Save and 'Cancel' button during editing
    *
@@ -161,7 +161,7 @@ private:
   void cancel();
 
 private:
-  Signal<WString> valueChanged_;
+  Signal<awaitable<void>(WString)> valueChanged_;
   WContainerWidget *impl_, *editing_, *buttons_;
   WText *text_;
   WLineEdit *edit_;

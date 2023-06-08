@@ -72,18 +72,15 @@ public:
 
   virtual void setPositionScheme(PositionScheme scheme) override;
   virtual PositionScheme positionScheme() const override;
-  virtual void setOffsets(const WLength& offset, WFlags<Side> sides = AllSides)
-    override;
+  virtual void setOffsets(const WLength& offset, WFlags<Side> sides = AllSides) override;
   virtual WLength offset(Side s) const override;
   virtual void resize(const WLength& width, const WLength& height) override;
   virtual WLength width() const override;
   virtual WLength height() const override;
-  virtual void setMinimumSize(const WLength& width, const WLength& height)
-    override;
+  virtual void setMinimumSize(const WLength& width, const WLength& height) override;
   virtual WLength minimumWidth() const override;
   virtual WLength minimumHeight() const override;
-  virtual void setMaximumSize(const WLength& width, const WLength& height)
-    override;
+  virtual void setMaximumSize(const WLength& width, const WLength& height) override;
   virtual WLength maximumWidth() const override;
   virtual WLength maximumHeight() const override;
   virtual void setLineHeight(const WLength& height) override;
@@ -92,13 +89,11 @@ public:
   virtual Side floatSide() const override;
   virtual void setClearSides(WFlags<Side> sides) override;
   virtual WFlags<Side> clearSides() const override;
-  virtual void setMargin(const WLength& margin, WFlags<Side> sides = AllSides)
-    override;
+  virtual void setMargin(const WLength& margin, WFlags<Side> sides = AllSides) override;
   virtual WLength margin(Side side) const override;
   virtual void setHiddenKeepsGeometry(bool enabled) override;
   virtual bool hiddenKeepsGeometry() const override;
-  virtual void setHidden(bool hidden,
-			 const WAnimation& animation = WAnimation()) override;
+  virtual void setHidden(bool hidden, const WAnimation& animation = WAnimation()) override;
   virtual bool isHidden() const override;
   virtual bool isVisible() const override;
   virtual void setDisabled(bool disabled) override;
@@ -169,7 +164,7 @@ public:
   virtual void setScrollVisibilityEnabled(bool enabled) final override;
   virtual int scrollVisibilityMargin() const final override;
   virtual void setScrollVisibilityMargin(int margin) final override;
-  virtual Signal<bool> &scrollVisibilityChanged() final override;
+  virtual Signal<awaitable<void>(bool)> &scrollVisibilityChanged() final override;
   virtual bool isScrollVisible() const final override;
 
   virtual void setThemeStyleEnabled(bool enabled) final override;

@@ -262,7 +262,7 @@ void WTemplate::iterateChildren(const HandleWidgetMethod& method) const
   }
 }
 
-awaitable<void> WTemplate::iterateChildren(AsyncHandleWidgetMethod &&method) const
+awaitable<void> WTemplate::iterateChildren2(AsyncHandleWidgetMethod &&method) const
 {
   for (auto it = widgets_.begin(); it != widgets_.end(); ++it) {
     WWidget *w = it->second.get();

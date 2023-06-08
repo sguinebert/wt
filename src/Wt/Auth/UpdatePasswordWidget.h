@@ -43,11 +43,11 @@ public:
 
   /*! \brief Signal emitted when the password was updated.
    */
-  Signal<>& updated() { return updated_; }
+  Signal<awaitable<void>()>& updated() { return updated_; }
 
   /*! \brief Signal emitted when cancel clicked.
    */
-  Signal<>& canceled() { return canceled_; }
+  Signal<awaitable<void>()>& canceled() { return canceled_; }
 
 protected:
   virtual std::unique_ptr<WWidget> createFormWidget(WFormModel::Field field)
@@ -58,8 +58,8 @@ private:
 
   std::unique_ptr<RegistrationModel> registrationModel_;
   std::shared_ptr<AuthModel> authModel_;
-  Signal<> updated_;
-  Signal<> canceled_;
+  Signal<awaitable<void>()> updated_;
+  Signal<awaitable<void>()> canceled_;
 
   void checkPassword();
   void checkPassword2();

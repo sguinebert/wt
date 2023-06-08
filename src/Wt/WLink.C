@@ -167,9 +167,9 @@ JSlot *WLink::manageInternalPathChange(WApplication *app,
   if (type_ == LinkType::InternalPath) {
     if (app->environment().ajax()) {
       if (!slot) {
-	slot = new JSlot();
-	widget->clicked().connect(*slot);
-	widget->clicked().preventDefaultAction();
+        slot = new JSlot();
+        widget->clicked().connect(*slot);
+        widget->clicked().preventDefaultAction();
       }
 
       slot->setJavaScript

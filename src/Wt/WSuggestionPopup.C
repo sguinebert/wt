@@ -171,16 +171,11 @@ void WSuggestionPopup::setModel(const std::shared_ptr<WAbstractItemModel>& model
   model_ = model;
 
   /* connect slots to new model */
-  modelConnections_.push_back(model_->rowsInserted().connect
-     (this, &WSuggestionPopup::modelRowsInserted));
-  modelConnections_.push_back(model_->rowsRemoved().connect
-     (this, &WSuggestionPopup::modelRowsRemoved));
-  modelConnections_.push_back(model_->dataChanged().connect
-     (this, &WSuggestionPopup::modelDataChanged));
-  modelConnections_.push_back(model_->layoutChanged().connect
-     (this, &WSuggestionPopup::modelLayoutChanged));
-  modelConnections_.push_back(model_->modelReset().connect
-     (this, &WSuggestionPopup::modelLayoutChanged));
+  modelConnections_.push_back(model_->rowsInserted().connect<&WSuggestionPopup::modelRowsInserted>(this));
+  modelConnections_.push_back(model_->rowsRemoved().connect<&WSuggestionPopup::modelRowsRemoved>(this));
+  modelConnections_.push_back(model_->dataChanged().connect<&WSuggestionPopup::modelDataChanged>(this));
+  modelConnections_.push_back(model_->layoutChanged().connect<&WSuggestionPopup::modelLayoutChanged>(this));
+  modelConnections_.push_back(model_->modelReset().connect<&WSuggestionPopup::modelLayoutChanged>(this));
 
   setModelColumn(modelColumn_);
 }

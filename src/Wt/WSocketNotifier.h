@@ -110,7 +110,7 @@ public:
    * The signal is emitted when an event that was waited for is
    * available. The signal argument is socket().
    */
-  Signal<int>& activated() { return activated_; }
+  Signal<awaitable<void>(int)>& activated() { return activated_; }
 
 private:
   int socket_;
@@ -119,7 +119,7 @@ private:
   bool beingNotified_;
   std::string sessionId_;
 
-  Signal<int> activated_;
+  Signal<awaitable<void>(int)> activated_;
 
   const std::string& sessionId() const { return sessionId_; }
   awaitable<void> notify();

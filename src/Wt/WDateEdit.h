@@ -147,7 +147,9 @@ private:
 
   void defineJavaScript();
   void connectJavaScript(Wt::EventSignalBase& s, const std::string& methodName);
-  void setFocusTrue();
+  awaitable<void> setFocusTrue(WDate);
+  void setFocusS();
+  void hide(WDate);
 };
 
 }

@@ -309,7 +309,7 @@ public:
    * generates a new URL for this resource to avoid caching problems and then
    * emits this signal.
    */
-  Signal<>& dataChanged() { return dataChanged_; }
+  Signal<awaitable<void>()>& dataChanged() { return dataChanged_; }
 
   /*! \brief Indicate interest in upload progress.
    *
@@ -342,9 +342,9 @@ public:
    *
    * \sa setUploadProgress()
    */
-  Signal< ::uint64_t, ::uint64_t>& dataReceived() { return dataReceived_; }
+  Signal<awaitable<void>(::uint64_t, ::uint64_t)>& dataReceived() { return dataReceived_; }
 
-  Signal< ::uint64_t >& dataExceeded() { return dataExceeded_; }
+  Signal<awaitable<void>(::uint64_t)>& dataExceeded() { return dataExceeded_; }
 
   /*! \brief Stream the resource to a stream.
    *
@@ -468,9 +468,9 @@ private:
   std::condition_variable_any useDone_;
 #endif
 
-  Signal<> dataChanged_;
-  Signal< ::uint64_t, ::uint64_t > dataReceived_;
-  Signal< ::uint64_t > dataExceeded_;
+  Signal<awaitable<void>()> dataChanged_;
+  Signal<awaitable<void>(::uint64_t, ::uint64_t)> dataReceived_;
+  Signal<awaitable<void>(::uint64_t)> dataExceeded_;
 
   bool trackUploadProgress_;
   bool takesUpdateLock_;

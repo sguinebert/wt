@@ -29,10 +29,11 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     using function = Function<RT(Args...)>;
 
     template <typename T>
-    void insert_sfinae(Delegate_Key const& key, typename T::Observer* instance)
+    observer::Connection insert_sfinae(Delegate_Key const& key, typename T::Observer* instance)
     {
-        observer::insert(key, instance);
+        auto conn = observer::insert(key, instance);
         instance->insert(key, this);
+        return conn;
     }
     template <typename T>
     void remove_sfinae(Delegate_Key const& key, typename T::Observer* instance)
@@ -41,9 +42,9 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
         instance->remove(key);
     }
     template <typename T>
-    void insert_sfinae(Delegate_Key const& key, ...)
+    observer::Connection insert_sfinae(Delegate_Key const& key, ...)
     {
-        observer::insert(key, this);
+        return observer::insert(key, this);
     }
     template <typename T>
     void remove_sfinae(Delegate_Key const& key, ...)
@@ -63,8 +64,6 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     Signal& operator=(Signal&&) noexcept = default;
 
     //-------------------------------------------------------------------CONNECT
-
-    std::vector<std::any> store;
 
     template <typename L>
     observer::Connection connect(L* instance)
@@ -95,44 +94,49 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     }
     /* static function connection */
     template <RT(*fun_ptr)(Args...)>
-    void connect()
+    observer::Connection connect()
     {
-        observer::insert(function::template bind<fun_ptr>(), this);
+        return observer::insert(function::template bind<fun_ptr>(), this);
     }
     /* connect to a member method of a class T passed by pointer*/
     template <typename T, RT(T::*mem_ptr)(Args...)>
-    void connect(T* instance)
+    observer::Connection connect(T* instance)
     {
-        insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
+        return insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
     /* connect to a member const method of a class T passed by pointer */
     template <typename T, RT(T::*mem_ptr)(Args...) const>
-    void connect(T* instance)
+    observer::Connection connect(T* instance)
     {
-        insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
+        return insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
     /* connect to a member method of a class T passed by ref*/
     template <typename T, RT(T::*mem_ptr)(Args...)>
-    void connect(T& instance)
+    observer::Connection connect(T& instance)
     {
-        connect<mem_ptr, T>(std::addressof(instance));
+        return connect<mem_ptr, T>(std::addressof(instance));
     }
     /* connect to a member const method of a class T passed by ref */
     template <typename T, RT(T::*mem_ptr)(Args...) const>
-    void connect(T& instance)
+    observer::Connection connect(T& instance)
     {
-        connect<mem_ptr, T>(std::addressof(instance));
+        return connect<mem_ptr, T>(std::addressof(instance));
     }
     /* implementions detail of the connection to a member method of a class T */
     template <auto mem_ptr, typename T>
-    void connect(T* instance)
+    observer::Connection connect(T* instance)
     {
-        insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
+        return insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
     template <auto mem_ptr, typename T>
-    void connect(T& instance)
+    observer::Connection connect(T& instance)
     {
-        connect<mem_ptr, T>(std::addressof(instance));
+        return connect<mem_ptr, T>(std::addressof(instance));
+    }
+    template <auto mem_ptr>
+    observer::Connection connect()
+    {
+        return observer::insert(function::template bind<mem_ptr>(), this);
     }
 
     //----------------------------------------------------------------DISCONNECT
@@ -201,6 +205,15 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
     boost::asio::awaitable<void>
     emit(Uref&&... args)
+    {
+        co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
+    }
+
+    template <typename... Uref>
+        requires(is_asio_awaitable_v<RT>)
+    //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
+    boost::asio::awaitable<void>
+    emit(Uref&&... args) const
     {
         co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
     }

@@ -24,7 +24,7 @@ WTimePicker::WTimePicker(WTimeEdit *timeEdit)
   : timeEdit_(timeEdit),
     toggleAmPm_(2, this)
 {
-  init();
+    init();
 }
 
 void WTimePicker::init(const WTime &time)
@@ -96,9 +96,9 @@ void WTimePicker::setTime(const WTime& time)
       hours = time.pmhour();
 
       if (time.hour() < 12)
-	cbAP_->setCurrentIndex(0);
+        cbAP_->setCurrentIndex(0);
       else
-	cbAP_->setCurrentIndex(1);
+        cbAP_->setCurrentIndex(1);
     } else
       hours = time.hour();
 
@@ -131,44 +131,45 @@ void WTimePicker::configure()
       sbsecond_->setWrapAroundEnabled(wrapAroundEnabled());
     } else {
       if (sbsecond_) {
-	container->removeWidget("second");
-	sbsecond_ = nullptr;
-	container->bindEmpty("second");
+        container->removeWidget("second");
+        sbsecond_ = nullptr;
+        container->bindEmpty("second");
       }
     }
 
     if (formatMs()) {
       if (!sbmillisecond_) {
-	sbmillisecond_ = container->bindWidget("millisecond", std::make_unique<WSpinBox>());
-	sbmillisecond_->setWidth(70);
-	sbmillisecond_->setRange(0, 999);
-	sbmillisecond_->setSingleStep(1);
-	sbmillisecond_->changed().connect(this, &WTimePicker::msecValueChanged);
-	
-	sbmillisecond_->setWrapAroundEnabled(wrapAroundEnabled());
+        sbmillisecond_ = container->bindWidget("millisecond", std::make_unique<WSpinBox>());
+        sbmillisecond_->setWidth(70);
+        sbmillisecond_->setRange(0, 999);
+        sbmillisecond_->setSingleStep(1);
+        sbmillisecond_->changed().connect(this, &WTimePicker::msecValueChanged);
+
+        sbmillisecond_->setWrapAroundEnabled(wrapAroundEnabled());
       }
     } else {
       if (sbmillisecond_) {
-	container->removeWidget("millisecond");
-	sbmillisecond_ = nullptr;
-	container->bindEmpty("millisecond");
+        container->removeWidget("millisecond");
+        sbmillisecond_ = nullptr;
+        container->bindEmpty("millisecond");
       }
     }
 
     if (formatAp()) {
       if (!cbAP_) {
-	cbAP_ = container->bindWidget("ampm", std::make_unique<WComboBox>());
-	cbAP_->setWidth(90);
-	cbAP_->addItem("AM");
-	cbAP_->addItem("PM");
-	cbAP_->changed().connect(this, &WTimePicker::ampmValueChanged);
+        std::vector<WString> items{"AM", "PM"};
+        cbAP_ = container->bindWidget("ampm", std::make_unique<WComboBox>(items));
+        cbAP_->setWidth(90);
+//        co_await cbAP_->addItem("AM");
+//        co_await cbAP_->addItem("PM");
+        cbAP_->changed().connect(this, &WTimePicker::ampmValueChanged);
       }
       sbhour_->setRange(1, 12);
     } else {
       if (cbAP_) {
-	container->removeWidget("ampm");
-	cbAP_ = nullptr;
-	container->bindEmpty("ampm");
+        container->removeWidget("ampm");
+        cbAP_ = nullptr;
+        container->bindEmpty("ampm");
       }
       sbhour_->setRange(0, 23);
     }

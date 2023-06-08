@@ -45,25 +45,27 @@ public:
         Connection& operator=(const Connection& other) noexcept {
             std::cout << "copy assignment " << std::endl;
             delegate = other.delegate;
-            observer = other.observer;
+            //observer = other.observer->weak_ptr();
+            return *this;
         }
         template<class O>
         Connection& operator=(const O& other) noexcept {
             std::cout << "copy assignment " << std::endl;
             delegate = other.delegate;
-            observer = other.observer;
+            //observer = other.observer->weak_ptr();
+            return *this;
         }
 
 
         void disconnect() noexcept {
 //            if (auto observed = observer->visiting(observer))
 //            {
-                auto ptr = static_cast<Observer*>(observer->unmask(observer));
-                ptr->remove(delegate);
+//                auto ptr = static_cast<Observer*>(observer->unmask(observer));
+//                ptr->remove(delegate);
 //            }
         }
         bool isConnected() const noexcept {
-            return observer->unmask(observer);
+            return true; //observer->unmask(observer);
         }
     };
 private:
@@ -160,6 +162,37 @@ private:
 
     template <typename Function, typename... Uref>
     boost::asio::awaitable<void> coro_for_each(Uref&&... args)
+    {
+        [[maybe_unused]]
+        auto lock = MT_Policy::lock_guard();
+
+        for (auto const& slot : MT_Policy::copy_or_ref(connections, lock))
+        {
+            if (auto observer = MT_Policy::observed(slot.observer))
+            {
+                co_await Function::bind(slot.delegate)(args...);
+            }
+        }
+        co_return;
+    }
+
+    template <typename Function, typename... Uref>
+    void for_each(Uref&&... args) const
+    {
+        [[maybe_unused]]
+        auto lock = MT_Policy::lock_guard();
+
+        for (auto const& slot : MT_Policy::copy_or_ref(connections, lock))
+        {
+            if (auto observer = MT_Policy::observed(slot.observer))
+            {
+                Function::bind(slot.delegate)(args...);
+            }
+        }
+    }
+
+    template <typename Function, typename... Uref>
+    boost::asio::awaitable<void> coro_for_each(Uref&&... args) const
     {
         [[maybe_unused]]
         auto lock = MT_Policy::lock_guard();

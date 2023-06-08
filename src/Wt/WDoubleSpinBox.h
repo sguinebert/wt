@@ -121,7 +121,7 @@ public:
    *
    * \sa changed()
    */
-  Signal<double>& valueChanged() { return valueChanged_; }
+  Signal<awaitable<void>(double)>& valueChanged() { return valueChanged_; }
 
   virtual void refresh() override;
 
@@ -141,7 +141,7 @@ private:
   double value_, min_, max_, step_;
   int precision_;
 
-  Signal<double> valueChanged_;
+  Signal<awaitable<void>(double)> valueChanged_;
 
   void setup();
   awaitable<void> onChange();

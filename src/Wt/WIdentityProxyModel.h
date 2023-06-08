@@ -130,10 +130,10 @@ public:
   awaitable<bool> setHeaderData(int section, Orientation orientation, const cpp17::any& value, ItemDataRole role = ItemDataRole::Edit) override;
 
 private:
-  std::vector<Wt::Signals::connection> modelConnections_;
+  std::vector<Nano::Observer<>::Connection> modelConnections_;
 
-  awaitable<void> sourceColumnsAboutToBeInserted(const WModelIndex &parent, int start, int end);
-  awaitable<void> sourceColumnsAboutToBeRemoved(const WModelIndex &parent, int start, int end);
+  void sourceColumnsAboutToBeInserted(const WModelIndex &parent, int start, int end);
+  void sourceColumnsAboutToBeRemoved(const WModelIndex &parent, int start, int end);
   awaitable<void> sourceColumnsInserted(const WModelIndex &parent, int start, int end);
   awaitable<void> sourceColumnsRemoved(const WModelIndex &parent, int start, int end);
   awaitable<void> sourceRowsAboutToBeInserted(const WModelIndex &parent, int start, int end);

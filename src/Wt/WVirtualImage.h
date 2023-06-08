@@ -168,7 +168,7 @@ public:
    * The viewport can be changed by the user dragging the image or through
    * the API methods scrollTo() and scroll().
    */
-  Signal< ::int64_t, ::int64_t >& viewPortChanged() { return viewPortChanged_; }
+  Signal<awaitable<void>( ::int64_t, ::int64_t )>& viewPortChanged() { return viewPortChanged_; }
 
 protected:
   /*! \brief Creates a grid image for the given rectangle.
@@ -210,7 +210,7 @@ protected:
   using WCompositeWidget::render;
 
 private:
-  Signal<int64_t, int64_t> viewPortChanged_;
+  Signal<awaitable<void>(int64_t, int64_t)> viewPortChanged_;
 
   WContainerWidget *impl_;
   WContainerWidget *contents_;

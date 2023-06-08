@@ -110,7 +110,7 @@ public:
    *
    * After clearing the model, rowCount() and columnCount() are 0.
    */
-  void clear();
+  awaitable<void> clear();
 
   /*! \brief Returns the invisible root item.
    *
@@ -255,7 +255,7 @@ public:
    *
    * \sa WStandardItem::setChild(int, int, std::unique_ptr<WStandardItem>)
    */
-  void setItem(int row, int column, std::unique_ptr<WStandardItem> item);
+  awaitable<void> setItem(int row, int column, std::unique_ptr<WStandardItem> item);
 
   /*! \brief Returns the item prototype.
    *
@@ -391,7 +391,7 @@ public:
    *
    * \sa WStandardItem::setData()
    */
-  Signal<WStandardItem *>& itemChanged() { return itemChanged_; }
+  Signal<awaitable<void>(WStandardItem *)>& itemChanged() { return itemChanged_; }
 
 protected:
 #ifndef DOXYGEN_ONLY
@@ -411,7 +411,7 @@ private:
   std::vector<WFlags<HeaderFlag> > columnHeaderFlags_, rowHeaderFlags_;
   std::unique_ptr<WStandardItem> invisibleRootItem_, itemPrototype_;
 
-  Signal<WStandardItem *> itemChanged_;
+  Signal<awaitable<void>(WStandardItem *)> itemChanged_;
 
   void init();
   WStandardItem *itemFromIndex(const WModelIndex& index, bool lazyCreate)

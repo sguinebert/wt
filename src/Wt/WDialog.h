@@ -264,7 +264,7 @@ public:
    *
    * \sa done(DialogCode r), accept(), reject()
    */
-  Signal<DialogCode>& finished() { return finished_; }
+  Signal<awaitable<void>(DialogCode)>& finished() { return finished_; }
 
   /*! \brief Returns the result that was set for this dialog.
    *
@@ -437,7 +437,7 @@ public:
 
 protected:
   virtual void render(WFlags<RenderFlag> flags) override;
-  virtual void onPathChange() override;
+  //virtual void onPathChange(std::string&) override;
 
 private:
   WTemplate *impl_;
@@ -452,7 +452,7 @@ private:
   JSignal<int> zIndexChanged_;
   std::vector<std::string> delayedJs_;
 
-  Signal<DialogCode> finished_;
+  Signal<awaitable<void>(DialogCode)> finished_;
   DialogCode result_;
   bool recursiveEventLoop_;
 

@@ -253,12 +253,12 @@ void WTestEnvironment::setSessionIdInUrl(bool sessionIdInUrl)
   theSession_->setSessionIdInUrl(sessionIdInUrl);
 }
 
-Signal<WDialog *>& WTestEnvironment::dialogExecuted() const
+Signal<awaitable<void>(WDialog *)>& WTestEnvironment::dialogExecuted() const
 {
   return dialogExecuted_;
 }
 
-Signal<WPopupMenu *>& WTestEnvironment::popupExecuted() const
+Signal<awaitable<void>(WPopupMenu *)>& WTestEnvironment::popupExecuted() const
 {
   return popupExecuted_;
 }

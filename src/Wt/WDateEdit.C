@@ -35,8 +35,8 @@ WDateEdit::WDateEdit()
   uCalendar_ = std::make_unique<WCalendar>();
   calendar_ = uCalendar_.get();
   calendar_->setSingleClickSelect(true);
-  calendar_->activated().connect(this, &WDateEdit::setFocusTrue);
-  calendar_->selectionChanged().connect(this, &WDateEdit::setFromCalendar);
+  calendar_->activated().connect<&WDateEdit::setFocusTrue>(this);
+  calendar_->selectionChanged().connect<&WDateEdit::setFromCalendar>(this);
 
   setValidator(std::make_shared<WDateValidator>(WApplication::instance()->locale().dateFormat()));
 }
@@ -65,14 +65,14 @@ void WDateEdit::load()
   popup_->setAnchorWidget(this);
   popup_->setTransient(true);
 
-  calendar_->activated().connect(popup_.get(), &WPopupWidget::hide);
+  calendar_->activated().connect<&WDateEdit::hide>(this);
   temp->bindWidget("calendar", std::move(uCalendar_));
 
   WApplication::instance()->theme()->apply
     (this, popup_.get(), DatePickerPopup);
 
   escapePressed().connect(popup_.get(), &WPopupWidget::hide);
-  escapePressed().connect(this, &WDateEdit::setFocusTrue);
+  escapePressed().connect(this, &WDateEdit::setFocusS);
 }
 
 void WDateEdit::refresh()
@@ -260,9 +260,20 @@ void WDateEdit::render(WFlags<RenderFlag> flags)
   WLineEdit::render(flags);
 }
 
-void WDateEdit::setFocusTrue()
+awaitable<void> WDateEdit::setFocusTrue(WDate)
 {
   setFocus(true);
+  co_return;
+}
+
+void WDateEdit::setFocusS()
+{
+    setFocus(true);
+}
+
+void WDateEdit::hide(WDate)
+{
+  popup_.get()->hide();
 }
 
 }

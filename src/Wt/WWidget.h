@@ -172,8 +172,7 @@ public:
    *
    * \sa offset(Side) const
    */
-  virtual void setOffsets(const WLength& offset,
-			  WFlags<Side> sides = AllSides) = 0;
+  virtual void setOffsets(const WLength& offset, WFlags<Side> sides = AllSides) = 0;
 
 #ifdef WT_TARGET_JAVA
   /*! \brief Sets CSS offsets for a non-statically positioned widget.
@@ -373,8 +372,7 @@ public:
    *
    * \note This only works if JavaScript is available.
    */
-  virtual void positionAt(const WWidget *widget,
-			  Orientation orientation = Orientation::Vertical);
+  virtual void positionAt(const WWidget *widget, Orientation orientation = Orientation::Vertical);
 
   /*! \brief Sets the CSS line height for contained text.
    */
@@ -741,8 +739,7 @@ public:
    *  \sa toolTip
    */
   virtual void setDeferredToolTip(bool enable,
-                                  TextFormat textFormat = TextFormat::Plain)
-    = 0;
+                                  TextFormat textFormat = TextFormat::Plain) = 0;
 
   /*! \brief Refresh the widget.
    *
@@ -776,8 +773,7 @@ public:
    *
    * \sa JSlot, doJavaScript()
    */
-  virtual void setAttributeValue(const std::string& name,
-				 const WT_USTRING& value) = 0;
+  virtual void setAttributeValue(const std::string& name, const WT_USTRING& value) = 0;
 
   /*! \brief Returns an attribute value.
    *
@@ -798,8 +794,7 @@ public:
    * managers and when doing resize() to set the size of the widget,
    * instead of setting the CSS width and height properties.
    */
-  virtual void setJavaScriptMember(const std::string& name,
-				   const std::string& value) = 0;
+  virtual void setJavaScriptMember(const std::string& name, const std::string& value) = 0;
 
   /*! \brief Returns the value of a JavaScript member.
    *
@@ -813,8 +808,7 @@ public:
    *
    * \sa setJavaScriptMember()
    */
-  virtual void callJavaScriptMember(const std::string& name,
-				    const std::string& args) = 0;
+  virtual void callJavaScriptMember(const std::string& name, const std::string& args) = 0;
 
   /*! \brief Short hand for WString::tr()
    *
@@ -925,7 +919,7 @@ public:
    * \sa dropEvent(), WInteractWidget::setDraggable(), stopAcceptDrops()
    */
   virtual void acceptDrops(const std::string& mimeType,
-			   const WT_USTRING& hoverStyleClass = WT_USTRING());
+                           const WT_USTRING& hoverStyleClass = WT_USTRING());
 
   /*! \brief Indicates that a mime type is no longer accepted for dropping.
    *
@@ -1116,7 +1110,7 @@ public:
    *
    * \sa setScrollVisibilityEnabled()
    */
-  virtual Signal<bool> &scrollVisibilityChanged() = 0;
+  virtual Signal<awaitable<void>(bool)> &scrollVisibilityChanged() = 0;
 
   /*! \brief Returns whether this widget is currently considered scroll visible.
    *
@@ -1290,10 +1284,8 @@ protected:
 
   virtual void propagateSetVisible(bool visible) = 0;
 
-  void getDrop(const std::string sourceId, const std::string mimeType,
-	       WMouseEvent event);
-  void getDropTouch(const std::string sourceId, const std::string mimeType,
-	       WTouchEvent event);
+  void getDrop(const std::string sourceId, const std::string mimeType, WMouseEvent event);
+  void getDropTouch(const std::string sourceId, const std::string mimeType, WTouchEvent event);
 
   virtual void setHideWithOffsets(bool how = true) = 0;
 
@@ -1347,8 +1339,8 @@ protected:
   virtual bool hasParent() const;
 
   WCssTextRule *addCssRule(const std::string& selector,
-			   const std::string& declarations,
-			   const std::string& ruleName = std::string());
+                           const std::string& declarations,
+                           const std::string& ruleName = std::string());
 
   bool isGlobalWidget() const;
 

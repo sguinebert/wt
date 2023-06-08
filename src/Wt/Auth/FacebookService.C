@@ -40,10 +40,7 @@ public:
     httpClient_->setTimeout(std::chrono::seconds(15));
     httpClient_->setMaximumResponseSize(10*1024);
 
-    httpClient_->done().connect
-      (this, std::bind(&FacebookProcess::handleMe, this,
-		       std::placeholders::_1,
-		       std::placeholders::_2));
+    httpClient_->done().connect<&FacebookProcess::handleMe>(this);
     httpClient_->get("https://graph.facebook.com/me?fields=name,id,email&access_token="
 		     + token.value());
 
@@ -80,7 +77,7 @@ private:
       {
         LOG_ERROR("could not parse Json: '{}'", response.body());
         setError(ERROR_MSG("badjson"));
-        co_await authenticated().emit(Identity::Invalid);
+        co_await authenticated().emit((Identity)Identity::Invalid);
       }
       else
       {
@@ -101,7 +98,7 @@ private:
 
       setError(ERROR_MSG("badresponse"));
 
-      co_await authenticated().emit(Identity::Invalid);
+      co_await authenticated().emit((Identity)Identity::Invalid);
     }
     co_return;
   }

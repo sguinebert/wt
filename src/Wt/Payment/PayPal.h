@@ -129,7 +129,7 @@ public:
    * This is an asynchronous call, which returns a signal that is emitted
    * when the call has finished.
    */
-  Signal<Result>& setup();
+  Signal<awaitable<void>(Result)>& setup();
 
   /*! \brief Start the payment.
    *
@@ -153,7 +153,7 @@ public:
    * This is an asynchronous call, which returns a signal that is emitted
    * when the call has finished.
    */
-  Signal<Result>& updateCustomerDetails();
+  Signal<awaitable<void>(Result)>& updateCustomerDetails();
 
   /*! \brief Completes the payment.
    *
@@ -166,13 +166,13 @@ public:
    * This is an asynchronous call, which returns a signal that is emitted
    * when the call has finished.
    */
-  Signal<Result>& completePayment(const Money& totalAmount);
+  Signal<awaitable<void>(Result)>& completePayment(const Money& totalAmount);
 
   /*! \brief The payment approval signal.
    *
    * \sa startPayment()
    */
-  Signal<Approval>& paymentApproved();
+  Signal<awaitable<void>(Approval)>& paymentApproved();
 
 private:
   struct Impl;

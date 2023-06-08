@@ -261,8 +261,7 @@ void WMediaPlayer::setProgressBar(MediaPlayerProgressBarId id, WProgressBar *w)
   if (w) {
     w->setFormat(WString::Empty);
 
-    w->valueChanged().connect
-      (this, std::bind(&WMediaPlayer::updateFromProgressBar, this, bc_id, std::placeholders::_1));
+    w->valueChanged().connect([this, bc_id] (double value) { updateFromProgressBar(bc_id, value);  });
 
     updateProgressBarState(id);
   }

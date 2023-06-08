@@ -126,10 +126,10 @@ public:
    * mean that user is loggedIn() as the user may have been identified
    * correctly but have a LoginState::Disabled state() for example.
    */
-  Signal<>& changed() { return changed_; }
+  Signal<awaitable<void>()>& changed() { return changed_; }
 
 private:
-  Signal<> changed_;
+  Signal<awaitable<void>()> changed_;
 
   User user_;
   LoginState state_;

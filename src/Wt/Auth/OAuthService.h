@@ -253,7 +253,7 @@ public:
    *
    * \sa startAuthorize(), OAuthAccessToken::isValid()
    */
-  Signal<OAuthAccessToken>& authorized() { return authorized_; }
+  Signal<awaitable<void>(const OAuthAccessToken)>& authorized() { return authorized_; }
 
   /*! \brief Authentication signal.
    *
@@ -270,7 +270,7 @@ public:
    *
    * \sa startAuthenticate(), getIdentity(), Identity::isValid()
    */
-  Signal<Identity>& authenticated() { return authenticated_; }
+  Signal<awaitable<void>(const Identity)>& authenticated() { return authenticated_; }
 
 protected:
   /*! \brief Constructor.
@@ -323,8 +323,8 @@ private:
   std::string scope_;
   bool authenticate_;
 
-  Signal<OAuthAccessToken> authorized_;
-  Signal<Identity> authenticated_;
+  Signal<awaitable<void>(const OAuthAccessToken)> authorized_;
+  Signal<awaitable<void>(const Identity)> authenticated_;
   JSignal<> redirected_;
 
   std::string oAuthState_;
@@ -337,7 +337,7 @@ private:
 
   // onOAuthDone() gets called from WApplication::unsuspended(), keeping
   // the connection object allows us to disconnect after it's done
-  Wt::Signals::connection doneCallbackConnection_;
+  Wt::Observer::Connection doneCallbackConnection_;
 
   void requestToken(std::string_view authorizationCode);
   awaitable<void> handleToken(AsioWrapper::error_code err, const Http::Message& response);
@@ -348,7 +348,7 @@ private:
   void doParseTokenResponse(const Http::Message& response);
   awaitable<void> onOAuthDone();
 #ifndef WT_TARGET_JAVA
-  void handleAuthComplete(); // For non-Ajax sessions
+  void handleAuthComplete(Identity); // For non-Ajax sessions
 #endif // WT_TARGET_JAVA
 
   friend class OAuthRedirectEndpoint;

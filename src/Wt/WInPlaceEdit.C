@@ -129,7 +129,7 @@ awaitable<void> WInPlaceEdit::save()
 
   if (changed) {
     setText(edit_->text());
-    co_await valueChanged().emit(edit_->text());
+    co_await valueChanged().emit((WString&)edit_->text());
   }
   co_return;
 }

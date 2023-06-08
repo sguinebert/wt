@@ -666,7 +666,9 @@ public:
    *
    * \sa edit()
    */
-  awaitable<void> closeEditor(const WModelIndex& index, bool saveData = true);
+  awaitable<void> closeEditor(const WModelIndex& index, bool saveData);
+
+  void closeEditor(const WModelIndex& index);
 
   /*! \brief Closes all open editors.
    *
@@ -708,7 +710,7 @@ public:
 
    * \sa doubleClicked()
    */
-  Signal<WModelIndex, WMouseEvent>& clicked() { return clicked_; }
+  Signal<awaitable<void>(WModelIndex, WMouseEvent)>& clicked() { return clicked_; }
 
   /*! \brief %Signal emitted when double clicked.
    *
@@ -717,7 +719,7 @@ public:
    *
    * \sa clicked()
    */
-  Signal<WModelIndex, WMouseEvent>& doubleClicked() { return doubleClicked_; }
+  Signal<awaitable<void>(WModelIndex, WMouseEvent)>& doubleClicked() { return doubleClicked_; }
 
   /*! \brief %Signal emitted when a mouse button is pressed down.
    *
@@ -726,7 +728,7 @@ public:
    *
    * \sa mouseWentUp()
    */
-  Signal<WModelIndex, WMouseEvent>& mouseWentDown() { return mouseWentDown_; }
+  Signal<awaitable<void>(WModelIndex, WMouseEvent)>& mouseWentDown() { return mouseWentDown_; }
 
   /*! \brief %Signal emitted when the mouse button is released.
    *
@@ -735,7 +737,7 @@ public:
    *
    * \sa mouseWentDown()
    */
-  Signal<WModelIndex, WMouseEvent>& mouseWentUp() { return mouseWentUp_; }
+  Signal<awaitable<void>(WModelIndex, WMouseEvent)>& mouseWentUp() { return mouseWentUp_; }
 
   /*! \brief %Signal emitted when a finger is placed on the screen.
    *
@@ -744,7 +746,7 @@ public:
    *
    * \deprecated Use touchStarted() instead.
    */
-  Signal<WModelIndex, WTouchEvent>& touchStart() { return touchStart_; }
+  Signal<awaitable<void>(WModelIndex, WTouchEvent)>& touchStart() { return touchStart_; }
 
   /*! \brief %Signal emitted when one or more fingers are placed on the screen.
    *
@@ -752,7 +754,7 @@ public:
    * indicates the items that were touched. The indices in the model index
    * vector match the indices in the \link WTouchEvent::changedTouches() changedTouches() of the WTouchEvent\endlink.
    */
-  Signal<std::vector<WModelIndex>, WTouchEvent>& touchStarted() { return touchStarted_; }
+  Signal<awaitable<void>(std::vector<WModelIndex>, WTouchEvent)>& touchStarted() { return touchStarted_; }
 
   /*! \brief %Signal emitted when one or more fingers are moved on the screen.
    *
@@ -760,7 +762,7 @@ public:
    * indicates the items that were touched. The indices in the model index
    * vector match the indices in the \link WTouchEvent::changedTouches() changedTouches() of the WTouchEvent\endlink.
    */
-  Signal<std::vector<WModelIndex>, WTouchEvent>& touchMoved() { return touchMoved_; }
+  Signal<awaitable<void>(std::vector<WModelIndex>, WTouchEvent)>& touchMoved() { return touchMoved_; }
 
   /*! \brief %Signal emitted when one or more fingers are removed from the screen.
    *
@@ -770,13 +772,13 @@ public:
    *
    * \note When JavaScript is disabled, the signal will never fire.
    */
-  Signal<std::vector<WModelIndex>, WTouchEvent>& touchEnded() { return touchEnded_; }
+  Signal<awaitable<void>(std::vector<WModelIndex>, WTouchEvent)>& touchEnded() { return touchEnded_; }
 
   /*! \brief %Signal emitted when the selection is changed.
    *
    * \sa select(), setSelectionMode(), setSelectionBehavior()
    */
-  Signal<>& selectionChanged() { return selectionChanged_; }
+  Signal<awaitable<void>()>& selectionChanged() { return selectionChanged_; }
 
   /*! \brief %Signal emitted when page information was updated.
    *
@@ -787,14 +789,14 @@ public:
    *
    * \sa createPageNavigationBar()
    */
-  Signal<>& pageChanged() { return pageChanged_; }
+  Signal<awaitable<void>()>& pageChanged() { return pageChanged_; }
 
   /*! \brief Returns the signal emitted when a column is resized by the user.
    *
    * The arguments of the signal are: the column index and the new
    * width of the column.
    */
-  Signal<int, WLength>& columnResized() { return columnResized_; }
+  Signal<awaitable<void>(int, WLength)>& columnResized() { return columnResized_; }
 
   /*! \brief Returns whether the view is sortable.
    *
@@ -814,7 +816,7 @@ public:
    *
    * \sa clicked(), headerDblClicked()
    */
-  Signal<int, WMouseEvent> &headerClicked() { return headerClicked_; }
+  Signal<awaitable<void>(int, WMouseEvent)> &headerClicked() { return headerClicked_; }
 
   /*! \brief %Signal emitted when a header item is double clicked.
    *
@@ -822,7 +824,7 @@ public:
    *
    * \sa doubleClicked(), headerClicked()
    */
-  Signal<int, WMouseEvent> &headerDoubleClicked() { return headerDblClicked_; }
+  Signal<awaitable<void>(int, WMouseEvent)> &headerDoubleClicked() { return headerDblClicked_; }
 
   /*! \brief %Signal emitted when a mouse button is pressed on a header item
    *
@@ -830,7 +832,7 @@ public:
    *
    * \sa headerMouseWentDownUp()
    */
-  Signal<int, WMouseEvent>& headerMouseWentDown() { return headerMouseWentDown_; }
+  Signal<awaitable<void>(int, WMouseEvent)>& headerMouseWentDown() { return headerMouseWentDown_; }
 
   /*! \brief %Signal emitted when a mouse button is released on a header item
    *
@@ -838,7 +840,7 @@ public:
    *
    * \sa headerMouseWentDown()
    */
-  Signal<int, WMouseEvent>& headerMouseWentUp() { return headerMouseWentUp_; }
+  Signal<awaitable<void>(int, WMouseEvent)>& headerMouseWentUp() { return headerMouseWentUp_; }
 
   /*! \brief %Signal emitted when scrolling.
    *
@@ -1020,7 +1022,7 @@ protected:
 
   WContainerWidget *impl_;
   RenderState renderState_;
-  std::vector<Wt::Signals::connection> modelConnections_;
+  std::vector<Nano::Observer<>::Connection> modelConnections_;
 
   mutable std::vector<ColumnInfo> columns_;
   int currentSortColumn_;
@@ -1122,7 +1124,7 @@ protected:
   void bindObjJS(JSlot& slot, const std::string& jsMethod);
   void connectObjJS(EventSignalBase& s, const std::string& jsMethod);
   awaitable<bool> shiftEditorRows(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
-  awaitable<bool> shiftEditorColumns(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
+  bool shiftEditorColumns(const WModelIndex& parent, int start, int count, bool persistWhenShifted);
   void persistEditor(const WModelIndex& index);
 
 private:
@@ -1154,7 +1156,7 @@ private:
   WModelIndex delayedClearAndSelectIndex_;
 
   JSignal<int, int> columnWidthChanged_;
-  Signal<int, WLength> columnResized_;
+  Signal<awaitable<void>(int, WLength)> columnResized_;
 
   observing_ptr<WCssTemplateRule> headerHeightRule_;
 
@@ -1167,21 +1169,21 @@ private:
   typedef std::map<WModelIndex, Editor> EditorMap;
   EditorMap editedItems_;
 
-  Signal<int, WMouseEvent> headerClicked_;
-  Signal<int, WMouseEvent> headerDblClicked_;
-  Signal<int, WMouseEvent> headerMouseWentDown_;
-  Signal<int, WMouseEvent> headerMouseWentUp_;
+  Signal<awaitable<void>(int, WMouseEvent)> headerClicked_;
+  Signal<awaitable<void>(int, WMouseEvent)> headerDblClicked_;
+  Signal<awaitable<void>(int, WMouseEvent)> headerMouseWentDown_;
+  Signal<awaitable<void>(int, WMouseEvent)> headerMouseWentUp_;
 
-  Signal<WModelIndex, WMouseEvent> clicked_;
-  Signal<WModelIndex, WMouseEvent> doubleClicked_;
-  Signal<WModelIndex, WMouseEvent> mouseWentDown_;
-  Signal<WModelIndex, WMouseEvent> mouseWentUp_;
-  Signal<WModelIndex, WTouchEvent> touchStart_;
-  Signal<std::vector<WModelIndex>, WTouchEvent> touchStarted_;
-  Signal<std::vector<WModelIndex>, WTouchEvent> touchMoved_;
-  Signal<std::vector<WModelIndex>, WTouchEvent> touchEnded_;
-  Signal<> selectionChanged_;
-  Signal<> pageChanged_;
+  Signal<awaitable<void>(WModelIndex, WMouseEvent)> clicked_;
+  Signal<awaitable<void>(WModelIndex, WMouseEvent)> doubleClicked_;
+  Signal<awaitable<void>(WModelIndex, WMouseEvent)> mouseWentDown_;
+  Signal<awaitable<void>(WModelIndex, WMouseEvent)> mouseWentUp_;
+  Signal<awaitable<void>(WModelIndex, WTouchEvent)> touchStart_;
+  Signal<awaitable<void>(std::vector<WModelIndex>, WTouchEvent)> touchStarted_;
+  Signal<awaitable<void>(std::vector<WModelIndex>, WTouchEvent)> touchMoved_;
+  Signal<awaitable<void>(std::vector<WModelIndex>, WTouchEvent)> touchEnded_;
+  Signal<awaitable<void>()> selectionChanged_;
+  Signal<awaitable<void>()> pageChanged_;
 
   WFlags<EditTrigger> editTriggers_;
   WFlags<EditOption> editOptions_;

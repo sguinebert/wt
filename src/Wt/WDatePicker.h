@@ -196,7 +196,7 @@ public:
    * This signal is emitted when a new date has been entered (either
    * through the line edit, or through the calendar popup).
    */
-  Signal<>& changed() { return changed_; }
+  Signal<awaitable<void>()>& changed() { return changed_; }
 
   /*! \brief Shows or hides the popup.
    */
@@ -207,7 +207,7 @@ public:
    * The signal is only fired when the popup has been closed by the
    * user.
    */
-  Signal<>& popupClosed() { return popupClosed_; }
+  Signal<awaitable<void>()>& popupClosed() { return popupClosed_; }
 
 protected:
   virtual void render(WFlags<RenderFlag> flags) override;
@@ -221,7 +221,7 @@ private:
   std::unique_ptr<WPopupWidget> popup_;
   WCalendar *calendar_;
 
-  Signal<> popupClosed_, changed_;
+  Signal<awaitable<void>()> popupClosed_, changed_;
   JSlot positionJS_;
 
   void create(std::unique_ptr<WInteractWidget> displayWidget,
@@ -229,7 +229,8 @@ private:
 
   awaitable<void> setFromCalendar();
   awaitable<void> setFromLineEdit();
-  void onPopupHidden();
+  void onPopupHidden(WDate date);
+  void onActivated(WDate date);
 };
 
 }

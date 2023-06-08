@@ -533,6 +533,9 @@ private:
   void paintVertAxisTextures(WPaintDevice *paintDevice);
   void paintGridLines(WPaintDevice *paintDevice, Plane plane);
   void loadCubeTextures();
+  void onModelReset();
+  void onSourceModelModified(WModelIndex, int, int);
+  void onDataChanged(WModelIndex, WModelIndex);
 
   // Methods for all peripheral textures
   void init2DShaders();
@@ -727,6 +730,7 @@ private:
   std::vector<cpp17::any> objectsToDelete;
 
   friend class WAbstractGridData;
+  friend class WAbstractDataSeries3D;
   friend class WGridData;
 };
 

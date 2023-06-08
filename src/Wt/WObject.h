@@ -10,6 +10,7 @@
 #include <Wt/WDllDefs.h>
 #include <Wt/WGlobal.h>
 #include <Wt/Core/observable.hpp>
+#include <Wt/Signals/nano_observer.hpp>
 #include <Wt/Http/Request.h>
 #include <Wt/AsioWrapper/asio.hpp>
 
@@ -82,7 +83,7 @@ class WStatelessSlot;
  *
  * \ingroup signalslot
  */
-class WT_API WObject : public Wt::Core::observable
+class WT_API WObject : public Wt::Core::observable, public ::Nano::Observer<>
 {
 public:
   /*! \brief Typedef for a %WObject method without arguments.

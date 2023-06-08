@@ -115,7 +115,7 @@ public:
    *
    * \sa changed()
    */
-  Signal<int>& valueChanged() { return valueChanged_; }
+  Signal<awaitable<void>(int)>& valueChanged() { return valueChanged_; }
 
 
 protected:
@@ -133,7 +133,7 @@ private:
   int value_, min_, max_, step_;
   bool wrapAroundEnabled_;
 
-  Signal<int> valueChanged_;
+  Signal<awaitable<void>(int)> valueChanged_;
 
   awaitable<void> onChange();
 };

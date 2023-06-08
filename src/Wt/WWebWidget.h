@@ -94,7 +94,7 @@ public:
    *
    * \sa children()
    */
-  Signal<>& childrenChanged();
+  Signal<awaitable<void>()>& childrenChanged();
 
   virtual void setPositionScheme(PositionScheme scheme) override;
   virtual PositionScheme positionScheme() const override;
@@ -287,7 +287,7 @@ public:
   virtual void setScrollVisibilityEnabled(bool enabled) final override;
   virtual int scrollVisibilityMargin() const final override;
   virtual void setScrollVisibilityMargin(int margin) final override;
-  virtual Signal<bool> &scrollVisibilityChanged() final override;
+  virtual Signal<awaitable<void>(bool)> &scrollVisibilityChanged() final override;
   virtual bool isScrollVisible() const final override;
 
   virtual void setThemeStyleEnabled(bool enabled) final override;
@@ -308,7 +308,7 @@ protected:
   void repaint(WFlags<RepaintFlag> flags = None);
 
   virtual void iterateChildren(const HandleWidgetMethod& method) const;
-  virtual awaitable<void> iterateChildren(AsyncHandleWidgetMethod&& method) const;
+  virtual awaitable<void> iterateChildren2(AsyncHandleWidgetMethod&& method) const;
   virtual void getFormObjects(FormObjectsMap& formObjects);
   virtual void doneRerender();
   virtual void updateDom(DomElement& element, bool all);
@@ -515,10 +515,10 @@ private:
 
     typedef std::map<std::string, DropMimeType> MimeTypesMap;
     std::unique_ptr<MimeTypesMap> acceptedDropMimeTypes_;
-    Signal<> childrenChanged_;
+    Signal<awaitable<void>()> childrenChanged_;
 
     int scrollVisibilityMargin_;
-    Signal<bool> scrollVisibilityChanged_;
+    Signal<awaitable<void>(bool)> scrollVisibilityChanged_;
     std::unique_ptr<JSignal<bool> > jsScrollVisibilityChanged_;
 
     OtherImpl(WWebWidget *const self);

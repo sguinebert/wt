@@ -102,25 +102,25 @@ public:
    * This signal is emitted when the popup is being hidden because of a
    * client-side event (not when setHidden() or hide() is called).
    */
-  Signal<>& hidden() { return hidden_; }
+  Signal<awaitable<void>()>& hidden() { return hidden_; }
 
   /*! \brief %Signal emitted when the popup is shown.
    *
    * This signal is emitted when the popup is being shown because of a
    * client-side event (not when setHidden() or show() is called).
    */
-  Signal<>& shown() { return shown_; }
+  Signal<awaitable<void>()>& shown() { return shown_; }
 
 protected:
   virtual void render(WFlags<RenderFlag> flags) override;
-  virtual void onPathChange();
+  virtual void onPathChange(std::string);
 
 private:
   observing_ptr<WWidget> anchorWidget_;
   Orientation orientation_;
   bool transient_;
   int autoHideDelay_;
-  Signal<> hidden_, shown_;
+  Signal<awaitable<void>()> hidden_, shown_;
   JSignal<> jsHidden_, jsShown_;
 
   void create(WWidget *parent);

@@ -420,11 +420,12 @@ std::unique_ptr<WWidget> WItemDelegate
 
   std::unique_ptr<WLineEdit> lineEdit(new WLineEdit());
   lineEdit->setText(asString(index.data(ItemDataRole::Edit), textFormat_));
-  IndexContainerWidget *const resultPtr = result.get();
-  lineEdit->enterPressed().connect
-    (this, std::bind(&WItemDelegate::doCloseEditor, this, resultPtr, true));
-  lineEdit->escapePressed().connect
-    (this, std::bind(&WItemDelegate::doCloseEditor, this, resultPtr, false));
+  IndexContainerWidget *resultPtr = result.get();
+  const WItemDelegate* ptr = this;
+  lineEdit->enterPressed().connect([ptr, resultPtr]() ->awaitable<void> { co_await ptr->doCloseEditor(resultPtr, true); });
+    //(this, std::bind(&WItemDelegate::doCloseEditor, this, resultPtr, true));
+  lineEdit->escapePressed().connect([ptr, resultPtr]() ->awaitable<void> { co_await ptr->doCloseEditor(resultPtr, false); });
+    //(this, std::bind(&WItemDelegate::doCloseEditor, this, resultPtr, false));
   lineEdit->escapePressed().preventPropagation();
 
   if (flags.test(ViewItemRenderFlag::Focused))
@@ -442,8 +443,7 @@ awaitable<void> WItemDelegate::doCloseEditor(WWidget *editor, bool save) const
   co_await closeEditor().emit(editor, save);
 }
 
-cpp17::any WItemDelegate::editState(WWidget *editor, const WModelIndex& index)
-  const
+cpp17::any WItemDelegate::editState(WWidget *editor, const WModelIndex& index) const
 {
   IndexContainerWidget *w = dynamic_cast<IndexContainerWidget *>(editor);
   WLineEdit *lineEdit = dynamic_cast<WLineEdit *>(w->widget(0));

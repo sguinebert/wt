@@ -223,7 +223,7 @@ void WContainerWidget::iterateChildren(const HandleWidgetMethod& method) const
     layout_->iterateWidgets(method);
 }
 
-awaitable<void> WContainerWidget::iterateChildren(AsyncHandleWidgetMethod &&method) const
+awaitable<void> WContainerWidget::iterateChildren2(AsyncHandleWidgetMethod &&method) const
 {
   // It's possible that a child is added during iteration,
   // e.g. when load() is called on a widget that adds a

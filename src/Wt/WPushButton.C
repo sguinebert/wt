@@ -157,8 +157,7 @@ void WPushButton::setLink(const WLink& link)
   flags_.set(BIT_LINK_CHANGED);
 
   if (linkState_.link.type() == LinkType::Resource)
-    linkState_.link.resource()->dataChanged()
-      .connect(this, &WPushButton::resourceChanged);
+    linkState_.link.resource()->dataChanged().connect<&WPushButton::resourceChanged>(this);
 
   repaint();
 }

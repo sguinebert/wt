@@ -346,11 +346,11 @@ private:
   SortOrder sortOrder_;
   bool dynamic_, inserting_;
 
-  std::vector<Wt::Signals::connection> modelConnections_;
+  std::vector<Nano::Observer<>::Connection> modelConnections_;
   mutable ItemMap mappedIndexes_;
   mutable Item* mappedRootItem_;
 
-  awaitable<void> sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end);
+  void sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end);
   awaitable<void> sourceColumnsInserted(const WModelIndex& parent, int start, int end);
 
   awaitable<void> sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);

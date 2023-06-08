@@ -170,8 +170,7 @@ void WAbstractArea::setLink(const WLink& link)
   anchor_->linkState.link = link;
 
   if (anchor_->linkState.link.type() == LinkType::Resource)
-    anchor_->linkState.link.resource()->dataChanged().connect
-      (this, &WAbstractArea::resourceChanged);
+        anchor_->linkState.link.resource()->dataChanged().connect<&WAbstractArea::resourceChanged>(this);
 
   repaint();
 }

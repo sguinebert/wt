@@ -140,7 +140,7 @@ public:
    *
    * \sa validate()
    */
-  Signal<WValidator::Result>& validated() { return validated_; }
+  Signal<awaitable<void>(WValidator::Result)>& validated() { return validated_; }
 
   virtual void refresh() override;
 
@@ -172,7 +172,7 @@ private:
   static const int BIT_PLACEHOLDER_CHANGED = 5;
 
   std::bitset<6> flags_;
-  Signal<WValidator::Result> validated_;
+  Signal<awaitable<void>(WValidator::Result)> validated_;
   WString validationToolTip_;
 
   void setLabel(WLabel *label);

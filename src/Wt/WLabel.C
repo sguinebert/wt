@@ -227,7 +227,7 @@ void WLabel::iterateChildren(const HandleWidgetMethod &method) const
 #endif
 }
 
-awaitable<void> WLabel::iterateChildren(AsyncHandleWidgetMethod &&method) const
+awaitable<void> WLabel::iterateChildren2(AsyncHandleWidgetMethod &&method) const
 {
   if (text_)
 #ifndef WT_TARGET_JAVA

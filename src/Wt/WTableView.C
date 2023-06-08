@@ -292,32 +292,45 @@ void WTableView::updateTableBackground()
 }
 
 awaitable<void> WTableView::setModel(const std::shared_ptr<WAbstractItemModel>& model)
-{  
+{
+  using Self = WTableView;
+
+  auto oldmodel = WAbstractItemView::model();
+  oldmodel->columnsInserted().disconnect<&Self::modelColumnsInserted>(this);
+  oldmodel->columnsAboutToBeRemoved().disconnect<&Self::modelColumnsAboutToBeRemoved>(this);
+  oldmodel->rowsInserted().disconnect<&Self::modelRowsInserted>(this);
+  oldmodel->rowsAboutToBeRemoved().disconnect<&Self::modelRowsAboutToBeRemoved>(this);
+  oldmodel->rowsRemoved().disconnect<&Self::modelRowsRemoved>(this);
+  oldmodel->dataChanged().disconnect<&Self::modelDataChanged>(this);
+  oldmodel->headerDataChanged().disconnect<&Self::modelHeaderDataChanged>(this);
+  oldmodel->layoutAboutToBeChanged().disconnect<&Self::modelLayoutAboutToBeChanged>(this);
+  oldmodel->layoutChanged().disconnect<&Self::modelLayoutChanged>(this);
+  oldmodel->modelReset().disconnect<&Self::modelReset>(this);
+
   co_await WAbstractItemView::setModel(model);
 
-  typedef WTableView Self;
+  model->columnsInserted().connect<&Self::modelColumnsInserted>(this);
+  model->columnsAboutToBeRemoved().connect<&Self::modelColumnsAboutToBeRemoved>(this);
+  model->rowsInserted().connect<&Self::modelRowsInserted>(this);
+  model->rowsAboutToBeRemoved().connect<&Self::modelRowsAboutToBeRemoved>(this);
+  model->rowsRemoved().connect<&Self::modelRowsRemoved>(this);
+  model->dataChanged().connect<&Self::modelDataChanged>(this);
+  model->headerDataChanged().connect<&Self::modelHeaderDataChanged>(this);
+  model->layoutAboutToBeChanged().connect<&Self::modelLayoutAboutToBeChanged>(this);
+  model->layoutChanged().connect<&Self::modelLayoutChanged>(this);
+  model->modelReset().connect<&Self::modelReset>(this);
 
   /* connect slots to new model */
-  modelConnections_.push_back(model->columnsInserted().connect
-			      (this, &Self::modelColumnsInserted));
-  modelConnections_.push_back(model->columnsAboutToBeRemoved().connect
-			      (this, &Self::modelColumnsAboutToBeRemoved));
-  modelConnections_.push_back(model->rowsInserted().connect
-			      (this, &Self::modelRowsInserted));
-  modelConnections_.push_back(model->rowsAboutToBeRemoved().connect
-			      (this, &Self::modelRowsAboutToBeRemoved));
-  modelConnections_.push_back(model->rowsRemoved().connect
-			      (this, &Self::modelRowsRemoved));
-  modelConnections_.push_back(model->dataChanged().connect
-			      (this, &Self::modelDataChanged));
-  modelConnections_.push_back(model->headerDataChanged().connect
-			      (this, &Self::modelHeaderDataChanged));
-  modelConnections_.push_back(model->layoutAboutToBeChanged().connect
-			      (this, &Self::modelLayoutAboutToBeChanged));
-  modelConnections_.push_back(model->layoutChanged().connect
-			      (this, &Self::modelLayoutChanged));
-  modelConnections_.push_back(model->modelReset().connect
-			      (this, &Self::modelReset));
+//  modelConnections_.push_back(model->columnsInserted().connect<&Self::modelColumnsInserted>(this));
+//  modelConnections_.push_back(model->columnsAboutToBeRemoved().connect<&Self::modelColumnsAboutToBeRemoved>(this));
+//  modelConnections_.push_back(model->rowsInserted().connect<&Self::modelRowsInserted>(this));
+//  modelConnections_.push_back(model->rowsAboutToBeRemoved().connect<&Self::modelRowsAboutToBeRemoved>(this));
+//  modelConnections_.push_back(model->rowsRemoved().connect<&Self::modelRowsRemoved>(this));
+//  modelConnections_.push_back(model->dataChanged().connect<&Self::modelDataChanged>(this));
+//  modelConnections_.push_back(model->headerDataChanged().connect<&Self::modelHeaderDataChanged>(this));
+//  modelConnections_.push_back(model->layoutAboutToBeChanged().connect<&Self::modelLayoutAboutToBeChanged>(this));
+//  modelConnections_.push_back(model->layoutChanged().connect<&Self::modelLayoutChanged>(this));
+//  modelConnections_.push_back(model->modelReset().connect<&Self::modelReset>(this));
 
   firstColumn_ = lastColumn_ = -1;
   adjustSize();
@@ -815,7 +828,7 @@ void WTableView::defineJavaScript()
     itemTouchSelectEvent_.connect(this, &WTableView::handleTouchSelected);
 
   if (!columnResizeConnected_) {
-    columnResized().connect(this, &WTableView::onColumnResize);
+    columnResized().connect<&WTableView::onColumnResize>(this);
     columnResizeConnected_ = true;
   }
 
@@ -1364,7 +1377,7 @@ awaitable<void> WTableView::shiftModelIndexRows(int start, int count)
   co_return;
 }
 
-awaitable<void> WTableView::shiftModelIndexColumns(int start, int count)
+void WTableView::shiftModelIndexColumns(int start, int count)
 {
   WModelIndexSet& set = selectionModel()->selection_;
   
@@ -1395,11 +1408,12 @@ awaitable<void> WTableView::shiftModelIndexColumns(int start, int count)
     set.insert(newIndex);
   }
 
-  co_await shiftEditorColumns(rootIndex(), start, count, true);
+  shiftEditorColumns(rootIndex(), start, count, true);
 
-  if (!toShift.empty() || !toErase.empty())
-   co_await selectionChanged().emit();
-  co_return;
+#warning "no automatic when shift"
+//  if (!toShift.empty() || !toErase.empty())
+//   co_await selectionChanged().emit();
+//  co_return;
 }
 
 awaitable<void> WTableView::modelColumnsInserted(const WModelIndex& parent, int start, int end)
@@ -1415,7 +1429,7 @@ awaitable<void> WTableView::modelColumnsInserted(const WModelIndex& parent, int 
     width += (int)columnInfo(i).width.toPixels() + 7;
   }
 
-  co_await shiftModelIndexColumns(start, end - start + 1);
+  shiftModelIndexColumns(start, end - start + 1);
 
   if (ajaxMode())
     canvas_->setWidth(canvas_->width().toPixels() + width);
@@ -1433,18 +1447,18 @@ awaitable<void> WTableView::modelColumnsInserted(const WModelIndex& parent, int 
   adjustSize();
 }
 
-awaitable<void> WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
+void WTableView::modelColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end)
 {
   if (parent != rootIndex())
     co_return;
 
   for (int r = 0; r < model()->rowCount(); r++) {
     for (int c = start; c <= end; c++) {
-      co_await closeEditor(model()->index(r, c), false);
+      closeEditor(model()->index(r, c));
     }
   }
 
-  co_await shiftModelIndexColumns(start, -(end - start + 1));
+  shiftModelIndexColumns(start, -(end - start + 1));
 
   int count = end - start + 1;
   int width = 0;
@@ -1571,36 +1585,39 @@ void WTableView::modelRowsRemoved(const WModelIndex& parent, int start, int end)
   adjustSize();
 }
 
-void WTableView::modelDataChanged(const WModelIndex& topLeft, 
-				  const WModelIndex& bottomRight)
+void WTableView::modelDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight)
 {
   if (topLeft.parent() != rootIndex())
     return;
 
   if (static_cast<unsigned int>(renderState_) <
-      static_cast<unsigned int>(RenderState::NeedRerenderData)) {
+      static_cast<unsigned int>(RenderState::NeedRerenderData))
+  {
     int row1 = std::max(topLeft.row(), firstRow());
     int row2 = std::min(bottomRight.row(), lastRow());
     int col1 = std::max(topLeft.column(), firstColumn());
     int col2 = std::min(bottomRight.column(), lastColumn());
 
-    for (int i = row1; i <= row2; ++i) {
+    for (int i = row1; i <= row2; ++i)
+    {
       int renderedRow = i - firstRow();
 
       int rhc = ajaxMode() ? rowHeaderCount() : 0;
 
-      for (int j = topLeft.column(); j < rhc; ++j) {
-	int renderedColumn = j;
+      for (int j = topLeft.column(); j < rhc; ++j)
+      {
+        int renderedColumn = j;
 
-	WModelIndex index = model()->index(i, j, rootIndex());
-	updateItem(index, renderedRow, renderedColumn);
+        WModelIndex index = model()->index(i, j, rootIndex());
+        updateItem(index, renderedRow, renderedColumn);
       }
 
-      for (int j = col1; j <= col2; ++j) {
-	int renderedColumn = rhc + j - firstColumn();
+      for (int j = col1; j <= col2; ++j)
+      {
+        int renderedColumn = rhc + j - firstColumn();
 
-	WModelIndex index = model()->index(i, j, rootIndex());
-	updateItem(index, renderedRow, renderedColumn);
+        WModelIndex index = model()->index(i, j, rootIndex());
+        updateItem(index, renderedRow, renderedColumn);
       }
     }
   }
@@ -1636,9 +1653,7 @@ void WTableView::updateItem(const WModelIndex& index,
     if (!ajaxMode() && !isEditing(index)) {
       WInteractWidget *wi = dynamic_cast<WInteractWidget *>(w);
       if (wi)
-	wi->clicked().connect
-	  (this, std::bind(&WTableView::handleClick, this, index,
-			   std::placeholders::_1));
+        wi->clicked().connect(this, std::bind(&WTableView::handleClick, this, index, std::placeholders::_1));
     }
   }
 }
@@ -1663,7 +1678,7 @@ void WTableView::onViewportChange(int left, int top, int width, int height)
   scheduleRerender(RenderState::NeedAdjustViewPort);  
 }
 
-void WTableView::onColumnResize()
+void WTableView::onColumnResize(int, WLength)
 {
   computeRenderedArea();
 

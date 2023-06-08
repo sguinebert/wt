@@ -49,8 +49,8 @@ public:
     : f_(f) { }
 
 private:
-  void load() {
-    WContainerWidget::load();
+  awaitable<void> load() override {
+    co_await WContainerWidget::load();
     if (count() == 0)
       addWidget(f_());
   }

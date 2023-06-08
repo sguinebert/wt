@@ -417,7 +417,7 @@ public:
    * }
    * \endcode
    */
-  Signal<Wt::AsioWrapper::error_code, Message>& done() {
+  Signal<awaitable<void>(Wt::AsioWrapper::error_code, Message)>& done() {
     return done_;
   }
 
@@ -430,7 +430,7 @@ public:
    *
    * \sa done(), bodyDataReceived()
    */
-  Signal<Message>& headersReceived() {
+  Signal<awaitable<void>(Message)>& headersReceived() {
     return headersReceived_;
   }
 
@@ -443,7 +443,7 @@ public:
    * You may want to use this in combination with
    * setMaximumResponseSize(0) to handle very long responses.
    */
-  Signal<std::string>& bodyDataReceived() {
+  Signal<awaitable<void>(std::string)>& bodyDataReceived() {
     return bodyDataReceived_;
   }
 
@@ -505,9 +505,9 @@ private:
   std::size_t maximumResponseSize_;
   bool verifyEnabled_;
   std::string verifyFile_, verifyPath_;
-  Signal<Wt::AsioWrapper::error_code, Message> done_;
-  Signal<Message> headersReceived_;
-  Signal<std::string> bodyDataReceived_;
+  Signal<awaitable<void>(Wt::AsioWrapper::error_code, Message)> done_;
+  Signal<awaitable<void>(Message)> headersReceived_;
+  Signal<awaitable<void>(std::string)> bodyDataReceived_;
   bool followRedirect_;
   int redirectCount_;
   int maxRedirects_;
@@ -519,8 +519,8 @@ private:
 		      const Message& response, const Message& request);
 
   awaitable<void> emitDone(Wt::AsioWrapper::error_code err, const Message& response);
-  awaitable<void> emitHeadersReceived(const Message& response);
-  awaitable<void> emitBodyReceived(const std::string& data);
+  awaitable<void> emitHeadersReceived(Message& response);
+  awaitable<void> emitBodyReceived(std::string& data);
 };
 
   }

@@ -197,21 +197,21 @@ public:
    *
    * Emitted after the user has changed the current selection.
    */
-  Signal<>& selectionChanged() { return selectionChanged_; }
+  Signal<awaitable<void>()>& selectionChanged() { return selectionChanged_; }
 
   /*! \brief %Signal emitted when the user double-clicks a date.
    *
    * You may want to connect to this signal to treat a double click
    * as the selection of a date.
    */
-  Signal<WDate>& activated() { return activated_; }
+  Signal<awaitable<void>(WDate)>& activated() { return activated_; }
 
   /*! \brief %Signal emitted when the user clicks a date.
    *
    * You may want to connect to this signal if you want to provide a
    * custom selection handling.
    */
-  Signal<WDate>& clicked() { return clicked_; } 
+  Signal<awaitable<void>(WDate)>& clicked() { return clicked_; }
 
   /*! \brief %Signal emitted when the current month is changed.
    *
@@ -219,7 +219,7 @@ public:
    * user interface or via the public API. The two parameters are
    * respectively the new year and month.
    */
-  Signal<int, int>& currentPageChanged() { return currentPageChanged_; }
+  Signal<awaitable<void>(int, int)>& currentPageChanged() { return currentPageChanged_; }
 
   /*! \brief Configures the calendar to use single click for activation
    *
@@ -302,10 +302,10 @@ private:
   std::set<WDate>   selection_;
   bool              needRenderMonth_;
 
-  Signal<>          selectionChanged_;
-  Signal<WDate>     activated_;
-  Signal<WDate>     clicked_;
-  Signal<int, int>  currentPageChanged_;
+  Signal<awaitable<void>()>          selectionChanged_;
+  Signal<awaitable<void>(WDate)>     activated_;
+  Signal<awaitable<void>(WDate)>     clicked_;
+  Signal<awaitable<void>(int, int)>  currentPageChanged_;
 
   WDate             bottom_, top_;
 

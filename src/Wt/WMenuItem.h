@@ -72,7 +72,7 @@ public:
    *
    * \sa setPathComponent();
    */
-  void setText(const WString& text);
+  awaitable<void> setText(const WString& text);
 
   /*! \brief Returns the text for this item.
    *
@@ -315,7 +315,7 @@ public:
    *
    * \sa WMenu::triggered()
    */
-  Signal<WMenuItem *>& triggered() { return triggered_; }
+  Signal<awaitable<void>(WMenuItem *)>& triggered() { return triggered_; }
 
   /*! \brief Returns whether this item is a separator.
    *
@@ -375,7 +375,7 @@ private:
   void *data_;
   bool separator_, selectable_, signalsConnected_, customLink_;
 
-  Signal<WMenuItem *> triggered_;
+  Signal<awaitable<void>(WMenuItem *)> triggered_;
 
   std::string pathComponent_;
   bool customPathComponent_, internalPathEnabled_;

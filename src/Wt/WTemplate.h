@@ -790,7 +790,7 @@ protected:
   virtual DomElementType domElementType() const override;
   virtual void propagateRenderOk(bool deep) override;
   virtual void iterateChildren(const HandleWidgetMethod& method) const override;
-  virtual awaitable<void> iterateChildren(AsyncHandleWidgetMethod&& method) const override;
+  virtual awaitable<void> iterateChildren2(AsyncHandleWidgetMethod&& method) const override;
 
   /*! \brief Utility method to safely format an XHTML string.
    *

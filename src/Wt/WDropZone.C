@@ -801,7 +801,8 @@ void WDropZone::createWorkerResource() {
         return;
 
 #ifndef WT_TARGET_JAVA
-    uploadWorkerResource_ = addChild(std::make_unique<Wt::WMemoryResource>("text/javascript"));
+
+    //uploadWorkerResource_ = addChild(std::make_unique<Wt::WMemoryResource>("text/javascript"));
 #else // WT_TARGET_JAVA
     uploadWorkerResource_ = new WMemoryResource("text/javascript");
 #endif // WT_TARGET_JAVA
@@ -819,8 +820,10 @@ void WDropZone::createWorkerResource() {
 //    ss << WORKER_JS;
 
 #ifndef WT_TARGET_JAVA
-    std::string js = ss.str();
-    uploadWorkerResource_->setData((const unsigned char*)js.c_str(), js.length());
+    //std::string js = ss.str();
+    std::vector<unsigned char> data(ss.view().begin(), ss.view().end());
+    uploadWorkerResource_ = addChild(std::make_unique<Wt::WMemoryResource>("text/javascript", data));
+    //uploadWorkerResource_->setData((const unsigned char*)js.c_str(), js.length());
 #else
     try {
         uploadWorkerResource_->setData(ss.str().getBytes("utf8"));

@@ -352,7 +352,7 @@ public:
    *
    * \sa itemSelectRendered()
    */
-  Signal<WMenuItem *>& itemSelected() { return itemSelected_; }
+  Signal<awaitable<void>(WMenuItem *)>& itemSelected() { return itemSelected_; }
 
   /*! \brief %Signal which indicates that a new selected item is rendered.
    *
@@ -368,7 +368,7 @@ public:
    *
    * \sa itemSelected()
    */
-  Signal<WMenuItem *>& itemSelectRendered() { return itemSelectRendered_; }
+  Signal<awaitable<void>(WMenuItem *)>& itemSelectRendered() { return itemSelectRendered_; }
 
   /*! \brief Closes an item.
    *
@@ -402,7 +402,7 @@ public:
    * both when the user closes an item, or when close() was
    * invoked.
    */
-  Signal<WMenuItem *>& itemClosed() { return itemClosed_; }
+  Signal<awaitable<void>(WMenuItem *)>& itemClosed() { return itemClosed_; }
 
   /*! \brief Hides an item.
    *
@@ -615,8 +615,8 @@ private:
   std::string basePath_, previousInternalPath_;
   WMenuItem *parentItem_;
 
-  Signal<WMenuItem *> itemSelected_, itemSelectRendered_;
-  Signal<WMenuItem *> itemClosed_;
+  Signal<awaitable<void>(WMenuItem *)> itemSelected_, itemSelectRendered_;
+  Signal<awaitable<void>(WMenuItem *)> itemClosed_;
 
   awaitable<void> handleInternalPathChange(const std::string& path);
 
@@ -647,7 +647,7 @@ WMenuItem *WMenu::addItem(const std::string& iconPath, const WString& text,
 			  T *target, void (V::*method)())
 {
   WMenuItem *item = addItem(iconPath, text);
-  item->triggered().connect(target, method);
+  item->triggered().connect<method>(target);
   return item;
 }
 
@@ -664,7 +664,7 @@ WMenuItem *WMenu::insertItem(int index, const std::string& iconPath,
                              void (V::*method)())
 {
   WMenuItem *item = insertItem(index, iconPath, text);
-  item->triggered().connect(target, method);
+  item->triggered().connect<method>(target);
   return item;
 }
 }

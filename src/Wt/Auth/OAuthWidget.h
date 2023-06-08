@@ -19,11 +19,11 @@ class WT_API OAuthWidget : public WImage
 public:
   OAuthWidget(const OAuthService& oAuthService);
 
-  Signal<OAuthProcess *, Identity>& authenticated() { return authenticated_; }
+    Signal<awaitable<void>(OAuthProcess *, Identity)>& authenticated() { return authenticated_; }
 
 private:
   std::unique_ptr<OAuthProcess> process_;
-  Signal<OAuthProcess *, Identity> authenticated_;
+    Signal<awaitable<void>(OAuthProcess *, Identity)> authenticated_;
 
   awaitable<void> oAuthDone(const Identity& identity);
 };

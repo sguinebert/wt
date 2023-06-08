@@ -35,8 +35,8 @@ void WTabWidget::create()
   setJavaScriptMember(WT_RESIZE_JS, StdWidgetItemImpl::secondResizeJS());
   setJavaScriptMember(WT_GETPS_JS, StdWidgetItemImpl::secondGetPSJS());
 
-  menu_->itemSelected().connect(this, &WTabWidget::onItemSelected);
-  menu_->itemClosed().connect(this, &WTabWidget::onItemClosed);
+  menu_->itemSelected().connect<&WTabWidget::onItemSelected>(this);
+  menu_->itemClosed().connect<&WTabWidget::onItemClosed>(this);
 }
 
 WMenuItem *WTabWidget::addTab(std::unique_ptr<WWidget> child,

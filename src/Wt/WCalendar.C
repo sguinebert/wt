@@ -106,13 +106,17 @@ void WCalendar::create()
   nextMonth->setStyleClass("Wt-cal-navbutton");
   nextMonth->clicked().connect(this, &WCalendar::browseToNextMonth);
 
-  std::unique_ptr<WComboBox> monthEdit(new WComboBox());
+  std::vector<WString> months;
+  for (unsigned i = 0; i < 12; ++i)
+    months.push_back(WDate::longMonthName(i+1));
+    //monthEdit->addItem(WDate::longMonthName(i+1));
+
+  std::unique_ptr<WComboBox> monthEdit(new WComboBox(months));
   monthEdit_ = monthEdit.get();
 
   monthEdit->setInline(true);
-  for (unsigned i = 0; i < 12; ++i)
-    monthEdit->addItem(WDate::longMonthName(i+1));
-  monthEdit->activated().connect(this, &WCalendar::monthChanged);
+
+  monthEdit->activated().connect<&WCalendar::monthChanged>(this);
   monthEdit->setDisabled(!WApplication::instance()->environment().ajax());
 
   std::unique_ptr<WInPlaceEdit> yearEdit(new WInPlaceEdit(""));
@@ -121,7 +125,7 @@ void WCalendar::create()
   yearEdit->setButtonsEnabled(false);
   yearEdit->lineEdit()->setTextSize(4);
   yearEdit->setStyleClass("Wt-cal-year");
-  yearEdit->valueChanged().connect(this, &WCalendar::yearChanged);
+  yearEdit->valueChanged().connect<&WCalendar::yearChanged>(this);
 
   impl_->bindWidget("nav-prev", std::move(prevMonth));
   impl_->bindWidget("nav-next", std::move(nextMonth));

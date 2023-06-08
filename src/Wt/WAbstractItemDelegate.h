@@ -174,16 +174,16 @@ public:
    *
    * \sa WAbstractItemView::closeEditor()
    */
-  Signal<WWidget *, bool>& closeEditor() { return closeEditor_; }
+  Signal<awaitable<void>(WWidget *, bool)>& closeEditor() { return closeEditor_; }
 
   /*! \brief %Signal which indicates that an editor needs to be closed.
    *
    * \sa closeEditor()
    */
-  const Signal<WWidget *, bool>& closeEditor() const { return closeEditor_; }
+  const Signal<awaitable<void>(WWidget *, bool)>& closeEditor() const { return closeEditor_; }
 
 private:
-  Signal<WWidget *, bool> closeEditor_;
+  mutable Signal<awaitable<void>(WWidget *, bool)> closeEditor_;
 };
 
 }

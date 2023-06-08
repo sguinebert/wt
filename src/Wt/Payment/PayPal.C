@@ -158,10 +158,10 @@ struct PayPalExpressCheckout::Impl
   PayPalService& service_;
   bool usePopup_, accepted_;
 
-  Signal<Result> setupSignal_;
-  Signal<Result> updatedCustomerDetailsSignal_;
-  Signal<Approval> paymentApprovedSignal_;
-  Signal<Result> completePaymentSignal_;
+  Signal<awaitable<void>(Result)> setupSignal_;
+  Signal<awaitable<void>(Result)> updatedCustomerDetailsSignal_;
+  Signal<awaitable<void>(Approval)> paymentApprovedSignal_;
+  Signal<awaitable<void>(Result)> completePaymentSignal_;
 
   JSignal<int> redirected_;
   Customer customer_;
@@ -227,15 +227,12 @@ void PayPalExpressCheckout::setParameter( const std::string& name,
   impl_->editedParameters_[name] = value;
 }
 
-Signal<Result>& PayPalExpressCheckout::setup()
+Signal<awaitable<void>(Result)>& PayPalExpressCheckout::setup()
 {
   impl_->httpClient_ = impl_->service_.createHttpClient();
   auto client = impl_->httpClient_.get();
 
-  client->done().connect
-    (this, std::bind(&PayPalExpressCheckout::handleSetup, this,
-		     std::placeholders::_1,
-		     std::placeholders::_2));
+  client->done().connect<&PayPalExpressCheckout::handleSetup>(this);
 
   std::map<std::string, std::string> map;
   createSetupMessage(map);
@@ -463,15 +460,12 @@ awaitable<void> PayPalExpressCheckout::onRedirect(int result)
   co_await paymentApproved().emit(Approval(outcome));
 }
 
-Signal<Result>& PayPalExpressCheckout::updateCustomerDetails()
+Signal<awaitable<void>(Result)>& PayPalExpressCheckout::updateCustomerDetails()
 {
   impl_->httpClient_ = impl_->service_.createHttpClient();
   auto client = impl_->httpClient_.get();
 
-  client->done().connect
-    (this, std::bind(&PayPalExpressCheckout::handleCustomerDetails, this,
-		     std::placeholders::_1,
-		     std::placeholders::_2));
+  client->done().connect<&PayPalExpressCheckout::handleCustomerDetails>(this);
 
   std::map<std::string, std::string> map;
 
@@ -550,15 +544,12 @@ void PayPalExpressCheckout::saveCustomerDetails(Http::ParameterMap &params)
   impl_->customer_.setShippingAddress(adderss);
 }
 
-Signal<Result>& PayPalExpressCheckout::completePayment(const Money& totalAmount)
+Signal<awaitable<void>(Result)>& PayPalExpressCheckout::completePayment(const Money& totalAmount)
 {
   impl_->httpClient_ = impl_->service_.createHttpClient();
   auto client = impl_->httpClient_.get();
 
-  client->done().connect
-    (this, std::bind(&PayPalExpressCheckout::handleCompletePayment, this,
-		     std::placeholders::_1,
-		     std::placeholders::_2));
+  client->done().connect<&PayPalExpressCheckout::handleCompletePayment>(this);
 
   std::map<std::string, std::string> map;
 
@@ -604,7 +595,7 @@ awaitable<void> PayPalExpressCheckout::handleCompletePayment(
 }
 
 
-Signal<Approval>& PayPalExpressCheckout::paymentApproved()
+Signal<awaitable<void>(Approval)>& PayPalExpressCheckout::paymentApproved()
 {
   return impl_->paymentApprovedSignal_;
 }

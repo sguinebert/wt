@@ -247,7 +247,7 @@ public:
    *
    * \sa WTree::itemSelectionChanged
    */
-  Signal<bool>& selected() { return selected_; }
+  Signal<awaitable<void>(bool)>& selected() { return selected_; }
 
 #ifndef WT_TARGET_JAVA
   virtual bool hasParent() const override;
@@ -376,7 +376,7 @@ private:
 
   bool childrenLoaded_, populated_, interactive_;
 
-  Signal<bool> selected_;
+  Signal<awaitable<void>(bool)> selected_;
 
   void init(const WString &labelText, std::unique_ptr<WIconPair> labelIcon);
   WContainerWidget *childContainer() const;

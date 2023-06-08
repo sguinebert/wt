@@ -73,14 +73,14 @@ public:
      * The first argument is the number of bytes received so far,
      * and the second argument is the total number of bytes.
      */
-    Signal< ::uint64_t, ::uint64_t >& dataReceived() { return dataReceived_; }
+    Signal<awaitable<void>(::uint64_t, ::uint64_t)>& dataReceived() { return dataReceived_; }
 
     /*! \brief This signal is triggered when the upload is finished.
      *
      * This is also signalled using the WFileDropWidget 
      * \link WFileDropWidget::uploaded uploaded() \endlink signal.
      */
-    Signal<>& uploaded() { return uploaded_; }
+    Signal<awaitable<void>()>& uploaded() { return uploaded_; }
 
     void setFilterEnabled(bool enabled);
     bool filterEnabled() { return filterEnabled_; }
@@ -102,8 +102,8 @@ public:
     std::string type_;
     ::uint64_t size_;
     Http::UploadedFile uploadedFile_;
-    Signal< ::uint64_t, ::uint64_t > dataReceived_;
-    Signal<> uploaded_;
+    Signal<awaitable<void>(::uint64_t, ::uint64_t)> dataReceived_;
+    Signal<awaitable<void>()> uploaded_;
 
     bool uploadStarted_;
     bool uploadFinished_;
@@ -224,7 +224,7 @@ public:
 
   /*! \brief The signal triggers if one or more files are dropped.
    */
-  Signal<std::vector<File*> >& drop() { return dropEvent_; }
+  Signal<awaitable<void>(std::vector<File*>)>& drop() { return dropEvent_; }
 
   /*! \brief The signal triggers when the upload of a file is about to begin.
    *
@@ -232,11 +232,11 @@ public:
    * upload can still fail if the file is too large or if there is a network
    * error.
    */
-  Signal<File*>& newUpload() { return uploadStart_; }
+  Signal<awaitable<void>(File*)>& newUpload() { return uploadStart_; }
 
   /*! \brief The signal is triggered if any file finished uploading.
    */
-  Signal<File*>& uploaded() { return uploaded_; }
+  Signal<awaitable<void>(File*)>& uploaded() { return uploaded_; }
 
   /*! \brief The signal triggers when a file is too large for upload.
    *
@@ -244,14 +244,14 @@ public:
    *
    * The second argument is the size of the file in bytes.
    */
-  Signal<File*, ::uint64_t>& tooLarge() { return tooLarge_; }
+  Signal<awaitable<void>(File*, ::uint64_t)>& tooLarge() { return tooLarge_; }
 
   /*! \brief The signal triggers when an upload failed.
    *
    * This signal will trigger when the widget skips over one of the files
    * in the list for an unknown reason (e.g. happens when you drop a folder).
    */
-  Signal<File*>& uploadFailed() { return uploadFailed_; }
+  Signal<awaitable<void>(File*)>& uploadFailed() { return uploadFailed_; }
 
 protected:
   virtual std::string renderRemoveJs(bool recursive) override;
@@ -298,11 +298,11 @@ private:
   JSignal<> doneSending_;
   JSignal<> jsFilterNotSupported_;
   
-  Signal<std::vector<File*> > dropEvent_;
-  Signal<File*> uploadStart_;
-  Signal<File*> uploaded_;
-  Signal< File*, ::uint64_t > tooLarge_;
-  Signal<File*> uploadFailed_;
+  Signal<awaitable<void>(std::vector<File*>)> dropEvent_;
+  Signal<awaitable<void>(File*)> uploadStart_;
+  Signal<awaitable<void>(File*)> uploaded_;
+  Signal<awaitable<void>(File*, ::uint64_t)> tooLarge_;
+  Signal<awaitable<void>(File*)> uploadFailed_;
   
   std::vector<std::unique_ptr<File> > uploads_;
 

@@ -224,7 +224,7 @@ public:
 
   /*! \brief %Signal emitted when a button is clicked.
    */
-  Signal<StandardButton>& buttonClicked() { return buttonClicked_; }
+  Signal<awaitable<void>(StandardButton)>& buttonClicked() { return buttonClicked_; }
 
   virtual void setHidden(bool hidden,
 			 const WAnimation& animation = WAnimation()) override;
@@ -238,7 +238,7 @@ private:
   std::vector<Button> buttons_;
   Icon icon_;
   StandardButton result_;
-  Signal<StandardButton> buttonClicked_;
+  Signal<awaitable<void>(StandardButton)> buttonClicked_;
   WPushButton *defaultButton_, *escapeButton_;
 
   WText *text_;
@@ -246,7 +246,7 @@ private:
 
   void create();
 
-  awaitable<void> onFinished();
+  awaitable<void> onFinished(DialogCode);
   awaitable<void> onButtonClick(StandardButton b);
   void mappedButtonClick(StandardButton b);
 

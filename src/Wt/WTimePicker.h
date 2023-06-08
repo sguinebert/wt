@@ -21,6 +21,7 @@ class WTimeEdit;
 
 class WT_API WTimePicker : public WCompositeWidget
 {
+    friend class WTimeEdit;
 public:
     WTimePicker(WTimeEdit *timeEdit);
 
@@ -28,7 +29,7 @@ public:
 
     void setTime(const WTime& time);
 
-    Signal<>& selectionChanged() { return selectionChanged_; }
+    Signal<awaitable<void>()>& selectionChanged() { return selectionChanged_; }
 
     void setHourStep(int step);
     int hourStep() const;
@@ -45,11 +46,11 @@ public:
     void setWrapAroundEnabled(bool enabled);
     bool wrapAroundEnabled() const;
 
-    void configure();
+    void init(const WTime &time = WTime());
 
 private:
 
-    void init(const WTime &time = WTime());
+    void configure();
 
     WT_USTRING format_;
 
@@ -70,7 +71,7 @@ private:
     bool formatMs() const;
     bool formatS() const;
 
-    Signal<> selectionChanged_;
+    Signal<awaitable<void>()> selectionChanged_;
     JSlot toggleAmPm_;
 };
 

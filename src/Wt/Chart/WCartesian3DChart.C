@@ -2240,6 +2240,23 @@ void WCartesian3DChart::updateChart(WFlags<ChartUpdates> flags)
   repaintGL(GLClientSideRenderer::UPDATE_GL);
 }
 
+void WCartesian3DChart::onModelReset()
+{
+  updates_ |= ChartUpdates::GLTextures | ChartUpdates::GLContext;
+
+  repaintGL(GLClientSideRenderer::UPDATE_GL);
+}
+
+void WCartesian3DChart::onSourceModelModified(WModelIndex, int, int)
+{
+  onModelReset();
+}
+
+void WCartesian3DChart::onDataChanged(WModelIndex, WModelIndex)
+{
+  onModelReset();
+}
+
 void WCartesian3DChart::resize(const WLength &width, const WLength &height)
 {
   updateChart(ChartUpdates::GLTextures);

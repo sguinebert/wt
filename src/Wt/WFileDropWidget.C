@@ -360,8 +360,8 @@ awaitable<void> WFileDropWidget::handleSendRequest(int id)
       currentFileIdx_ = i;
       auto currentFile = uploads_[currentFileIdx_].get();
       resource_ = std::make_unique<WFileDropUploadResource>(this, currentFile);
-      resource_->dataReceived().connect(this, &WFileDropWidget::onData);
-      resource_->dataExceeded().connect(this, &WFileDropWidget::onDataExceeded);
+      resource_->dataReceived().connect<&WFileDropWidget::onData>(this);
+      resource_->dataExceeded().connect<&WFileDropWidget::onDataExceeded>(this);
       doJavaScript(jsRef() + ".send('" + resource_->url() + "', "
 		   + (currentFile->filterEnabled() ? "true" : "false")
 		   + ");");
@@ -654,10 +654,10 @@ void WFileDropWidget::createWorkerResource()
   ss << WORKER_JS;
   
 #ifndef WT_TARGET_JAVA
-  std::string js = ss.str();
+  //std::string js = ss.str();
   //uploadWorkerResource_->setData((const unsigned char*)js.c_str(), js.length());
 #ifndef WT_TARGET_JAVA
-  uploadWorkerResource_ = addChild(std::make_unique<WMemoryResource>("text/javascript", std::vector<unsigned char>(js.begin(), js.end())));
+  uploadWorkerResource_ = addChild(std::make_unique<WMemoryResource>("text/javascript", std::vector<unsigned char>(ss.view().begin(), ss.view().end())));
 #else // WT_TARGET_JAVA
   uploadWorkerResource_ = new WMemoryResource("text/javascript");
 #endif // WT_TARGET_JAVA

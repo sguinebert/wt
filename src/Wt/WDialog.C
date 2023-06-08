@@ -458,9 +458,9 @@ void WDialog::render(WFlags<RenderFlag> flags)
   WPopupWidget::render(flags);
 }
 
-void WDialog::onPathChange()
-{
-}
+//void WDialog::onPathChange(std::string&)
+//{
+//}
 
 void WDialog::rejectWhenEscapePressed(bool enable)
 {

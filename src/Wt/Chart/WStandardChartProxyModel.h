@@ -178,6 +178,9 @@ private:
 #endif
 
   awaitable<void> sourceModelModified();
+  awaitable<void> onSourceModelModified(WModelIndex, int, int);
+  awaitable<void> onheaderDataChanged(Orientation, int, int);
+  awaitable<void> onDataChanged(WModelIndex, WModelIndex);
   const WColor *color(int row, int column, ItemDataRole colorRole) const;
 };
 

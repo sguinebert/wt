@@ -69,8 +69,8 @@ void WDatePicker::create(std::unique_ptr<WInteractWidget> displayWidget, WLineEd
 
   calendar_ = new WCalendar();
   calendar_->setSingleClickSelect(true);
-  calendar_->activated().connect(this, &WDatePicker::onPopupHidden);
-  calendar_->selectionChanged().connect(this, &WDatePicker::setFromCalendar);
+  calendar_->activated().connect<&WDatePicker::onPopupHidden>(this);
+  calendar_->selectionChanged().connect<&WDatePicker::setFromCalendar>(this);
 
   const char *TEMPLATE = "${calendar}";
 
@@ -83,7 +83,7 @@ void WDatePicker::create(std::unique_ptr<WInteractWidget> displayWidget, WLineEd
 
   popup_->setAnchorWidget(displayWidget_, Orientation::Horizontal);
   popup_->setTransient(true);
-  calendar_->activated().connect(popup_.get(), &WWidget::hide);
+  calendar_->activated().connect<&WDatePicker::onActivated>(this);
 
   WApplication::instance()->theme()->apply(this, popup_.get(), DatePickerPopup);
 
@@ -99,10 +99,15 @@ void WDatePicker::setPopupVisible(bool visible)
   popup_->setHidden(!visible);
 }
 
-void WDatePicker::onPopupHidden()
+void WDatePicker::onPopupHidden(WDate /*date*/)
 {
   forEdit_->setFocus(true);
   popupClosed();
+}
+
+void WDatePicker::onActivated(WDate /*date*/)
+{
+  popup_.get()->hide();
 }
 
 void WDatePicker::setFormat(const WT_USTRING& format)

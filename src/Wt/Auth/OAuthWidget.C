@@ -25,12 +25,12 @@ OAuthWidget::OAuthWidget(const OAuthService& oAuthService)
   process_->connectStartAuthenticate(clickedSignal);
 #endif
 
-  process_->authenticated().connect(this, &OAuthWidget::oAuthDone);
+  process_->authenticated().connect<&OAuthWidget::oAuthDone>(this);
 }
 
 awaitable<void> OAuthWidget::oAuthDone(const Identity& identity)
 {
-  co_await authenticated_.emit(process_.get(), identity);
+  co_await authenticated_.emit(process_.get(), (Identity&)identity);
 }
 
   }

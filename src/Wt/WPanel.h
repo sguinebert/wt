@@ -211,7 +211,7 @@ public:
    * \note It is possible to make a WPanel collapsible with WBootstrap5Theme,
    * but it's not possible to set the animation.
    */
-  Signal<>& collapsed() { return collapsed_; }
+  Signal<awaitable<void>()>& collapsed() { return collapsed_; }
 
   /*! \brief %Signal emitted when the panel is expanded.
    *
@@ -224,10 +224,10 @@ public:
    * \note It is possible to make a WPanel collapsible with WBootstrap5Theme,
    * but it's not possible to set the animation.
    */
-  Signal<>& expanded() { return expanded_; }
+  Signal<awaitable<void>()>& expanded() { return expanded_; }
 
-  Signal<bool>& collapsedSS() { return collapsedSS_; }
-  Signal<bool>& expandedSS() { return expandedSS_; }
+  Signal<awaitable<void>(bool)>& collapsedSS() { return collapsedSS_; }
+  Signal<awaitable<void>(bool)>& expandedSS() { return expandedSS_; }
 
   WIconPair *collapseIcon() const { return collapseIcon_; }
 
@@ -239,8 +239,8 @@ private:
   WWidget *centralWidget_;
   WAnimation animation_;
 
-  Signal<> collapsed_, expanded_;
-  Signal<bool> collapsedSS_, expandedSS_;
+  Signal<awaitable<void>()> collapsed_, expanded_;
+  Signal<awaitable<void>(bool)> collapsedSS_, expandedSS_;
 
   bool wasCollapsed_;
   bool isCollapsible_;

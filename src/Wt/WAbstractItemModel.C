@@ -151,7 +151,7 @@ awaitable<bool> WAbstractItemModel::setItemData(const WModelIndex& index, const 
       if (!co_await setData(index, i->second, i->first))
         result = false;
 
-  co_await dataChanged().emit(index, index);
+  co_await dataChanged().emit((WModelIndex&)index, (WModelIndex&)index);
 
   co_return result;
 }
@@ -374,13 +374,13 @@ awaitable<void> WAbstractItemModel::dropEvent(const WDropEvent& e, DropAction ac
   co_return;
 }
 
-awaitable<void> WAbstractItemModel::beginInsertColumns(const WModelIndex& parent, int first, int last)
+void WAbstractItemModel::beginInsertColumns(const WModelIndex& parent, int first, int last)
 {
   first_ = first;
   last_ = last;
   parent_ = parent;
 
-  co_await columnsAboutToBeInserted().emit(parent_, first, last);
+  columnsAboutToBeInserted().emit(parent_, first, last);
 }
 
 awaitable<void> WAbstractItemModel::endInsertColumns()
@@ -394,7 +394,7 @@ awaitable<void> WAbstractItemModel::beginInsertRows(const WModelIndex& parent, i
   last_ = last;
   parent_ = parent;
 
-  co_await rowsAboutToBeInserted().emit(parent, first, last);
+  co_await rowsAboutToBeInserted().emit((WModelIndex&)parent, first, last);
 }
 
 awaitable<void> WAbstractItemModel::endInsertRows()
@@ -402,13 +402,13 @@ awaitable<void> WAbstractItemModel::endInsertRows()
   co_await rowsInserted().emit(parent_, first_, last_);
 }
 
-awaitable<void> WAbstractItemModel::beginRemoveColumns(const WModelIndex& parent, int first, int last)
+void WAbstractItemModel::beginRemoveColumns(const WModelIndex& parent, int first, int last)
 {
   first_ = first;
   last_ = last;
   parent_ = parent;
 
-  co_await columnsAboutToBeRemoved().emit(parent, first, last);
+  columnsAboutToBeRemoved().emit((WModelIndex&)parent, first, last);
 }
 
 awaitable<void> WAbstractItemModel::endRemoveColumns()
@@ -422,7 +422,7 @@ awaitable<void> WAbstractItemModel::beginRemoveRows(const WModelIndex& parent, i
   last_ = last;
   parent_ = parent;
 
-  co_await rowsAboutToBeRemoved().emit(parent, first, last);
+  co_await rowsAboutToBeRemoved().emit((WModelIndex&)parent, first, last);
 }
 
 awaitable<void> WAbstractItemModel::endRemoveRows()

@@ -82,44 +82,41 @@ WSortFilterProxyModel::~WSortFilterProxyModel()
 void WSortFilterProxyModel
 ::setSourceModel(const std::shared_ptr<WAbstractItemModel>& model)
 {
-  for (unsigned i = 0; i < modelConnections_.size(); ++i)
-    modelConnections_[i].disconnect();
-  modelConnections_.clear();
+//  for (unsigned i = 0; i < modelConnections_.size(); ++i)
+//    modelConnections_[i].disconnect();
+//  modelConnections_.clear();
+  using Self = WSortFilterProxyModel;
+
+  auto oldmodel = sourceModel();
+  oldmodel->columnsAboutToBeInserted().disconnect<&Self::sourceColumnsAboutToBeInserted>(this);
+  oldmodel->columnsInserted().disconnect<&Self::sourceColumnsInserted>(this);
+  oldmodel->columnsAboutToBeRemoved().disconnect<&Self::sourceColumnsAboutToBeRemoved>(this);
+  oldmodel->columnsRemoved().disconnect<&Self::sourceColumnsRemoved>(this);
+  oldmodel->rowsAboutToBeInserted().disconnect<&Self::sourceRowsAboutToBeInserted>(this);
+  oldmodel->rowsInserted().disconnect<&Self::sourceRowsInserted>(this);
+  oldmodel->rowsAboutToBeRemoved().disconnect<&Self::sourceRowsAboutToBeRemoved>(this);
+  oldmodel->rowsRemoved().disconnect<&Self::sourceRowsRemoved>(this);
+  oldmodel->dataChanged().disconnect<&Self::sourceDataChanged>(this);
+  oldmodel->headerDataChanged().disconnect<&Self::sourceHeaderDataChanged>(this);
+  oldmodel->layoutAboutToBeChanged().disconnect<&Self::sourceLayoutAboutToBeChanged>(this);
+  oldmodel->layoutChanged().disconnect<&Self::sourceLayoutChanged>(this);
+  oldmodel->modelReset().disconnect<&Self::sourceModelReset>(this);
 
   WAbstractProxyModel::setSourceModel(model);
 
-  modelConnections_.push_back(sourceModel()->columnsAboutToBeInserted().connect
-     (this, &WSortFilterProxyModel::sourceColumnsAboutToBeInserted));
-  modelConnections_.push_back(sourceModel()->columnsInserted().connect
-     (this, &WSortFilterProxyModel::sourceColumnsInserted));
-
-  modelConnections_.push_back(sourceModel()->columnsAboutToBeRemoved().connect
-     (this, &WSortFilterProxyModel::sourceColumnsAboutToBeRemoved));
-  modelConnections_.push_back(sourceModel()->columnsRemoved().connect
-     (this, &WSortFilterProxyModel::sourceColumnsRemoved));
-
-  modelConnections_.push_back(sourceModel()->rowsAboutToBeInserted().connect
-     (this, &WSortFilterProxyModel::sourceRowsAboutToBeInserted));
-  modelConnections_.push_back(sourceModel()->rowsInserted().connect
-     (this, &WSortFilterProxyModel::sourceRowsInserted));
-
-  modelConnections_.push_back(sourceModel()->rowsAboutToBeRemoved().connect
-     (this, &WSortFilterProxyModel::sourceRowsAboutToBeRemoved));
-  modelConnections_.push_back(sourceModel()->rowsRemoved().connect
-     (this, &WSortFilterProxyModel::sourceRowsRemoved));
-
-  modelConnections_.push_back(sourceModel()->dataChanged().connect
-     (this, &WSortFilterProxyModel::sourceDataChanged));
-  modelConnections_.push_back(sourceModel()->headerDataChanged().connect
-     (this, &WSortFilterProxyModel::sourceHeaderDataChanged));
-
-  modelConnections_.push_back(sourceModel()->layoutAboutToBeChanged().connect
-     (this, &WSortFilterProxyModel::sourceLayoutAboutToBeChanged));
-  modelConnections_.push_back(sourceModel()->layoutChanged().connect
-     (this, &WSortFilterProxyModel::sourceLayoutChanged));
-
-  modelConnections_.push_back(sourceModel()->modelReset().connect
-     (this, &WSortFilterProxyModel::sourceModelReset));
+  model->columnsAboutToBeInserted().connect<&Self::sourceColumnsAboutToBeInserted>(this);
+  model->columnsInserted().connect<&Self::sourceColumnsInserted>(this);
+  model->columnsAboutToBeRemoved().connect<&Self::sourceColumnsAboutToBeRemoved>(this);
+  model->columnsRemoved().connect<&Self::sourceColumnsRemoved>(this);
+  model->rowsAboutToBeInserted().connect<&Self::sourceRowsAboutToBeInserted>(this);
+  model->rowsInserted().connect<&Self::sourceRowsInserted>(this);
+  model->rowsAboutToBeRemoved().connect<&Self::sourceRowsAboutToBeRemoved>(this);
+  model->rowsRemoved().connect<&Self::sourceRowsRemoved>(this);
+  model->dataChanged().connect<&Self::sourceDataChanged>(this);
+  model->headerDataChanged().connect<&Self::sourceHeaderDataChanged>(this);
+  model->layoutAboutToBeChanged().connect<&Self::sourceLayoutAboutToBeChanged>(this);
+  model->layoutChanged().connect<&Self::sourceLayoutChanged>(this);
+  model->modelReset().connect<&Self::sourceModelReset>(this);
 
   resetMappings();
 }
@@ -398,9 +395,9 @@ WFlags<HeaderFlag> WSortFilterProxyModel::headerFlags(int section,
   return sourceModel()->headerFlags(section, orientation);
 }
 
-awaitable<void> WSortFilterProxyModel::sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end)
+void WSortFilterProxyModel::sourceColumnsAboutToBeInserted(const WModelIndex& parent, int start, int end)
 {
-  co_await beginInsertColumns(mapFromSource(parent), start, end);
+  beginInsertColumns(mapFromSource(parent), start, end);
 }
 
 awaitable<void> WSortFilterProxyModel::sourceColumnsInserted(const WModelIndex& parent, int start, int end)

@@ -29,34 +29,39 @@ WComboBox::WComboBox()
   setModel(std::make_shared<WStringListModel>());
 }
 
+WComboBox::WComboBox(std::vector<WString> &strings)
+{
+  setInline(true);
+  setFormObject(true);
+  setModel(std::make_shared<WStringListModel>(strings));
+}
+
 void WComboBox::setModel(const std::shared_ptr<WAbstractItemModel> model)
 {
   if (model_) {
     /* disconnect slots from previous model */
-    for (unsigned i = 0; i < modelConnections_.size(); ++i)
-      modelConnections_[i].disconnect();
-    modelConnections_.clear();
+//    for (unsigned i = 0; i < modelConnections_.size(); ++i)
+//      modelConnections_[i].disconnect();
+//    modelConnections_.clear();
+    model_->columnsInserted().disconnect<&WComboBox::onSourceChanged>(this);
+    model_->columnsRemoved().disconnect<&WComboBox::onSourceChanged>(this);
+    model_->rowsInserted().disconnect<&WComboBox::rowsInserted>(this);
+    model_->rowsRemoved().disconnect<&WComboBox::rowsRemoved>(this);
+    model_->dataChanged().disconnect<&WComboBox::onDataChanged>(this);
+    model_->modelReset().disconnect<&WComboBox::itemsChanged>(this);
+    model_->layoutAboutToBeChanged().disconnect<&WComboBox::saveSelection>(this);
+    model_->layoutChanged().disconnect<&WComboBox::layoutChanged>(this);
   }
 
   model_ = model;
-
-  modelConnections_.push_back
-    (model_->columnsInserted().connect(this, &WComboBox::itemsChanged));
-  modelConnections_.push_back
-    (model_->columnsRemoved().connect(this, &WComboBox::itemsChanged));
-  modelConnections_.push_back
-    (model_->rowsInserted().connect(this, &WComboBox::rowsInserted));
-  modelConnections_.push_back
-    (model_->rowsRemoved().connect(this, &WComboBox::rowsRemoved));
-  modelConnections_.push_back
-    (model_->dataChanged().connect(this, &WComboBox::itemsChanged));
-  modelConnections_.push_back
-    (model_->modelReset().connect(this, &WComboBox::itemsChanged));
-  modelConnections_.push_back
-    (model_->layoutAboutToBeChanged().connect(this,
-					      &WComboBox::saveSelection));
-  modelConnections_.push_back
-    (model_->layoutChanged().connect(this, &WComboBox::layoutChanged));
+  model_->columnsInserted().connect<&WComboBox::onSourceChanged>(this);
+  model_->columnsRemoved().connect<&WComboBox::onSourceChanged>(this);
+  model_->rowsInserted().connect<&WComboBox::rowsInserted>(this);
+  model_->rowsRemoved().connect<&WComboBox::rowsRemoved>(this);
+  model_->dataChanged().connect<&WComboBox::onDataChanged>(this);
+  model_->modelReset().connect<&WComboBox::itemsChanged>(this);
+  model_->layoutAboutToBeChanged().connect<&WComboBox::saveSelection>(this);
+  model_->layoutChanged().connect<&WComboBox::layoutChanged>(this);
 
   /* Redraw contents of the combo box to match the contents of the new model.
    */
@@ -399,6 +404,16 @@ void WComboBox::itemsChanged()
   repaint(RepaintFlag::SizeAffected);
 
   makeCurrentIndexValid();
+}
+
+void WComboBox::onSourceChanged(WModelIndex, int, int)
+{
+  itemsChanged();
+}
+
+void WComboBox::onDataChanged(WModelIndex, WModelIndex)
+{
+  itemsChanged();
 }
 
 void WComboBox::saveSelection()

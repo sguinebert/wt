@@ -214,7 +214,7 @@ public:
    *
    * \sa sliderMoved()
    */
-  Signal<int>& valueChanged() { return valueChanged_; }
+  Signal<awaitable<void>(int)>& valueChanged() { return valueChanged_; }
 
   /*! \brief %Signal emitted while the user drags the slider.
    *
@@ -294,7 +294,7 @@ private:
   int                  minimum_, maximum_;
   int                  value_;
 
-  Signal<int>          valueChanged_;
+  Signal<awaitable<void>(int)>          valueChanged_;
   JSignal<int>         sliderMoved_;
 
   std::unique_ptr<PaintedSlider> paintedSlider_;

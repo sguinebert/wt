@@ -131,7 +131,7 @@ public:
 
   /*! \brief %Signal that is emitted when the selection changes.
    */
-  Signal<>& itemSelectionChanged() { return itemSelectionChanged_; }
+  Signal<awaitable<void>()>& itemSelectionChanged() { return itemSelectionChanged_; }
 
 private:
   WTreeNode *treeRoot_;
@@ -139,7 +139,7 @@ private:
 
   SelectionMode selectionMode_;
   WTreeNodeSet selection_;
-  Signal<> itemSelectionChanged_;
+  Signal<awaitable<void>()> itemSelectionChanged_;
 
   awaitable<void> onClick(WTreeNode *node, WMouseEvent event);
 

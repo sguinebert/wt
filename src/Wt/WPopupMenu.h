@@ -198,7 +198,7 @@ public:
    *
    * \sa triggered(), itemSelected()
    */
-  Signal<>& aboutToHide() { return aboutToHide_; }
+  Signal<awaitable<void>()>& aboutToHide() { return aboutToHide_; }
 
   /*! \brief %Signal emitted when an item is selected.
    *
@@ -207,7 +207,7 @@ public:
    *
    * \sa aboutToHide(), itemSelected()
    */
-  Signal<WMenuItem *>& triggered() { return triggered_; }
+  Signal<awaitable<void>(WMenuItem *)>& triggered() { return triggered_; }
 
   /*! \brief Configure auto-hide when the mouse leaves the menu.
    *
@@ -247,8 +247,8 @@ private:
   WWidget *location_;
   WInteractWidget *button_;
 
-  Signal<> aboutToHide_;
-  Signal<WMenuItem *> triggered_;
+  Signal<awaitable<void>()> aboutToHide_;
+  Signal<awaitable<void>(WMenuItem *)> triggered_;
   JSignal<> cancel_;
 
   bool recursiveEventLoop_;

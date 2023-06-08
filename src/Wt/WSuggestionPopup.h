@@ -443,14 +443,14 @@ public:
    * \endcode
    * \endif 
    */
-  Signal<WT_USTRING>& filterModel() { return filterModel_; }
+  Signal<awaitable<void>(WT_USTRING)>& filterModel() { return filterModel_; }
 
   /*! \brief %Signal emitted when a suggestion was selected.
    *
    * The selected item is passed as the first argument and the editor as
    * the second.
    */
-  Signal<int, WFormWidget *>& activated() { return activated_; }
+  Signal<awaitable<void>(int, WFormWidget *)>& activated() { return activated_; }
 
   /*! \brief When drop down icon is clicked the popup content will be
    *   unfiltered.
@@ -500,10 +500,10 @@ private:
   std::string       matcherJS_;
   std::string       replacerJS_;
 
-  Signal<WT_USTRING> filterModel_;
-  Signal<int, WFormWidget *> activated_;
+  Signal<awaitable<void>(WT_USTRING)> filterModel_;
+  Signal<awaitable<void>(int, WFormWidget *)> activated_;
 
-  std::vector<Wt::Signals::connection> modelConnections_;
+  std::vector<Nano::Observer<>::Connection> modelConnections_;
 
   std::string currentInputText_;
 

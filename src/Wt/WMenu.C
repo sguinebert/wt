@@ -75,6 +75,7 @@ WMenu::WMenu(WStackedWidget *contentsStack)
     previousStackIndex_(-1),
     needSelectionEventUpdate_(false)
 {
+#warning "is this still necessary ?"
 //  if (contentsStack_) {
 //    contentsStack_->childrenChanged().connect(this, &WMenu::updateSelectionEvent);
 //  }
@@ -108,7 +109,7 @@ awaitable<void> WMenu::setInternalPathEnabled(const std::string& basePath)
 
   if (!internalPathEnabled_) {
     internalPathEnabled_ = true;
-    app->internalPathChanged().connect(this, &WMenu::handleInternalPathChange);
+    app->internalPathChanged().connect<&WMenu::handleInternalPathChange>(this);
   }
 
   previousInternalPath_ = app->internalPath();

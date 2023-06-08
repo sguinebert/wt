@@ -428,7 +428,7 @@ void WAbstractMedia::iterateChildren(const HandleWidgetMethod& method) const
 #endif
 }
 
-awaitable<void> WAbstractMedia::iterateChildren(AsyncHandleWidgetMethod &&method) const
+awaitable<void> WAbstractMedia::iterateChildren2(AsyncHandleWidgetMethod &&method) const
 {
   if (alternative_)
 #ifndef WT_TARGET_JAVA
@@ -467,8 +467,7 @@ WAbstractMedia::Source::Source(WAbstractMedia *parent,
     connection = link.resource()->dataChanged().connect
       (this, std::bind(&Source::resourceChanged, this));
 #else // !WT_TARGET_JAVA
-    connection = link.resource()->dataChanged().connect
-      (std::bind(&Source::resourceChanged, this));
+    connection = link.resource()->dataChanged().connect<&Source::resourceChanged>(this);
 #endif // WT_TARGET_JAVA
   }
 }

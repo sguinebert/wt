@@ -68,8 +68,7 @@ void WAnchor::setLink(const WLink& link)
 
   switch (linkState_.link.type()) {
   case LinkType::Resource:
-    linkState_.link.resource()->dataChanged().connect
-      (this, &WAnchor::resourceChanged);
+    linkState_.link.resource()->dataChanged().connect<&WAnchor::resourceChanged>(this);
     break;
   case LinkType::InternalPath:
     WApplication::instance()->enableInternalPaths();

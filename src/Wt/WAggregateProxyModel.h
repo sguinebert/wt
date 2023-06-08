@@ -161,6 +161,7 @@ public:
 
   virtual awaitable<void> sort(int column, SortOrder order = SortOrder::Ascending) override;
 
+  awaitable<void> sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end);
 private:
   struct Aggregate {
     int parentSrc_;
@@ -191,7 +192,7 @@ private:
 
   Aggregate topLevel_;
 
-  std::vector<Wt::Signals::connection> modelConnections_;
+  std::vector<Nano::Observer<>::Connection> modelConnections_;
 
   awaitable<void> expand(Aggregate& aggregate);
   awaitable<void> collapse(Aggregate& aggregate);
@@ -210,7 +211,6 @@ private:
   void sourceColumnsAboutToBeRemoved(const WModelIndex& parent, int start, int end);
   void sourceColumnsRemoved(const WModelIndex& parent, int start, int end);
 
-  awaitable<void> sourceRowsAboutToBeInserted(const WModelIndex& parent, int start, int end);
   awaitable<void> sourceRowsInserted(const WModelIndex& parent, int start, int end);
 
   awaitable<void> sourceRowsAboutToBeRemoved(const WModelIndex& parent, int start, int end);

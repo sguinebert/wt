@@ -122,8 +122,7 @@ void WCssDecorationStyle::setBackgroundImage(const WLink& image,
 					     WFlags<Side> sides)
 {
   if (image.type() == LinkType::Resource)
-    image.resource()->dataChanged().connect
-      (this, &WCssDecorationStyle::backgroundImageResourceChanged);
+    image.resource()->dataChanged().connect<&WCssDecorationStyle::backgroundImageResourceChanged>(this);
 
   if (!WWebWidget::canOptimizeUpdates()
       || backgroundImage_ != image

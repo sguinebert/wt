@@ -344,7 +344,7 @@ protected:
   WMatrix4x4 mvMatrix_;
 
 private:
-  std::vector<Wt::Signals::connection> connections_;
+  std::vector<Nano::Observer<>::Connection> connections_;
 };
     
   }

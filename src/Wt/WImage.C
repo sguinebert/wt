@@ -117,7 +117,7 @@ void WImage::setImageLink(const WLink& link)
   imageLink_ = link;
 
   if (link.type() == LinkType::Resource)
-    link.resource()->dataChanged().connect(this, &WImage::resourceChanged);
+    link.resource()->dataChanged().connect<&WImage::resourceChanged>(this);
 
   flags_.set(BIT_IMAGE_LINK_CHANGED);
 

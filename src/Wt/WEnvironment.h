@@ -674,8 +674,8 @@ public:
    */
   bool supportsCss3Animations() const;
 
-  virtual Signal<WDialog *>& dialogExecuted() const;
-  virtual Signal<WPopupMenu *>& popupExecuted() const;
+  virtual Signal<awaitable<void>(WDialog *)>& dialogExecuted() const;
+  virtual Signal<awaitable<void>(WPopupMenu *)>& popupExecuted() const;
 
   /*! \brief Returns whether this is a mocked test environment.
    */
