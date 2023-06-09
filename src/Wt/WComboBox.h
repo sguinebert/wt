@@ -110,7 +110,7 @@ public:
    *
    * \sa insertItem(int index, const WString&), clear()
    */
-  awaitable<void> removeItem(int index);
+  void removeItem(int index);
 
   /*! \brief Changes the current selection.
    *

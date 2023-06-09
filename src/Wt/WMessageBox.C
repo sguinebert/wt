@@ -209,6 +209,11 @@ awaitable<void> WMessageBox::onButtonClick(StandardButton b)
   co_await buttonClicked_.emit(b);
 }
 
+//awaitable<void> WMessageBox::doAccept(StandardButton b)
+//{
+//  co_await box->accept();
+//}
+
 awaitable<void> WMessageBox::onFinished(DialogCode)
 {
   if (result() == DialogCode::Rejected) {
@@ -272,7 +277,7 @@ awaitable<StandardButton> WMessageBox::show(const WString& caption,
 {
   WMessageBox box(caption, text, Icon::Information, buttons);
   //box.buttonClicked().connect<&WMessageBox::accept>(&box);
-  box.buttonClicked().connect([box = &box] (StandardButton) { box->accept(); });
+  box.buttonClicked().connect([box = &box] (StandardButton) -> awaitable<void> { co_await box->accept(); });
   co_await box.exec(animation);
   co_return box.buttonResult();
 }

@@ -511,6 +511,7 @@ public:
 //        }
 //        else
 //            return false;
+        return true;
     }
 
     virtual bool getResult(int column, int *value) override

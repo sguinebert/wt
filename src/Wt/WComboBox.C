@@ -141,7 +141,7 @@ const WString WComboBox::itemText(int index) const
   return asString(model_->data(index, modelColumn_));
 }
 
-awaitable<void> WComboBox::removeItem(int index)
+void WComboBox::removeItem(int index)
 {
   model_->removeRow(index);
 

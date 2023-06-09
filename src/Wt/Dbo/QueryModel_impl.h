@@ -446,7 +446,7 @@ bool QueryModel<Result>::removeRows(int row, int count, const WModelIndex& paren
 
 template <class Result>
 bool QueryModel<Result>::setHeaderData(int section, Orientation orientation,
-				       const cpp17::any& value,
+                                       const cpp17::any& value,
                                        ItemDataRole role)
 {
   if (orientation == Orientation::Horizontal) {
@@ -459,8 +459,7 @@ bool QueryModel<Result>::setHeaderData(int section, Orientation orientation,
 
     return true;
   } else
-    return WAbstractTableModel::setHeaderData(section, orientation,
-					      value, role);
+    return WAbstractTableModel::setHeaderData(section, orientation, value, role);
 }
 
 template <class Result>
@@ -471,8 +470,7 @@ cpp17::any QueryModel<Result>::headerData(int section, Orientation orientation,
     if (role == ItemDataRole::Level)
       return WAbstractTableModel::headerData(section, orientation, role);
 
-    QueryColumn::HeaderData::const_iterator i
-      = columns_[section].headerData_.find(role);
+    auto i = columns_[section].headerData_.find(role);
 
     if (i != columns_[section].headerData_.end())
       return i->second;

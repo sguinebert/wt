@@ -173,7 +173,7 @@ public:
 
   /*! \brief Changes the label for a tab.
    */
-  void setTabText(int index, const WString& label);
+  awaitable<void> setTabText(int index, const WString& label);
 
   /*! \brief Returns the label for a tab.
    *

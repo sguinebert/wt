@@ -142,21 +142,25 @@ public:
 
     setInline(false);
 
-    if (WApplication::instance()->environment().ajax()) {
+    if (WApplication::instance()->environment().ajax())
+    {
       clicked().connect(*config_->toggleJS_);
       clicked().preventPropagation();
 
       for (unsigned i = 0; i < config_->states().size(); ++i)
-	signals_.push_back(std::unique_ptr<JSignal<> >(new JSignal<>(this, "t-" +  config_->states()[i])));
-    } else {
+        jsignals_.emplace_back(this, "t-" +  config_->states()[i]);
+    }
+    else
+    {
 #warning "FIX ME"
       clicked().connect(this, &ToggleButton::handleClick);
-//      for (unsigned i = 0; i < config_->states().size(); ++i)
-//        signals_.push_back(std::unique_ptr<Signal<awaitable<void>()> >(new Signal<awaitable<void>()>()));
+      for (unsigned i = 0; i < config_->states().size(); ++i)
+        signals_.emplace_back();
     }
   }
 
-  SignalBase& signal(int i) { return *signals_[i]; }
+  JSignal<>& jsignal(int i) { return jsignals_[i]; }
+  Signal<awaitable<void>()>& signal(int i) { return signals_[i]; }
 
   void setState(int i)
   {
@@ -164,12 +168,17 @@ public:
   }
 
 private:
-  std::vector<std::unique_ptr<SignalBase> > signals_;
+  std::vector<JSignal<>> jsignals_;
+  std::vector<Wt::Signal<awaitable<void>()>> signals_;
   ToggleButtonConfig       *config_;
 
   awaitable<void> handleClick() {
     for (unsigned i = 0; i < config_->states().size(); ++i)
       if (boost::ends_with(styleClass().toUTF8(), config_->states()[i])) {
+//        if(i < jsignals_.size())
+//            co_await jsignals_[i].emit();
+//        if(i < signals_.size())
+            co_await signals_[i].emit();
 //        co_await (dynamic_cast<Signal<awaitable<void>()> *>(signals_[i].get()))->emit();
         break;
       }
@@ -451,10 +460,16 @@ void WTreeViewNode::updateGraphics(bool isLast, bool isEmpty)
 	("expand", std::make_unique<ToggleButton>(view_->expandConfig_.get()));
 
       if (WApplication::instance()->environment().agentIsIE())
-	expandButton->setWidth(19);
+        expandButton->setWidth(19);
 
-      expandButton->signal(0).connect(this, &WTreeViewNode::doExpand);
-      expandButton->signal(1).connect(this, &WTreeViewNode::doCollapse);
+      if (WApplication::instance()->environment().ajax()) {
+          expandButton->jsignal(0).connect(this, &WTreeViewNode::doExpand);
+          expandButton->jsignal(1).connect(this, &WTreeViewNode::doCollapse);
+      }
+      else {
+          expandButton->signal(0).connect<&WTreeViewNode::doExpand>(this);
+          expandButton->signal(1).connect<&WTreeViewNode::doCollapse>(this);
+      }
 //      expandButton->signal(0).connect(this, [this]() ->awaitable<void> { co_await this->doExpand(); });
 //      expandButton->signal(1).connect(this, [this]() ->awaitable<void> { co_await this->doCollapse(); });
 

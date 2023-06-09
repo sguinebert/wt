@@ -76,12 +76,6 @@ class Function<RT(Args...)> final
         };
     }
 
-//    template <auto mem_ptr, typename T>
-//    RT execute(Args&&... args)
-//    {
-//        co_return (static_cast<T*>(instance_pointer)->mem_ptr)(std::forward<Args>(args)...);
-//    }
-
     public:
 
     void* const instance_pointer;
@@ -95,9 +89,10 @@ class Function<RT(Args...)> final
         {
             return
                 {
-                    nullptr, [](void* /*NULL*/, Args&&... args)
+                    nullptr, [](void* /*NULL*/, Args&&... args) -> RT
                     {
-                        return [/*&args...*/](Args&&... args) -> RT { co_return (*fun_ptr)(std::forward<Args>(args)...); }(std::forward<Args>(args)...);
+                        co_return (*fun_ptr)(std::forward<Args>(args)...);
+                        //return [/*&args...*/](Args&&... args) -> RT { co_return (*fun_ptr)(std::forward<Args>(args)...); }(std::forward<Args>(args)...);
                     }
                 };
         }
@@ -120,9 +115,10 @@ class Function<RT(Args...)> final
         {
             return
                 {
-                    pointer, [](void* this_ptr, Args&&... args)
+                    pointer, [](void* this_ptr, Args&&... args) -> RT
                     {
-                    return [/*this_ptr, &args...*/](void* this_ptr, Args&&... args) -> RT { co_return (static_cast<T*>(this_ptr)->*mem_ptr)(std::forward<Args>(args)...); }(this_ptr, std::forward<Args>(args)...);
+                        co_return (static_cast<T*>(this_ptr)->*mem_ptr)(std::forward<Args>(args)...);
+                        //return [/*this_ptr, &args...*/](void* this_ptr, Args&&... args) -> RT { co_return (static_cast<T*>(this_ptr)->*mem_ptr)(std::forward<Args>(args)...); }(this_ptr, std::forward<Args>(args)...);
                     }
                 };
         }
@@ -135,14 +131,6 @@ class Function<RT(Args...)> final
                     }
                 };
         }
-
-//        return
-//        {
-//            pointer, [](void* this_ptr, Args&&... args)
-//            {
-//                return (static_cast<T*>(this_ptr)->*mem_ptr)(std::forward<Args>(args)...);
-//            }
-//        };
     }
 
 
@@ -152,9 +140,10 @@ class Function<RT(Args...)> final
         if constexpr(contains_awaitable_impl<RT(Args...)>::value && !is_awaitable_lambda_v<L>) {
             return
                 {
-                    pointer, [](void* this_ptr, Args&&... args)
+                    pointer, [](void* this_ptr, Args&&... args) -> RT
                     {
-                        return [/*this_ptr, &args...*/](void* this_ptr, Args&&... args) -> RT { co_return static_cast<L*>(this_ptr)->operator()(std::forward<Args>(args)...); }(this_ptr, std::forward<Args>(args)...);
+                        co_return static_cast<L*>(this_ptr)->operator()(std::forward<Args>(args)...);
+                        //return [/*this_ptr, &args...*/](void* this_ptr, Args&&... args) -> RT { co_return static_cast<L*>(this_ptr)->operator()(std::forward<Args>(args)...); }(this_ptr, std::forward<Args>(args)...);
                     }
                 };
         }
@@ -172,13 +161,7 @@ class Function<RT(Args...)> final
     template <typename... Uref>
     inline RT operator() (Uref&&... args) const
     {
-        //using RR = std::remove_const_t<Uref>;
-//        if constexpr(std::is_convertible_v<RT, decltype((*function_pointer)(instance_pointer, static_cast<Args&&>(args)...))>) {
-            return (*function_pointer)(instance_pointer, static_cast<Args&&>(args)...);
-//        }
-//        else {
-//            return [this, &args...]() -> RT { co_return (*function_pointer)(instance_pointer, static_cast<Args&&>(args)...); };
-//        }
+        return (*function_pointer)(instance_pointer, static_cast<Args&&>(args)...);
     }
 
     inline operator Delegate_Key() const

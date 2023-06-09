@@ -521,6 +521,7 @@ awaitable<DialogCode> WDialog::exec(const WAnimation& animation)
   WApplication *app = WApplication::instance();
   recursiveEventLoop_ = true;
 
+#warning "transform to await_suspend"
   if (app->environment().isTest()) {
     co_await app->environment().dialogExecuted().emit(this);
     if (recursiveEventLoop_)

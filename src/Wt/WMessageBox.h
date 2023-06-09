@@ -248,6 +248,7 @@ private:
 
   awaitable<void> onFinished(DialogCode);
   awaitable<void> onButtonClick(StandardButton b);
+  //awaitable<void> doAccept(StandardButton b);
   void mappedButtonClick(StandardButton b);
 
   static StandardButton order_[];

@@ -155,10 +155,10 @@ awaitable<void> WTabWidget::closeTab(int index)
   co_await tabClosed_.emit(index);
 }
 
-void WTabWidget::setTabText(int index, const WString& label)
+awaitable<void> WTabWidget::setTabText(int index, const WString& label)
 {
   WMenuItem *item = menu_->itemAt(index);
-  item->setText(label);
+  co_await item->setText(label);
 }
 
 WString WTabWidget::tabText(int index) const
