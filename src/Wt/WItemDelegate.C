@@ -126,11 +126,14 @@ std::unique_ptr<WWidget> WItemDelegate::update(WWidget *widget, const WModelInde
   bool haveCheckBox = index.isValid() ? cpp17::any_has_value(index.data(ItemDataRole::Checked)) : false;
   bool haveLink = index.isValid() ? cpp17::any_has_value(index.data(ItemDataRole::Link)) : false;
   bool haveIcon = index.isValid() ? cpp17::any_has_value(index.data(ItemDataRole::Decoration)): false;
-  if (!(flags & ViewItemRenderFlag::Editing)) {
-    if (widgetRef.w) {
+  if (!(flags & ViewItemRenderFlag::Editing))
+  {
+    if (widgetRef.w)
+    {
       if (haveCheckBox != (checkBox(widgetRef, index, false) != 0) ||
           haveLink != (anchorWidget(widgetRef, index, false) != 0) ||
-          haveIcon != (iconWidget(widgetRef, index, false) != 0)) {
+          haveIcon != (iconWidget(widgetRef, index, false) != 0))
+      {
         widgetRef.w->removeFromParent();
         widgetRef.w = nullptr;
       }
@@ -163,13 +166,11 @@ std::unique_ptr<WWidget> WItemDelegate::update(WWidget *widget, const WModelInde
          : (checkedData.type() == typeid(CheckState) ?
             cpp17::any_cast<CheckState>(checkedData) :
             CheckState::Unchecked));
-      IndexCheckBox *icb =
-        checkBox(widgetRef, index, true, true, index.flags().test(ItemFlag::Tristate));
+      IndexCheckBox *icb = checkBox(widgetRef, index, true, true, index.flags().test(ItemFlag::Tristate));
       icb->setCheckState(state);
       icb->setEnabled(index.flags().test(ItemFlag::UserCheckable));
     } else if (!isNew) {
-      IndexCheckBox *icb =
-        checkBox(widgetRef, index, false);
+      IndexCheckBox *icb = checkBox(widgetRef, index, false);
       if (icb)
         icb->removeFromParent();
     }

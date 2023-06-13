@@ -47,8 +47,8 @@ std::string WItemSelectionModel::mimeType()
 
   // Check that all selected mime types are the same
 
-  for (WModelIndexSet::const_iterator i = selection_.begin();
-       i != selection_.end(); ++i) {
+  for (auto i = selection_.begin(); i != selection_.end(); ++i)
+  {
     WModelIndex mi = *i;
 
     if (!(mi.flags() & ItemFlag::DragEnabled))

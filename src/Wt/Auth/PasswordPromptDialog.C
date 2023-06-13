@@ -28,8 +28,7 @@ PasswordPromptDialog
 				(tr("Wt.Auth.template.password-prompt")));
 
   model_->reset();
-  model_->setValue(AuthModel::LoginNameField,
-		   login_.user().identity(Identity::LoginName));
+  model_->setValue(AuthModel::LoginNameField, login_.user().identity(Identity::LoginName));
   model_->setReadOnly(AuthModel::LoginNameField, true);
 
   std::unique_ptr<WLineEdit> nameEdit(new WLineEdit());

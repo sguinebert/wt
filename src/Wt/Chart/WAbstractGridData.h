@@ -287,10 +287,10 @@ public:
 
 protected:
   virtual void pointDataFromModel(FloatBuffer& simplePtsArray,
-				  FloatBuffer& simplePtsSize,
-				  FloatBuffer& coloredPtsArray,
-				  FloatBuffer& coloredPtsSize,
-				  FloatBuffer& coloredPtsColor) const = 0;
+                                  FloatBuffer& simplePtsSize,
+                                  FloatBuffer& coloredPtsArray,
+                                  FloatBuffer& coloredPtsSize,
+                                  FloatBuffer& coloredPtsColor) const = 0;
   virtual void surfaceDataFromModel(std::vector<FloatBuffer>& simplePtsArrays) const = 0;
   virtual void barDataFromModel(std::vector<FloatBuffer>& simplePtsArrays) const = 0;
   virtual void barDataFromModel(std::vector<FloatBuffer>& simplePtsArrays,

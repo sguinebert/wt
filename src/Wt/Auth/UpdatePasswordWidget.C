@@ -26,8 +26,7 @@ UpdatePasswordWidget
     registrationModel_(std::move(registrationModel)),
     authModel_(authModel)
 {
-  registrationModel_->setValue(RegistrationModel::LoginNameField,
-			       user.identity(Identity::LoginName));
+  registrationModel_->setValue(RegistrationModel::LoginNameField, user.identity(Identity::LoginName));
   registrationModel_->setReadOnly(RegistrationModel::LoginNameField, true);
 
   if (user.password().empty())
@@ -50,15 +49,12 @@ UpdatePasswordWidget
   registrationModel_->setVisible(RegistrationModel::EmailField, false);
 
   WPushButton *okButton =
-    bindWidget("ok-button",
-               std::make_unique<WPushButton>(tr("Wt.WMessageBox.Ok")));
+    bindWidget("ok-button", std::make_unique<WPushButton>(tr("Wt.WMessageBox.Ok")));
   WPushButton *cancelButton = 
-    bindWidget("cancel-button",
-               std::make_unique<WPushButton>(tr("Wt.WMessageBox.Cancel")));
+    bindWidget("cancel-button", std::make_unique<WPushButton>(tr("Wt.WMessageBox.Cancel")));
 
   if (authModel_) {
-    authModel_->setValue(AuthModel::LoginNameField,
-			 user.identity(Identity::LoginName));
+    authModel_->setValue(AuthModel::LoginNameField, user.identity(Identity::LoginName));
 
     updateViewField(authModel_.get(), AuthModel::PasswordField);
 
@@ -70,15 +66,11 @@ UpdatePasswordWidget
 
   updateView(registrationModel_.get());
 
-  WLineEdit *password = resolve<WLineEdit *>
-    (RegistrationModel::ChoosePasswordField);
-  WLineEdit *password2 = resolve<WLineEdit *>
-    (RegistrationModel::RepeatPasswordField);
-  WText *password2Info = resolve<WText *>
-    (RegistrationModel::RepeatPasswordField + std::string("-info"));
+  WLineEdit *password = resolve<WLineEdit *>(RegistrationModel::ChoosePasswordField);
+  WLineEdit *password2 = resolve<WLineEdit *>(RegistrationModel::RepeatPasswordField);
+  WText *password2Info = resolve<WText *>(RegistrationModel::RepeatPasswordField + std::string("-info"));
 
-  registrationModel_->validatePasswordsMatchJS(password,
-					       password2, password2Info);
+  registrationModel_->validatePasswordsMatchJS(password, password2, password2Info);
 
   if (!authModel_)
     password->setFocus(true);

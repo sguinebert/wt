@@ -2434,7 +2434,7 @@ bool WCartesianChart::axisSliderWidgetForSeries(WDataSeries *series) const
 }
 
 void WCartesianChart::iterateSeries(SeriesIterator *iterator,
-				    WPainter *painter,
+                                    WPainter *painter,
                                     bool reverseStacked,
                                     bool extremesOnly) const
 {

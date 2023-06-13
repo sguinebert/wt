@@ -223,8 +223,7 @@ public:
    * the entire painter \link WPainter::window() window\endlink is
    * used.
    */
-  virtual void paint(WPainter& painter, const WRectF& rectangle = WRectF())
-    const = 0;
+  virtual void paint(WPainter& painter, const WRectF& rectangle = WRectF()) const = 0;
 
 protected:
   WAbstractChart();

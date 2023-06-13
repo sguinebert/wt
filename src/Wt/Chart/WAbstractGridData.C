@@ -137,8 +137,7 @@ void WAbstractGridData::setPen(const WPen &pen)
     chart_->updateChart(WFlags<ChartUpdates>(ChartUpdates::GLContext) | ChartUpdates::GLTextures);
 }
 
-float WAbstractGridData::stackAllValues(std::vector<WAbstractGridData*> dataseries,
-					int i, int j) const
+float WAbstractGridData::stackAllValues(std::vector<WAbstractGridData*> dataseries, int i, int j) const
 {
   float value = 0;
   for (unsigned k = 0; k<dataseries.size(); k++) {

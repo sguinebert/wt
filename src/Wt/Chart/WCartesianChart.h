@@ -906,8 +906,7 @@ public:
    */
   void setLegendColumns(int columns, const WLength& width);
   
-  virtual void paint(WPainter& painter, const WRectF& rectangle = WRectF())
-    const override;
+  virtual void paint(WPainter& painter, const WRectF& rectangle = WRectF()) const override;
 
   /*! \brief Draws the marker for a given data series.
    *
@@ -918,8 +917,7 @@ public:
    *
    * \sa setLegendEnabled()
    */
-  virtual void drawMarker(const WDataSeries& series, WPainterPath& result)
-    const;
+  virtual void drawMarker(const WDataSeries& series, WPainterPath& result) const;
 
   /*! \brief Renders the legend icon for a given data series.
    *
@@ -933,7 +931,7 @@ public:
    * \sa renderLegendItem()
    */
   virtual void renderLegendIcon(WPainter& painter, const WPointF& pos,
-				const WDataSeries& series) const;
+                                const WDataSeries& series) const;
 
   /*! \brief Renders the legend item for a given data series.
    *

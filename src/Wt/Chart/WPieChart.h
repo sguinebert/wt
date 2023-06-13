@@ -308,8 +308,7 @@ public:
       WPainter* painter, const WRectF& rect,
       Wt::WFlags<AlignmentFlag> alignmentFlags) const;
 
-  virtual void paint(WPainter& painter, const WRectF& rectangle = WRectF())
-    const override;
+  virtual void paint(WPainter& painter, const WRectF& rectangle = WRectF()) const override;
 
 protected:
   void paintEvent(Wt::WPaintDevice *paintDevice) override;
