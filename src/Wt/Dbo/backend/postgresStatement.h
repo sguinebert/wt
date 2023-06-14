@@ -521,8 +521,6 @@ public:
         if (PQgetisnull(result_, row_, column))
             return false;
 
-        //const char *v = PQgetvalue(result_, row_, column);
-
         *value = res_.at(row_).at(column).as<int>();
 
         /*

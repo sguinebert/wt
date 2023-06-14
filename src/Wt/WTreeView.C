@@ -147,8 +147,10 @@ public:
       clicked().connect(*config_->toggleJS_);
       clicked().preventPropagation();
 
-      for (unsigned i = 0; i < config_->states().size(); ++i)
-        jsignals_.emplace_back(this, "t-" +  config_->states()[i]);
+      for (unsigned i = 0; i < config_->states().size(); ++i){
+        jsignals_.push_back(std::make_unique<JSignal<>>(this, "t-" +  config_->states()[i]));
+        //jsignals_.emplace_back(this, "t-" +  config_->states()[i]);
+      }
     }
     else
     {
@@ -159,7 +161,7 @@ public:
     }
   }
 
-  JSignal<>& jsignal(int i) { return jsignals_[i]; }
+  JSignal<>& jsignal(int i) { return *jsignals_[i]; }
   Signal<awaitable<void>()>& signal(int i) { return signals_[i]; }
 
   void setState(int i)
@@ -168,7 +170,7 @@ public:
   }
 
 private:
-  std::vector<JSignal<>> jsignals_;
+  std::vector<std::unique_ptr<JSignal<>>> jsignals_;
   std::vector<Wt::Signal<awaitable<void>()>> signals_;
   ToggleButtonConfig       *config_;
 
@@ -1340,6 +1342,11 @@ int WTreeView::calcOptimalRenderedRowCount() const
 
 awaitable<void> WTreeView::setModel(const std::shared_ptr<WAbstractItemModel>& model)
 {
+
+  //co_await model->cacheRowCount();
+
+  co_await model->loadAllInCache();
+
   using Self = WTreeView;
 
   auto oldmodel = WAbstractItemView::model();

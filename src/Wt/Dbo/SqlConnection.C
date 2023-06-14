@@ -34,21 +34,23 @@ SqlConnection::~SqlConnection()
   assert(statementCache_.empty());
 }
 
+awaitable<void> SqlConnection::executeSql(const std::string &sql)
+{
+    std::unique_ptr<SqlStatement> s = prepareStatement(sql);
+    co_await s->execute();
+}
+
 void SqlConnection::clearStatementCache()
 {
-  statementCache_.clear();
+    statementCache_.clear();
 }
 
-void SqlConnection::executeSql(const std::string& sql)
-{
-  std::unique_ptr<SqlStatement> s = prepareStatement(sql);
-  s->execute();
-}
 
-void SqlConnection::executeSqlStateful(const std::string& sql)
+
+awaitable<void> SqlConnection::executeSqlStateful(const std::string& sql)
 {
-  statefulSql_.push_back(sql);
-  executeSql(sql);
+    statefulSql_.push_back(sql);
+  co_await executeSql(sql);
 }
 
 SqlStatement *SqlConnection::getStatement(const std::string& id)

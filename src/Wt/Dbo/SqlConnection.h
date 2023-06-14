@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <Wt/Dbo/WDboDllDefs.h>
+#include <Wt/AsioWrapper/asio.hpp>
 
 namespace Wt {
   namespace Dbo {
@@ -74,7 +75,7 @@ public:
    * This is a convenience method for preparing a statement, executing
    * it, and deleting it.
    */
-  virtual void executeSql(const std::string& sql);
+  virtual awaitable<void> executeSql(const std::string& sql);
 
   /*! \brief Executes a connection-stateful SQL statement.
    *
@@ -90,7 +91,7 @@ public:
    *       those backends that support automatic reconnect, but
    *       not when a connection is \link clone() cloned\endlink.
    */
-  virtual void executeSqlStateful(const std::string& sql);
+  virtual awaitable<void> executeSqlStateful(const std::string& sql);
   
   /*! \brief Starts a transaction
    *
@@ -122,8 +123,7 @@ public:
    *
    * Saves the statement for future reuse using getStatement()
    */
-  virtual void saveStatement(const std::string& id,
-                 std::unique_ptr<SqlStatement> statement);
+  virtual void saveStatement(const std::string& id, std::unique_ptr<SqlStatement> statement);
 
   /*! \brief Prepares a statement.
    *

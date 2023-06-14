@@ -406,7 +406,7 @@ std::string_view clientaddress(http::request& request, const Wt::Configuration &
     return remoteAddr;
   }
 }
-//#ifdef HTTP_WITH_SSL
+#ifdef WT_WITH_SSL
 std::unique_ptr<Wt::WSslInfo> sslInfoFromJson(Wt::http::context* context)
 {
   auto ssl_client_certificates = context->getHeader("X-Wt-Ssl-Client-Certificates");
@@ -447,7 +447,7 @@ std::unique_ptr<Wt::WSslInfo> sslInfoFromJson(Wt::http::context* context)
 
   return nullptr;
 }
-//#endif // HTTP_WITH_SSL
+#endif // WT_WITH_SSL
 
 std::unique_ptr<Wt::WSslInfo> sslInfoFromHeaders(Wt::http::context* context)
 {

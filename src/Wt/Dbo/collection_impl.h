@@ -513,7 +513,7 @@ awaitable<typename collection<C>::size_type> collection<C>::size() const
     if (data_.relation.sql) {
       const std::string *sql = data_.relation.sql;
       std::size_t f = Impl::ifind(*sql, " from ");
-      std::string countSql = "select count(1)" + sql->substr(f);
+      std::string countSql = "select count(*)" + sql->substr(f);
 
       countStatement = session_->getOrPrepareStatement(countSql);
       int column = 0;
@@ -529,7 +529,7 @@ awaitable<typename collection<C>::size_type> collection<C>::size() const
     if (!countStatement->nextRow())
       throw Exception("collection<C>::size(): no result?");
 
-    int result;
+    long long result;
     if (!countStatement->getResult(0, &result))
       throw Exception("collection<C>::size(): null?");
     

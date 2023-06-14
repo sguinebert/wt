@@ -432,7 +432,7 @@ namespace Wt
 
       // if(request.isWebSocketMessage())
       //   std::cout << "formQueryString (len=" << len << "): " << formQueryString << std::endl;
-      std::cerr << fmt::format("formQueryString (len={}): {} type : {}", len, fsv, type) << std::endl;
+      //std::cerr << fmt::format("formQueryString (len={}): {} type : {}", len, fsv, type) << std::endl;
 
       LOG_DEBUG("formQueryString (len={}): {}", len, queryString);
       if (!fsv.empty())

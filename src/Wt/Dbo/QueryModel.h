@@ -275,9 +275,7 @@ public:
    * define your own data presentation using the underlying \p Result by
    * specializing data() and accessing data from resultRow().
    */
-  virtual cpp17::any data(const WModelIndex& index, 
-                          ItemDataRole role = ItemDataRole::Display)
-    const override;
+  virtual cpp17::any data(const WModelIndex& index, ItemDataRole role = ItemDataRole::Display) const override;
 
   /*! \brief Sets data at the given model index.
    *
@@ -297,8 +295,7 @@ public:
    *
    * \sa createOrderBy()
    */
-  virtual void sort(int column, 
-		    SortOrder order = SortOrder::Ascending) override;
+  virtual awaitable<void> sort(int column, SortOrder order = SortOrder::Ascending) override;
 
   /*! \brief Create specialized orderBy clause for sort
    *
@@ -320,15 +317,13 @@ public:
    * rowCount()). For each added row, a new result is added to the
    * underlying database.
    */
-  virtual bool insertRows(int row, int count,
-			  const WModelIndex& parent = WModelIndex()) override;
+  virtual bool insertRows(int row, int count, const WModelIndex& parent = WModelIndex()) override;
 
   /*! \brief Removes one or more rows.
    *
    * For each removed row, the result is removed from the underlying database.
    */
-  virtual bool removeRows(int row, int count,
-			  const WModelIndex& parent = WModelIndex()) override;
+  virtual bool removeRows(int row, int count, const WModelIndex& parent = WModelIndex()) override;
 
   using WAbstractTableModel::setHeaderData;
 
@@ -337,17 +332,17 @@ public:
    * The model will return this data in headerData(). Only column headers
    * are supported (orientation == Wt::Orientation::Horizontal).
    */
-  virtual bool setHeaderData(int column, Orientation orientation,
-			     const cpp17::any& value,
-                             ItemDataRole role = ItemDataRole::Edit) override;
+  virtual awaitable<bool> setHeaderData(int column, Orientation orientation,
+                                        const cpp17::any& value,
+                                        ItemDataRole role = ItemDataRole::Edit) override;
 
   /*! \brief Returns header data.
    *
    * \sa setHeaderData()
    */
   virtual cpp17::any headerData(int section,
-			     Orientation orientation = Orientation::Horizontal,
-                             ItemDataRole role = ItemDataRole::Display) const override;
+                                Orientation orientation = Orientation::Horizontal,
+                                ItemDataRole role = ItemDataRole::Display) const override;
 
   virtual void *toRawIndex(const WModelIndex& index) const override;
   virtual WModelIndex fromRawIndex(void *rawIndex) const override;
@@ -401,6 +396,93 @@ protected:
    */
   virtual Result resultById(long long id) const;
 
+  virtual awaitable<int> cacheRowCount(bool recache = false) override
+  {
+      if (cachedRowCount_ == -1 || recache) {
+          //if (cachedRowCount_ == -1) {
+              //Transaction transaction(query_.session());
+
+              query_.limit(queryLimit_);
+              query_.offset(queryOffset_);
+
+              Query<Result> unorderedQuery(query_);
+              unorderedQuery.orderBy("");
+              cachedRowCount_ = static_cast<int>(co_await unorderedQuery.rowCount());
+
+              //transaction.commit();
+          //}
+      }
+      co_return cachedRowCount_;
+  }
+
+  virtual awaitable<int> cacheRow(int begin, int end, int max) override
+  {
+      if (begin < cacheStart_ || end >= cacheStart_ + static_cast<int>(cache_.size()))
+      {
+          if(batchSize_ < max * 2)
+              batchSize_ = max * 2;
+
+          cacheStart_ = std::max(begin - batchSize_ / 4, 0);
+
+          int qOffset = cacheStart_;
+          if (queryOffset_ > 0)
+              qOffset += queryOffset_;
+          query_.offset(qOffset);
+
+          int qLimit = batchSize_;
+          if (queryLimit_ > 0)
+              qLimit = std::min(batchSize_, queryLimit_ - cacheStart_);
+          query_.limit(qLimit);
+
+          //Transaction transaction(query_.session());
+
+          collection<Result> results = co_await query_.resultList();
+
+          cache_.clear();
+          cache_.insert(cache_.end(), results.begin(), results.end());
+
+          for (unsigned i = 0; i < cache_.size(); ++i) {
+              long long id = resultId(cache_[i]);
+              if (id != -1)
+                  stableIds_[cacheStart_ + i] = id;
+          }
+          if (static_cast<int>(cache_.size()) < qLimit
+              && qOffset == 0 && cachedRowCount_ == -1)
+              cachedRowCount_ = cache_.size();
+
+          //if(cache_.size() < qLimit)
+           co_return cache_.size();
+          //transaction.commit();
+      }
+      co_return -1;
+  }
+
+  virtual awaitable<void> loadAllInCache() override
+  {
+      int qOffset = cacheStart_;
+      if (queryOffset_ > 0)
+           qOffset += queryOffset_;
+      query_.offset(qOffset);
+
+      int qLimit = batchSize_;
+      if (queryLimit_ > 0)
+           qLimit = std::min(batchSize_, queryLimit_ - cacheStart_);
+      query_.limit(qLimit);
+
+      collection<Result> results = co_await query_.resultList();
+      cache_.clear();
+      cache_.insert(cache_.end(), results.begin(), results.end());
+
+      for (unsigned i = 0; i < cache_.size(); ++i) {
+           long long id = resultId(cache_[i]);
+           if (id != -1)
+              stableIds_[cacheStart_ + i] = id;
+      }
+      cachedRowCount_ = cache_.size();
+      fullyLoaded_ = true;
+      co_return;
+  }
+
 private:
   void cacheRow(int row) const;
 
@@ -419,6 +501,7 @@ private:
 
   mutable int currentRow_;
   mutable AnyList rowValues_;
+  mutable bool fullyLoaded_ = false;
 
   mutable StableResultIdMap stableIds_;
 

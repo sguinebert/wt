@@ -582,6 +582,10 @@ public:
    */
     int offset() const;
 
+    awaitable<int> rowCount() {
+        collection<Result> dumb;
+        co_return co_await dumb.size();
+    }
     /*! \brief Sets a result limit.
    *
    * Sets a result limit. This has the effect that the next
@@ -619,6 +623,19 @@ public:
     ~Query();
     template<typename T> Query<Result, DirectBinding>& bind(const T& value);
     void reset();
+    awaitable<int> rowCount() const {
+        if (!this->session_)
+            co_return collection<Result>().size();
+
+        if (!this->statement_)
+            throw std::logic_error("Query<Result, DirectBinding>::resultList() may be called only once");
+
+        SqlStatement *s = this->statement_, *cs = this->countStatement_;
+        this->statement_ = this->countStatement_ = nullptr;
+
+        auto results = collection<Result>(this->session_, s, cs);
+        co_return co_await results.size();
+    }
     awaitable<Result> resultValue() const;
     awaitable<collection< Result >> resultList() const;
     operator Result () const;
@@ -661,9 +678,28 @@ public:
     Query<Result, DynamicBinding>& offset(int count);
     Query<Result, DynamicBinding>& limit(int count);
     awaitable<Result> resultValue() const;
-    awaitable<collection< Result >> resultList() const;
+    awaitable<collection<Result>> resultList() const;
     operator awaitable<Result> () const;
-    operator awaitable<collection< Result >> () const;
+    operator awaitable<collection<Result>> () const;
+
+    awaitable<int> rowCount() const {
+        if (!this->session_)
+            co_return 0;
+
+        co_await this->session_->flush(); //useless ?
+
+        if(!this->session_->transaction_ || this->session_->active_conn->inTransaction(false))
+            this->session_->active_conn = co_await this->session_->assign_connection(false);
+
+        auto [statement, countStatement]
+            = this->statements(join_, where_, groupBy_, having_, orderBy_, limit_, offset_);
+
+        //bindParameters(this->session_, statement);
+        bindParameters(this->session_, countStatement);
+
+        collection<Result> results(this->session_, statement, countStatement);
+        co_return co_await results.size();
+    }
 
     void reset() {
         reset_params();

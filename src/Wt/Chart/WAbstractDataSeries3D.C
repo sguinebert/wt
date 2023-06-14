@@ -53,6 +53,7 @@ WAbstractDataSeries3D::~WAbstractDataSeries3D()
 void WAbstractDataSeries3D
 ::setModel(const std::shared_ptr<WAbstractItemModel>& model)
 {
+  //co_await model->loadAllInCache();
   if (model != model_) {
     // handle previous model
     if (model_ && chart_) {

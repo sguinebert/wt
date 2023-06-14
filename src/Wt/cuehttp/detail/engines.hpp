@@ -38,7 +38,7 @@ asio::io_context ctx{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE};
 
 using namespace boost;
 
-inline thread_local asio::io_context* thread_context = nullptr;
+inline thread_local boost::asio::io_context* thread_context;
 
 namespace Wt {
 namespace http {
@@ -62,11 +62,6 @@ class engines final : safe_noncopyable {
 //    static engines engines{std::thread::hardware_concurrency()};
 //    return engines;
 //  }
-
-  static asio::io_context* get_thread_context() {
-    asm volatile("":::"memory");
-    return thread_context;
-  }
 
   asio::io_context& get() noexcept { return *io_contexts_[index_++ % io_contexts_.size()]; }
 

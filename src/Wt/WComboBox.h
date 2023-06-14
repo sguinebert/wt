@@ -150,7 +150,10 @@ public:
    *
    * \sa setModelColumn(int)
    */
-  void setModel(const std::shared_ptr<WAbstractItemModel> model);
+
+  awaitable<void> setModel(const std::shared_ptr<WAbstractItemModel> model);
+
+  void setModel(const std::shared_ptr<WStringListModel> model);
 
   /*! \brief Sets the column in the model to be used for the items.
    *

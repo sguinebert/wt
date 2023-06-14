@@ -379,10 +379,11 @@ public:
     return ""sv;
   }
 
-  std::vector<std::string> getParameterValues(const std::string& key) const {
+  mutable  std::vector<std::string> aVector; //risk of dangling reference in FormatData
+  std::vector<std::string>& getParameterValues(const std::string& key) const {
     const auto& mm = query();
     auto aRange = mm.equal_range(key);
-    std::vector<std::string> aVector;
+    aVector.clear();
     std::transform(aRange.first, aRange.second,std::back_inserter(aVector), [](auto element){ return element.second;});
     return aVector;
   }
@@ -529,13 +530,16 @@ public:
         if (content_length_ > 0) {
           body_ = {buffer_.data() + code, std::min(content_length_, static_cast<std::uint64_t>(data_size_ - code))};
           if (body_.length() < content_length_) {
-            expand();
+            if(buffer_.size() < content_length_)
+                expand();
+            buffer_offset_ = data_size_;
             continue_parse_body_ = true;
             code = -2;
           } else {
             parse_size_ += content_length_;
             continue_parse_body_ = false;
             if (data_size_ > parse_size_) {
+                //buffer_offset_ ?
               code = -3;
             } else {
               code = 0;
@@ -543,6 +547,7 @@ public:
           }
         } else {
           if (data_size_ > parse_size_) {
+            //buffer_offset_ ?
             code = -3;
           } else if (data_size_ == parse_size_) {
             code = 0;

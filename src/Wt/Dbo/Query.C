@@ -182,13 +182,12 @@ std::string createQuerySelectSql(const std::string& from,
   return addLimitQuery(result, orderBy, limit, offset, limitQueryMethod);
 }
 
-std::string createQueryCountSql(const std::string& query,
-				bool requireSubqueryAlias)
+std::string createQueryCountSql(const std::string& query, bool requireSubqueryAlias)
 {
   if (requireSubqueryAlias)
-    return "select count(1) from (" + query + ") dbocount";
+    return "select count(*) from (" + query + ") dbocount";
   else
-    return "select count(1) from (" + query + ")";
+    return "select count(*) from (" + query + ")";
 }
 
 void substituteFields(const SelectFieldList& list,

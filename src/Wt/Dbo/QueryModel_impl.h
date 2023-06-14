@@ -24,8 +24,7 @@ QueryModel<Result>::QueryModel()
 { }
 
 template <class Result>
-void QueryModel<Result>::setQuery(const Query<Result>& query,
-				  bool keepColumns)
+void QueryModel<Result>::setQuery(const Query<Result>& query, bool keepColumns)
 {
   queryLimit_ = query.limit();
   queryOffset_ = query.offset();
@@ -64,15 +63,15 @@ void QueryModel<Result>::setBatchSize(int count)
 
 template <class Result>
 int QueryModel<Result>::addColumn(const std::string& field,
-				  const WString& header,
-				  WFlags<ItemFlag> flags)
+                  const WString& header,
+                  WFlags<ItemFlag> flags)
 {
-  return addColumn(QueryColumn(field, header, flags));  
+  return addColumn(QueryColumn(field, header, flags));
 }
 
 template <class Result>
 int QueryModel<Result>::addColumn(const std::string& field,
-				  WFlags<ItemFlag> flags)
+                  WFlags<ItemFlag> flags)
 {
   return addColumn(QueryColumn(field, WString::fromUTF8(field), flags));
 }
@@ -114,26 +113,26 @@ int QueryModel<Result>::columnCount(const WModelIndex& parent) const
 template <class Result>
 int QueryModel<Result>::rowCount(const WModelIndex& parent) const
 {
-  if (parent.isValid())
-    return 0;
+//  if (parent.isValid())
+//    return -1;
 
-  if (cachedRowCount_ == -1) {
-    if (batchSize_)
-      cacheRow(0);
+//  if (cachedRowCount_ == -1) {
+//    if (batchSize_)
+//      cacheRow(0);
 
-    if (cachedRowCount_ == -1) {
-      Transaction transaction(query_.session());
+//    if (cachedRowCount_ == -1) {
+//      Transaction transaction(query_.session());
 
-      query_.limit(queryLimit_);
-      query_.offset(queryOffset_);
+//      query_.limit(queryLimit_);
+//      query_.offset(queryOffset_);
 
-      Query<Result> unorderedQuery(query_);
-      unorderedQuery.orderBy("");
-      cachedRowCount_ = static_cast<int>(unorderedQuery.resultList().size());
+//      Query<Result> unorderedQuery(query_);
+//      unorderedQuery.orderBy("");
+//      cachedRowCount_ = static_cast<int>(unorderedQuery.resultList().size());
 
-      transaction.commit();
-    }
-  }
+//      transaction.commit();
+//    }
+//  }
 
   return cachedRowCount_;
 }
@@ -147,6 +146,10 @@ WFlags<ItemFlag> QueryModel<Result>::flags(const WModelIndex& index) const
 template <class Result>
 cpp17::any QueryModel<Result>::data(const WModelIndex& index, ItemDataRole role) const
 {
+
+  if(cache_.empty())
+    return cpp17::any();
+
   setCurrentRow(index.row());
 
   if (role == ItemDataRole::Display || role == ItemDataRole::Edit)
@@ -159,7 +162,7 @@ template <class Result>
 void QueryModel<Result>::setCurrentRow(int row) const
 {
   if (currentRow_ != row) {
-    Transaction transaction(query_.session());
+    //Transaction transaction(query_.session());
 
     const Result& result = resultRow(row);
     rowValues_.clear();
@@ -167,7 +170,7 @@ void QueryModel<Result>::setCurrentRow(int row) const
 
     currentRow_ = row;
 
-    transaction.commit();
+    //transaction.commit();
   }
 }
 
@@ -214,11 +217,11 @@ void QueryModel<Result>::invalidateData()
 template <class Result>
 void QueryModel<Result>::dataReloaded()
 {
-  layoutChanged().emit();  
+  layoutChanged().emit();
 }
 
 template <class Result>
-void QueryModel<Result>::sort(int column, SortOrder order)
+awaitable<void> QueryModel<Result>::sort(int column, SortOrder order)
 {
   /*
    * This should not change the row count
@@ -232,6 +235,7 @@ void QueryModel<Result>::sort(int column, SortOrder order)
 
   cachedRowCount_ = rc;
   dataReloaded();
+  co_return;
 }
 
 template <class Result>
@@ -255,7 +259,7 @@ Result QueryModel<Result>::stableResultRow(int row) const
 template <class Result>
 Result& QueryModel<Result>::resultRow(int row)
 {
-  cacheRow(row);
+  //cacheRow(row);
 
   if (row >= cacheStart_ + static_cast<int>(cache_.size()))
     throw Exception("QueryModel: geometry inconsistent with database: "
@@ -296,14 +300,14 @@ void QueryModel<Result>::cacheRow(int row) const
 
     Transaction transaction(query_.session());
 
-    collection<Result> results = query_.resultList();
+    collection<Result> results;// = query_.resultList();
     cache_.clear();
-    cache_.insert(cache_.end(), results.begin(), results.end());   
+    cache_.insert(cache_.end(), results.begin(), results.end());
 
     for (unsigned i = 0; i < cache_.size(); ++i) {
       long long id = resultId(cache_[i]);
       if (id != -1)
-	stableIds_[cacheStart_ + i] = id;
+    stableIds_[cacheStart_ + i] = id;
     }
     if (static_cast<int>(cache_.size()) < qLimit
         && qOffset == 0 && cachedRowCount_ == -1)
@@ -346,7 +350,7 @@ int QueryModel<Result>::getFieldIndex(const std::string& field)
       return i;
     if (!fields_[i].qualifier().empty())
       if (fields_[i].qualifier() + "." + fields_[i].name() == field)
-	return i;
+    return i;
   }
 
   throw Exception("QueryModel: could not find field: '" + field + "'");
@@ -431,7 +435,7 @@ template <class Result>
 bool QueryModel<Result>::removeRows(int row, int count, const WModelIndex& parent)
 {
   beginRemoveRows(parent, row, row + count - 1);
-  
+
   for (int i = 0; i < count; ++i) {
     deleteRow(resultRow(row));
     cache_.erase(cache_.begin() + (row - cacheStart_));
@@ -445,7 +449,7 @@ bool QueryModel<Result>::removeRows(int row, int count, const WModelIndex& paren
 }
 
 template <class Result>
-bool QueryModel<Result>::setHeaderData(int section, Orientation orientation,
+awaitable<bool> QueryModel<Result>::setHeaderData(int section, Orientation orientation,
                                        const cpp17::any& value,
                                        ItemDataRole role)
 {
@@ -457,9 +461,9 @@ bool QueryModel<Result>::setHeaderData(int section, Orientation orientation,
 
     headerDataChanged().emit(orientation, section, section);
 
-    return true;
-  } else
-    return WAbstractTableModel::setHeaderData(section, orientation, value, role);
+    co_return true;
+  }
+  co_return co_await WAbstractTableModel::setHeaderData(section, orientation, value, role);
 }
 
 template <class Result>
@@ -518,7 +522,7 @@ WModelIndex QueryModel<Result>::fromRawIndex(void *rawIndex) const
       const Result& result = resultRow(row);
 
       if (resultId(result) == id)
-	return index(row, 0);
+    return index(row, 0);
     }
   }
 

@@ -799,6 +799,12 @@ public:
    */
   virtual Signal<awaitable<void>()>& modelReset() { return modelReset_; }
 
+  virtual awaitable<int> cacheRow(int begin, int end, int max) { co_return -1; }
+
+  virtual awaitable<int> cacheRowCount(bool recache = false) { co_return -1; }
+
+  virtual awaitable<void> loadAllInCache() { co_return; }
+
 protected:
   /*! \brief Resets the model and invalidate any data.
    *

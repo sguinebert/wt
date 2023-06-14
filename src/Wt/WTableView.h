@@ -223,6 +223,10 @@ private:
   int renderedFirstRow_, renderedLastRow_,
     renderedFirstColumn_, renderedLastColumn_;
 
+  /* max Desired rendered area */
+  int maxRenderedRows_;
+  int modelRowCount_ = -1;
+
   /* Scroll to to process after viewport height is known */
   int scrollToRow_;
   ScrollHint scrollToHint_;
@@ -269,7 +273,7 @@ private:
 
   virtual WWidget *headerWidget(int column, bool contentsOnly = true) override;
 
-  void onViewportChange(int left, int top, int width, int height);
+  awaitable<void> onViewportChange(int left, int top, int width, int height);
   void onColumnResize(int, WLength);
   void resetGeometry();
   

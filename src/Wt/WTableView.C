@@ -296,16 +296,18 @@ awaitable<void> WTableView::setModel(const std::shared_ptr<WAbstractItemModel>& 
   using Self = WTableView;
 
   auto oldmodel = WAbstractItemView::model();
-  oldmodel->columnsInserted().disconnect<&Self::modelColumnsInserted>(this);
-  oldmodel->columnsAboutToBeRemoved().disconnect<&Self::modelColumnsAboutToBeRemoved>(this);
-  oldmodel->rowsInserted().disconnect<&Self::modelRowsInserted>(this);
-  oldmodel->rowsAboutToBeRemoved().disconnect<&Self::modelRowsAboutToBeRemoved>(this);
-  oldmodel->rowsRemoved().disconnect<&Self::modelRowsRemoved>(this);
-  oldmodel->dataChanged().disconnect<&Self::modelDataChanged>(this);
-  oldmodel->headerDataChanged().disconnect<&Self::modelHeaderDataChanged>(this);
-  oldmodel->layoutAboutToBeChanged().disconnect<&Self::modelLayoutAboutToBeChanged>(this);
-  oldmodel->layoutChanged().disconnect<&Self::modelLayoutChanged>(this);
-  oldmodel->modelReset().disconnect<&Self::modelReset>(this);
+  if(oldmodel) {
+      oldmodel->columnsInserted().disconnect<&Self::modelColumnsInserted>(this);
+      oldmodel->columnsAboutToBeRemoved().disconnect<&Self::modelColumnsAboutToBeRemoved>(this);
+      oldmodel->rowsInserted().disconnect<&Self::modelRowsInserted>(this);
+      oldmodel->rowsAboutToBeRemoved().disconnect<&Self::modelRowsAboutToBeRemoved>(this);
+      oldmodel->rowsRemoved().disconnect<&Self::modelRowsRemoved>(this);
+      oldmodel->dataChanged().disconnect<&Self::modelDataChanged>(this);
+      oldmodel->headerDataChanged().disconnect<&Self::modelHeaderDataChanged>(this);
+      oldmodel->layoutAboutToBeChanged().disconnect<&Self::modelLayoutAboutToBeChanged>(this);
+      oldmodel->layoutChanged().disconnect<&Self::modelLayoutChanged>(this);
+      oldmodel->modelReset().disconnect<&Self::modelReset>(this);
+  }
 
   co_await WAbstractItemView::setModel(model);
 
@@ -591,8 +593,7 @@ void WTableView::removeSection(const Side side)
   }
 }
 
-void WTableView::renderTable(const int fr, const int lr,
-			     const int fc, const int lc)
+void WTableView::renderTable(const int fr, const int lr, const int fc, const int lc)
 {
   assert(ajaxMode());
 
@@ -752,9 +753,8 @@ void WTableView::resetGeometry()
   if (ajaxMode()) {
     reset();
   } else { // plain HTML
-    renderedLastRow_
-      = std::min(model()->rowCount(rootIndex()) - 1,
-		 renderedFirstRow_ + pageSize() - 1);
+    renderedLastRow_ = std::min(model()->rowCount(rootIndex()) - 1,
+                                renderedFirstRow_ + pageSize() - 1);
     renderedLastColumn_ = columnCount() - 1;
   }
 }
@@ -780,7 +780,7 @@ void WTableView::reset()
 
   computeRenderedArea();
 
-  int renderedRows = lastRow() - firstRow() + 1;
+  int renderedRows = lastRow() - firstRow() /*+ 1*/;
   for (int i = 0; i < renderedRows; ++i)
     removeSection(Side::Top);
 
@@ -1668,8 +1668,8 @@ void WTableView::updateItem(const WModelIndex& index,
     }
   }
 }
- 
-void WTableView::onViewportChange(int left, int top, int width, int height)
+
+awaitable<void> WTableView::onViewportChange(int left, int top, int width, int height)
 {
   assert(ajaxMode());
 
@@ -1686,7 +1686,41 @@ void WTableView::onViewportChange(int left, int top, int width, int height)
 
   computeRenderedArea();
 
-  scheduleRerender(RenderState::NeedAdjustViewPort);  
+  if(model()) {
+    auto app = WApplication::instance();
+
+    auto exec = co_await asio::this_coro::executor;
+
+    //std::cout << "renderedFirstRow_, renderedLastRow_ : " << renderedFirstRow_ << " - " << renderedLastRow_ << std::endl;
+    auto readsize = co_await model()->cacheRow(renderedFirstRow_, renderedLastRow_, maxRenderedRows_);
+
+    co_await model()->cacheRowCount();
+
+//    std::cout << "this_thread : " << std::this_thread::get_id() << std::endl;
+//    co_await asio::post(exec, use_awaitable); //transfer to dbo
+//    std::cout << "this_thread post : " << std::this_thread::get_id() << std::endl;
+
+
+    //app->attachThread(true);
+
+    if(readsize > 0) {
+      if(renderedFirstRow_ + readsize < renderedLastRow_) {
+        renderedLastRow_ = renderedFirstRow_ + readsize - 1;
+        modelRowCount_ = renderedLastRow_ + 1;
+      }
+      if(!renderedFirstRow_) {
+        scheduleRerender(RenderState::NeedRerender);
+        co_return;
+      }
+    }
+    modelRowCount_ = model()->rowCount(rootIndex());
+  }
+
+//  if(readsize)
+//    scheduleRerender(RenderState::NeedRerenderData);
+//  else
+  scheduleRerender(RenderState::NeedAdjustViewPort);
+  co_return;
 }
 
 void WTableView::onColumnResize(int, WLength)
@@ -1708,12 +1742,13 @@ void WTableView::computeRenderedArea()
     if (viewportHeight_ != -1) {
       /* row range */
       const int top = std::min(viewportTop_,
-			 static_cast<int>(canvas_->height().toPixels()));
+                               static_cast<int>(canvas_->height().toPixels()));
 
       const int height = std::min(viewportHeight_,
-			    static_cast<int>(canvas_->height().toPixels()));
+                                  static_cast<int>(canvas_->height().toPixels()));
 
       const double renderedRows = height / rowHeight().toPixels();
+
 
       const double renderedRowsAbove = preloadMargin(Side::Top).isAuto() ? renderedRows + borderRows :
                                                                            preloadMargin(Side::Top).toPixels() / rowHeight().toPixels();
@@ -1721,13 +1756,21 @@ void WTableView::computeRenderedArea()
       const double renderedRowsBelow = preloadMargin(Side::Bottom).isAuto() ? renderedRows + borderRows :
                                                                               preloadMargin(Side::Bottom).toPixels() / rowHeight().toPixels();
 
+
       renderedFirstRow_ = static_cast<int>(std::floor(top / rowHeight().toPixels()));
 
-      renderedLastRow_
-        = static_cast<int>(std::ceil(std::min(renderedFirstRow_ + renderedRows + renderedRowsBelow, modelHeight - 1.0)));
-      renderedFirstRow_
-        = static_cast<int>(std::floor(std::max(renderedFirstRow_ - renderedRowsAbove, 0.0)));
+      if(modelHeight < 0)
+        renderedLastRow_ = static_cast<int>(std::ceil(renderedFirstRow_ + renderedRows + renderedRowsBelow));
+      else {
+        renderedLastRow_ = static_cast<int>(std::ceil(std::min(renderedFirstRow_ + renderedRows + renderedRowsBelow - 1, modelHeight - 1.0)));
+      }
+//      renderedLastRow_
+//        = static_cast<int>(std::ceil(std::min(renderedFirstRow_ + renderedRows + renderedRowsBelow, modelHeight - 1.0)));
+      renderedFirstRow_ = static_cast<int>(std::floor(std::max(renderedFirstRow_ - renderedRowsAbove, 0.0)));
+
+      maxRenderedRows_ = renderedLastRow_ - renderedFirstRow_;
     } else {
+      maxRenderedRows_ = 0;
       renderedFirstRow_ = 0;
       renderedLastRow_ = modelHeight - 1;
     }
@@ -1754,25 +1797,25 @@ void WTableView::computeRenderedArea()
     int total = 0;
     renderedFirstColumn_ = rowHeaderCount();
     renderedLastColumn_ = columnCount() - 1;
-    for (int i = rowHeaderCount(); i < columnCount(); i++) {
+    for (int i = rowHeaderCount(); i < columnCount(); i++)
+    {
       if (columnInfo(i).hidden)
-	continue;
+        continue;
 
       int w = static_cast<int>(columnInfo(i).width.toPixels());
 
       if (total <= left && left < total + w)
-	renderedFirstColumn_ = i;
+        renderedFirstColumn_ = i;
 
       if (total <= right && right < total + w) {
-	renderedLastColumn_ = i;
-	break;
+        renderedLastColumn_ = i;
+        break;
       }
 
       total += w + 7;
     }
 
-    assert(renderedLastColumn_ == -1
-	   || renderedFirstColumn_ <= renderedLastColumn_);
+    assert(renderedLastColumn_ == -1 || renderedFirstColumn_ <= renderedLastColumn_);
 
   } else { // Plain HTML
     renderedFirstColumn_ = 0;
@@ -1795,11 +1838,12 @@ void WTableView::adjustToViewport()
   if (renderedFirstRow_ != firstRow() || 
       renderedLastRow_ != lastRow() ||
       renderedFirstColumn_ != firstColumn()||
-      renderedLastColumn_ != lastColumn()) {
-    renderTable(renderedFirstRow_, 
-		renderedLastRow_, 
-		renderedFirstColumn_, 
-		renderedLastColumn_);
+      renderedLastColumn_ != lastColumn())
+  {
+    renderTable(renderedFirstRow_,
+                renderedLastRow_,
+                renderedFirstColumn_,
+                renderedLastColumn_);
   }
 }
 
@@ -1919,8 +1963,7 @@ WModelIndex WTableView::modelIndexAt(WWidget *widget) const
   return WModelIndex();
 }
 
-WModelIndex WTableView::translateModelIndex(bool headerColumns,
-					    const WMouseEvent& event)
+WModelIndex WTableView::translateModelIndex(bool headerColumns, const WMouseEvent& event)
 {
   int row = (int)(event.widget().y / rowHeight().toPixels());
   int column = -1;
@@ -1930,21 +1973,21 @@ WModelIndex WTableView::translateModelIndex(bool headerColumns,
   if (headerColumns) {
     for (int i = 0; i < rowHeaderCount(); ++i) {
       if (!columnInfo(i).hidden)
-	total += static_cast<int>(columnInfo(i).width.toPixels()) + 7;
+        total += static_cast<int>(columnInfo(i).width.toPixels()) + 7;
 
       if (event.widget().x < total) {
-	column = i;
-	break;
+        column = i;
+        break;
       }
     }
   } else {
     for (int i = rowHeaderCount(); i < columnCount(); i++) {
       if (!columnInfo(i).hidden)
-	total += static_cast<int>(columnInfo(i).width.toPixels()) + 7;
+        total += static_cast<int>(columnInfo(i).width.toPixels()) + 7;
 
       if (event.widget().x < total) {
-	column = i;
-	break;
+        column = i;
+        break;
       }
     }
   }
@@ -2086,8 +2129,7 @@ void WTableView::setCurrentPage(int page)
   renderedFirstRow_ = page * pageSize();
 
   if (model())
-    renderedLastRow_= std::min(renderedFirstRow_ + pageSize() - 1,
-			       model()->rowCount(rootIndex()) - 1);
+    renderedLastRow_= std::min(renderedFirstRow_ + pageSize() - 1, model()->rowCount(rootIndex()) - 1);
   else
     renderedLastRow_ = renderedFirstRow_;
  

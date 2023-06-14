@@ -36,8 +36,10 @@ WComboBox::WComboBox(std::vector<WString> &strings)
   setModel(std::make_shared<WStringListModel>(strings));
 }
 
-void WComboBox::setModel(const std::shared_ptr<WAbstractItemModel> model)
+awaitable<void> WComboBox::setModel(const std::shared_ptr<WAbstractItemModel> model)
 {
+  co_await model->loadAllInCache();
+
   if (model_) {
     /* disconnect slots from previous model */
 //    for (unsigned i = 0; i < modelConnections_.size(); ++i)
@@ -53,6 +55,32 @@ void WComboBox::setModel(const std::shared_ptr<WAbstractItemModel> model)
     model_->layoutChanged().disconnect<&WComboBox::layoutChanged>(this);
   }
 
+  model_ = model;
+  model_->columnsInserted().connect<&WComboBox::onSourceChanged>(this);
+  model_->columnsRemoved().connect<&WComboBox::onSourceChanged>(this);
+  model_->rowsInserted().connect<&WComboBox::rowsInserted>(this);
+  model_->rowsRemoved().connect<&WComboBox::rowsRemoved>(this);
+  model_->dataChanged().connect<&WComboBox::onDataChanged>(this);
+  model_->modelReset().connect<&WComboBox::itemsChanged>(this);
+  model_->layoutAboutToBeChanged().connect<&WComboBox::saveSelection>(this);
+  model_->layoutChanged().connect<&WComboBox::layoutChanged>(this);
+
+  /* Redraw contents of the combo box to match the contents of the new model.
+   */
+  refresh();
+}
+void WComboBox::setModel(const std::shared_ptr<WStringListModel> model)
+{
+  if (model_) {
+    model_->columnsInserted().disconnect<&WComboBox::onSourceChanged>(this);
+    model_->columnsRemoved().disconnect<&WComboBox::onSourceChanged>(this);
+    model_->rowsInserted().disconnect<&WComboBox::rowsInserted>(this);
+    model_->rowsRemoved().disconnect<&WComboBox::rowsRemoved>(this);
+    model_->dataChanged().disconnect<&WComboBox::onDataChanged>(this);
+    model_->modelReset().disconnect<&WComboBox::itemsChanged>(this);
+    model_->layoutAboutToBeChanged().disconnect<&WComboBox::saveSelection>(this);
+    model_->layoutChanged().disconnect<&WComboBox::layoutChanged>(this);
+  }
   model_ = model;
   model_->columnsInserted().connect<&WComboBox::onSourceChanged>(this);
   model_->columnsRemoved().connect<&WComboBox::onSourceChanged>(this);
@@ -256,10 +284,9 @@ void WComboBox::updateDom(DomElement& element, bool all)
       if (isSelected(i))
 	item->setProperty(Property::Selected, "true");
 
-      WString sc = asString(model_->data(i, modelColumn_, 
-					 ItemDataRole::StyleClass));
+      WString sc = asString(model_->data(i, modelColumn_, ItemDataRole::StyleClass));
       if (!sc.empty())
-	item->setProperty(Property::Class, sc.toUTF8());
+        item->setProperty(Property::Class, sc.toUTF8());
 
 
       // Read out opt-group

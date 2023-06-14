@@ -252,7 +252,7 @@ public:
 
     bool requireSubqueryAlias() const
     {
-        return false;
+        return true;
     }
 
     std::string autoincrementInsertInfix(const std::string &) const

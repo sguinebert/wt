@@ -43,11 +43,12 @@ protected:
   template <class ResultCallableT>
   auto handle_exec(ResultCallableT&& handler) {
       auto initiation = [this](auto&& handler) { // lambda called via run or poll method from io_context
+          //volatile auto io_ctx = get_thread_context();
+          auto io_ctx = boost::asio::get_associated_executor(handler);
 
+          boost::asio::post(derived().socket().get_executor(), [this, io_ctx, handler = std::move(handler)] () mutable {
 
-          boost::asio::post(derived().socket().get_executor(), [this, handler = std::move(handler)] () mutable {
-
-              auto wrapped_handler = [handler = std::move(handler), r = std::make_shared<result>(nullptr)](auto&& res) mutable {
+              auto wrapped_handler = [handler = std::move(handler), io_ctx, r = std::make_shared<result>(nullptr)](auto&& res) mutable {
                   if (!res.done()) {
 
                       if(res.status() == result::status_t::PIPELINE_SYNC)
@@ -59,7 +60,10 @@ protected:
                       if (!r->done()) throw std::runtime_error{"expected one result"};
                       *r = std::move(res);
                   } else {
-                      handler(std::move(*r));
+                      //std::cout << "io_ctx : " << &io_ctx << std::endl;
+                      boost::asio::post(io_ctx, [handler = std::move(handler), r = std::move(r)] () mutable { handler(std::move(*r)); });
+
+                      //handler(std::move(*r));
                   }
               };
 

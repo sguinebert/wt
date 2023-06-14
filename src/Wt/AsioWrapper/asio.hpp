@@ -40,6 +40,8 @@ using namespace boost::asio::experimental::awaitable_operators;
 using namespace std::literals::chrono_literals;
 using std::chrono::steady_clock;
 using executor_t = boost::asio::io_context::executor_type;
+extern thread_local boost::asio::io_context* thread_context;
+
 #else
 #  error Sorry, this code is only compilable with coroutine support and asio 1.21+
 #endif
@@ -64,11 +66,17 @@ using namespace asio::experimental::awaitable_operators;
 using namespace std::literals::chrono_literals;
 using std::chrono::steady_clock;
 using executor_t = asio::io_context::executor_type;
+inline thread_local asio::io_context* thread_context = nullptr;
 #else
 #  error Sorry, this code is only compilable with coroutine support and asio 1.21+
 #endif
 
 #endif // WT_ASIO_IS_BOOST_ASIO
+
+static boost::asio::io_context* get_thread_context() {
+    asm volatile("":::"memory");
+    return thread_context;
+}
 
 #include "namespace.hpp"
 

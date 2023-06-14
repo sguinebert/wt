@@ -95,14 +95,17 @@ void WAbstractChart::setModel(const std::shared_ptr<WAbstractChartModel>& model)
 {
   if (model_) {
     /* disconnect slots from previous model */
-    for (unsigned i = 0; i < modelConnections_.size(); ++i)
-      modelConnections_[i].disconnect();
-    modelConnections_.clear();
+//    for (unsigned i = 0; i < modelConnections_.size(); ++i)
+//      modelConnections_[i].disconnect();
+//    modelConnections_.clear();
+    //model_->changed().disconnect_all();
+    model_->changed().disconnect<&WAbstractChart::modelReset>(this);
   }
 
   model_ = model;
 
-  modelConnections_.push_back(model_->changed().connect<&WAbstractChart::modelReset>(this));
+  model_->changed().connect<&WAbstractChart::modelReset>(this);
+  //modelConnections_.push_back(model_->changed().connect<&WAbstractChart::modelReset>(this));
 
   modelChanged();
 }
