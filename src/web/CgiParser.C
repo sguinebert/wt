@@ -50,15 +50,19 @@ using std::strtol;
 
 namespace
 {
-void parseStringView(std::string_view input, std::vector<std::string_view>& parsed) {
-    const char* data = input.data();
+void parseStringView(std::string_view input, std::vector<std::pair<std::string_view, std::string_view>>& parsed) {
+    char* data = (char *)input.data();
     size_t size = input.size();
+    unsigned tail = size - size % 32;
+    bool isKey = true;
 
     __m256i separatorsAnd = _mm256_set1_epi8('&');
     __m256i separatorsEqual = _mm256_set1_epi8('=');
 
+    int remaining = 0;
     // Process 32 bytes at a time (256 bits)
-    for (size_t i = 0; i < size; i += 32) {
+    for (size_t i = 0; i < tail; i += 32) {
+        char *ptr = data + i;
         __m256i inputChunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(data + i));
 
         // Find positions of '&' and '=' using SIMD comparison
@@ -69,25 +73,76 @@ void parseStringView(std::string_view input, std::vector<std::string_view>& pars
         __m256i mask = _mm256_or_si256(cmpAnd, cmpEqual);
 
         // Extract mask bits as a 32-bit integer
-        int maskBits = _mm256_movemask_epi8(mask);
+        unsigned maskBits = _mm256_movemask_epi8(mask);
 
+        if(!maskBits)
+            remaining += 32;
         // Process each position separately
         while (maskBits != 0) {
             // Find the position of the first separator
             int position = __builtin_ctz(maskBits);
 
             // Create sub string_view for the parsed segment
-            std::string_view segment(data + i, position);
-            parsed.push_back(segment);
-            //printStringView(segment);
+            std::string_view segment(ptr - remaining, position + remaining);
+            if(isKey) {
+                parsed.emplace_back(segment, std::string_view());
+                isKey = false;
+            }
+            else {
+                parsed.back().second = segment;
+                isKey = true;
+            }
 
             // Move to the next segment
-            data += i + position + 1;
-            size -= i + position + 1;
+            ptr += position + 1;
 
             // Update the mask by shifting out the processed bits
             maskBits >>= position + 1;
+            if(!maskBits)
+                remaining = data + i + 32 - ptr;
+            else
+                remaining = 0;
         }
+    }
+
+    for(unsigned pos = tail; pos < size;)
+    {
+        std::size_t next = input.find_first_of("&=", pos);
+
+        if (next == pos && input[next] == '&')
+        {
+            if(!isKey) {
+                parsed.back().second = input.substr(pos - remaining, next - pos + remaining);
+                isKey = true;
+                remaining = 0;
+            }
+            // skip empty
+            pos = next + 1;
+            continue;
+        }
+
+        if (next == std::string::npos || input[next] == '&')
+        {
+            if (next == std::string::npos)
+                next = input.length();
+            if(!isKey) {
+                parsed.back().second = input.substr(pos - remaining, next - pos + remaining);
+                isKey = true;
+            }
+            else
+                parsed.emplace_back(input.substr(pos, next - pos), std::string_view());
+            pos = next + 1;
+        }
+        else
+        {
+            std::size_t amp = input.find('&', next + 1);
+            if (amp == std::string::npos)
+                amp = input.length();
+
+            parsed.emplace_back(input.substr(pos - remaining, next - pos + remaining), input.substr(next + 1, amp - (next + 1)));
+            pos = amp + 1;
+        }
+        remaining = 0;
     }
 }
 
@@ -427,7 +482,7 @@ namespace Wt
       // For POST, parameters in url-encoded URL are still parsed.
 
       //std::string formQueryString = buf.get();
-      auto fsv = request.body();
+      auto message = request.body();
       auto& parameters = context->req().query();
 
       // if(request.isWebSocketMessage())
@@ -435,9 +490,12 @@ namespace Wt
       //std::cerr << fmt::format("formQueryString (len={}): {} type : {}", len, fsv, type) << std::endl;
 
       LOG_DEBUG("formQueryString (len={}): {}", len, queryString);
-      if (!fsv.empty())
+      if (!message.empty())
       {
-          request.parseFormUrlEncoded(fsv);
+        std::vector<std::pair<std::string_view, std::string_view>> views;
+        parseStringView(message, views);
+        request.parseFormUrlEncoded(views);
+        //request.parseFormUrlEncoded(message);
       }
 
       if (auto [begin, end] = parameters.equal_range("Wt-params"); begin != parameters.end() && std::distance(begin, end) == 1)
@@ -561,7 +619,10 @@ namespace Wt
       LOG_DEBUG("formQueryString (len={}): {}", len, message);
       if (!message.empty())
       {
-          request.parseFormUrlEncoded(message);
+        std::vector<std::pair<std::string_view, std::string_view>> views;
+        parseStringView(message, views);
+        request.parseFormUrlEncoded(views);
+        //request.parseFormUrlEncoded(message);
       }
 
       if (auto [begin, end] = parameters.equal_range("Wt-params"); begin != parameters.end() && std::distance(begin, end) == 1)

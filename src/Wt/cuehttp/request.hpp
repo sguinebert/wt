@@ -37,46 +37,6 @@
 namespace Wt {
 namespace http {
 
-//void parseStringView(std::string_view input, std::vector<std::string_view>& parsed) {
-//    const char* data = input.data();
-//    size_t size = input.size();
-
-//    __m256i separatorsAnd = _mm256_set1_epi8('&');
-//    __m256i separatorsEqual = _mm256_set1_epi8('=');
-
-//    // Process 32 bytes at a time (256 bits)
-//    for (size_t i = 0; i < size; i += 32) {
-//        __m256i inputChunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(data + i));
-
-//        // Find positions of '&' and '=' using SIMD comparison
-//        __m256i cmpAnd = _mm256_cmpeq_epi8(inputChunk, separatorsAnd);
-//        __m256i cmpEqual = _mm256_cmpeq_epi8(inputChunk, separatorsEqual);
-
-//        // Mask indicating positions where '&' or '=' occur
-//        __m256i mask = _mm256_or_si256(cmpAnd, cmpEqual);
-
-//        // Extract mask bits as a 32-bit integer
-//        int maskBits = _mm256_movemask_epi8(mask);
-
-//        // Process each position separately
-//        while (maskBits != 0) {
-//            // Find the position of the first separator
-//            int position = __builtin_ctz(maskBits);
-
-//            // Create sub string_view for the parsed segment
-//            std::string_view segment(data + i, position);
-//            parsed.push_back(segment);
-//            //printStringView(segment);
-
-//            // Move to the next segment
-//            data += i + position + 1;
-//            size -= i + position + 1;
-
-//            // Update the mask by shifting out the processed bits
-//            maskBits >>= position + 1;
-//        }
-//    }
-//}
 /*! \brief A list of parameter values.
  *
  * This is the type used to aggregate all values for a single parameter.
@@ -276,6 +236,18 @@ public:
                 query_.emplace(std::move(key), std::move(value));
                 pos = amp + 1;
             }
+        }
+    }
+
+    void parseFormUrlEncoded(std::vector<std::pair<std::string_view, std::string_view>>& s)
+    {
+        for(auto &[keysv, valsv] : s) {
+            std::string key { keysv };
+            inplaceUrlDecode(key);
+
+            std::string val { valsv };
+            inplaceUrlDecode(val);
+            query_.emplace(std::move(key), std::move(val));
         }
     }
 

@@ -1699,8 +1699,6 @@ awaitable<void> WTableView::onViewportChange(int left, int top, int width, int h
 //    std::cout << "this_thread : " << std::this_thread::get_id() << std::endl;
 //    co_await asio::post(exec, use_awaitable); //transfer to dbo
 //    std::cout << "this_thread post : " << std::this_thread::get_id() << std::endl;
-
-
     //app->attachThread(true);
 
     if(readsize > 0) {
