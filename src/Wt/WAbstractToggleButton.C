@@ -45,10 +45,8 @@ WStatelessSlot *WAbstractToggleButton::getStateless(Method method)
 
   if (method == static_cast<WObject::Method>(setC))
     return implementStateless(setC, &WAbstractToggleButton::undoSetChecked);
-  else if (method == static_cast<WObject::Method>
-	   (&WAbstractToggleButton::setUnChecked))
-    return implementStateless(&WAbstractToggleButton::setUnChecked,
-			      &WAbstractToggleButton::undoSetUnChecked);
+  else if (method == static_cast<WObject::Method>(&WAbstractToggleButton::setUnChecked))
+    return implementStateless(&WAbstractToggleButton::setUnChecked, &WAbstractToggleButton::undoSetUnChecked);
   else
     return WFormWidget::getStateless(method);
 }

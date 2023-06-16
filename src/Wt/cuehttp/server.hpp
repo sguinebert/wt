@@ -97,8 +97,8 @@ protected:
     }
 
     std::unique_ptr<asio::ip::tcp::acceptor> acceptor_;
-    detail::engines* engine_ = nullptr;
     std::function<awaitable<void>(context&)> handler_;
+    detail::engines* engine_ = nullptr;
 };
 
 template <typename _Socket = detail::http_socket>
@@ -146,8 +146,8 @@ template <>
 class server<detail::https_socket> final : public base_server<detail::https_socket, server<detail::https_socket>>,
                                            safe_noncopyable {
 public:
-    server(std::function<void(context&)> handler, const std::string& key, const std::string& cert) noexcept
-        : base_server{std::move(handler)}, ssl_context_{asio::ssl::context::sslv23} {
+    server(std::function<awaitable<void>(context&)> handler, detail::engines* engine, const std::string& key, const std::string& cert) noexcept
+        : base_server{std::move(handler), engine}, ssl_context_{asio::ssl::context::sslv23} {
         ssl_context_.use_certificate_chain_file(cert);
         ssl_context_.use_private_key_file(key, asio::ssl::context::pem);
     }
@@ -169,8 +169,7 @@ public:
     }
 
     void do_accept_real() {
-        auto connector = std::make_shared<detail::connection<detail::https_socket>>(
-            this->handler_, detail::engines::default_engines().get(), ssl_context_);
+        auto connector = std::make_shared<detail::connection<detail::https_socket>>(this->handler_, this->engine_->get(), ssl_context_);
         this->acceptor_->async_accept(connector->socket(), [this, connector](const boost::system::error_code& code) {
             if (!code) {
                 connector->socket().set_option(asio::ip::tcp::no_delay{true});

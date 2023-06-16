@@ -56,8 +56,10 @@ LOGGER("Http.Client");
 
   namespace Http {
 
+
 class Client::Impl : public std::enable_shared_from_this<Client::Impl>
 {
+    friend class Client;
 public:
   struct ChunkState {
     enum class State { Size, Data, Complete, Error } state;
@@ -67,14 +69,13 @@ public:
 
   Impl(Client *client,
        const std::shared_ptr<WebSession>& session,
-       asio::io_service& ioService)
-    : ioService_(ioService),
-      strand_(ioService),
+       asio::io_context& io_context)
+    : ioService_(io_context),
+      strand_(io_context),
       resolver_(ioService_),
       method_(Http::Method::Get),
       client_(client),
       session_(session),
-      timer_(ioService_),
       timeout_(0),
       maximumResponseSize_(0),
       responseSize_(0),
@@ -100,18 +101,19 @@ public:
     maximumResponseSize_ = bytes;
   }
 
-  void request(Http::Method method,
-               const std::string& protocol,
-               const std::string& auth,
-	       const std::string& server,
-	       int port,
-	       const std::string& path,
-	       const Message& message)
+  awaitable<void> request(Http::Method method,
+                          const std::string protocol,
+                          const std::string auth,
+                          const std::string server,
+                          int port,
+                          const std::string path,
+                          std::shared_ptr<Impl> ptr,
+                          bool emitdone)
   {
     const char *methodNames_[] = { "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD" };
 
     method_ = method;
-    request_ = message;
+    //request_ = message;
 
     std::ostream request_stream(&requestBuf_);
     request_stream << methodNames_[static_cast<unsigned int>(method)] << " " << path << " HTTP/1.1\r\n";
@@ -126,54 +128,188 @@ public:
 		     << Wt::Utils::base64Encode(auth) << "\r\n";
 
     bool haveContentLength = false;
-    for (unsigned i = 0; i < message.headers().size(); ++i) {
-      const Message::Header& h = message.headers()[i];
+    for (unsigned i = 0; i < request_.headers().size(); ++i) {
+      const Message::Header& h = request_.headers()[i];
       if (strcasecmp(h.name().c_str(), "Content-Length") == 0)
-	haveContentLength = true;
+        haveContentLength = true;
       request_stream << h.name() << ": " << h.value() << "\r\n";
     }
 
-    if ((method == Http::Method::Post || method == Http::Method::Put || method == Http::Method::Delete || method == Http::Method::Patch) &&
-	!haveContentLength)
-      request_stream << "Content-Length: " << message.body().length() 
-		     << "\r\n";
+    if ((method == Http::Method::Post || method == Http::Method::Put || method == Http::Method::Delete || method == Http::Method::Patch) && !haveContentLength)
+      request_stream << "Content-Length: " << request_.body().length() << "\r\n";
 
     request_stream << "\r\n";
 
     if (method == Http::Method::Post || method == Http::Method::Put || method == Http::Method::Delete || method == Http::Method::Patch)
-      request_stream << message.body();
+      request_stream << request_.body();
 
     tcp::resolver::query query(server, std::to_string(port));
 
-    startTimer();
-    resolver_.async_resolve
-      (query,
-       strand_.wrap(std::bind(&Impl::handleResolve,
-			      shared_from_this(),
-			      std::placeholders::_1,
-			      std::placeholders::_2)));
+    //startTimer();
+
+    auto [ec, endpoint_iterator] = co_await resolver_.async_resolve(query, use_nothrow_awaitable);
+
+    //    handleResolve(ec, endpoint);
+    cancelTimer();
+
+    if (!ec && !aborted_) {
+      // Attempt a connection to the first endpoint in the list.
+      // Each endpoint will be tried until we successfully establish
+      // a connection.
+      tcp::endpoint endpoint = *endpoint_iterator;
+
+      //startTimer();
+
+      //co_await asyncConnect(endpoint);
+//      asyncConnect(endpoint, std::bind(&Impl::handleConnect,
+//                                          shared_from_this(),
+//                                          std::placeholders::_1,
+//                                          ++endpoint_iterator));
+      //if TCP or SSL
+      for(;;)
+      {
+
+        auto [ec] = co_await socket().lowest_layer().async_connect(endpoint, use_nothrow_awaitable);
+
+        //handleConnect(ec, ++endpoint_iterator);
+
+        /* Within strand */
+
+        cancelTimer();
+
+        if (!ec && !aborted_) {
+            // The connection was successful. Do the handshake (SSL only)
+            //startTimer();
+
+            auto err  = co_await asyncHandshake();//  asyncHandshake(strand_.wrap(std::bind(&Impl::handleHandshake, shared_from_this(), std::placeholders::_1)));
+
+            /* handleHandshake */
+            cancelTimer();
+
+            if (!err && !aborted_) {
+                // The handshake was successful. Send the request.
+                //startTimer();
+
+                //asyncWriteRequest(strand_.wrap(std::bind(&Impl::handleWriteRequest, shared_from_this(), std::placeholders::_1, std::placeholders::_2)));
+                auto [ec, bytes] = co_await asio::async_write(socket(), requestBuf_, use_nothrow_awaitable);
+
+                /* handleWriteRequest */
+
+                cancelTimer();
+
+                if (!ec && !aborted_) {
+                    // Read the response status line.
+                    //startTimer();
+
+                    //asyncReadUntil("\r\n", strand_.wrap(std::bind(&Impl::handleReadStatusLine, shared_from_this(), std::placeholders::_1, std::placeholders::_2)));
+                    auto [ecc, readbytes] = co_await asio::async_read_until(socket(), responseBuf_, "\r\n", use_nothrow_awaitable);
+
+                    co_await handleReadStatusLine(ecc, readbytes);
+                    co_return; //END of request
+
+                } else {
+                    if (aborted_)
+                        err_ = asio::error::operation_aborted;
+                    else
+                        err_ = ec;
+                    co_await complete();
+                }
+
+            } else {
+                if (aborted_)
+                    err_ = asio::error::operation_aborted;
+                else
+                    err_ = err;
+                co_await complete();
+            }
+
+
+        } else if (endpoint_iterator != tcp::resolver::iterator()) {
+            // The connection failed. Try the next endpoint in the list.
+            socket().close();
+
+            /* Within strand */
+
+            cancelTimer();
+
+            if (!ec && !aborted_) {
+                // Attempt a connection to the first endpoint in the list.
+                // Each endpoint will be tried until we successfully establish
+                // a connection.
+                ++endpoint_iterator;
+                endpoint = *endpoint_iterator;
+
+                //startTimer();
+                continue; //co_await asyncConnect(endpoint);
+                //asyncConnect(endpoint, strand_.wrap(std::bind(&Impl::handleConnect, shared_from_this(), std::placeholders::_1, ++endpoint_iterator)));
+            } else {
+                if (aborted_)
+                    err_ = asio::error::operation_aborted;
+                else
+                    err_ = ec;
+                co_await complete();
+                break;
+            }
+        } else {
+            if (aborted_)
+                err_ = asio::error::operation_aborted;
+            else
+                err_ = ec;
+            co_await complete();
+            break;
+        }
+      }
+
+
+
+    } else {
+      if (aborted_)
+        err_ = asio::error::operation_aborted;
+      else
+        err_ = ec;
+      co_await complete();
+    }
+    co_return;
   }
 
   void asyncStop()
   {
-    ioService_.post
-      (strand_.wrap(std::bind(&Impl::stop, shared_from_this())));
+    ioService_.post(std::bind(&Impl::stop, shared_from_this()));
   }
 
-protected:
-  typedef std::function<void(const AsioWrapper::error_code&)>
-    ConnectHandler;
-  typedef std::function<void(const AsioWrapper::error_code&,
-			     const std::size_t&)> IOHandler;
+//  tcp::socket& vsocket()
+//  {
+//    if (auto cptr = std::get_if<std::unique_ptr<asio::ssl::stream<tcp::socket>>>(&connection_)) {
+//        return cptr->get()->next_layer();
+//    }
+//    return *std::get<std::unique_ptr<tcp::socket>>(connection_);
+//  }
 
+protected:
+//  std::variant<std::unique_ptr<tcp::socket>, std::unique_ptr<asio::ssl::stream<tcp::socket>>> connection_;
+//    awaitable<AsioWrapper::error_code> asyncHandshake(asio::ssl::stream<tcp::socket>& socket) {
+//        if (verifyEnabled_) {
+//            socket.set_verify_mode(asio::ssl::verify_peer);
+//            LOG_DEBUG("verifying that peer is {}", hostName_);
+//            socket.set_verify_callback(asio::ssl::rfc2818_verification(hostName_));
+//        }
+//        auto [ec] = co_await socket.async_handshake(asio::ssl::stream_base::client, use_nothrow_awaitable);
+//        co_return ec;
+//    }
+    awaitable<AsioWrapper::error_code> asyncHandshake(tcp::socket& socket)
+    {
+        co_return AsioWrapper::error_code();
+    }
+
+
+  typedef std::function<void(const AsioWrapper::error_code&)> ConnectHandler;
+  typedef std::function<void(const AsioWrapper::error_code&, const std::size_t&)> IOHandler;
   virtual tcp::socket& socket() = 0;
-  virtual void asyncConnect(tcp::endpoint& endpoint,
-			    const ConnectHandler& handler) = 0;
-  virtual void asyncHandshake(const ConnectHandler& handler) = 0;
-  virtual void asyncWriteRequest(const IOHandler& handler) = 0;
-  virtual void asyncReadUntil(const std::string& s,
-			      const IOHandler& handler) = 0;
-  virtual void asyncRead(const IOHandler& handler) = 0;
+//  virtual void asyncConnect(tcp::endpoint& endpoint, const ConnectHandler& handler) = 0;
+  virtual awaitable<AsioWrapper::error_code> asyncHandshake() = 0;
+//  virtual void asyncWriteRequest(const IOHandler& handler) = 0;
+//  virtual void asyncReadUntil(const std::string& s, const IOHandler& handler) = 0;
+//  virtual void asyncRead(const IOHandler& handler) = 0;
 
 private:
   void stop()
@@ -184,28 +320,47 @@ private:
 
     try {
       if (socket().is_open()) {
-	AsioWrapper::error_code ignored_ec;
-	socket().shutdown(tcp::socket::shutdown_both, ignored_ec);
-	socket().close();
+        AsioWrapper::error_code ignored_ec;
+        socket().shutdown(tcp::socket::shutdown_both, ignored_ec);
+        socket().close();
       }
     } catch (std::exception& e) {
       LOG_INFO("Client::abort(), stop(), ignoring error: {}", e.what());
     }
   }
 
-  void startTimer()
+  awaitable<void> watchdog(steady_clock::time_point& deadline)
   {
-    timer_.expires_from_now(timeout_);
-    timer_.async_wait
-      (strand_.wrap(std::bind(&Impl::timeout, shared_from_this(),
-			      std::placeholders::_1)));
+    asio::steady_timer timer(co_await boost::asio::this_coro::executor);
+    deadline = steady_clock::now() + timeout_;
+
+    auto now = steady_clock::now();
+    while (deadline > now)
+    {
+      timer.expires_at(deadline);
+      //co_await timer.async_wait(asio::bind_cancellation_slot(timer_cancel_.slot(), use_nothrow_awaitable));
+      co_await timer.async_wait(use_nothrow_awaitable);
+      now = steady_clock::now();
+    }
+    //kill
+    //co_await close();
+    AsioWrapper::error_code ignored_ec;
+    socket().shutdown(asio::ip::tcp::socket::shutdown_both, ignored_ec);
+    err_ = asio::error::timed_out;
+    co_return;
   }
+
+//  void startTimer()
+//  {
+//    timer_.expires_from_now(timeout_);
+//    timer_.async_wait(strand_.wrap(std::bind(&Impl::timeout, shared_from_this(), std::placeholders::_1)));
+//  }
 
   void cancelTimer()
   {
     /* Within strand */
-
-    timer_.cancel();
+    deadline_ = std::max(deadline_, steady_clock::now() + timeout_);
+    //timer_.cancel();
   }
 
   void timeout(const AsioWrapper::error_code& e)
@@ -214,120 +369,114 @@ private:
 
     if (e != asio::error::operation_aborted) {
       AsioWrapper::error_code ignored_ec;
-      socket().shutdown(asio::ip::tcp::socket::shutdown_both,
-			ignored_ec);
+      socket().shutdown(asio::ip::tcp::socket::shutdown_both, ignored_ec);
 
       err_ = asio::error::timed_out;
     }
   }
 
-  void handleResolve(const AsioWrapper::error_code& err,
-		     tcp::resolver::iterator endpoint_iterator)
-  {
-    /* Within strand */
+//  awaitable<void> handleResolve(const AsioWrapper::error_code& err, tcp::resolver::iterator endpoint_iterator)
+//  {
+//    /* Within strand */
 
-    cancelTimer();
+//    cancelTimer();
 
-    if (!err && !aborted_) {
-      // Attempt a connection to the first endpoint in the list.
-      // Each endpoint will be tried until we successfully establish
-      // a connection.
-      tcp::endpoint endpoint = *endpoint_iterator;
+//    if (!err && !aborted_) {
+//      // Attempt a connection to the first endpoint in the list.
+//      // Each endpoint will be tried until we successfully establish
+//      // a connection.
+//      tcp::endpoint endpoint = *endpoint_iterator;
 
-      startTimer();
-      asyncConnect(endpoint,
-		   strand_.wrap(std::bind(&Impl::handleConnect,
-					  shared_from_this(),
-					  std::placeholders::_1,
-					  ++endpoint_iterator)));
-    } else {
-      if (aborted_)
-        err_ = asio::error::operation_aborted;
-      else
-        err_ = err;
-      complete();
-    }
-  }
+//      startTimer();
+
+//      //co_await asyncConnect(endpoint);
+//      asyncConnect(endpoint, strand_.wrap(std::bind(&Impl::handleConnect, shared_from_this(), std::placeholders::_1, ++endpoint_iterator)));
+//    } else {
+//      if (aborted_)
+//        err_ = asio::error::operation_aborted;
+//      else
+//        err_ = err;
+//      co_await complete();
+//    }
+//    co_return;
+//  }
  
-  void handleConnect(const AsioWrapper::error_code& err,
-		     tcp::resolver::iterator endpoint_iterator)
-  {
-    /* Within strand */
+//  void handleConnect(const AsioWrapper::error_code& err,
+//		     tcp::resolver::iterator endpoint_iterator)
+//  {
+//    /* Within strand */
 
-    cancelTimer();
+//    cancelTimer();
 
-    if (!err && !aborted_) {
-      // The connection was successful. Do the handshake (SSL only)
-      startTimer();
-      asyncHandshake
-	(strand_.wrap(std::bind(&Impl::handleHandshake,
-				shared_from_this(),
-				std::placeholders::_1)));
-    } else if (endpoint_iterator != tcp::resolver::iterator()) {
-      // The connection failed. Try the next endpoint in the list.
-      socket().close();
+//    if (!err && !aborted_) {
+//      // The connection was successful. Do the handshake (SSL only)
+//      startTimer();
+//      asyncHandshake(); //asyncHandshake(strand_.wrap(std::bind(&Impl::handleHandshake, shared_from_this(), std::placeholders::_1)));
+//    } else if (endpoint_iterator != tcp::resolver::iterator()) {
+//      // The connection failed. Try the next endpoint in the list.
+//      socket().close();
 
-      handleResolve(AsioWrapper::error_code(), endpoint_iterator);
-    } else {
-      if (aborted_)
-        err_ = asio::error::operation_aborted;
-      else
-        err_ = err;
-      complete();
-    }
-  }
+//      handleResolve(AsioWrapper::error_code(), endpoint_iterator);
+//    } else {
+//      if (aborted_)
+//        err_ = asio::error::operation_aborted;
+//      else
+//        err_ = err;
+//      complete();
+//    }
+//  }
 
-  awaitable<void> handleHandshake(const AsioWrapper::error_code& err)
-  {
-    /* Within strand */
+//  awaitable<void> handleHandshake(const AsioWrapper::error_code& err)
+//  {
+//    /* Within strand */
 
-    cancelTimer();
+//    cancelTimer();
 
-    if (!err && !aborted_) {
-      // The handshake was successful. Send the request.
-      startTimer();
-      asyncWriteRequest
-	(strand_.wrap
-	 (std::bind(&Impl::handleWriteRequest,
-		      shared_from_this(),
-		      std::placeholders::_1,
-		      std::placeholders::_2)));
-    } else {
-      if (aborted_)
-        err_ = asio::error::operation_aborted;
-      else
-        err_ = err;
-      co_await complete();
-    }
-    co_return;
-  }
+//    if (!err && !aborted_) {
+//      // The handshake was successful. Send the request.
+//      startTimer();
+//      asyncWriteRequest
+//	(strand_.wrap
+//	 (std::bind(&Impl::handleWriteRequest,
+//		      shared_from_this(),
+//		      std::placeholders::_1,
+//		      std::placeholders::_2)));
+//    } else {
+//      if (aborted_)
+//        err_ = asio::error::operation_aborted;
+//      else
+//        err_ = err;
+//      co_await complete();
+//    }
+//    co_return;
+//  }
 
-  awaitable<void> handleWriteRequest(const AsioWrapper::error_code& err,
-			  const std::size_t&)
-  {
-    /* Within strand */
+//  awaitable<void> handleWriteRequest(const AsioWrapper::error_code& err,
+//			  const std::size_t&)
+//  {
+//    /* Within strand */
 
-    cancelTimer();
+//    cancelTimer();
 
-    if (!err && !aborted_) {
-      // Read the response status line.
-      startTimer();
-      asyncReadUntil
-	("\r\n",
-	 strand_.wrap
-	 (std::bind(&Impl::handleReadStatusLine,
-		      shared_from_this(),
-		      std::placeholders::_1,
-		      std::placeholders::_2)));
-    } else {
-      if (aborted_)
-        err_ = asio::error::operation_aborted;
-      else
-        err_ = err;
-      co_await complete();
-    }
-    co_return;
-  }
+//    if (!err && !aborted_) {
+//      // Read the response status line.
+//      startTimer();
+//      asyncReadUntil
+//	("\r\n",
+//	 strand_.wrap
+//	 (std::bind(&Impl::handleReadStatusLine,
+//		      shared_from_this(),
+//		      std::placeholders::_1,
+//		      std::placeholders::_2)));
+//    } else {
+//      if (aborted_)
+//        err_ = asio::error::operation_aborted;
+//      else
+//        err_ = err;
+//      co_await complete();
+//    }
+//    co_return;
+//  }
 
   bool addResponseSize(std::size_t s)
   {
@@ -341,8 +490,7 @@ private:
     return true;
   }
 
-  awaitable<void> handleReadStatusLine(const AsioWrapper::error_code& err,
-			    const std::size_t& s)
+  awaitable<void> handleReadStatusLine(const AsioWrapper::error_code& err, const std::size_t& s)
   {
     /* Within strand */
 
@@ -380,14 +528,11 @@ private:
       response_.setStatus(status_code);
 
       // Read the response headers, which are terminated by a blank line.
-      startTimer();
-      asyncReadUntil
-	("\r\n\r\n",
-	 strand_.wrap
-	 (std::bind(&Impl::handleReadHeaders,
-		      shared_from_this(),
-		      std::placeholders::_1,
-		      std::placeholders::_2)));
+      //startTimer();
+
+      //asyncReadUntil("\r\n\r\n", strand_.wrap(std::bind(&Impl::handleReadHeaders, shared_from_this(), std::placeholders::_1, std::placeholders::_2)));
+      auto [ec, readbytes] = co_await asio::async_read_until(socket(), responseBuf_, "\r\n\r\n", use_nothrow_awaitable);
+      co_await handleReadHeaders(ec, readbytes);
     }
     else
     {
@@ -445,9 +590,7 @@ private:
         auto session = session_.lock();
         if (session) {
           auto server = session->controller()->server();
-          server->post(session->sessionId(),
-                       std::bind(&Impl::emitHeadersReceived,
-                                 shared_from_this()));
+          server->post(session->sessionId(), std::bind(&Impl::emitHeadersReceived, shared_from_this()));
         }
       } else {
         co_await emitHeadersReceived();
@@ -464,12 +607,11 @@ private:
       if (!done)
       {
         // Start reading remaining data until EOF.
-        startTimer();
-        asyncRead(strand_.wrap
-            (std::bind(&Impl::handleReadContent,
-                   shared_from_this(),
-                   std::placeholders::_1,
-                   std::placeholders::_2)));
+        //startTimer();
+        //asyncRead(strand_.wrap(std::bind(&Impl::handleReadContent, shared_from_this(), std::placeholders::_1, std::placeholders::_2)));
+        auto [ec, read] = co_await asio::async_read(socket(), responseBuf_, asio::transfer_at_least(1), use_nothrow_awaitable);
+        co_await handleReadContent(ec, read);
+
       } else {
         co_await complete();
       }
@@ -501,12 +643,10 @@ private:
 
       if (!done) {
         // Continue reading remaining data until EOF.
-        startTimer();
-        asyncRead(strand_.wrap
-                  (std::bind(&Impl::handleReadContent,
-                             shared_from_this(),
-                             std::placeholders::_1,
-                             std::placeholders::_2)));
+        //startTimer();
+        //asyncRead(strand_.wrap(std::bind(&Impl::handleReadContent, shared_from_this(), std::placeholders::_1, std::placeholders::_2)));
+        auto [ec, read] = co_await asio::async_read(socket(), responseBuf_, asio::transfer_at_least(1), use_nothrow_awaitable);
+        co_await handleReadContent(ec, read);
       } else {
         co_await complete();
       }
@@ -618,7 +758,7 @@ private:
 	  = std::min(std::size_t(text.end() - pos), chunkState_.size);
 	std::string text = std::string(pos, pos + thisChunk);
 	if (maximumResponseSize_)
-	  response_.addBodyText(text);
+      response_.addBodyText(text);
 
 	LOG_DEBUG("Chunked data: {}", text);
     co_await haveBodyData(text);
@@ -655,8 +795,7 @@ private:
       auto session = session_.lock();
       if (session) {
         auto server = session->controller()->server();
-        server->post(session->sessionId(),
-                     std::bind(&Impl::emitDone, shared_from_this()));
+        server->post(session->sessionId(), std::bind(&Impl::emitDone, shared_from_this()));
       }
     } else {
       co_await emitDone();
@@ -670,8 +809,7 @@ private:
       auto session = session_.lock();
       if (session) {
         auto server = session->controller()->server();
-        server->post(session->sessionId(),
-                     std::bind(&Impl::emitBodyReceived, shared_from_this(), text));
+        server->post(session->sessionId(), std::bind(&Impl::emitBodyReceived, shared_from_this(), text));
       }
     } else {
       co_await emitBodyReceived(text);
@@ -687,9 +825,9 @@ private:
     if (client_) {
       if (client_->followRedirect()) {
         co_await client_->handleRedirect(method_,
-                                err_,
-                                response_,
-                                request_);
+                                         err_,
+                                         response_,
+                                         request_);
       } else {
         co_await client_->emitDone(err_, response_);
       }
@@ -718,7 +856,7 @@ private:
   }
 
 protected:
-  asio::io_service& ioService_;
+  asio::io_context& ioService_;
   AsioWrapper::strand strand_;
   tcp::resolver resolver_;
   asio::streambuf requestBuf_;
@@ -726,18 +864,21 @@ protected:
   Http::Message request_;
   Http::Method method_;
 
+  bool verifyEnabled_;
+  std::string hostName_;
+
 private:
 #ifdef WT_THREADED
   std::mutex clientMutex_;
 #endif // WT_THREADED
   Client *client_;
   std::weak_ptr<WebSession> session_;
-  asio::steady_timer timer_;
+  steady_clock::time_point deadline_;
   std::chrono::steady_clock::duration timeout_;
   std::size_t maximumResponseSize_, responseSize_;
   bool chunkedResponse_;
   ChunkState chunkState_;
-  int contentLength_;
+  std::size_t contentLength_;
   AsioWrapper::error_code err_;
   Message response_;
   bool postSignals_;
@@ -749,7 +890,7 @@ class Client::TcpImpl final : public Client::Impl
 public:
   TcpImpl(Client *client,
           const std::shared_ptr<WebSession>& session,
-          asio::io_service& ioService)
+          asio::io_context& ioService)
     : Impl(client, session, ioService),
       socket_(ioService_)
   { }
@@ -760,33 +901,34 @@ protected:
     return socket_;
   }
 
-  virtual void asyncConnect(tcp::endpoint& endpoint,
-			    const ConnectHandler& handler) override
+//  virtual void asyncConnect(tcp::endpoint& endpoint,
+//			    const ConnectHandler& handler) override
+//  {
+//    socket_.async_connect(endpoint, handler);
+//  }
+
+  virtual awaitable<AsioWrapper::error_code> asyncHandshake() override
   {
-    socket_.async_connect(endpoint, handler);
+    //handler(AsioWrapper::error_code());
+    co_return AsioWrapper::error_code();
   }
 
-  virtual void asyncHandshake(const ConnectHandler& handler) override
-  {
-    handler(AsioWrapper::error_code());
-  }
+//  virtual void asyncWriteRequest(const IOHandler& handler) override
+//  {
+//    asio::async_write(socket_, requestBuf_, handler);
+//  }
 
-  virtual void asyncWriteRequest(const IOHandler& handler) override
-  {
-    asio::async_write(socket_, requestBuf_, handler);
-  }
+//  virtual void asyncReadUntil(const std::string& s,
+//			      const IOHandler& handler) override
+//  {
+//    asio::async_read_until(socket_, responseBuf_, s, handler);
+//  }
 
-  virtual void asyncReadUntil(const std::string& s,
-			      const IOHandler& handler) override
-  {
-    asio::async_read_until(socket_, responseBuf_, s, handler);
-  }
-
-  virtual void asyncRead(const IOHandler& handler) override
-  {
-    asio::async_read(socket_, responseBuf_,
-                            asio::transfer_at_least(1), handler);
-  }
+//  virtual void asyncRead(const IOHandler& handler) override
+//  {
+//    asio::async_read(socket_, responseBuf_,
+//                            asio::transfer_at_least(1), handler);
+//  }
 
 private:
   tcp::socket socket_;
@@ -799,7 +941,7 @@ class Client::SslImpl final : public Client::Impl
 public:
   SslImpl(Client *client,
           const std::shared_ptr<WebSession>& session,
-          asio::io_service& ioService,
+          asio::io_context& ioService,
           bool verifyEnabled,
 	  asio::ssl::context& context,
 	  const std::string& hostName)
@@ -821,39 +963,39 @@ protected:
     return socket_.next_layer();
   }
 
-  virtual void asyncConnect(tcp::endpoint& endpoint,
-			    const ConnectHandler& handler) override
-  {
-    socket_.lowest_layer().async_connect(endpoint, handler);
-  }
+//  virtual void asyncConnect(tcp::endpoint& endpoint,
+//			    const ConnectHandler& handler) override
+//  {
+//    socket_.lowest_layer().async_connect(endpoint, handler);
+//  }
 
-  virtual void asyncHandshake(const ConnectHandler& handler) override
+  virtual awaitable<AsioWrapper::error_code> asyncHandshake() override
   {
     if (verifyEnabled_) {
       socket_.set_verify_mode(asio::ssl::verify_peer);
       LOG_DEBUG("verifying that peer is {}", hostName_);
-      socket_.set_verify_callback
-        (asio::ssl::rfc2818_verification(hostName_));
+      socket_.set_verify_callback(asio::ssl::rfc2818_verification(hostName_));
     }
-    socket_.async_handshake(asio::ssl::stream_base::client, handler);
+    auto [ec] = co_await socket_.async_handshake(asio::ssl::stream_base::client, use_nothrow_awaitable);
+    co_return ec;
   }
 
-  virtual void asyncWriteRequest(const IOHandler& handler) override
-  {
-    asio::async_write(socket_, requestBuf_, handler);
-  }
+//  virtual void asyncWriteRequest(const IOHandler& handler) override
+//  {
+//    asio::async_write(socket_, requestBuf_, handler);
+//  }
 
-  virtual void asyncReadUntil(const std::string& s,
-			      const IOHandler& handler) override
-  {
-    asio::async_read_until(socket_, responseBuf_, s, handler);
-  }
+//  virtual void asyncReadUntil(const std::string& s,
+//			      const IOHandler& handler) override
+//  {
+//    asio::async_read_until(socket_, responseBuf_, s, handler);
+//  }
 
-  virtual void asyncRead(const IOHandler& handler) override
-  {
-    asio::async_read(socket_, responseBuf_,
-                            asio::transfer_at_least(1), handler);
-  }
+//  virtual void asyncRead(const IOHandler& handler) override
+//  {
+//    asio::async_read(socket_, responseBuf_,
+//                            asio::transfer_at_least(1), handler);
+//  }
 
 private:
   typedef asio::ssl::stream<tcp::socket> ssl_socket;
@@ -878,7 +1020,7 @@ Client::Client()
     maxRedirects_(20)
 { }
 
-Client::Client(asio::io_service& ioService)
+Client::Client(asio::io_context& ioService)
     : io_context_(&ioService),
     timeout_(std::chrono::seconds{10}),
     maximumResponseSize_(64*1024),
@@ -914,6 +1056,61 @@ void Client::abort()
   }
 }
 
+bool Client::parseUrl(const std::string &url, URL &parsedUrl)
+{
+  std::size_t i = url.find("://");
+  if (i == std::string::npos) {
+    LOG_ERROR("ill-formed URL: {}", url);
+    return false;
+  }
+
+  parsedUrl.protocol = url.substr(0, i);
+  std::string rest = url.substr(i + 3);
+  // find auth
+  std::size_t l = rest.find('@');
+  // find host
+  std::size_t j = rest.find('/');
+  if (l != std::string::npos &&
+      (j == std::string::npos || j > l)) {
+    // above check: userinfo can not contain a forward slash
+    // path may contain @ (issue #7272)
+    parsedUrl.auth = rest.substr(0, l);
+    parsedUrl.auth = Wt::Utils::urlDecode(parsedUrl.auth);
+    rest = rest.substr(l+1);
+    if (j != std::string::npos) {
+      j -= l + 1;
+    }
+  }
+
+  if (j == std::string::npos) {
+    parsedUrl.host = rest;
+    parsedUrl.path = "/";
+  } else {
+    parsedUrl.host = rest.substr(0, j);
+    parsedUrl.path = rest.substr(j);
+  }
+
+  std::size_t k = parsedUrl.host.find(':');
+  if (k != std::string::npos) {
+    try {
+      parsedUrl.port = Utils::stoi(parsedUrl.host.substr(k + 1));
+    } catch (std::exception& e) {
+      LOG_ERROR("invalid port: {}", parsedUrl.host.substr(k + 1));
+      return false;
+    }
+    parsedUrl.host = parsedUrl.host.substr(0, k);
+  } else {
+    if (parsedUrl.protocol == "http")
+      parsedUrl.port = 80;
+    else if (parsedUrl.protocol == "https")
+      parsedUrl.port = 443;
+    else
+      parsedUrl.port = 80; // protocol will not be handled anyway
+  }
+
+  return true;
+}
+
 void Client::setTimeout(std::chrono::steady_clock::duration timeout)
 {
   timeout_ = timeout;
@@ -939,8 +1136,8 @@ bool Client::get(const std::string& url)
   return request(Http::Method::Get, url, Message());
 }
 
-bool Client::get(const std::string& url, 
-		 const std::vector<Message::Header> headers)
+bool Client::get(const std::string& url,
+                 const std::vector<Message::Header> headers)
 {
   Message m(headers);
   return request(Http::Method::Get, url, m);
@@ -979,7 +1176,7 @@ bool Client::patch(const std::string& url, const Message& message)
 }
 
 bool Client::request(Http::Method method, const std::string& url,
-		     const Message& message)
+                     const Message& message)
 {
   asio::io_context *io_context = io_context_;
 
@@ -1044,18 +1241,121 @@ bool Client::request(Http::Method method, const std::string& url,
     return false;
   }
 
+  impl->request_ = message;
+
   impl->setTimeout(timeout_);
   impl->setMaximumResponseSize(maximumResponseSize_);
 
-  impl->request(method,
-                parsedUrl.protocol,
-                parsedUrl.auth,
-                parsedUrl.host,
-                parsedUrl.port,
-                parsedUrl.path,
-                message);
+  co_spawn(*io_context_, impl->request(method,
+                                       parsedUrl.protocol,
+                                       parsedUrl.auth,
+                                       parsedUrl.host,
+                                       parsedUrl.port,
+                                       parsedUrl.path,
+                                       impl->shared_from_this(), true) || impl->watchdog(impl->deadline_), detached);
+
+
+//  co_spawn(*io_context_, impl->request(method,
+//                                       parsedUrl.protocol,
+//                                       parsedUrl.auth,
+//                                       parsedUrl.host,
+//                                       parsedUrl.port,
+//                                       parsedUrl.path,
+//                                       message), detached);
 
   return true;
+}
+
+awaitable<Message> Client::co_request(Http::Method method, const std::string &url, const Message &message)
+{
+  asio::io_context *io_context = io_context_;
+
+  WApplication *app = WApplication::instance();
+
+  //auto impl = impl_.lock();
+
+  WebSession *session = nullptr;
+
+  if (app && !io_context) {
+    // Use WServer's IO service, and post events to WApplication
+    session = app->session();
+    auto server = session->controller()->server();
+    io_context = &server->ioService().get();// &server->ioService();
+  } else if (!io_context) {
+    // Take IO service from server
+    auto server = WServer::instance();
+
+    if (server)
+      io_context = &server->ioService().get(); //&server->ioService();
+    else {
+      LOG_ERROR("requires a WIOService for async I/O");
+      co_return Message();
+    }
+  }
+
+  URL parsedUrl;
+
+  if (!parseUrl(url, parsedUrl))
+    co_return Message();
+
+  if (parsedUrl.protocol == "http") {
+    auto tcpimpl_ = std::make_shared<TcpImpl>(this, session ? session->shared_from_this() : nullptr, *io_context);
+
+    tcpimpl_->request_ = message;
+
+    tcpimpl_->setTimeout(timeout_);
+    tcpimpl_->setMaximumResponseSize(maximumResponseSize_);
+
+    co_await tcpimpl_->request(method,
+                               parsedUrl.protocol,
+                               parsedUrl.auth,
+                               parsedUrl.host,
+                               parsedUrl.port,
+                               parsedUrl.path,
+                               tcpimpl_->shared_from_this(),
+                               false);
+    co_return tcpimpl_->response_;
+
+#ifdef WT_WITH_SSL
+  } else if (parsedUrl.protocol == "https") {
+    asio::ssl::context context = Ssl::createSslContext(*io_context, verifyEnabled_);
+
+    if (!verifyFile_.empty() || !verifyPath_.empty()) {
+      if (!verifyFile_.empty())
+        context.load_verify_file(verifyFile_);
+      if (!verifyPath_.empty())
+        context.add_verify_path(verifyPath_);
+    }
+    auto sslimpl_ = std::make_shared<SslImpl>(this,
+                                              session ? session->shared_from_this() : nullptr,
+                                              *io_context,
+                                              verifyEnabled_,
+                                              context,
+                                              parsedUrl.host);
+
+    sslimpl_->request_ = message;
+
+    sslimpl_->setTimeout(timeout_);
+    sslimpl_->setMaximumResponseSize(maximumResponseSize_);
+
+    co_await sslimpl_->request(method,
+                               parsedUrl.protocol,
+                               parsedUrl.auth,
+                               parsedUrl.host,
+                               parsedUrl.port,
+                               parsedUrl.path,
+                               sslimpl_->shared_from_this(),
+                               false);
+
+    co_return sslimpl_->response_;
+#endif // WT_WITH_SSL
+
+  } else {
+    LOG_ERROR("unsupported protocol: {}", parsedUrl.protocol);
+    co_return Message();
+  }
+
+  co_return Message();
 }
 
 bool Client::followRedirect() const
@@ -1079,8 +1379,8 @@ void Client::setMaxRedirects(int maxRedirects)
 }
 
 awaitable<void> Client::handleRedirect(Http::Method method,
-			    AsioWrapper::error_code err,
-			    const Message& response, const Message& request)
+                                       AsioWrapper::error_code err,
+                                       const Message& response, const Message& request)
 {
   impl_.reset();
   int status = response.status();
@@ -1123,60 +1423,7 @@ awaitable<void> Client::emitBodyReceived(std::string& data)
   co_await bodyDataReceived_.emit(data);
 }
 
-bool Client::parseUrl(const std::string &url, URL &parsedUrl)
-{
-  std::size_t i = url.find("://");
-  if (i == std::string::npos) {
-    LOG_ERROR("ill-formed URL: {}", url);
-    return false;
-  }
 
-  parsedUrl.protocol = url.substr(0, i);
-  std::string rest = url.substr(i + 3);
-  // find auth
-  std::size_t l = rest.find('@');
-  // find host
-  std::size_t j = rest.find('/');
-  if (l != std::string::npos &&
-      (j == std::string::npos || j > l)) {
-    // above check: userinfo can not contain a forward slash
-    // path may contain @ (issue #7272)
-    parsedUrl.auth = rest.substr(0, l);
-    parsedUrl.auth = Wt::Utils::urlDecode(parsedUrl.auth);
-    rest = rest.substr(l+1);
-    if (j != std::string::npos) {
-      j -= l + 1;
-    }
-  }
-
-  if (j == std::string::npos) {
-    parsedUrl.host = rest;
-    parsedUrl.path = "/";
-  } else {
-    parsedUrl.host = rest.substr(0, j);
-    parsedUrl.path = rest.substr(j);
-  }
-
-  std::size_t k = parsedUrl.host.find(':');
-  if (k != std::string::npos) {
-    try {
-      parsedUrl.port = Utils::stoi(parsedUrl.host.substr(k + 1));
-    } catch (std::exception& e) {
-      LOG_ERROR("invalid port: {}", parsedUrl.host.substr(k + 1));
-      return false;
-    }
-    parsedUrl.host = parsedUrl.host.substr(0, k);
-  } else {
-    if (parsedUrl.protocol == "http")
-      parsedUrl.port = 80;
-    else if (parsedUrl.protocol == "https")
-      parsedUrl.port = 443;
-    else
-      parsedUrl.port = 80; // protocol will not be handled anyway
-  }
-
-  return true;
-}
 
   }
 }

@@ -111,8 +111,8 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
   base_connection(std::function<awaitable<void>(context&)> handler, asio::io_service& io_service,
                   asio::ssl::context& ssl_context) noexcept
       : socket_{io_service, ssl_context},
-        context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), true,
-                 std::bind(&base_connection::send_ws_frame, this, std::placeholders::_1)},
+        context_{std::bind(&base_connection::coro_reply_chunk, this, std::placeholders::_1), std::bind(&base_connection::coro_reply_chunk_sg, this, std::placeholders::_1), true,
+                 std::bind(&base_connection::spawn_coro_ws_send, this, std::placeholders::_1)},
       handler_{std::move(handler)} { context_.setSSLcontext(ssl_context.native_handle());  }
 #endif  // ENABLE_HTTPS
 
@@ -930,7 +930,7 @@ class connection final : public base_connection<_Socket, connection<_Socket>>, s
   }
 };
 
-#ifdef ENABLE_HTTPS
+#ifdef WT_WITH_SSL
 template <>
 class connection<https_socket> final : public base_connection<https_socket, connection<https_socket>>,
                                        safe_noncopyable {
@@ -941,24 +941,33 @@ class connection<https_socket> final : public base_connection<https_socket, conn
   asio::ip::tcp::socket& socket() noexcept { return socket_.next_layer(); }
 
   void do_read_real() {
-    if (has_handshake_) {
-      do_read_some();
-    } else {
-      do_handshake();
-    }
+      co_spawn(this->socket_.get_executor(), do_handshake() /*this->coro_http(this->shared_from_this())*/, detached);
   }
 
  private:
-  void do_handshake() {
-    socket_.async_handshake(asio::ssl::stream_base::server,
-                            [this, self = this->shared_from_this()](const boost::system::error_code& code) {
-                              if (code) {
-                                close();
-                              } else {
-                                has_handshake_ = true;
-                                do_read_some();
-                              }
-                            });
+  awaitable<void> do_handshake() {
+//      socket_.async_handshake(asio::ssl::stream_base::server,
+//                              [this, self = this->shared_from_this()](const boost::system::error_code& code) {
+//                                  if (code) {
+//                                      //close();
+//                                      boost::system::error_code code;
+//                                      socket().shutdown(asio::ip::tcp::socket::shutdown_both, code);
+//                                      socket().close(code);
+//                                  } else {
+//                                      has_handshake_ = true;
+//                                      //do_read_some();
+//                                      co_spawn(this->socket_.get_executor(), this->coro_http(this->shared_from_this()), detached);
+//                                  }
+//                              });
+      auto [code] = co_await socket_.async_handshake(asio::ssl::stream_base::server, use_nothrow_awaitable);
+      if (code) {
+          //close();
+          boost::system::error_code code;
+          socket().shutdown(asio::ip::tcp::socket::shutdown_both, code);
+          socket().close(code);
+      }
+      has_handshake_ = true;
+      co_await this->coro_http(this->shared_from_this());
   }
 
   bool has_handshake_{false};

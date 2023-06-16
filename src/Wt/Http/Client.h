@@ -151,7 +151,7 @@ public:
    * useful to use the client outside the context of a web
    * application.
    */
-  Client(Wt::AsioWrapper::asio::io_service& ioService);
+  Client(asio::io_context& ioService);
 
   /*! \brief Destructor.
    *
@@ -381,8 +381,9 @@ public:
    *
    * \sa request(), done()
    */
-  bool request(Http::Method method, const std::string& url,
-	       const Message& message);
+  bool request(Http::Method method, const std::string& url, const Message& message);
+
+  awaitable<Message> co_request(Http::Method method, const std::string& url, const Message& message);
 
   /*! \brief Aborts the curent request.
    *
@@ -498,7 +499,7 @@ public:
   void setMaxRedirects(int maxRedirects);
 
 private:
-  Wt::AsioWrapper::asio::io_service *io_context_;
+  asio::io_context *io_context_;
   class Impl;
   std::weak_ptr<Impl> impl_;
   std::chrono::steady_clock::duration timeout_;
@@ -514,9 +515,10 @@ private:
 
   class TcpImpl;
   class SslImpl;
+//  std::unique_ptr<TcpImpl> tcpimpl_;
+//  std::unique_ptr<SslImpl> sslimpl_;
 
-  awaitable<void> handleRedirect(Http::Method method, Wt::AsioWrapper::error_code err,
-		      const Message& response, const Message& request);
+  awaitable<void> handleRedirect(Http::Method method, Wt::AsioWrapper::error_code err, const Message& response, const Message& request);
 
   awaitable<void> emitDone(Wt::AsioWrapper::error_code err, const Message& response);
   awaitable<void> emitHeadersReceived(Message& response);

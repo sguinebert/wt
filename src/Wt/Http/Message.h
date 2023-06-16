@@ -88,6 +88,20 @@ public:
    */
   Message(const Message& message);
 
+  Message& operator=(const Message& other) {
+    if (this != &other) {
+        // Perform the necessary copy assignment
+        // Make sure to handle self-assignment properly
+
+        // Example: Copy the contents of 'other' to 'this'
+        // Assuming 'message' is a member variable of type std::string
+        status_ = other.status_;
+        headers_ = other.headers_;
+        body_ << other.body_.str();
+    }
+    return *this;
+  }
+
   /*! \brief Sets the status code.
    *
    * \note This method is probably not useful to you, since for a request
