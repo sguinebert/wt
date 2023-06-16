@@ -177,9 +177,6 @@ private:
   awaitable<void> handleClick() {
     for (unsigned i = 0; i < config_->states().size(); ++i)
       if (boost::ends_with(styleClass().toUTF8(), config_->states()[i])) {
-//        if(i < jsignals_.size())
-//            co_await jsignals_[i].emit();
-//        if(i < signals_.size())
             co_await signals_[i].emit();
 //        co_await (dynamic_cast<Signal<awaitable<void>()> *>(signals_[i].get()))->emit();
         break;
