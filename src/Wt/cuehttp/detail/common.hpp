@@ -43,10 +43,10 @@
 #include <Wt/AsioWrapper/asio.hpp>
 using namespace boost;
 
-#ifdef ENABLE_HTTPS
+#ifdef WT_WITH_SSL
 //#include "boost/asio/asio/ssl.hpp"
 #include <Wt/AsioWrapper/ssl.hpp>
-#endif  // ENABLE_HTTPS
+#endif  // WT_WITH_SSL
 #include "noncopyable.hpp"
 
 namespace Wt {
@@ -65,9 +65,9 @@ using reply_handler = std::function<awaitable<bool>(std::string_view)>;
 using reply_handler_sg = std::function<awaitable<bool>(std::vector<asio::const_buffer>&)>;
 using reply_handler2 = std::function<bool(std::string_view)>;
 using http_socket = asio::ip::tcp::socket; //asio::basic_stream_socket<asio::ip::tcp, asio::io_context::executor_type>; //asio::ip::tcp::socket;
-#ifdef ENABLE_HTTPS
+#ifdef WT_WITH_SSL
 using https_socket = asio::ssl::stream<asio::ip::tcp::socket>;
-#endif  // ENABLE_HTTPS
+#endif  // WT_WITH_SSL
 using ws_send_handler = std::function<void(detail::ws_frame&&)>; //just emplace_back to ws frames vector function
 
 enum class ws_opcode : std::uint8_t { continuation = 0, text = 1, binary = 2, close = 8, ping = 9, pong = 10 };

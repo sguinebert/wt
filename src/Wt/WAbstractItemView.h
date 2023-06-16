@@ -1034,8 +1034,7 @@ protected:
 
   virtual void scheduleRerender(RenderState what);
 
-  virtual void modelDataChanged(const WModelIndex& topLeft,
-				const WModelIndex& bottomRight) = 0;
+  virtual void modelDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight) = 0;
   virtual void modelLayoutAboutToBeChanged();
   virtual awaitable<void> modelLayoutChanged();
   void modelHeaderDataChanged(Orientation orientation, int start, int end);

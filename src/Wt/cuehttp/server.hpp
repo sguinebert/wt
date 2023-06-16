@@ -27,10 +27,10 @@
 
 //#include <boost/asio.hpp>
 #include <Wt/AsioWrapper/asio.hpp>
-#ifdef ENABLE_HTTPS
+#ifdef WT_WITH_SSL
 //#include <boost/asio/ssl.hpp>
 #include <Wt/AsioWrapper/ssl.hpp>
-#endif // ENABLE_HTTPS
+#endif // WT_WITH_SSL
 #include "context.hpp"
 #include "detail/connection.hpp"
 #include "detail/noncopyable.hpp"
@@ -141,7 +141,7 @@ public:
     }
 };
 
-#ifdef ENABLE_HTTPS
+#ifdef WT_WITH_SSL
 template <>
 class server<detail::https_socket> final : public base_server<detail::https_socket, server<detail::https_socket>>,
                                            safe_noncopyable {
@@ -184,7 +184,7 @@ public:
 private:
     asio::ssl::context ssl_context_;
 };
-#endif // ENABLE_HTTPS
+#endif // WT_WITH_SSL
 
 
 //template<bool SSL = false> http_servercc;
@@ -198,7 +198,7 @@ struct http final : safe_noncopyable {
     }
 };
 
-#ifdef ENABLE_HTTPS
+#ifdef WT_WITH_SSL
 using https_t = server<detail::https_socket>;
 
 struct https final : safe_noncopyable {
@@ -207,7 +207,7 @@ struct https final : safe_noncopyable {
         return https_t{std::forward<_Args>(args)...};
     }
 };
-#endif // ENABLE_HTTPS
+#endif // WT_WITH_SSL
 
 } // namespace http
 } // namespace cue

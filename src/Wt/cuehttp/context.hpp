@@ -32,6 +32,7 @@
 
 #include <Wt/Http/Request.h>
 
+
 namespace Wt {
 namespace http {
 
@@ -92,9 +93,14 @@ class context final : safe_noncopyable {
   UploadedFileMap& uploadedFiles() { return request_.files(); }
 
   //const UploadedFileMap& uploadedFiles() const { return request_.files(); }
+
 //#ifdef HTTP_WITH_SSL
 //  void registerSslHandle(SSL *ssl) { request_.ssl = ssl; }
 //#endif
+#ifdef WT_WITH_SSL
+  SSL_CTX* ssl_ = nullptr;
+  void setSSLcontext(SSL_CTX* ssl_ctx) { ssl_ = ssl_ctx; }
+#endif
 
   // response
   unsigned status() const noexcept { return response_.status(); }
@@ -307,7 +313,6 @@ class context final : safe_noncopyable {
   std::shared_ptr<class websocket> websocket_{nullptr};
   detail::ws_send_handler ws_send_handler_;
   std::unique_ptr<class session> session_{nullptr};
-
   std::shared_ptr<Wt::WebSession> websession_;
 
   Wt::cpp23::move_only_function<void()> writecallback_ = nullptr;

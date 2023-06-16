@@ -1435,10 +1435,6 @@ EventSignalBase *WebSession::decodeSignal(const std::string& objectId,
 WebSession *WebSession::instance()
 {
   Handler *handler = WebSession::Handler::instance();
-  if(!handler)
-    std::cout << "handler" << std::this_thread::get_id()  << std::endl;
-  if(handler && !handler->session())
-    std::cout << "handler session"<< std::endl;
   return handler ? handler->session() : nullptr;
 }
 #warning "hanlder need call destroy & propagate co_await"

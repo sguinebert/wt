@@ -451,7 +451,7 @@ public:
    *
    * \sa child().
    */
-  awaitable<void> setChild(int row, int column, std::unique_ptr<WStandardItem> item);
+ void setChild(int row, int column, std::unique_ptr<WStandardItem> item);
 
   /*! \brief Sets a child item.
    *
@@ -463,7 +463,7 @@ public:
    *
    * \sa setChild(int, int, WStandardItem *).
    */
-  awaitable<void> setChild(int row, std::unique_ptr<WStandardItem> item);
+  void setChild(int row, std::unique_ptr<WStandardItem> item);
 
   /*! \brief Returns a child item.
    *

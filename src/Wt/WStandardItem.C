@@ -536,8 +536,7 @@ void WStandardItem::insertRow(int row, std::unique_ptr<WStandardItem> item)
   insertRow(row, std::move(r));
 }
 
-void WStandardItem::appendRows(std::vector<std::unique_ptr<WStandardItem> >
-			       items)
+void WStandardItem::appendRows(std::vector<std::unique_ptr<WStandardItem>> items)
 {
   insertRows(rowCount(), std::move(items));
 }
@@ -552,7 +551,7 @@ void WStandardItem
   }
 }
 
-awaitable<void> WStandardItem::setChild(int row, int column, std::unique_ptr<WStandardItem> item)
+void WStandardItem::setChild(int row, int column, std::unique_ptr<WStandardItem> item)
 {
   if (column >= columnCount())
     setColumnCount(column + 1);
@@ -566,11 +565,11 @@ awaitable<void> WStandardItem::setChild(int row, int column, std::unique_ptr<WSt
   (*columns_)[column][row] = std::move(item);
 
   if (model_) {
-    WModelIndex self = it->index();
-    co_await model_->dataChanged().emit(self, self);
+   // WModelIndex self = it->index();
+    //co_await model_->dataChanged().emit(self, self);
     // model_->itemChanged().emit(item);
   }
-  co_return;
+  //co_return;
 }
 
 void WStandardItem::adoptChild(int row, int column, WStandardItem *item)
@@ -608,9 +607,9 @@ void WStandardItem::setModel(WStandardItemModel *model)
     }
 }
 
-awaitable<void> WStandardItem::setChild(int row, std::unique_ptr<WStandardItem> item)
+void WStandardItem::setChild(int row, std::unique_ptr<WStandardItem> item)
 {
-  co_await setChild(row, 0, std::move(item));
+  setChild(row, 0, std::move(item));
 }
 
 WStandardItem *WStandardItem::child(int row, int column) const

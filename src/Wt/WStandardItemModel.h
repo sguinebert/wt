@@ -255,7 +255,7 @@ public:
    *
    * \sa WStandardItem::setChild(int, int, std::unique_ptr<WStandardItem>)
    */
-  awaitable<void> setItem(int row, int column, std::unique_ptr<WStandardItem> item);
+  void setItem(int row, int column, std::unique_ptr<WStandardItem> item);
 
   /*! \brief Returns the item prototype.
    *
@@ -414,14 +414,13 @@ private:
   Signal<awaitable<void>(WStandardItem *)> itemChanged_;
 
   void init();
-  WStandardItem *itemFromIndex(const WModelIndex& index, bool lazyCreate)
-    const;
+  WStandardItem *itemFromIndex(const WModelIndex& index, bool lazyCreate) const;
   void insertHeaderData(std::vector<HeaderData>& headerData,
-			std::vector<WFlags<HeaderFlag> >& fl,
-			WStandardItem *item, int index,	int count);
+                        std::vector<WFlags<HeaderFlag> >& fl,
+                        WStandardItem *item, int index,	int count);
   void removeHeaderData(std::vector<HeaderData>& headerData,
-			std::vector<WFlags<HeaderFlag> >& fl,
-			WStandardItem *item, int index, int count);
+            std::vector<WFlags<HeaderFlag> >& fl,
+            WStandardItem *item, int index, int count);
 
   friend class WStandardItem;
 };

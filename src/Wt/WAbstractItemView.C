@@ -1344,6 +1344,7 @@ awaitable<void> WAbstractItemView::modelLayoutChanged()
   scheduleRerender(RenderState::NeedRerenderData);
 
   selectionChanged().emit();
+  co_return;
 }
 
 std::unique_ptr<WWidget> WAbstractItemView::createPageNavigationBar()

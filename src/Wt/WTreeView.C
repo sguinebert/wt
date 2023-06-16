@@ -433,9 +433,9 @@ void WTreeViewNode::update(int firstColumn, int lastColumn)
        * state.
        */
       if (renderFlags.test(ViewItemRenderFlag::Editing)) {
-	cpp17::any state = view_->editState(child);
-	if (cpp17::any_has_value(state))
-	  view_->itemDelegate(i)->setEditState(w, child, state);
+        cpp17::any state = view_->editState(child);
+        if (cpp17::any_has_value(state))
+          view_->itemDelegate(i)->setEditState(w, child, state);
       }
     } else
       addColumnStyleClass(i, w);
@@ -2337,8 +2337,7 @@ void WTreeView::modelRowsRemoved(const WModelIndex& parent, int start, int end)
     renderedRowsChanged(firstRemovedRow_, -removedHeight_);
 }
 
-void WTreeView::modelDataChanged(const WModelIndex& topLeft,
-				 const WModelIndex& bottomRight)
+void WTreeView::modelDataChanged(const WModelIndex& topLeft, const WModelIndex& bottomRight)
 {
   if (renderState_ == RenderState::NeedRerender || 
       renderState_ == RenderState::NeedRerenderData)
@@ -2354,7 +2353,7 @@ void WTreeView::modelDataChanged(const WModelIndex& topLeft,
       WTreeViewNode *n = nodeForIndex(index);
 
       if (n)
-	n->update(topLeft.column(), bottomRight.column());
+        n->update(topLeft.column(), bottomRight.column());
     }
   }
 }

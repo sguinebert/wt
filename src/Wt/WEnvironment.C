@@ -547,9 +547,57 @@ std::unique_ptr<Wt::WSslInfo> sslInfoFromHeaders(Wt::http::context* context)
   return nullptr;
 }
 
+std::unique_ptr<Wt::WSslInfo> sslInfo(http::context *context)
+{
+  //SSL_CTX* ssl_ctx =  ssl_context.native_handle();
+#ifdef WT_WITH_SSL
+  SSL* ssl__ = SSL_new(context->ssl_);
+
+  if (!ssl__)
+    return nullptr;
+
+  X509 *x509 = SSL_get_peer_certificate(ssl__);
+
+  if (x509) {
+    Wt::WSslCertificate clientCert = Wt::Ssl::x509ToWSslCertificate(x509);
+
+    X509_free(x509);
+
+    std::vector<Wt::WSslCertificate> clientCertChain;
+    STACK_OF(X509) *certChain = SSL_get_peer_cert_chain(ssl__);
+    if (certChain) {
+      for (int i = 0; i < sk_X509_num(certChain); ++i) {
+        X509 *x509_i = sk_X509_value(certChain, i);
+        clientCertChain.push_back(Wt::Ssl::x509ToWSslCertificate(x509_i));
+      }
+    }
+
+    Wt::ValidationState state = Wt::ValidationState::Invalid;
+    std::string info;
+
+    long SSL_state = SSL_get_verify_result(ssl__);
+    if (SSL_state == X509_V_OK) {
+      state = Wt::ValidationState::Valid;
+    } else {
+      state = Wt::ValidationState::Invalid;
+      info = X509_verify_cert_error_string(SSL_state);
+    }
+    Wt::WValidator::Result clientVerificationResult(state, info);
+
+    // Clean up the SSL* object
+    SSL_free(ssl__);
+
+    return std::make_unique<Wt::WSslInfo>(clientCert,
+                                          clientCertChain,
+                                          clientVerificationResult);
+  }
+#endif
+  return nullptr;
+}
+
 std::unique_ptr<Wt::WSslInfo> getSslInfo(http::context *context, const Wt::Configuration &conf)
 {
-  std::unique_ptr<Wt::WSslInfo> result;// = context->sslInfo();
+  std::unique_ptr<Wt::WSslInfo> result = sslInfo(context);
   if (conf.behindReverseProxy() ||
       conf.isTrustedProxy(context->host())) {
 #ifdef WT_WITH_SSL
