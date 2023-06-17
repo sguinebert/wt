@@ -89,11 +89,11 @@ class engines final : safe_noncopyable {
   {
     auto initiator = [millis] (auto&& handler) {
         if (millis.count() == 0)
-            asio::post(*thread_context, [cb = std::move(handler)] () { cb(); }); // guarantees execution order
+            asio::post(*thread_context, [handler = std::move(handler)] () { handler(); }); // guarantees execution order
         else {
             std::shared_ptr<asio::steady_timer> timer = std::make_shared<asio::steady_timer>(*thread_context);
             timer->expires_from_now(millis);
-            timer->async_wait([timer, cb = std::move(handler)] (auto /*ec*/) { cb(); });
+            timer->async_wait([timer, handler = std::move(handler)] (auto /*ec*/) { handler(); });
         }
     };
     return asio::async_initiate<Token, void()>(initiator, handler);

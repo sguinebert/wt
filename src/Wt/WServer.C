@@ -324,9 +324,9 @@ void WServer::schedule(std::chrono::steady_clock::duration duration,
 {
   auto event = std::make_shared<ApplicationEvent>(sessionId, function, fallbackFunction);
 
-//  ioService().schedule(duration, [this, event = std::move(event)] () {
-//      co_spawn(*thread_context, [this, event = std::move(event)] () ->awaitable<void> { co_await webController_->handleApplicationEvent(event); }, detached);
-//  });
+  ioService().schedule(duration, [this, event = std::move(event)] () {
+      co_spawn(ioService().get(), [this, event = std::move(event)] () ->awaitable<void> { co_await webController_->handleApplicationEvent(event); }, detached);
+  });
 }
 
 std::string WServer::prependDefaultPath(const std::string& path)

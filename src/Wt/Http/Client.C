@@ -1193,14 +1193,14 @@ bool Client::request(Http::Method method, const std::string& url,
   if (app && !io_context) {
     // Use WServer's IO service, and post events to WApplication
     session = app->session();
-    //auto server = session->controller()->server();
-    io_context = thread_context;// &server->ioService();
+    auto server = session->controller()->server();
+    io_context = &server->ioService().get();
   } else if (!io_context) {
     // Take IO service from server
     auto server = WServer::instance();
 
     if (server)
-      io_context = thread_context; //&server->ioService();
+      io_context = &server->ioService().get();
     else {
       LOG_ERROR("requires a WIOService for async I/O");
       return false;

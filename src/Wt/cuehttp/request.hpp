@@ -32,7 +32,10 @@
 
 #include <Wt/Http/Request.h>
 #include <boost/url.hpp>
+#include <boost/spirit/home/x3.hpp>
 //#include <Wt/Configuration.h>
+
+namespace x3 = boost::spirit::x3;
 
 namespace Wt {
 namespace http {
@@ -546,28 +549,31 @@ public:
     auto sv = get("Accept-Language");
     if (sv.empty())
       return ""sv;
+
+    std::vector<std::string_view> lg;
+    std::vector<float> quality;
+
+    auto f = [&](auto& ctx){ quality.push_back(x3::_attr(ctx)); };
+    auto defaultOption = [&](auto& /*ctx*/){ quality.push_back(1.0); };
+    auto const option = ((-x3::lit('q') | -x3::lit('Q')) >> -x3::lit('=') >> x3::double_)
+                            [f]
+                        | (x3::alpha >> *x3::alnum >> '=' >> +x3::alnum);
+
+    auto f2 = [&](auto& ctx){ boost::iterator_range<const char*> it = x3::_attr(ctx);  std::string_view str(it.begin(), it.size()); lg.push_back(str); std::cout << str << std::endl; };
+    auto const rule = -x3::lit(',') >> x3::raw[x3::lexeme[(x3::alpha >> +(x3::alnum | x3::char_('-'))) | x3::char_('*')]][f2] >>  -((x3::lit(';') >> option) | x3::lit(',')[defaultOption]);
+
+    x3::phrase_parse(sv.data(), sv.data() + sv.size(), x3::repeat(0, x3::inf)[rule], x3::space);
+
+    unsigned best = 0;
+    for (unsigned i = 1; i < quality.size(); ++i) {
+      if (quality[i] > quality[best])
+        best = i;
+    }
+
+    if (best < lg.size())
+      return lg[best];
+
     return ""sv;
-//    std::vector<ValueListParser::Value> values;
-
-//    ValueListParser valueListParser(values);
-
-//    parse_info<> info = parse(str, valueListParser, space_p);
-
-//    if (info.full) {
-//      unsigned best = 0;
-//      for (unsigned i = 1; i < values.size(); ++i) {
-//        if (values[i].quality > values[best].quality)
-//          best = i;
-//      }
-
-//      if (best < values.size())
-//        return values[best].value;
-//      else
-//        return ""sv;
-//    } else {
-//      //LOG_ERROR("Could not parse 'Accept-Language: {}', stopped at: '{}'", str, info.stop);
-//      return ""sv;
-//    }
   }
   std::string_view envValue(std::string_view name) const
   {
