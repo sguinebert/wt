@@ -910,8 +910,7 @@ Wt::Signals::connection EventSignal<E>::connect(T *target, void (V::*method)())
   WStatelessSlot *s = o->isStateless(static_cast<WObject::Method>(method));
 
   if (s)
-    return EventSignalBase::connectStateless
-      (static_cast<WObject::Method>(method), o, s);
+    return EventSignalBase::connectStateless(static_cast<WObject::Method>(method), o, s);
   else
     return dynamic_.connect(std::bind(method, target), o);
 }

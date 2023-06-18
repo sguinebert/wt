@@ -75,7 +75,7 @@ WMenu::WMenu(WStackedWidget *contentsStack)
     previousStackIndex_(-1),
     needSelectionEventUpdate_(false)
 {
-#warning "is this still necessary ?"
+//#warning "is this still necessary ?"
   if (contentsStack_) {
     contentsStack_->childrenChanged().connect<&WMenu::updateSelectionEvent>(this);
   }
@@ -196,8 +196,7 @@ WMenuItem *WMenu::insertItem(int index, const std::string& iconPath,
                              ContentLoading policy)
 {
   return insertItem
-    (index, std::unique_ptr<WMenuItem>
-     (new WMenuItem(iconPath, name, std::move(contents), policy)));
+    (index, std::unique_ptr<WMenuItem>(new WMenuItem(iconPath, name, std::move(contents), policy)));
 }
 
 WMenuItem *WMenu::insertMenu(int index, const WString& text,
@@ -230,15 +229,15 @@ WMenuItem *WMenu::insertItem(int index, std::unique_ptr<WMenuItem> item)
       updateSelectionEvent(); //replace childrenChanged()
 
       if (contentsStack_->count() == 1) {
-	setCurrent(0);
-	if (loaded()) {
-	  currentItem()->loadContents();
-	}
+        setCurrent(0);
+        if (loaded()) {
+          currentItem()->loadContents();
+        }
         contentsStack_->setCurrentWidget(contents);
 
-	renderSelected(result, true);
+        renderSelected(result, true);
       } else
-	renderSelected(result, false);
+        renderSelected(result, false);
     } else
       renderSelected(result, false);
   } else
@@ -281,8 +280,8 @@ std::unique_ptr<WMenuItem> WMenu::removeItem(WMenuItem *item)
     item->setParentMenu(nullptr);
 
 #warning "disable automatic select(current_, true);"
-//    if (itemIndex <= current_ && current_ >= 0)
-//      --current_;
+    if (itemIndex <= current_ && current_ >= 0)
+      --current_;
 
 //    co_await select(current_, true);
   }

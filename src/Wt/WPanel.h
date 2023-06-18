@@ -125,7 +125,7 @@ public:
    * but collapsing and expanding from C++, and the accompanying signals
    * is not supported.
    */
-  awaitable<void> setCollapsed(bool on);
+  void setCollapsed(bool on);
 
   /*! \brief Returns if the panel is collapsed.
    *
@@ -149,7 +149,7 @@ public:
    * but collapsing and expanding from C++, and the accompanying signals
    * is not supported.
    */
-  awaitable<void> collapse();
+  void collapse();
 
   /*! \brief Collapses the panel.
    *
@@ -162,7 +162,7 @@ public:
    * but collapsing and expanding from C++, and the accompanying signals
    * is not supported.
    */
-  awaitable<void> expand();
+  void expand();
 
   /*! \brief Sets an animation.
    *
@@ -226,8 +226,8 @@ public:
    */
   Signal<awaitable<void>()>& expanded() { return expanded_; }
 
-  Signal<awaitable<void>(bool)>& collapsedSS() { return collapsedSS_; }
-  Signal<awaitable<void>(bool)>& expandedSS() { return expandedSS_; }
+  Signal<void(bool)>& collapsedSS() { return collapsedSS_; }
+  Signal<void(bool)>& expandedSS() { return expandedSS_; }
 
   WIconPair *collapseIcon() const { return collapseIcon_; }
 
@@ -240,17 +240,17 @@ private:
   WAnimation animation_;
 
   Signal<awaitable<void>()> collapsed_, expanded_;
-  Signal<awaitable<void>(bool)> collapsedSS_, expandedSS_;
+  Signal<void(bool)> collapsedSS_, expandedSS_;
 
   bool wasCollapsed_;
   bool isCollapsible_;
 
   void setJsSize();
   awaitable<void> toggleCollapse();
-  awaitable<void> doExpand();
-  awaitable<void> doCollapse();
-  awaitable<void> undoExpand();
-  awaitable<void> undoCollapse();
+  void doExpand();
+  void doCollapse();
+  void undoExpand();
+  void undoCollapse();
 
   virtual awaitable<void> onExpand();
   virtual awaitable<void> onCollapse();

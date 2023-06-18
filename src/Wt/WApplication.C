@@ -829,7 +829,7 @@ void WApplication::handleJavaScriptError(std::string_view errorText)
 
 void WApplication::addExposedSignal(Wt::EventSignalBase *signal)
 {
-  std::string s = signal->encodeCmd();
+  auto s = signal->encodeCmd();
   Utils::insert(exposedSignals_, s, signal);
 
   LOG_DEBUG("addExposedSignal: {}", s);
@@ -837,7 +837,7 @@ void WApplication::addExposedSignal(Wt::EventSignalBase *signal)
 
 void WApplication::removeExposedSignal(Wt::EventSignalBase *signal)
 {
-  std::string s = signal->encodeCmd();
+  auto s = signal->encodeCmd();
 
   if (exposedSignals_.erase(s)) {
     justRemovedSignals_.insert(s);
@@ -850,7 +850,7 @@ void WApplication::removeExposedSignal(Wt::EventSignalBase *signal)
 EventSignalBase *
 WApplication::decodeExposedSignal(const std::string& signalName) const
 {
-  SignalMap::const_iterator i = exposedSignals_.find(signalName);
+  auto i = exposedSignals_.find(signalName);
 
   if (i != exposedSignals_.end()) {
     return i->second;

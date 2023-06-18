@@ -282,8 +282,7 @@ public:
    *
    * \sa insert(int index, WMenuItem *)
    */
-  WMenuItem *insertMenu(int index, const WString& text,
-			std::unique_ptr<WMenu> menu);
+  WMenuItem *insertMenu(int index, const WString& text, std::unique_ptr<WMenu> menu);
 
   /*! \brief inserts a submenu, with given icon and text.
    *
@@ -294,7 +293,7 @@ public:
    */
   WMenuItem *insertMenu(int index, const std::string& iconPath,
                         const WString& text,
-			std::unique_ptr<WMenu> menu);
+                        std::unique_ptr<WMenu> menu);
 
   /*! \brief Inserts an item.
    *

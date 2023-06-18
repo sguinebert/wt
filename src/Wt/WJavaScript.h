@@ -502,8 +502,7 @@ void JSignal<A...>::connect(JSlot& slot)
 }
 
 template <typename... A>
-Wt::Signals::connection JSignal<A...>::connect(WObject *target,
-					       void (WObject::*method)())
+Wt::Signals::connection JSignal<A...>::connect(WObject *target, void (WObject::*method)())
 {
   exposeSignal();
   WStatelessSlot *s = target->isStateless(method);

@@ -142,8 +142,7 @@ WStatelessSlot *WWebWidget::getStateless(Method method)
   Type focusMethod = &WWebWidget::setFocus;
 
   if (method == static_cast<WObject::Method>(focusMethod))
-    return implementStateless(focusMethod,
-			      &WWebWidget::undoSetFocus);
+    return implementStateless(focusMethod, &WWebWidget::undoSetFocus);
   else
     return WWidget::getStateless(method);
 }
@@ -153,8 +152,7 @@ void WWebWidget::setFormObject(bool how)
 {
   flags_.set(BIT_FORM_OBJECT, how);
 
-  WApplication::instance()
-    ->session()->renderer().updateFormObjects(this, false);
+  WApplication::instance()->session()->renderer().updateFormObjects(this, false);
 }
 
 void WWebWidget::setId(const std::string& id)

@@ -192,6 +192,28 @@ namespace Wt {
 #endif // WT_TARGET_JAVA
     }
 
+    template <typename K, typename V>
+    inline const K *keyForUniquePtrValue(const std::unordered_map<K, std::unique_ptr<V>> &m, const V *v)
+#ifndef WT_TARGET_JAVA
+    {
+      for (auto &i : m)
+        if (i.second.get() == v)
+          return &i.first;
+
+      return nullptr;
+    }
+#else // WT_TARGET_JAVA
+        ;
+#endif
+
+    template <typename K, typename V>
+    void eraseAndNext(std::unordered_map<K, V> &m, typename std::unordered_map<K, V>::iterator &i)
+    {
+#ifndef WT_TARGET_JAVA
+      m.erase(i++);
+#endif // WT_TARGET_JAVA
+    }
+
     template <typename T>
     inline void insert(std::vector<T> &result, const std::vector<T> &elements)
     {
@@ -252,8 +274,22 @@ namespace Wt {
       return m[key];
     }
 
+    template <typename K, typename V, typename T>
+    inline V &access(std::unordered_map<K, V> &m, const T &key)
+    {
+      return m[key];
+    }
+
     template <typename K, typename V>
     inline void insert(std::map<K, V> &m, const K &key, const V &value)
+    {
+#ifndef WT_TARGET_JAVA
+      m.insert(std::make_pair(key, value));
+#endif // WT_TARGET_JAVA
+    }
+
+    template <typename K, typename V>
+    inline void insert(std::unordered_map<K, V> &m, const K &key, const V &value)
     {
 #ifndef WT_TARGET_JAVA
       m.insert(std::make_pair(key, value));

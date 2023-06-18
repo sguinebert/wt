@@ -377,8 +377,7 @@ WStatelessSlot *WObject::implementStateless(void (T::*method)())
 }
 
 template <class T>
-WStatelessSlot *WObject::implementStateless(void (T::*method)(),
-					    void (T::*undoMethod)())
+WStatelessSlot *WObject::implementStateless(void (T::*method)(), void (T::*undoMethod)())
 {
   assert(dynamic_cast<T *>(this));
   return implementPrelearn(static_cast<Method>(method),
@@ -387,8 +386,7 @@ WStatelessSlot *WObject::implementStateless(void (T::*method)(),
 #endif // WT_TARGET_JAVA
 
 template <class T>
-WStatelessSlot *WObject::implementJavaScript(void (T::*method)(),
-					     const std::string& jsCode)
+WStatelessSlot *WObject::implementJavaScript(void (T::*method)(), const std::string& jsCode)
 {
   assert(dynamic_cast<T *>(this));
   return implementPrelearned(static_cast<Method>(method), jsCode);

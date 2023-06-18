@@ -2664,7 +2664,7 @@ void WebRenderer::preLearnStateless(WApplication *app, WStringStream& out)
 
   WApplication::SignalMap& ss = session_.app()->exposedSignals();
 
-  for (WApplication::SignalMap::iterator i = ss.begin(); i != ss.end(); ++i)
+  for (auto i = ss.begin(); i != ss.end(); ++i)
   {
     Wt::EventSignalBase* s = i->second;
 
