@@ -539,11 +539,6 @@ public:
     return code;
   }
 
-//  Wt::WLocale parseLocale() const
-//  {
-//    return Wt::WLocale(parsePreferredAcceptValue(get("Accept-Language")));
-//  }
-
   std::string_view parsePreferredAcceptValue() const
   {
     auto sv = get("Accept-Language");
@@ -555,11 +550,10 @@ public:
 
     auto f = [&](auto& ctx){ quality.push_back(x3::_attr(ctx)); };
     auto defaultOption = [&](auto& /*ctx*/){ quality.push_back(1.0); };
-    auto const option = ((-x3::lit('q') | -x3::lit('Q')) >> -x3::lit('=') >> x3::double_)
-                            [f]
+    auto const option = ((-x3::lit('q') | -x3::lit('Q')) >> -x3::lit('=') >> x3::double_)[f]
                         | (x3::alpha >> *x3::alnum >> '=' >> +x3::alnum);
 
-    auto f2 = [&](auto& ctx){ boost::iterator_range<const char*> it = x3::_attr(ctx);  std::string_view str(it.begin(), it.size()); lg.push_back(str); std::cout << str << std::endl; };
+    auto f2 = [&](auto& ctx){ boost::iterator_range<const char*> it = x3::_attr(ctx);  std::string_view str(it.begin(), it.size()); lg.push_back(str);};
     auto const rule = -x3::lit(',') >> x3::raw[x3::lexeme[(x3::alpha >> +(x3::alnum | x3::char_('-'))) | x3::char_('*')]][f2] >>  -((x3::lit(';') >> option) | x3::lit(',')[defaultOption]);
 
     x3::phrase_parse(sv.data(), sv.data() + sv.size(), x3::repeat(0, x3::inf)[rule], x3::space);

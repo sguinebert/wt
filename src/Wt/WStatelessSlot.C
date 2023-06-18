@@ -1,4 +1,4 @@
-#include "Wt/WStatelessSlot.h"
+﻿#include "Wt/WStatelessSlot.h"
 #include "Wt/WSignal.h"
 
 #include <string>
@@ -6,10 +6,22 @@
 
 namespace Wt {
 
+WStatelessSlot::WStatelessSlot(const std::string& javaScript)
+    : target_(nullptr),
+    method_(nullptr),
+    undoMethod_(nullptr),
+    async_method_(nullptr),
+    async_undoMethod_(nullptr),
+    learned_(true),
+    jscript_(javaScript)
+{ }
+
 WStatelessSlot::WStatelessSlot(WObject* obj, WObjectMethod method)
   : target_(obj),
     method_(method),
     undoMethod_(nullptr),
+    async_method_(nullptr),
+    async_undoMethod_(nullptr),
     learned_(false)
 { }
 
@@ -24,15 +36,37 @@ WStatelessSlot::WStatelessSlot(WObject* obj, WObjectMethod method, const std::st
   : target_(obj),
     method_(method),
     undoMethod_(nullptr),
+    async_method_(nullptr),
+    async_undoMethod_(nullptr),
     learned_(true),
     jscript_(javaScript)
 { }
 
-WStatelessSlot::WStatelessSlot(const std::string& javaScript)
-  : target_(nullptr),
+WStatelessSlot::WStatelessSlot(WObject *target, WObjectAsyncMethod method)
+    : target_(target),
     method_(nullptr),
     undoMethod_(nullptr),
-    learned_(true),
+    async_method_(method),
+    async_undoMethod_(nullptr),
+    learned_(false)
+{ }
+
+WStatelessSlot::WStatelessSlot(WObject *target, WObjectAsyncMethod method, WObjectAsyncMethod undoMethod)
+    : target_(target),
+    method_(nullptr),
+    undoMethod_(nullptr),
+    async_method_(method),
+    async_undoMethod_(undoMethod),
+    learned_(false)
+{ }
+
+WStatelessSlot::WStatelessSlot(WObject *target, WObjectAsyncMethod method, const std::string &javaScript)
+    : target_(target),
+    method_(nullptr),
+    undoMethod_(nullptr),
+    async_method_(method),
+    async_undoMethod_(nullptr),
+    learned_(false),
     jscript_(javaScript)
 { }
 
@@ -60,10 +94,21 @@ bool WStatelessSlot::implementsMethod(WObjectMethod method) const
   return method_ == method;
 }
 
+bool WStatelessSlot::implementsMethod(WObjectAsyncMethod method) const
+{
+    return async_method_ == method;
+}
+
 void WStatelessSlot::reimplementPreLearn(WObjectMethod undoMethod)
 {
   undoMethod_ = undoMethod;
-  setNotLearned();
+    setNotLearned();
+}
+
+void WStatelessSlot::reimplementPreLearn(WObjectAsyncMethod undoMethod)
+{
+    async_undoMethod_ = undoMethod;
+    setNotLearned();
 }
 
 void WStatelessSlot::reimplementJavaScript(const std::string& javaScript)

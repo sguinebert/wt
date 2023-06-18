@@ -25,6 +25,7 @@ public:
   ~WStatelessSlot();
 
   typedef void (WObject::*WObjectMethod)();
+  typedef awaitable<void> (WObject::*WObjectAsyncMethod)();
 
   enum class SlotType { 
     AutoLearnStateless,
@@ -48,6 +49,7 @@ public:
   void undoTrigger();
 
   bool implementsMethod(WObjectMethod method) const;
+  bool implementsMethod(WObjectAsyncMethod method) const;
 
 #ifndef WT_TARGET_JAVA
   void disconnectFrom(EventSignalBase *);
@@ -57,14 +59,19 @@ protected:
   WStatelessSlot(WObject *target, WObjectMethod method);
   WStatelessSlot(WObject *target, WObjectMethod method, WObjectMethod undoMethod);
   WStatelessSlot(WObject *target, WObjectMethod method, const std::string& javaScript);
+  WStatelessSlot(WObject *target, WObjectAsyncMethod method);
+  WStatelessSlot(WObject *target, WObjectAsyncMethod method, WObjectAsyncMethod undoMethod);
+  WStatelessSlot(WObject *target, WObjectAsyncMethod method, const std::string& javaScript);
 
 private:
   void reimplementPreLearn(WObjectMethod undoMethod);
+  void reimplementPreLearn(WObjectAsyncMethod undoMethod);
   void reimplementJavaScript(const std::string& javaScript);
 
   WObject       *target_;
   WObjectMethod  method_;
   WObjectMethod  undoMethod_;
+  WObjectAsyncMethod  async_method_, async_undoMethod_;
 
   bool                           learned_;
   std::string                    jscript_;

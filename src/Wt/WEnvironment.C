@@ -549,7 +549,6 @@ std::unique_ptr<Wt::WSslInfo> sslInfoFromHeaders(Wt::http::context* context)
 
 std::unique_ptr<Wt::WSslInfo> sslInfo(http::context *context)
 {
-  //SSL_CTX* ssl_ctx =  ssl_context.native_handle();
 #ifdef WT_WITH_SSL
   SSL* ssl__ = SSL_new(context->ssl_);
 
@@ -673,7 +672,7 @@ void WEnvironment::init(http::context *context)
   if (!cookie.empty())
     parseCookies(cookie, cookies_);
 
-  locale_ = Wt::WLocale(context->req().parsePreferredAcceptValue()); ;
+  locale_ = Wt::WLocale(context->req().parsePreferredAcceptValue());
 }
 
 void WEnvironment::setUserAgent(std::string_view userAgent)

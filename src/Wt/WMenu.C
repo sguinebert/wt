@@ -76,9 +76,9 @@ WMenu::WMenu(WStackedWidget *contentsStack)
     needSelectionEventUpdate_(false)
 {
 #warning "is this still necessary ?"
-//  if (contentsStack_) {
-//    contentsStack_->childrenChanged().connect(this, &WMenu::updateSelectionEvent);
-//  }
+  if (contentsStack_) {
+    contentsStack_->childrenChanged().connect<&WMenu::updateSelectionEvent>(this);
+  }
 
   setImplementation(std::unique_ptr<WWidget>(ul_ = new WContainerWidget()));
   ul_->setList(true);
