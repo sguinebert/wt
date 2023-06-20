@@ -367,7 +367,24 @@ void WMenuItem::setDisabled(bool disabled)
 
 //  if (disabled)
 //    if (menu_)
-//      menu_->onItemHidden(menu_->indexOf(this), true);
+  //      menu_->onItemHidden(menu_->indexOf(this), true);
+}
+
+awaitable<void> WMenuItem::setdisabled(bool disabled)
+{
+  WContainerWidget::setDisabled(disabled);
+
+    if (disabled && menu_)
+      co_await menu_->onItemHidden(menu_->indexOf(this), true);
+    co_return;
+}
+
+awaitable<void> WMenuItem::sethidden(bool hide, const WAnimation &animation)
+{
+    WContainerWidget::setHidden(hide, animation);
+    if (hide && menu_)
+      co_await menu_->onItemHidden(menu_->indexOf(this), true);
+    co_return;
 }
 
 void WMenuItem::setHidden(bool hidden, const WAnimation& animation)
@@ -435,9 +452,8 @@ void WMenuItem::connectSignals()
   if (!signalsConnected_) {
     signalsConnected_ = true;
 
-#warning "repair this"
-//    if (!oContents_ || contentsLoaded())
-//      implementStateless(&WMenuItem::selectVisual, &WMenuItem::undoSelectVisual);
+    if (!oContents_ || contentsLoaded())
+      implementStateless(&WMenuItem::selectVisual, &WMenuItem::undoSelectVisual);
 
     WAnchor *a = anchor();
 
@@ -581,18 +597,18 @@ awaitable<void> WMenuItem::select()
   co_return;
 }
 
-awaitable<void> WMenuItem::selectVisual()
+void WMenuItem::selectVisual()
 {
   if (menu_ && selectable_)
-    co_await menu_->selectVisual(this);
-  co_return;
+    menu_->selectVisual(this);
+  //co_return;
 }
 
-awaitable<void> WMenuItem::undoSelectVisual()
+void WMenuItem::undoSelectVisual()
 {
   if (menu_ && selectable_)
-    co_await menu_->undoSelectVisual();
-  co_return;
+    menu_->undoSelectVisual();
+  //co_return;
 }
 
 void WMenuItem::setMenu(std::unique_ptr<WMenu> menu)

@@ -385,9 +385,9 @@ private:
   void init();
   awaitable<void> logout();
   void loginThrottle(int delay);
-  awaitable<void> onFinished(DialogCode);
-  awaitable<void> onFinished2(StandardButton);
-  awaitable<void> closeDialog();
+  void onFinished(DialogCode);
+  void onFinished2(StandardButton);
+  void closeDialog();
   void onLoginChange();
   awaitable<void> onPathChange(const std::string& path);
   awaitable<bool> handleRegistrationPath(const std::string& path);

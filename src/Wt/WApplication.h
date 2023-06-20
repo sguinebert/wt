@@ -854,7 +854,8 @@ public:
    *       to use WString in the future).
    * \endif
    */
-  awaitable<void> setInternalPath(const std::string& path, bool emitChange = false);
+  awaitable<void> setInternalPath(const std::string& path, bool emitChange);
+  void setInternalPath(const std::string& path);
 
   /*! \brief Sets whether an internal path is valid by default.
    *

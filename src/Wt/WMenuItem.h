@@ -355,6 +355,10 @@ public:
                          const WAnimation& animation = WAnimation()) override;
   virtual void setDisabled(bool disabled) override;
 
+  awaitable<void> setdisabled(bool disabled);
+
+  awaitable<void> sethidden(bool hide, const WAnimation& animation = WAnimation());
+
 protected:
   virtual void render(WFlags<RenderFlag> flags) override;
 
@@ -389,8 +393,8 @@ private:
   void loadContents();
   void setParentMenu(WMenu *menu);
   awaitable<void> selectNotLoaded();
-  awaitable<void> selectVisual();
-  awaitable<void> undoSelectVisual();
+  void selectVisual();
+  void undoSelectVisual();
   void connectClose();
   void connectSignals();
   void setItemPadding(bool padding);

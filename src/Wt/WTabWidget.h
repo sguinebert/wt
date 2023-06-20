@@ -137,7 +137,7 @@ public:
    * Enables or disables the tab at \p index. A disabled tab cannot be
    * activated.
    */
-  void setTabEnabled(int index, bool enable);
+  awaitable<void> setTabEnabled(int index, bool enable);
 
   /*! \brief Returns whether a tab is enabled.
    *
@@ -149,7 +149,7 @@ public:
    *
    * Hides or shows the tab at \p index.
    */
-  void setTabHidden(int index, bool hidden);
+  awaitable<void> setTabHidden(int index, bool hidden);
 
   /*! \brief Returns whether a tab is hidden.
    */

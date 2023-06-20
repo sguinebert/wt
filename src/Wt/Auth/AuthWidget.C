@@ -139,7 +139,7 @@ WDialog *AuthWidget::showDialog(const WString& title, std::unique_ptr<WWidget> c
     dialog_.reset(new WDialog(title));
     dialog_->contents()->addWidget(std::move(contents));
     dialog_->finished().connect<&AuthWidget::onFinished>(this);
-    //dialog_->contents()->childrenChanged().connect(this, &AuthWidget::closeDialog);
+    dialog_->contents()->childrenChanged().connect<&AuthWidget::closeDialog>(this);
 
     dialog_->footer()->hide();
 
@@ -158,7 +158,7 @@ WDialog *AuthWidget::showDialog(const WString& title, std::unique_ptr<WWidget> c
   return dialog_.get();
 }
 
-awaitable<void> AuthWidget::closeDialog()
+void AuthWidget::closeDialog()
 {
   if (dialog_) {
 #ifdef WT_TARGET_JAVA
@@ -179,11 +179,11 @@ awaitable<void> AuthWidget::closeDialog()
       std::string ap = app->internalSubPath(basePath_);
 
       if (ap == "register/") {
-        co_await app->setInternalPath(basePath_, false);
+        app->setInternalPath(basePath_);
       }
     }
   }
-  co_return;
+  //co_return;
 }
 
 std::unique_ptr<RegistrationModel> AuthWidget::createRegistrationModel()
@@ -258,15 +258,14 @@ awaitable<void> AuthWidget::logout()
   co_await model_->logout(login_);
 }
 
-awaitable<void> AuthWidget::onFinished(DialogCode)
+void AuthWidget::onFinished(DialogCode)
 {
-  co_await closeDialog();
-
+  closeDialog();
 }
 
-awaitable<void> AuthWidget::onFinished2(StandardButton)
+void AuthWidget::onFinished2(StandardButton)
 {
-    co_await closeDialog();
+  closeDialog();
 }
 
 void AuthWidget::displayError(const WString& m)
@@ -570,7 +569,7 @@ awaitable<void> AuthWidget::processEnvironment()
      * session ID, losing the dialog.
      */
     if (WApplication::instance()->environment().ajax())
-      co_await WApplication::instance()->setInternalPath("/");
+      WApplication::instance()->setInternalPath("/");
 
     co_return;
   }

@@ -154,7 +154,7 @@ public:
     }
     else
     {
-#warning "FIX ME"
+//#warning "FIX ME"
       clicked().connect(this, &ToggleButton::handleClick);
       for (unsigned i = 0; i < config_->states().size(); ++i)
         signals_.emplace_back();

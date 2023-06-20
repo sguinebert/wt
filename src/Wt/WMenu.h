@@ -367,7 +367,7 @@ public:
    *
    * \sa itemSelected()
    */
-  Signal<awaitable<void>(WMenuItem *)>& itemSelectRendered() { return itemSelectRendered_; }
+  Signal<void(WMenuItem *)>& itemSelectRendered() { return itemSelectRendered_; }
 
   /*! \brief Closes an item.
    *
@@ -413,7 +413,7 @@ public:
    *
    * \sa setItemHidden(int, bool), WMenuItem::hide()
    */
-  void setItemHidden(WMenuItem *item, bool hidden);
+  awaitable<void> setItemHidden(WMenuItem *item, bool hidden);
 
   /*! \brief Hides an item.
    *
@@ -421,7 +421,7 @@ public:
    *
    * \sa setItemHidden(WMenuItem *, bool)
    */
-  void setItemHidden(int index, bool hidden);
+  awaitable<void> setItemHidden(int index, bool hidden);
 
   /*! \brief Returns whether the item widget of the given item is hidden.
    *
@@ -444,7 +444,7 @@ public:
    *
    * \sa setItemDisabled(int, bool), WMenuItem::setDisabled()
    */
-  void setItemDisabled(WMenuItem *item, bool disabled);
+  awaitable<void> setItemDisabled(WMenuItem *item, bool disabled);
 
   /*! \brief Disables an item.
    *
@@ -453,7 +453,7 @@ public:
    *
    * \sa setItemDisabled(WMenuItem *, bool)
    */
-  void setItemDisabled(int index, bool disabled);
+  awaitable<void> setItemDisabled(int index, bool disabled);
 
   /*! \brief Returns whether the item widget of the given item is disabled.
    *
@@ -614,7 +614,8 @@ private:
   std::string basePath_, previousInternalPath_;
   WMenuItem *parentItem_;
 
-  Signal<awaitable<void>(WMenuItem *)> itemSelected_, itemSelectRendered_;
+  Signal<awaitable<void>(WMenuItem *)> itemSelected_;
+  Signal<void(WMenuItem *)> itemSelectRendered_;
   Signal<awaitable<void>(WMenuItem *)> itemClosed_;
 
   awaitable<void> handleInternalPathChange(const std::string& path);
@@ -625,10 +626,10 @@ private:
 
   void updateItemsInternalPath();
   awaitable<void> itemPathChanged(WMenuItem *item);
-  awaitable<void> selectVisual(WMenuItem *item);
-  awaitable<void> undoSelectVisual();
-  awaitable<void> selectVisual(int item, bool changePath, bool showContents);
-  void onItemHidden(int index, bool hidden); //disabled
+  void selectVisual(WMenuItem *item);
+  void undoSelectVisual();
+  void selectVisual(int item, bool changePath, bool showContents);
+  awaitable<void> onItemHidden(int index, bool hidden); //disabled
 
   friend class WMenuItem;
 

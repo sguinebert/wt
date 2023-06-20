@@ -94,12 +94,11 @@ public:
    *
    * \sa children()
    */
-  Signal<awaitable<void>()>& childrenChanged();
+  Signal<void()>& childrenChanged();
 
   virtual void setPositionScheme(PositionScheme scheme) override;
   virtual PositionScheme positionScheme() const override;
-  virtual void setOffsets(const WLength& offset,
-			  WFlags<Side> sides = AllSides) override;
+  virtual void setOffsets(const WLength& offset, WFlags<Side> sides = AllSides) override;
   virtual WLength offset(Side s) const override;
   virtual void resize(const WLength& width, const WLength& height) override;
   virtual WLength width() const override;
@@ -116,8 +115,7 @@ public:
   virtual Side floatSide() const override;
   virtual void setClearSides(WFlags<Side> sides) override;
   virtual WFlags<Side> clearSides() const override;
-  virtual void setMargin(const WLength& margin, WFlags<Side> sides = AllSides)
-    override;
+  virtual void setMargin(const WLength& margin, WFlags<Side> sides = AllSides) override;
   virtual WLength margin(Side side) const override;
   virtual void setHiddenKeepsGeometry(bool enabled) override;
   virtual bool hiddenKeepsGeometry() const override;
@@ -137,33 +135,23 @@ public:
   virtual void setStyleClass(const WT_USTRING& styleClass) override;
   void setStyleClass(const char *styleClass);
   virtual WT_USTRING styleClass() const override;
-  virtual void addStyleClass(const WT_USTRING& styleClass,
-			     bool force = false) override;
+  virtual void addStyleClass(const WT_USTRING& styleClass, bool force = false) override;
   void addStyleClass(const char *styleClass, bool force = false);
-  virtual void removeStyleClass(const WT_USTRING& styleClass,
-				bool force = false) override;
+  virtual void removeStyleClass(const WT_USTRING& styleClass, bool force = false) override;
   void removeStyleClass(const char *styleClass, bool force = false);
   virtual bool hasStyleClass(const WT_USTRING& styleClass) const override;
-  virtual void setVerticalAlignment(AlignmentFlag alignment,
-				    const WLength& length = WLength()) override;
+  virtual void setVerticalAlignment(AlignmentFlag alignment, const WLength& length = WLength()) override;
   virtual AlignmentFlag verticalAlignment() const override;
   virtual WLength verticalAlignmentLength() const override;
-  virtual void setToolTip(const WString& text,
-			  TextFormat textFormat = TextFormat::Plain)
-    override;
-  virtual void setDeferredToolTip(bool enable,
-                                  TextFormat textFormat = TextFormat::Plain)
-    override;
+  virtual void setToolTip(const WString& text, TextFormat textFormat = TextFormat::Plain) override;
+  virtual void setDeferredToolTip(bool enable, TextFormat textFormat = TextFormat::Plain) override;
   virtual WString toolTip() const override;
   virtual void refresh() override;
-  virtual void setAttributeValue(const std::string& name,
-				 const WT_USTRING& value) override;
+  virtual void setAttributeValue(const std::string& name, const WT_USTRING& value) override;
   virtual WT_USTRING attributeValue(const std::string& name) const override;
-  virtual void setJavaScriptMember(const std::string& name,
-				   const std::string& value) override;
+  virtual void setJavaScriptMember(const std::string& name, const std::string& value) override;
   virtual std::string javaScriptMember(const std::string& name) const override;
-  virtual void callJavaScriptMember(const std::string& name,
-				    const std::string& args) override;
+  virtual void callJavaScriptMember(const std::string& name, const std::string& args) override;
   virtual void load() override;
   virtual bool loaded() const override;
   virtual int zIndex() const override;
@@ -515,7 +503,7 @@ private:
 
     typedef std::map<std::string, DropMimeType> MimeTypesMap;
     std::unique_ptr<MimeTypesMap> acceptedDropMimeTypes_;
-    Signal<awaitable<void>()> childrenChanged_;
+    Signal<void()> childrenChanged_;
 
     int scrollVisibilityMargin_;
     Signal<awaitable<void>(bool)> scrollVisibilityChanged_;
@@ -556,7 +544,7 @@ private:
 
   awaitable<void> jsScrollVisibilityChanged(bool visible);
 
-  awaitable<void> emitChildrenChanged();
+  void emitChildrenChanged();
 
 protected:
   virtual void setParentWidget(WWidget *parent) override;

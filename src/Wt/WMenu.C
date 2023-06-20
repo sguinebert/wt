@@ -226,7 +226,7 @@ WMenuItem *WMenu::insertItem(int index, std::unique_ptr<WMenuItem> item)
       WWidget *contents = contentsPtr.get();
       contentsStack_->addWidget(std::move(contentsPtr));
 
-      updateSelectionEvent(); //replace childrenChanged()
+      //updateSelectionEvent(); //replace childrenChanged()
 
       if (contentsStack_->count() == 1) {
         setCurrent(0);
@@ -275,7 +275,7 @@ std::unique_ptr<WMenuItem> WMenu::removeItem(WMenuItem *item)
     if (contentsStack_ && item->contentsInStack())
       item->returnContentsInStack(contentsStack_->removeWidget(item->contentsInStack()));
 
-    updateSelectionEvent(); //replace childrenChanged()
+    //updateSelectionEvent(); //replace childrenChanged()
 
     item->setParentMenu(nullptr);
 
@@ -310,7 +310,7 @@ awaitable<void> WMenu::select(int index, bool changePath)
   int last = current_;
   setCurrent(index);
 
-  co_await selectVisual(current_, changePath, true);
+  selectVisual(current_, changePath, true);
 
   if (index != -1)
   {
@@ -346,7 +346,7 @@ awaitable<void> WMenu::select(int index, bool changePath)
   co_return;
 }
 
-awaitable<void> WMenu::selectVisual(int index, bool changePath, bool showContents)
+void WMenu::selectVisual(int index, bool changePath, bool showContents)
 {
   if (contentsStack_)
     previousStackIndex_ = contentsStack_->currentIndex();
@@ -363,14 +363,14 @@ awaitable<void> WMenu::selectVisual(int index, bool changePath, bool showContent
       emitPathChange_ = true;
 
     // The change is emitted in select()
-    co_await app->setInternalPath(newPath);
+    app->setInternalPath(newPath);
   }
 
   for (int i = 0; i < count(); ++i)
     renderSelected(itemAt(i), (int)i == index);
 
   if (index == -1)
-    co_return;
+    return;
 
   if (showContents && contentsStack_) {
     WWidget *contents = item->contentsInStack();
@@ -378,7 +378,7 @@ awaitable<void> WMenu::selectVisual(int index, bool changePath, bool showContent
       contentsStack_->setCurrentWidget(contents);
   }
 
-  co_await itemSelectRendered_.emit(item);
+  itemSelectRendered_.emit(item);
 }
 
 void WMenu::renderSelected(WMenuItem *item, bool selected)
@@ -386,20 +386,21 @@ void WMenu::renderSelected(WMenuItem *item, bool selected)
   item->renderSelected(selected);
 }
 
-void WMenu::setItemHidden(int index, bool hidden)
+awaitable<void> WMenu::setItemHidden(int index, bool hidden)
 {
-  itemAt(index)->setHidden(hidden);
+  //itemAt(index)->setHidden(hidden);
+  co_await itemAt(index)->sethidden(hidden);
 }
 
-void WMenu::onItemHidden(int index, bool hidden)
+awaitable<void> WMenu::onItemHidden(int index, bool hidden)
 {
   if (hidden) {
     int nextItem = nextAfterHide(index);
-#warning "function disabled - we do not select automatically next item"
-//    if (nextItem != current_)
-//      co_await select(nextItem);
+//#warning "function disabled - we do not select automatically next item"
+    if (nextItem != current_)
+      co_await select(nextItem);
   }
-  //co_return;
+  co_return;
 }
 
 int WMenu::nextAfterHide(int index)
@@ -419,9 +420,10 @@ int WMenu::nextAfterHide(int index)
   return current_;
 }
 
-void WMenu::setItemHidden(WMenuItem *item, bool hidden)
+awaitable<void> WMenu::setItemHidden(WMenuItem *item, bool hidden)
 {
-  item->setHidden(hidden);
+  //item->setHidden(hidden);
+  co_await item->sethidden(hidden);
 }
 
 bool WMenu::isItemHidden(int index) const
@@ -434,14 +436,15 @@ bool WMenu::isItemHidden(WMenuItem *item) const
   return item->isHidden();
 }
 
-void WMenu::setItemDisabled(int index, bool disabled)
+awaitable<void> WMenu::setItemDisabled(int index, bool disabled)
 {
-  setItemDisabled(itemAt(index), disabled);
+  co_await setItemDisabled(itemAt(index), disabled);
 }
 
-void WMenu::setItemDisabled(WMenuItem* item, bool disabled)
+awaitable<void> WMenu::setItemDisabled(WMenuItem* item, bool disabled)
 {
-  item->setDisabled(disabled);
+  //item->setDisabled(disabled);
+  co_await item->setdisabled(disabled);
 }
 
 bool WMenu::isItemDisabled(int index) const
@@ -512,9 +515,9 @@ awaitable<void> WMenu::select(WMenuItem *item)
   co_await select(indexOf(item), true);
 }
 
-awaitable<void> WMenu::selectVisual(WMenuItem *item)
+void WMenu::selectVisual(WMenuItem *item)
 {
-  co_await selectVisual(indexOf(item), true, true);
+  selectVisual(indexOf(item), true, true);
 }
 
 int WMenu::indexOf(WMenuItem *item) const
@@ -522,16 +525,16 @@ int WMenu::indexOf(WMenuItem *item) const
   return ul()->indexOf(item);
 }
 
-awaitable<void> WMenu::undoSelectVisual()
+void WMenu::undoSelectVisual()
 {
   std::string prevPath = previousInternalPath_;
   int prevStackIndex = previousStackIndex_;
 
-  co_await selectVisual(current_, true, true);
+  selectVisual(current_, true, true);
 
   if (internalPathEnabled_) {
     WApplication *app = wApp;
-    co_await app->setInternalPath(prevPath);
+    app->setInternalPath(prevPath);
   }
 
   if (contentsStack_)

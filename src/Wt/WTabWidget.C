@@ -119,9 +119,9 @@ WMenuItem *WTabWidget::currentItem() const
   return menu_->currentItem();
 }
 
-void WTabWidget::setTabEnabled(int index, bool enable)
+awaitable<void> WTabWidget::setTabEnabled(int index, bool enable)
 {
-  menu_->setItemDisabled(index, !enable);
+  co_await menu_->setItemDisabled(index, !enable);
 }
 
 bool WTabWidget::isTabEnabled(int index) const
@@ -129,9 +129,9 @@ bool WTabWidget::isTabEnabled(int index) const
   return !menu_->isItemDisabled(index);
 }
 
-void WTabWidget::setTabHidden(int index, bool hidden)
+awaitable<void> WTabWidget::setTabHidden(int index, bool hidden)
 {
-  menu_->setItemHidden(index, hidden);
+  co_await menu_->setItemHidden(index, hidden);
 }
 
 bool WTabWidget::isTabHidden(int index) const
@@ -151,7 +151,7 @@ bool WTabWidget::isTabCloseable(int index)
 
 awaitable<void> WTabWidget::closeTab(int index)
 {
-  setTabHidden(index, true);
+  co_await setTabHidden(index, true);
   co_await tabClosed_.emit(index);
 }
 

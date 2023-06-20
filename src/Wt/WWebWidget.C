@@ -351,10 +351,10 @@ void WWebWidget::widgetRemoved(WWidget *child, bool renderRemove)
   WApplication::instance()
     ->session()->renderer().updateFormObjects(child->webWidget(), true);
 
-  //co_await emitChildrenChanged();
+  emitChildrenChanged();
 }
 
-Signal<awaitable<void>()>& WWebWidget::childrenChanged()
+Signal<void()>& WWebWidget::childrenChanged()
 {
   if (!otherImpl_)
     otherImpl_.reset(new OtherImpl(this));
@@ -1207,7 +1207,7 @@ void WWebWidget::widgetAdded(WWidget *child)
     transientImpl_.reset(new TransientImpl());
   ++transientImpl_->addedChildren_;
 
-  //co_await emitChildrenChanged();
+  emitChildrenChanged();
 }
 
 std::vector<WWidget *> WWebWidget::children() const
@@ -2816,12 +2816,12 @@ void WWebWidget::setBaseZIndex(int zIndex)
   layoutImpl_->baseZIndex_ = zIndex;
 }
 
-awaitable<void> WWebWidget::emitChildrenChanged()
+void WWebWidget::emitChildrenChanged()
 {
   if (!flags_.test(BIT_BEING_DELETED) && otherImpl_) {
-    co_await otherImpl_->childrenChanged_.emit();
+    otherImpl_->childrenChanged_.emit();
   }
-  co_return;
+  //co_return;
 }
 
 }

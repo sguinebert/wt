@@ -1354,6 +1354,15 @@ awaitable<void> WApplication::setInternalPath(const std::string& path, bool emit
   internalPathIsChanged_ = true;
   co_return;
 }
+void WApplication::setInternalPath(const std::string& path)
+{
+  enableInternalPaths();
+
+  newInternalPath_ = path;
+
+  internalPathValid_ = true;
+  internalPathIsChanged_ = true;
+}
 
 void WApplication::setInternalPathValid(bool valid)
 {
