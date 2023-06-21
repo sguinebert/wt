@@ -154,6 +154,20 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 //    std::cout << "cancelled async operatiosns" << std::endl;
 //    co_return;
 //  }
+  void cancel(bool spawn)
+  {
+    asio::async_write(socket_, asio::buffer("HTTP/1.1 400 Bad Request"sv),
+                      [this, self = this->shared_from_this(), spawn](const boost::system::error_code& code, std::size_t bytes_transferred)
+                      {
+                          detail::unused(bytes_transferred);
+                          if (code) {
+                              return;
+                          }
+                          if(spawn) {
+                              do_read();
+                          }
+                      });
+  }
 
   awaitable<void> coro_http(auto /*sft*/) {
 

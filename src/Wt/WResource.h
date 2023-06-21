@@ -414,6 +414,46 @@ public:
    */
   void haveMoreData();
 
+  /* to avoid dangling reference : store WRessource* into response and call erase */
+  std::vector<std::reference_wrapper<http::response>> vec;
+  std::vector<std::unique_ptr<http::Continuation>> cs_;
+  //asio::cancellation_slot cancel_slot_;
+  asio::cancellation_signal cancel_signal_;
+  awaitable<void> waitForMoreData(http::response& response) {
+      //addContinuation()
+      //vec.push_back(std::ref(response));
+
+      auto cs = std::make_unique<http::Continuation>(this, &response);
+      response.continuation_ = cs.get();
+      cs_.push_back(std::move(cs));
+
+      //cancel_signal_.slot().assign([this]
+//      if (auto it = std::find(vec.begin(), vec.end(), std::ref(response)); it != vec.end()) {
+//          vec.erase(it);
+//      }
+//      asio::cancellation_slot sl = (co_await asio::this_coro::cancellation_state).slot();
+
+//      sl.assign(
+//          [&](asio::cancellation_type ct)
+//          {
+//              //response.chunk_flush()
+//              // cancel the timer, we don't need it anymore
+//              //tim.cancel();
+//              // forward the cancellation
+//              //cancel_read.emit(ct);
+//          });
+
+//      // reset the signal when we're done
+//      // this is very important, the outer signal might fire after we're out of scope!
+//      struct scope_exit
+//      {
+//          asio::cancellation_slot sl;
+//          ~scope_exit() { if(sl.is_connected()) sl.clear();}
+//      } scope_exit_{sl};
+
+      co_await response.wait_for_more_data(asio::bind_cancellation_slot(cancel_signal_.slot(), use_awaitable));
+  }
+
   /*! \brief Set whether this resource takes the %WApplication's update lock
    *
    * By default, %WResource does not keep the WApplication's update lock,
@@ -462,9 +502,9 @@ private:
   };
 
 #ifdef WT_THREADED
-  std::shared_ptr<std::recursive_mutex> mutex_;
-  bool beingDeleted_;
-  int useCount_;
+  std::shared_ptr<std::mutex> mutex_;
+  std::atomic<bool> beingDeleted_ = false;
+  std::atomic<int> useCount_ = 0;
   std::condition_variable_any useDone_;
 #endif
 
@@ -485,9 +525,7 @@ private:
               Http::ResponseContinuationPtr continuation
               = Http::ResponseContinuationPtr());
 
-  awaitable<void> handle(Wt::http::context *webRequest,
-                                      Http::ResponseContinuationPtr continuation
-                                      = Http::ResponseContinuationPtr());
+  awaitable<void> handle(Wt::http::context *context);
 
   Wt::WString suggestedFileName_;
   ContentDisposition dispositionType_;

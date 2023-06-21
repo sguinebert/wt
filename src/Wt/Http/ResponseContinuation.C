@@ -32,7 +32,7 @@ void ResponseContinuation::haveMoreData()
 
   {
 #ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(*mutex_);
+    std::unique_lock<std::mutex> lock(*mutex_);
 #endif // WT_THREADED
 
     if (!useLock.use(resource_))
@@ -65,7 +65,7 @@ void ResponseContinuation::readyToContinue(WebWriteEvent event)
 
   {
 #ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(*mutex_);
+    std::unique_lock<std::mutex> lock(*mutex_);
 #endif // WT_THREADED
 
     if (!useLock.use(resource_))
@@ -79,8 +79,8 @@ void ResponseContinuation::readyToContinue(WebWriteEvent event)
       resource_ = nullptr;
     } else {
       response_->detectDisconnect
-	(std::bind(&Http::ResponseContinuation::handleDisconnect,
-		   shared_from_this()));
+    (std::bind(&Http::ResponseContinuation::handleDisconnect,
+           shared_from_this()));
     }
   }
 
@@ -89,7 +89,7 @@ void ResponseContinuation::readyToContinue(WebWriteEvent event)
 }
 
 ResponseContinuation::ResponseContinuation(WResource *resource,
-					   WebResponse *response)
+                       WebResponse *response)
   : 
 #ifdef WT_THREADED
     mutex_(resource->mutex_),
@@ -107,12 +107,12 @@ void ResponseContinuation::cancel(bool resourceIsBeingDeleted)
 
   {
 #ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(*mutex_);
+    std::unique_lock<std::mutex> lock(*mutex_);
 #endif // WT_THREADED
 
     if (resourceIsBeingDeleted) {
       if (!resource_)
-	return;
+        return;
     } else if (!useLock.use(resource_))
       return;
 
@@ -135,7 +135,7 @@ void ResponseContinuation::handleDisconnect()
 
   {
 #ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(*mutex_);
+    std::unique_lock<std::mutex> lock(*mutex_);
 #endif // WT_THREADED
 
     if (!resource_)

@@ -289,8 +289,7 @@ void WtReply::consumeRequestBody(const char *begin,
                                      (shared_from_this()), entryPoint_);
       httpRequest_->setWebSocketRequest(true);
       
-      fetchMoreDataCallback_
-	= std::bind(&WtReply::readRestWebSocketHandshake, this);
+      fetchMoreDataCallback_ = std::bind(&WtReply::readRestWebSocketHandshake, this);
 
       LOG_DEBUG("ws: sending 101, deferring handshake");
 

@@ -43,10 +43,10 @@ namespace Wt
   bool WResource::UseLock::use(WResource *resource)
   {
 #ifdef WT_THREADED
-    if (resource && !resource->beingDeleted_)
+    if (resource && !resource->beingDeleted_.load(std::memory_order_relaxed))
     {
       resource_ = resource;
-      ++resource_->useCount_;
+      resource_->useCount_.fetch_add(1, std::memory_order_relaxed);//  ++resource_->useCount_;
 
       return true;
     }
@@ -62,9 +62,9 @@ namespace Wt
 #ifdef WT_THREADED
     if (resource_)
     {
-      std::unique_lock<std::recursive_mutex> lock(*resource_->mutex_);
-      --resource_->useCount_;
-      if (resource_->useCount_ == 0)
+      //std::unique_lock<std::recursive_mutex> lock(*resource_->mutex_);
+       //--resource_->useCount_;
+      if (resource_->useCount_.fetch_sub(1, std::memory_order_relaxed) == 0)
         resource_->useDone_.notify_one();
     }
 #endif
@@ -79,34 +79,39 @@ namespace Wt
         app_(nullptr)
   {
 #ifdef WT_THREADED
-    mutex_.reset(new std::recursive_mutex());
-    beingDeleted_ = false;
-    useCount_ = 0;
+    mutex_.reset(new std::mutex());
+//    beingDeleted_ = false;
+//    useCount_ = 0;
 #endif // WT_THREADED
   }
 
   void WResource::beingDeleted()
   {
-    std::vector<Http::ResponseContinuationPtr> cs;
+    cancel_signal_.emit(asio::cancellation_type::total);
+
+    //std::vector<Http::ResponseContinuationPtr> cs;
 
     LOG_DEBUG("beingDeleted()");
-
+    beingDeleted_.store(true, std::memory_order_relaxed);
     {
 #ifdef WT_THREADED
-      std::unique_lock<std::recursive_mutex> lock(*mutex_);
-      beingDeleted_ = true;
+      std::unique_lock<std::mutex> lock(*mutex_);
+      //std::ranges::for_each(vec, [](http::response& res) { res.haveMoreData_(); });
+      for(auto& css : cs_) {
+        css->cancel();
+      }
 
       while (useCount_ > 0)
         useDone_.wait(lock);
 #endif // WT_THREADED
 
-      cs = continuations_;
+//      cs = continuations_;
 
-      continuations_.clear();
+//      continuations_.clear();
     }
 
-    for (unsigned i = 0; i < cs.size(); ++i)
-      cs[i]->cancel(true);
+//    for (unsigned i = 0; i < cs.size(); ++i)
+//      cs[i]->cancel(true);
   }
 
   WResource::~WResource()
@@ -138,42 +143,52 @@ namespace Wt
 
   void WResource::haveMoreData()
   {
-    std::vector<Http::ResponseContinuationPtr> cs;
+//    std::ranges::for_each(vec, [](http::response& res) { res.haveMoreData_(); });
+//    for(auto res : vec) {
+//      res.get().haveMoreData_();
+//    }
 
+    //std::vector<Http::ResponseContinuationPtr> cs;
+    //cs[0].use_count()
     {
 #ifdef WT_THREADED
-      std::unique_lock<std::recursive_mutex> lock(*mutex_);
+      std::unique_lock<std::mutex> lock(*mutex_);
+      for(auto& css : cs_){
+        css->haveMoreData();
+      }
+      cs_.clear();
+
 #endif // WT_THREADED
-      cs = continuations_;
+      //cs = continuations_;
     }
 
-    for (unsigned i = 0; i < cs.size(); ++i)
-      cs[i]->haveMoreData();
+//    for (unsigned i = 0; i < cs.size(); ++i)
+//      cs[i]->haveMoreData();
   }
 
   void WResource::doContinue(Http::ResponseContinuationPtr continuation)
   {
-    WebResponse *webResponse = continuation->response();
-    WebRequest *webRequest = webResponse;
+//    WebResponse *webResponse = continuation->response();
+//    WebRequest *webRequest = webResponse;
 
-    try
-    {
-      handle(webRequest, webResponse, continuation);
-    }
-    catch (std::exception &e)
-    {
-      LOG_ERROR("exception while handling resource continuation: {}", e.what());
-    }
-    catch (...)
-    {
-      LOG_ERROR("exception while handling resource continuation");
-    }
+//    try
+//    {
+//      handle(webRequest, webResponse, continuation);
+//    }
+//    catch (std::exception &e)
+//    {
+//      LOG_ERROR("exception while handling resource continuation: {}", e.what());
+//    }
+//    catch (...)
+//    {
+//      LOG_ERROR("exception while handling resource continuation");
+//    }
   }
 
   void WResource::removeContinuation(Http::ResponseContinuationPtr continuation)
   {
 #ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(*mutex_);
+    std::unique_lock<std::mutex> lock(*mutex_);
 #endif
     Utils::erase(continuations_, continuation);
   }
@@ -184,7 +199,7 @@ namespace Wt
     Http::ResponseContinuationPtr result(c);
 
 #ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(*mutex_);
+    std::unique_lock<std::mutex> lock(*mutex_);
 #endif
     continuations_.push_back(result);
 
@@ -202,72 +217,72 @@ namespace Wt
    * If we come from a continuation, then the continuation increased the
    * use count and we are thus protected against deletion.
    */
-    WebSession::Handler *handler = WebSession::Handler::instance();
-    UseLock useLock;
+//    WebSession::Handler *handler = WebSession::Handler::instance();
+//    UseLock useLock;
 
-#ifdef WT_THREADED
-    std::unique_ptr<Wt::WApplication::UpdateLock> updateLock;
-    if (takesUpdateLock() && continuation && app_)
-    {
-      updateLock.reset(new Wt::WApplication::UpdateLock(app_));
-      if (!*updateLock)
-      {
-        return;
-      }
-    }
+//#ifdef WT_THREADED
+//    std::unique_ptr<Wt::WApplication::UpdateLock> updateLock;
+//    if (takesUpdateLock() && continuation && app_)
+//    {
+//      updateLock.reset(new Wt::WApplication::UpdateLock(app_));
+//      if (!*updateLock)
+//      {
+//        return;
+//      }
+//    }
 
-    if (handler && !continuation)
-    {
-      std::unique_lock<std::recursive_mutex> lock(*mutex_);
+//    if (handler && !continuation)
+//    {
+//      std::unique_lock<std::recursive_mutex> lock(*mutex_);
 
-      if (!useLock.use(this))
-        return;
+//      if (!useLock.use(this))
+//        return;
 
-      if (!takesUpdateLock() &&
-          handler->haveLock() &&
-          handler->lockOwner() == std::this_thread::get_id())
-      {
-        handler->unlock();
-      }
-    }
-#endif // WT_THREADED
+//      if (!takesUpdateLock() &&
+//          handler->haveLock() &&
+//          handler->lockOwner() == std::this_thread::get_id())
+//      {
+//        handler->unlock();
+//      }
+//    }
+//#endif // WT_THREADED
 
-    // if (!handler) {
-    //   WLocale locale = webRequest->parseLocale();
-    //   WLocale::setCurrentLocale(locale);
-    // }
+//    // if (!handler) {
+//    //   WLocale locale = webRequest->parseLocale();
+//    //   WLocale::setCurrentLocale(locale);
+//    // }
 
-    Http::Request request(*webRequest, continuation.get());
-    Http::Response response(this, webResponse, continuation);
+//    Http::Request request(*webRequest, continuation.get());
+//    Http::Response response(this, webResponse, continuation);
 
-    if (!continuation)
-      response.setStatus(200);
+//    if (!continuation)
+//      response.setStatus(200);
 
-    handleRequest(request, response);
+//    handleRequest(request, response);
 
-#ifdef WT_THREADED
-    updateLock.reset();
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//    updateLock.reset();
+//#endif // WT_THREADED
 
-    if (!response.continuation_ || !response.continuation_->resource_)
-    {
-      if (response.continuation_)
-        removeContinuation(response.continuation_);
+//    if (!response.continuation_ || !response.continuation_->resource_)
+//    {
+//      if (response.continuation_)
+//        removeContinuation(response.continuation_);
 
-      response.out(); // trigger committing the headers if still necessary
+//      response.out(); // trigger committing the headers if still necessary
 
-      webResponse->flush(WebResponse::ResponseState::ResponseDone);
-    }
-    else
-    {
-      webResponse->flush(WebResponse::ResponseState::ResponseFlush,
-                         std::bind(&Http::ResponseContinuation::readyToContinue,
-                                   response.continuation_,
-                                   std::placeholders::_1));
-    }
+//      webResponse->flush(WebResponse::ResponseState::ResponseDone);
+//    }
+//    else
+//    {
+//      webResponse->flush(WebResponse::ResponseState::ResponseFlush,
+//                         std::bind(&Http::ResponseContinuation::readyToContinue,
+//                                   response.continuation_,
+//                                   std::placeholders::_1));
+//    }
   }
 
-  awaitable<void> WResource::handle(Wt::http::context *ctx, Http::ResponseContinuationPtr continuation)
+  awaitable<void> WResource::handle(Wt::http::context *ctx)
   {
   /*
    * If we are a new request for a dynamic resource, then we will have
@@ -281,19 +296,21 @@ namespace Wt
     UseLock useLock;
 
 #ifdef WT_THREADED
-    std::unique_ptr<Wt::WApplication::UpdateLock> updateLock;
-    if (takesUpdateLock() && continuation && app_)
-    {
-      updateLock.reset(new Wt::WApplication::UpdateLock(app_));
-      if (!*updateLock)
-      {
-        co_return;
-      }
-    }
+    /* NO continuation recursive loop with coroutine */
+//    std::unique_ptr<Wt::WApplication::UpdateLock> updateLock;
+    /* NO continuation recursive loop with coroutine */
+//    if (takesUpdateLock() && continuation && app_)
+//    {
+//      updateLock.reset(new Wt::WApplication::UpdateLock(app_));
+//      if (!*updateLock)
+//      {
+//        co_return;
+//      }
+//    }
 
-    if (handler && !continuation)
+    if (handler /*&& !continuation*/)
     {
-      std::unique_lock<std::recursive_mutex> lock(*mutex_);
+      //std::unique_lock<std::recursive_mutex> lock(*mutex_); //not needed if resource_->useCount_ is atomic
 
       if (!useLock.use(this))
         co_return;
@@ -312,16 +329,18 @@ namespace Wt
     //   WLocale::setCurrentLocale(locale);
     // }
 
-    if (!continuation)
-      ctx->status(200);
+    //if (!continuation)
+    ctx->status(200);
 
 //    co_await handleRequest(*ctx);
 
     co_await handleRequest(ctx->req(), ctx->res());
 
-#ifdef WT_THREADED
-    updateLock.reset();
-#endif // WT_THREADED
+//#ifdef WT_THREADED
+//    updateLock.reset();
+//#endif // WT_THREADED
+
+    ctx->flush();
 
 //    if (!ctx->continuation_ || !ctx->continuation_->resource_)
 //    {
@@ -331,7 +350,7 @@ namespace Wt
       //response.out(); // trigger committing the headers if still necessary
 
       //webResponse->flush(WebResponse::ResponseState::ResponseDone);
-      ctx->flush();
+
 //    }
 //    else
 //    {
@@ -346,8 +365,8 @@ namespace Wt
 
   void WResource::setLocale(Wt::http::request &request)
   {
-//     WLocale locale = request.parseLocale();
-//     WLocale::setCurrentLocale(locale);
+    WLocale locale(request.parsePreferredAcceptValue());
+    WLocale::setCurrentLocale(locale);
   }
 
   void WResource::handleAbort(const Http::Request &request)

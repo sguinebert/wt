@@ -223,23 +223,22 @@ void Connection::handleReadRequest0()
       sendStockReply(status);
     else {
       if (request_.webSocketVersion >= 0) {
-	// replace 'http' with 'ws'
-	request_.urlScheme[0] = 'w';
-	request_.urlScheme[1] = 's';
-	strncpy(request_.urlScheme + 2, urlScheme() + 4, 7);
-	request_.urlScheme[9] = 0;
+        // replace 'http' with 'ws'
+        request_.urlScheme[0] = 'w';
+        request_.urlScheme[1] = 's';
+        strncpy(request_.urlScheme + 2, urlScheme() + 4, 7);
+        request_.urlScheme[9] = 0;
       } else
         strncpy(request_.urlScheme, urlScheme(), 9);
 
       ReplyPtr reply;
       try {
-	reply = request_handler_.handleRequest
-	  (request_, lastWtReply_, lastProxyReply_, lastStaticReply_);
-	reply->setConnection(shared_from_this());
+        reply = request_handler_.handleRequest(request_, lastWtReply_, lastProxyReply_, lastStaticReply_);
+        reply->setConnection(shared_from_this());
       } catch (Wt::AsioWrapper::system_error& e) {
-	LOG_ERROR("Error in handleRequest0(): {}", e.what());
-	handleError(e.code());
-	return;
+        LOG_ERROR("Error in handleRequest0(): {}", e.what());
+        handleError(e.code());
+        return;
       }
 
       rcv_body_buffer_ = false;

@@ -31,11 +31,19 @@
 #include "detail/common.hpp"
 #include "detail/noncopyable.hpp"
 #include "detail/gzip.hpp"
+#include "detail/MoveOnlyFunction.hpp"
 
 #include <Wt/WStringStream.h>
 
+/* TODO : replace std::function call by Nano::Signal emit ? */
+
 namespace Wt {
+class WResource;
+
 namespace http {
+
+struct Continuation;
+class ResponseContinuation;
 
 enum class ResponseType {
     Page,
@@ -179,6 +187,7 @@ class response final : safe_noncopyable {
   std::ostream& out() {
     return ostream_;
   }
+  /*cancel*/
 
   /* flush data manually for chunked transfers
   */
@@ -265,6 +274,9 @@ class response final : safe_noncopyable {
 
     buffer_.consume(buffer_.size());
     buf_.clear();
+
+    haveMoreData_ = nullptr;
+    //continuation_.reset();
   }
 
   bool is_stream() const noexcept { return is_stream_; }
@@ -445,6 +457,25 @@ class response final : safe_noncopyable {
     strbuffer.append(header, buffer_.size());
   }
 
+  //std::shared_ptr<ResponseContinuation> ResponseContinuationPtr;
+  //std::unique_ptr<Continuation> continuation_;
+  Continuation *continuation_ = nullptr;
+  //WResource* waitingResource_ = nullptr;
+  Wt::cpp23::move_only_function<void()> haveMoreData_ = nullptr;
+  template<class Token>
+  auto wait_for_more_data(Token&& handler)
+  {
+    auto initiator = [this] (auto &&handler) {
+        haveMoreData_ = [handler = std::move(handler)] () mutable {
+            auto ioctx = asio::get_associated_executor(handler);
+            asio::post(ioctx, [handler = std::move(handler)] () mutable {
+                handler();
+            });
+        };
+    };
+    return asio::async_initiate<Token, void()>(initiator, handler);
+  }
+
  private:
   std::string header_to_string() {
     std::string str{detail::utils::get_response_line(minor_version_ * 1000 + status_)};
@@ -518,6 +549,43 @@ private:
   std::shared_ptr<std::ostream> stream_{nullptr};
 
   friend class context;
+};
+
+struct Continuation {
+  Continuation(Wt::WResource* resource, http::response *response) : resource_(resource), response_(response)
+  { }
+  ~Continuation() {
+    //resource_->removeContinuation(this);
+    resource_ = nullptr;
+    response_ = nullptr;
+  }
+
+  void haveMoreData() {
+    if(response_ && response_->haveMoreData_)
+      response_->haveMoreData_();
+  }
+
+  void destroy() {
+    response_ = nullptr;
+  }
+
+  /* Call cancel function in connection */
+  void cancel()
+  {
+    if(response_){
+      std::cout << "cancel the response " << std::endl;
+    }
+  }
+
+  bool destroyed() const { return response_ == nullptr; }
+
+  //bool use(WResource *resource);
+
+  private:
+  //bool ready_ = true;
+  Wt::WResource *resource_;
+  http::response *response_;
+  //std::atomic<bool> invalid_ = false; //std::mutex resource_mutex_;
 };
 
 }  // namespace http

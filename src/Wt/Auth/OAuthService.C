@@ -113,7 +113,7 @@ public:
         LOG_ERROR(fmt::runtime(ERROR_MSG("missing-code").toUTF8()));
         process_->setError(ERROR_MSG("missing-code"));
         sendError(response);
-	      return;
+        return;
       }
 
 #ifndef WT_TARGET_JAVA
@@ -161,11 +161,15 @@ public:
       }
 
 #ifndef WT_TARGET_JAVA
+
 //      Http::ResponseContinuation *cont = response.createContinuation();
 //      cont->waitForMoreData();
 #endif
 
       process_->requestToken(codeE); // Blocking in JWt, so no continuation necessary
+
+      co_await waitForMoreData(response);
+      //co_await response.wait_for_more_data(use_awaitable);
 #ifndef WT_TARGET_JAVA
     } //else
 #endif
