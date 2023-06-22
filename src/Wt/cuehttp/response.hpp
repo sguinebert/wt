@@ -459,16 +459,17 @@ class response final : safe_noncopyable {
 
   //std::shared_ptr<ResponseContinuation> ResponseContinuationPtr;
   //std::unique_ptr<Continuation> continuation_;
-  Continuation *continuation_ = nullptr;
   //WResource* waitingResource_ = nullptr;
+  Continuation *continuation_ = nullptr;
   Wt::cpp23::move_only_function<void()> haveMoreData_ = nullptr;
+  /* suspend coroutine and restore on the same thread by invoke haveMoreData_ */
   template<class Token>
   auto wait_for_more_data(Token&& handler)
   {
     auto initiator = [this] (auto &&handler) {
-        haveMoreData_ = [handler = std::move(handler)] () mutable {
-            auto ioctx = asio::get_associated_executor(handler);
-            asio::post(ioctx, [handler = std::move(handler)] () mutable {
+        auto ioctx = asio::get_associated_executor(handler);
+        haveMoreData_ = [handler = std::move(handler), ioctx] () mutable {
+            asio::dispatch(ioctx, [handler = std::move(handler)] () mutable {
                 handler();
             });
         };

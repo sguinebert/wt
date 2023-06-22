@@ -75,6 +75,8 @@ public:
                Wt::http::context *ctx, WEnvironment *env = nullptr);
   ~WebSession();
 
+  awaitable<void> destroy();
+
 #ifdef WT_TARGET_JAVA
   void destruct();
 #endif // WT_TARGET_JAVA
@@ -290,6 +292,17 @@ private:
   static void webSocketReady(std::weak_ptr<WebSession> session, WebWriteEvent event);
 #endif
 
+  template<class Token>
+  auto wait(Token&& handler)
+  {
+    auto initiator = [this] (auto&& handler) mutable {
+        recursiveCoro_ = [this, handler = std::move(handler)] () mutable {
+            handler();
+        };
+    };
+    return asio::async_initiate<Token, void()>(initiator, handler);
+  }
+
   awaitable<void> checkTimers();
   void hibernate();
 
@@ -360,6 +373,7 @@ private:
   std::vector<Handler *> handlers_;
 
   Handler *recursiveEventHandler_;
+  Wt::cpp23::move_only_function<void()> recursiveCoro_/*, recusiveCoroDone_*/;
 
   void pushUpdates();
   WResource *decodeResource(const std::string& resourceId);

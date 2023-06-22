@@ -127,7 +127,7 @@ public:
 #endif
       sendResponse(response);
   }
-#warning "how to handle continuation 100 continue ?"
+#warning "how to handle continuation ? co_await waitForMoreData to avoid recursive call"
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
   {
 #ifndef WT_TARGET_JAVA
@@ -160,16 +160,16 @@ public:
           co_return;
       }
 
-#ifndef WT_TARGET_JAVA
-
+//#ifndef WT_TARGET_JAVA
 //      Http::ResponseContinuation *cont = response.createContinuation();
 //      cont->waitForMoreData();
-#endif
+//#endif
 
       process_->requestToken(codeE); // Blocking in JWt, so no continuation necessary
+#ifndef WT_TARGET_JAVA
+      co_await waitForMoreData(response); //co_await response.wait_for_more_data(use_awaitable);
+#endif
 
-      co_await waitForMoreData(response);
-      //co_await response.wait_for_more_data(use_awaitable);
 #ifndef WT_TARGET_JAVA
     } //else
 #endif

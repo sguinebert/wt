@@ -266,9 +266,8 @@ WebSession::~WebSession()
 
   if (app_)
   {
-    //    app_->notify
-    //      (WEvent(WEvent::Impl
-    //	      (&handler, std::bind(&WApplication::finalize, app_))));
+    //LOG_ERROR("destroyed function has not been called");
+    //app_->notify(WEvent(WEvent::Impl(&handler, std::bind(&WApplication::finalize, app_))));
     try
     {
         app_->finalize();
@@ -321,6 +320,40 @@ WebSession::~WebSession()
   LOG_INFO("session destroyed (#sessions = {})", controller_->sessionCount());
 #endif // WT_TARGET_JAVA
 
+}
+
+awaitable<void> WebSession::destroy()
+{
+#ifndef WT_TARGET_JAVA
+  Handler handler(this);
+
+  if (app_)
+  {
+    co_await app_->notify(WEvent(WEvent::Impl(&handler, std::bind(&WApplication::finalize, app_))));
+    try
+    {
+        app_->finalize();
+        if (handler.context())
+            render(handler);
+    }
+    catch (std::exception& e)
+    {
+        LOG_ERROR("Exception in WApplication::notify(): {}", e.what());
+
+#ifdef WT_TARGET_JAVA
+        e.printStackTrace();
+#endif // WT_TARGET_JAVA
+    }
+    catch (...)
+    {
+        LOG_ERROR("Exception in WApplication::notify()");
+    }
+  }
+
+  delete app_;
+  app_ = nullptr;
+#endif // WT_TARGET_JAVA
+  co_return;
 }
 
 #ifdef WT_TARGET_JAVA
@@ -1504,6 +1537,8 @@ awaitable<void> WebSession::doRecursiveEventLoop()
    * the session mutex lock.
    */
 #ifndef WT_TARGET_JAVA
+
+  co_await wait(use_awaitable);
 //  if (webSocket_)
 //    webSocket_->readWebSocketMessage(std::bind(&WebSession::handleWebSocketMessage, shared_from_this(), std::placeholders::_1));
 
@@ -1544,7 +1579,11 @@ awaitable<void> WebSession::doRecursiveEventLoop()
   co_await app_->notify(WEvent(*newRecursiveEvent_));
   delete newRecursiveEvent_;
   newRecursiveEvent_ = nullptr;
-  recursiveEventDone_.notify_one();
+
+  if(recursiveCoro_)
+    recursiveCoro_(); //unlock externalNotify
+  recursiveCoro_ = nullptr;
+  //recursiveEventDone_.notify_one();
 
   recursiveEventHandler_ = prevRecursiveEventHandler;
 #endif // WT_BOOST_THREADS
@@ -1574,7 +1613,10 @@ bool WebSession::unlockRecursiveEventLoop()
   newRecursiveEvent_ = new WEvent::Impl(recursiveEventHandler_);
 
 #ifdef WT_BOOST_THREADS
-  recursiveEvent_.notify_one();
+  //recursiveEvent_.notify_one();
+  if(recursiveCoro_)
+    recursiveCoro_(); //unlock externalNotify
+  recursiveCoro_ = nullptr;
 #endif
 
   return true;
@@ -2662,16 +2704,20 @@ std::string_view WebSession::getSignal(Wt::http::context *context, const std::st
 
 awaitable<void> WebSession::externalNotify(const WEvent::Impl& event)
 {
-  if (recursiveEventHandler_ && !newRecursiveEvent_)
+  if (recursiveEventHandler_ && !newRecursiveEvent_ && recursiveCoro_)
   {
 #ifdef WT_BOOST_THREADS
     newRecursiveEvent_ = new WEvent::Impl(event);
     recursiveEvent_.notify_one();
+    recursiveCoro_(); //unlock doRecursiveEventLoop
+    recursiveCoro_ = nullptr;
+
     while (newRecursiveEvent_) {
 #ifdef WT_TARGET_JAVA
       recursiveEventDone_.wait();
 #else
-      recursiveEventDone_.wait(event.handler->lock());
+      co_await wait(use_awaitable);
+      //recursiveEventDone_.wait(event.handler->lock());
 #endif
     }
 #endif
