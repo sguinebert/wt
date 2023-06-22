@@ -127,7 +127,7 @@ public:
 #endif
       sendResponse(response);
   }
-#warning "how to handle continuation ? co_await waitForMoreData to avoid recursive call"
+//#warning "how to handle continuation ? co_await waitForMoreData to avoid recursive call"
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
   {
 #ifndef WT_TARGET_JAVA

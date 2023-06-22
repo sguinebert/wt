@@ -1470,7 +1470,7 @@ WebSession *WebSession::instance()
   Handler *handler = WebSession::Handler::instance();
   return handler ? handler->session() : nullptr;
 }
-#warning "hanlder need call destroy & propagate co_await"
+#warning "new coroutine based doRecursiveEventLoop() Need to be tested"
 awaitable<void> WebSession::doRecursiveEventLoop()
 {
   Handler *handler = WebSession::Handler::instance();

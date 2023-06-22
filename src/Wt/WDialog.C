@@ -521,15 +521,15 @@ awaitable<DialogCode> WDialog::exec(const WAnimation& animation)
   WApplication *app = WApplication::instance();
   recursiveEventLoop_ = true;
 
-#warning "transform to await_suspend"
+#warning "transform to await_suspend (need test)"
   if (app->environment().isTest()) {
     co_await app->environment().dialogExecuted().emit(this);
     if (recursiveEventLoop_)
       throw WException("Test case must close dialog");
   } else {
-    do {
-      co_await app->waitForEvent();
-    } while (recursiveEventLoop_);
+    //do {
+    co_await app->waitForEvent();
+    //} while (recursiveEventLoop_);
   }
 
   hide();
