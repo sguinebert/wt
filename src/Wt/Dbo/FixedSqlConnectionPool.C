@@ -51,11 +51,17 @@ namespace Wt
       conn->setCancelSignal(&cancel_signal_);
 
       for (unsigned i = 1; i < size; ++i) {
+          //impl_->freeList.push_back(std::visit([&] (auto& conn) -> std::unique_ptr<SqlConnection> { return std::make_unique<SqlConnection>(*conn.clone());  }, *conn));
+          //std::visit([&] (auto& conn) { conn.setCancelSignal(&cancel_signal_);  }, *impl_->freeList.back());
           impl_->freeList.push_back(conn->clone(engine));
           impl_->freeList.back()->setCancelSignal(&cancel_signal_);
 
           //init thread_local connection pointer of each context if available
           asio::post(impl_->freeList.back()->socket().get_executor(), [this] { this->impl_->connection = impl_->freeList.back().get(); });
+          //          std::visit([&] (auto& conn) { asio::post(conn.socket().get_executor(), [this] {
+          //                  this->impl_->connection = &conn;
+          //              });
+          //          }, *impl_->freeList.back());
       }
     }
 
@@ -192,6 +198,7 @@ namespace Wt
     {
       for (unsigned i = 0; i < impl_->freeList.size(); ++i)
         impl_->freeList[i]->prepareForDropTables();
+      //std::visit([&] (auto& conn) { conn.prepareForDropTables();  }, *impl_->freeList[i]);
     }
 
   }

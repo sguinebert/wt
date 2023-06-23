@@ -22,7 +22,6 @@
 #include "WebUtils.h"
 
 #ifndef WT_DEBUG_JS
-
 #include "js/WTableView.min.js"
 #endif
 

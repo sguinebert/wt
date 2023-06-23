@@ -496,8 +496,7 @@ void WGoogleMap::zoomWindow(const std::pair<Coordinate, Coordinate>& bbox)
 }
 #endif
 
-void WGoogleMap::zoomWindow(const Coordinate& topLeft, 
-			    const Coordinate& rightBottom)
+void WGoogleMap::zoomWindow(const Coordinate& topLeft, const Coordinate& rightBottom)
 {
   const Coordinate center
     ((topLeft.latitude() + rightBottom.latitude()) / 2.0,

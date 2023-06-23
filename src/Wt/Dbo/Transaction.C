@@ -169,6 +169,7 @@ awaitable<void> Transaction::Impl::open()
 {
   if (!open_) {
     open_ = true;
+    //std::visit([] (auto& conn) { conn.startTransaction(); }, *connection_);
     auto tx = co_await connection_->async_transaction(use_awaitable);
     transaction_ = std::make_shared<postgrespp::work>(std::move(tx));
   }
@@ -182,6 +183,7 @@ awaitable<void> Transaction::Impl::commit()
 
   if (open_) {
     //transaction_->commit(use_awaitable);//connection_->commitTransaction();
+    //std::visit([] (auto& conn) { conn.commitTransaction(); }, *connection_);
     co_await transaction_->commit(use_awaitable);
   }
 
@@ -207,6 +209,7 @@ awaitable<void> Transaction::Impl::rollback()
   try {
     if (open_) {
       //connection_->rollbackTransaction();
+      //std::visit([] (auto& conn) { conn.rollbackTransaction(); }, *connection_);
       co_await transaction_->rollback(use_awaitable);
     }
   } catch (const std::exception& e) {

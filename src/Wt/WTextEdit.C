@@ -60,8 +60,7 @@ void WTextEdit::init()
 
   version_ = getTinyMCEVersion();
 
-  setJavaScriptMember(" WTextEdit", "new " WT_CLASS ".WTextEdit("
-		      + app->javaScriptClass() + "," + jsRef() + ");");
+  setJavaScriptMember(" WTextEdit", "new " WT_CLASS ".WTextEdit(" + app->javaScriptClass() + "," + jsRef() + ");");
 
   setJavaScriptMember
     (WT_RESIZE_JS,
@@ -93,10 +92,8 @@ void WTextEdit::init()
     setConfigurationSetting("button_tile_map", true);
     //setConfigurationSetting("theme", std::string("advanced"));
     //setConfigurationSetting("theme.min", std::string("themes"));
-    setConfigurationSetting("theme_advanced_toolbar_location", 
-			    std::string("top"));
-    setConfigurationSetting("theme_advanced_toolbar_align",
-			    std::string("left"));
+    setConfigurationSetting("theme_advanced_toolbar_location", std::string("top"));
+    setConfigurationSetting("theme_advanced_toolbar_align", std::string("left"));
   }
     
   setReadMode_.setJavaScript("function(e) {var txt="+ this->jsRef() + "; if(txt&&txt.ed)txt.ed.setMode( e ? 'readonly' : 'design');}");
@@ -427,9 +424,7 @@ void WTextEdit::setEventSetting(const std::string& name, const cpp17::any& value
 
 cpp17::any WTextEdit::configurationSetting(const std::string& name) const
 {
-  SettingsMapType::const_iterator it = configurationSettings_.find(name);
-
-  if (it != configurationSettings_.end())
+  if (auto it = configurationSettings_.find(name); it != configurationSettings_.end())
     return it->second;
   else
     return cpp17::any();

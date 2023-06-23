@@ -107,6 +107,7 @@ inline const char *sql_value_traits<WDate, void>::type(sqlConnection *conn,
 						       int /* size */)
 {
   return conn->dateTimeType(SqlDateTimeType::Date);
+  //return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::Date); }, *conn);
 }
 
 inline void sql_value_traits<WDate, void>
@@ -140,6 +141,7 @@ inline const char *sql_value_traits<WTime, void>::type(sqlConnection *conn,
 						       int /* size */)
 {
   return conn->dateTimeType(SqlDateTimeType::Time);
+  //return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::Time); }, *conn);
 }
 
 inline void sql_value_traits<WTime, void>
@@ -179,6 +181,7 @@ inline const char *sql_value_traits<WDateTime, void>::type(sqlConnection *conn,
 							   int /* size */)
 {
   return conn->dateTimeType(SqlDateTimeType::DateTime);
+  //return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::DateTime); }, *conn);
 }
 
 inline void sql_value_traits<WDateTime, void>
@@ -212,6 +215,7 @@ inline std::string sql_value_traits<WString, void>::type(sqlConnection *conn,
 							 int size)
 {
     return conn->textType(size) + " not null";
+  //return std::visit([&] (auto& conn) -> std::string { return conn.textType(size); }, *conn) + " not null";
 }
 
 inline void sql_value_traits<WString, void>
@@ -237,11 +241,10 @@ inline bool sql_value_traits<WString, void>
      * Json::Object
      */
 
-inline std::string sql_value_traits<Json::Object, void>::type(
-    sqlConnection *conn,
-    int size)
+inline std::string sql_value_traits<Json::Object, void>::type(sqlConnection *conn, int size)
 {
   return conn->textType(size) + " not null";
+  //return std::visit([&] (auto& conn) -> std::string { return conn.textType(size); }, *conn) + " not null";
 }
 
 inline void sql_value_traits<Json::Object, void>
@@ -267,11 +270,10 @@ inline bool sql_value_traits<Json::Object, void>
      * Json::Array
      */
 
-inline std::string sql_value_traits<Json::Array, void>::type(
-    sqlConnection *conn,
-    int size)
+inline std::string sql_value_traits<Json::Array, void>::type(sqlConnection *conn, int size)
 {
   return conn->textType(size) + " not null";
+  //return std::visit([&] (auto& conn) -> std::string { return conn.textType(size); }, *conn) + " not null";
 }
 
 inline void sql_value_traits<Json::Array, void>
