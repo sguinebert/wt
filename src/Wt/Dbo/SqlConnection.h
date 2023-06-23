@@ -39,6 +39,25 @@ namespace Wt {
 //  NotSupported // !< Not supported
 //};
 
+//  namespace backend {
+
+//  class Sqlite3;
+//  class Postgres;
+//  class MySQL;
+//  class MSSQLServer;
+//  class Firebird;
+
+//  }
+
+
+//  typedef std::variant<backend::Postgres,
+//                       backend::Sqlite3,
+//                       backend::MySQL,
+//                       backend::MSSQLServer,
+//                       backend::Firebird
+//                       > SqlConnection;
+
+
 class SqlStatement;
 
 /*! \class SqlConnection Wt/Dbo/SqlConnection.h Wt/Dbo/SqlConnection.h
