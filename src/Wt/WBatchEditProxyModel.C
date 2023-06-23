@@ -1072,7 +1072,7 @@ awaitable<void> WBatchEditProxyModel::commitAll()
   submitting_ = false;
   co_return;
 }
-#warning "dataChanged() need awaitable ?"
+//#warning "dataChanged() need awaitable ?"
 awaitable<void> WBatchEditProxyModel::revertAll()
 {
   for (auto i = mappedIndexes_.begin(); i != mappedIndexes_.end(); ++i)

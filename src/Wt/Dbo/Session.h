@@ -18,6 +18,8 @@
 #include <Wt/Dbo/Field.h>
 #include <Wt/Dbo/Query.h>
 #include <Wt/Dbo/Transaction.h>
+#include <Wt/Dbo/SqlConnection.h>
+#include <Wt/Dbo/SqlConnectionPool.h>
 #include <Wt/Dbo/backend/connection.hpp> //#include <Wt/Dbo/sqlConnection.h> virtual polymorphism move to std::variant
 
 namespace Wt {
@@ -497,7 +499,8 @@ public:
   template<class Token>
   void flush(Token &&handler) {
     auto initiator = [this] (auto&& handler) {
-        co_spawn(*thread_context, flush(), [this, handler = std::move(handler)] (auto ec) {
+        auto executor = asio::get_associated_executor(handler);
+        co_spawn(executor, flush(), [this, handler = std::move(handler)] (auto ec) {
             handler();
         });
     };
@@ -572,13 +575,8 @@ public:
   auto assign_connection(bool transaction, ResultcallableT&& handler)
   {
     auto initiator = [this, transaction] (auto&& handler) {
-        //auto ex = cue::http::detail::engines::get_thread_context();
-
-//        connectionPool_->async_connection(transaction, [handler = std::move(handler)] (auto conn) mutable {
-//            handler(conn);
-//        });
-
-        co_spawn(*thread_context, connectionPool_->async_connection(transaction), [handler = std::move(handler)] (auto ec, auto conn) mutable {
+        auto context = asio::get_associated_executor(handler);
+        co_spawn(context, connectionPool_->async_connection(transaction), [handler = std::move(handler)] (auto ec, auto conn) mutable {
             handler(conn);
         });
     };

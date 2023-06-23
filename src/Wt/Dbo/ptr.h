@@ -371,7 +371,7 @@ namespace Wt
 
       virtual Impl::MappingInfo *getMapping() override;
       virtual awaitable<void> flush() override;
-      virtual void flush(std::function<void()>&& cb) override;
+      virtual void flush(std::function<void()>&& cb) override; //TODO change template asio::async_initiate
       virtual void bindId(SqlStatement *statement, int &column) override;
       virtual void bindModifyId(SqlStatement *statement, int &column) override;
       virtual void bindId(std::vector<Impl::ParameterBase *> &parameters) override;
