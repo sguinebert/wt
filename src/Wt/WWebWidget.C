@@ -1612,12 +1612,12 @@ void WWebWidget::updateDom(DomElement& element, bool all)
 
   if (!all && transientImpl_) {
     for (unsigned i = 0; i < transientImpl_->addedStyleClasses_.size(); ++i)
-      element.callJavaScript("$('#" + id() + "').addClass('"
+            element.callJavaScript(WT_CLASS ".$('" + id() + "').classList.add('"
 			     + transientImpl_->addedStyleClasses_[i].toUTF8()
 			     +"');");
 
     for (unsigned i = 0; i < transientImpl_->removedStyleClasses_.size(); ++i)
-      element.callJavaScript("$('#" + id() + "').removeClass('"
+      element.callJavaScript(WT_CLASS ".$('" + id() + "').classList.remove('"
 			     + transientImpl_->removedStyleClasses_[i].toUTF8()
 			     +"');");
 
@@ -1732,13 +1732,13 @@ void WWebWidget::updateDom(DomElement& element, bool all)
     if (flags_.test(BIT_HIDDEN_CHANGED)
 	|| (all && flags_.test(BIT_HIDDEN))) {
       if (flags_.test(BIT_HIDDEN)) {
-	element.callJavaScript("$('#" + id() + "').addClass('Wt-hidden');");
-	element.setProperty(Property::StyleVisibility, "hidden");
-	if (flags_.test(BIT_HIDE_WITH_OFFSETS)) {
-	  element.setProperty(Property::StylePosition, "absolute");
-	  element.setProperty(Property::StyleTop, "-10000px");
-	  element.setProperty(Property::StyleLeft, "-10000px");
-	}
+        element.callJavaScript(WT_CLASS ".$('" + id() + "').classList.add('Wt-hidden');");
+        element.setProperty(Property::StyleVisibility, "hidden");
+        if (flags_.test(BIT_HIDE_WITH_OFFSETS)) {
+          element.setProperty(Property::StylePosition, "absolute");
+          element.setProperty(Property::StyleTop, "-10000px");
+          element.setProperty(Property::StyleLeft, "-10000px");
+        }
       } else {
 	if (flags_.test(BIT_HIDE_WITH_OFFSETS)) {
 	  if (layoutImpl_) {
@@ -1770,7 +1770,7 @@ void WWebWidget::updateDom(DomElement& element, bool all)
 	    element.setProperty(Property::StyleLeft, "");
 	  }
 	}
-	element.callJavaScript("$('#" + id() + "').removeClass('Wt-hidden');");
+    element.callJavaScript(WT_CLASS ".$('" + id() + "').classList.remove('Wt-hidden');");
 	element.setProperty(Property::StyleVisibility, "visible");
       }
     }
@@ -1845,7 +1845,7 @@ void WWebWidget::updateDom(DomElement& element, bool all)
     element.callJavaScript("setTimeout(function() {"
 			   """var o = " + jsRef() + ";"
 			   """if (o) {"
-			   ""   "if (!$(o).hasClass('" +
+               "" "if (!o.classList.contains('" +
 			         app->theme()->disabledClass() + "')) {"
 			   ""      "try { "
 			   ""          "o.focus();"

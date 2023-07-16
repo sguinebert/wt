@@ -648,6 +648,10 @@ namespace Wt
 
     bool Client::send(const Message &message)
     {
+      if (!(impl_ && impl_->good())) {
+        LOG_ERROR("Can't send message: not connected");
+        return false;
+      }
       return impl_->send(message);
     }
 

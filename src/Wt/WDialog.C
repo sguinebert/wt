@@ -490,12 +490,25 @@ void WDialog::setTitleBarEnabled(bool enable)
 
 void WDialog::setClosable(bool closable)
 {
+  if (closable == this->closable()) {
+    return;
+  }
   if (closable) {
     if (!closeIcon_) {
+//#warning https://github.com/emweb/wt/commit/3bfce00375a9f3881f625a9b738e865fd34d4727
+//      auto theme = WApplication::instance()->theme();
+//      if (std::dynamic_pointer_cast<WBootstrap5Theme>(theme)) {
+//        closeIcon_ = titleBar_->addNew<WPushButton>();
+//      } else {
+//        closeIcon_ = titleBar_->insertWidget(0, std::make_unique<WText>());
+//      }
+//      theme->apply(this, closeIcon_, DialogCloseIcon);
+//      closeIcon_->clicked().connect(this, &WDialog::reject);
+
       std::unique_ptr<WText> closeIcon(closeIcon_ = new WText());
       titleBar_->insertWidget(0, std::move(closeIcon));
       WApplication::instance()->theme()->apply
-	(this, closeIcon_, DialogCloseIcon);
+    (this, closeIcon_, DialogCloseIcon);
       closeIcon_->clicked().connect(this, &WDialog::reject);
     }
   } else {

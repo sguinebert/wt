@@ -224,14 +224,18 @@ void WPdfImage::setChanged(WFlags<PainterChangeFlag> flags)
 
       switch (pen.capStyle()) {
       case PenCapStyle::Flat:
-	HPDF_Page_SetLineCap(page_, HPDF_BUTT_END);
-	break;
+#if HPDF_VERSION_ID >= 20400
+        HPDF_Page_SetLineCap(page_, HPDF_PROJECTING_SQUARE_END);
+#else
+        HPDF_Page_SetLineCap(page_, HPDF_PROJECTING_SCUARE_END); // scuary !
+#endif
+        break;
       case PenCapStyle::Square:
-	HPDF_Page_SetLineCap(page_, HPDF_PROJECTING_SCUARE_END); // scuary !
-	break;
+        HPDF_Page_SetLineCap(page_, HPDF_PROJECTING_SCUARE_END); // scuary !
+        break;
       case PenCapStyle::Round:
-	HPDF_Page_SetLineCap(page_, HPDF_ROUND_END);
-	break;
+        HPDF_Page_SetLineCap(page_, HPDF_ROUND_END);
+        break;
       }
 
       switch (pen.joinStyle()) {
@@ -253,24 +257,40 @@ void WPdfImage::setChanged(WFlags<PainterChangeFlag> flags)
 	HPDF_Page_SetDash(page_, nullptr, 0, 0);
 	break;
       case PenStyle::DashLine: {
-	const HPDF_UINT16 dash_ptn[] = { 4, 2 };
-	HPDF_Page_SetDash(page_, dash_ptn, 2, 0);
-	break;
+#if HPDF_VERSION_ID >= 20400
+        const HPDF_REAL dash_ptn[] = { 4, 2 };
+#else
+        const HPDF_UINT16 dash_ptn[] = { 4, 2 };
+#endif
+        HPDF_Page_SetDash(page_, dash_ptn, 2, 0);
+        break;
       }
       case PenStyle::DotLine: {
-	const HPDF_UINT16 dash_ptn[] = { 1, 2 };
-	HPDF_Page_SetDash(page_, dash_ptn, 2, 0);
-	break;
+#if HPDF_VERSION_ID >= 20400
+        const HPDF_REAL dash_ptn[] = { 1, 2 };
+#else
+        const HPDF_UINT16 dash_ptn[] = { 1, 2 };
+#endif
+        HPDF_Page_SetDash(page_, dash_ptn, 2, 0);
+        break;
       }
       case PenStyle::DashDotLine: {
+#if HPDF_VERSION_ID >= 20400
+        const HPDF_REAL dash_ptn[] = { 4, 2, 1, 2 };
+#else
 	const HPDF_UINT16 dash_ptn[] = { 4, 2, 1, 2 };
+#endif
 	HPDF_Page_SetDash(page_, dash_ptn, 4, 0);
 	break;
       }
       case PenStyle::DashDotDotLine: {
-	const HPDF_UINT16 dash_ptn[] = { 4, 2, 1, 2, 1, 2 };
-	HPDF_Page_SetDash(page_, dash_ptn, 6, 0);
-	break;
+#if HPDF_VERSION_ID >= 20400
+    const HPDF_REAL dash_ptn[] = { 4, 2, 1, 2, 1, 2 };
+#else
+        const HPDF_UINT16 dash_ptn[] = { 4, 2, 1, 2, 1, 2 };
+#endif
+        HPDF_Page_SetDash(page_, dash_ptn, 6, 0);
+        break;
       }
       }
     }

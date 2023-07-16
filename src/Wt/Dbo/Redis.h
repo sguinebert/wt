@@ -1,8 +1,7 @@
-// This may look like C code, but it's really -*- C++ -*-
 /*
- * Copyright (C) 2023 Emweb bv, Herent, Belgium.
+ * Copyright (C) 2023
  *
- * See the LICENSE file for terms of use.
+ * LICENSE MIT.
  *
  * Contributed by: Guinebert Sylvain
  */
@@ -12,6 +11,7 @@
 #include <Wt/WIOService.h>
 #include <Wt/AsioWrapper/asio.hpp>
 #include <boost/redis.hpp>
+#include <boost/redis/src.hpp>
 //#include <Wt/WLogger.h>
 
 //#include <chrono>

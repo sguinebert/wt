@@ -41,41 +41,40 @@ WPanel::WPanel()
   
 
   setJavaScriptMember
-    (WT_RESIZE_JS,
-     "function(self, w, h, s) {"
-     """var hdefined = h >= 0;"
-     """if (hdefined) {"
-     ""  "var mh = " WT_CLASS ".px(self, 'maxHeight');"
-     ""  "if (mh > 0) h = Math.min(h, mh);"
-     """}"
-     """if (" WT_CLASS ".boxSizing(self)) {"
-     ""  "h -= " WT_CLASS ".px(self, 'borderTopWidth') + "
-     ""       WT_CLASS ".px(self, 'borderBottomWidth');"
-     """}"
-     """var c = self.lastChild;"
-     """var t = c.previousSibling;"
-     """if (t)"
-     ""  "h -= t.offsetHeight;"
-     """h -= 8;" // padding
-     """if (hdefined && h > 0) {"
-     ""  "c.lh = true;"
-     ""  "c.style.height = h + 'px';"
-     // the panel is indirectly hidden: will this back-fire ?
-     ""  "$(c).children().each(function() { "
-     ""      "var self = $(this), "
-     ""          "padding = self.outerHeight() - self.height();"
-     ""      "self.height(h - padding);"
-     ""      "this.lh = true;"
-     ""  "});"
-     """} else {"
-     ""  "c.style.height = '';"
-     ""  "c.lh = false;"
-     ""  "$(c).children().each(function() { "
-     ""    "this.style.height = '';"
-     ""    "this.lh = false;"
-     ""  "});"
-     """}"
-     "};");
+      (WT_RESIZE_JS,
+       "function(self, w, h, s) {"
+       """var hdefined = h >= 0;"
+       """if (hdefined) {"
+       ""  "var mh = " WT_CLASS ".px(self, 'maxHeight');"
+       ""  "if (mh > 0) h = Math.min(h, mh);"
+       """}"
+       """if (" WT_CLASS ".boxSizing(self)) {"
+       ""  "h -= " WT_CLASS ".px(self, 'borderTopWidth') + "
+       ""       WT_CLASS ".px(self, 'borderBottomWidth');"
+       """}"
+       """var c = self.lastChild;"
+       """var t = c.previousSibling;"
+       """if (t)"
+       ""  "h -= t.offsetHeight;"
+       """h -= 8;" // padding
+       """if (hdefined && h > 0) {"
+       ""  "c.lh = true;"
+       ""  "c.style.height = h + 'px';"
+       // the panel is indirectly hidden: will this back-fire ?
+       ""  "c.querySelectorAll(':scope > *').forEach(function(self) { "
+       ""      "let padding = self.getBoundingClientRect().height - " WT_CLASS ".px(self, 'height');"
+       ""      "self.style.height = (h - padding) + 'px';"
+       ""      "self.lh = true;"
+       ""  "});"
+       """} else {"
+       ""  "c.style.height = '';"
+       ""  "c.lh = false;"
+       ""  "for (const child of c.children) {"
+       ""      "child.style.height = '';"
+       ""      "child.lh = false;"
+       ""  "}"
+       """}"
+       "};");
 
   setJavaScriptMember(WT_GETPS_JS, StdWidgetItemImpl::secondGetPSJS());
 }

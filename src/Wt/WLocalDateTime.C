@@ -323,8 +323,10 @@ WLocalDateTime WLocalDateTime::currentServerDateTime()
   std::tm tm;
   ::localtime_r(&t, &tm);
   // tm_gmtoff is not part of the POSIX standard, but Linux, Mac OS X and the BSDs provide it
-  return currentTime(date::floor<std::chrono::minutes>(std::chrono::seconds{tm.tm_gmtoff}),
-		     WLocale::currentLocale().dateTimeFormat());
+  return currentTime(cpp20::date::floor<std::chrono::minutes>(std::chrono::seconds{tm.tm_gmtoff}),
+                     WLocale::currentLocale().dateTimeFormat());
+//  return currentTime(date::floor<std::chrono::minutes>(std::chrono::seconds{tm.tm_gmtoff}),
+//		     WLocale::currentLocale().dateTimeFormat());
 #else
   TIME_ZONE_INFORMATION tzi{};
   DWORD tz_result = ::GetTimeZoneInformation(&tzi);

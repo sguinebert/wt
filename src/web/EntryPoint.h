@@ -4,14 +4,14 @@
  *
  * All rights reserved.
  */
-
+#ifndef ENTRYPOINT_H
+#define ENTRYPOINT_H
 #include "Wt/WApplication.h"
 #include "Wt/WGlobal.h"
 
 #include <deque>
 
-#ifndef ENTRYPOINT_H
-#define ENTRYPOINT_H
+
 namespace Wt {
 
 /*! \brief Typedef for a function that creates WApplication objects.
@@ -51,14 +51,14 @@ private:
 typedef std::deque<EntryPoint> EntryPointList;
 
 struct WT_API EntryPointMatch {
-  EntryPointMatch()
+  EntryPointMatch() noexcept
     : entryPoint(nullptr),
       extra(0)
   { }
 
   EntryPointMatch(
       const EntryPoint *ep,
-      std::size_t x)
+      std::size_t x) noexcept
     : entryPoint(ep),
       extra(x)
   { }

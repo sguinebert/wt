@@ -61,8 +61,8 @@ void WInteractWidget::setPopup(bool popup)
       ("function(o,e) { "
        " if (" WT_CLASS ".WPopupWidget && o.wtPopup) {"
            WT_CLASS ".WPopupWidget.popupClicked = o;"
-           "$(document).trigger('click', e);"
-           WT_CLASS ".WPopupWidget.popupClicked = null;"
+           "document.dispatchEvent(new MouseEvent('click', e));"
+            WT_CLASS ".WPopupWidget.popupClicked = null;"
        " }"
        "}");
     clicked().preventPropagation();
@@ -273,7 +273,7 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
     = (mouseUp && mouseUp->needsUpdate(all))
     || updateMouseMove;
 
-  std::string CheckDisabled = "if($(o).hasClass('" +
+  std::string CheckDisabled = "if(o.classList.contains('" +
     app->theme()->disabledClass() +
     "')){" WT_CLASS ".cancelEvent(e);return;}";
 

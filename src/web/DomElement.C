@@ -400,7 +400,7 @@ void DomElement::setEvent(const char *eventName,
     js << "o=this;";
 
     if (anchorClick)
-      js << "if(e.ctrlKey||e.metaKey||(" WT_CLASS ".button(e) > 1))"
+      js << "if(e.ctrlKey||e.metaKey||e.shiftKey||(" WT_CLASS ".button(e) > 1))"
 	"return true;else{";
 
     /*
@@ -728,29 +728,25 @@ std::string DomElement::cssStyle() const
     if (j->first == Property::Style)
       styleProperty = &j->second;
     else if ((p >= static_cast<unsigned int>(Property::StylePosition)) &&
-	     (p < static_cast<unsigned int>(Property::LastPlusOne))) {
-      if ((j->first == Property::StyleCursor) && (j->second == "pointer")) {
-	style << "cursor:pointer;cursor:hand;";	    
-      } else {
-	if (!j->second.empty()) {
-	  style << cssNames_[p -
-			     static_cast<unsigned int>(Property::StylePosition)]
-		<< ':' << j->second << ';';
-	  if (p >= static_cast<unsigned int>(Property::StyleBoxSizing)) {
-	    WApplication *app = WApplication::instance();
+             (p < static_cast<unsigned int>(Property::LastPlusOne))) {
+      if (!j->second.empty()) {
+    style << cssNames_[p -
+                       static_cast<unsigned int>(Property::StylePosition)]
+          << ':' << j->second << ';';
+    if (p >= static_cast<unsigned int>(Property::StyleBoxSizing)) {
+      WApplication *app = WApplication::instance();
 
-	    if (app) {
-	      if (app->environment().agentIsGecko())
-		style << "-moz-";
-	      else if (app->environment().agentIsWebKit())
-		style << "-webkit-";
-	    }
+      if (app) {
+          if (app->environment().agentIsGecko())
+              style << "-moz-";
+          else if (app->environment().agentIsWebKit())
+              style << "-webkit-";
+      }
 
-	    style << cssNames_[p -
-			       static_cast<unsigned int>(Property::StylePosition)]
-		  << ':' << j->second << ';';
-	  }
-	}
+      style << cssNames_[p -
+                         static_cast<unsigned int>(Property::StylePosition)]
+            << ':' << j->second << ';';
+    }
       }
     } else if (j->first == Property::StyleWidthExpression) {
       style << "width:expression(" << j->second << ");";
@@ -1346,8 +1342,8 @@ std::string DomElement::asJavaScript(EscapeOStream& out,
 	if (removeAllChildren_ == 0)
 	  out << WT_CLASS << ".setHtml(" << var_ << ", '');\n";
 	else {
-	  out << "$(" << var_ << ").children(':gt(" << (removeAllChildren_ - 1)
-	      << ")').remove();";
+      out << "(Array.from(" << var_ << ".querySelectorAll(':scope > *')).slice(" << removeAllChildren_
+          << ")).forEach( elem => elem.remove());";
 	}
       }
     }
@@ -1777,11 +1773,14 @@ bool DomElement::isDefaultInline(DomElementType type)
 bool DomElement::isSelfClosingTag(const std::string& tag)
 {
   return (   (tag == "br")
-	  || (tag == "hr")
-	  || (tag == "img")
-	  || (tag == "area")
-	  || (tag == "col")
-	  || (tag == "input"));
+          || (tag == "hr")
+          || (tag == "img")
+          || (tag == "area")
+          || (tag == "col")
+          || (tag == "input")
+          || (tag == "link")
+          || (tag == "meta"));
+
 }
 
 bool DomElement::isSelfClosingTag(DomElementType element)

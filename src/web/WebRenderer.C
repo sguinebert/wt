@@ -75,15 +75,12 @@ namespace {
 }
 
 namespace skeletons {
-  extern const char *Boot_html1;
-  extern const char *Plain_html1;
-  extern const char *Hybrid_html1;
-  extern const char *Wt_js1;
-  extern const char *Boot_js1;
-  extern const char *JQuery_js1;
-
-  extern std::vector<const char *> JQuery_js();
-  extern std::vector<const char *> Wt_js();
+  extern const char *Boot_html;
+  extern const char *Plain_html;
+  extern const char *Hybrid_html;
+  extern const char *Wt_js;
+  extern const char *Boot_js;
+  extern const char *JQuery_js;
 }
 
 namespace Wt {
@@ -95,10 +92,10 @@ WebRenderer::CookieValue::CookieValue()
 { }
 
 WebRenderer::CookieValue::CookieValue(const std::string& v,
-				      const std::string& p,
-				      const std::string& d,
-				      const WDateTime& e,
-				      bool s)
+                                      const std::string& p,
+                                      const std::string& d,
+                                      const WDateTime& e,
+                                      bool s)
   : value(v),
     path(p),
     domain(d),
@@ -372,7 +369,7 @@ void WebRenderer::streamBootContent(WebResponse& response,  FileServe& boot, boo
   boot.streamUntil(out, "BOOT_JS");
 
   if (!(hybrid && session_.app()->hasQuit())) {
-    FileServe bootJs(skeletons::Boot_js1);
+    FileServe bootJs(skeletons::Boot_js);
 
     bootJs.setVar("SELF_URL",
           	safeJsStringLiteral
@@ -429,7 +426,7 @@ void WebRenderer::streamBootContent(http::context *context, FileServe &boot, boo
   boot.streamUntil(out, "BOOT_JS");
 
   if (!(hybrid && session_.app()->hasQuit())) {
-    FileServe bootJs(skeletons::Boot_js1);
+    FileServe bootJs(skeletons::Boot_js);
 
     bootJs.setVar("SELF_URL",
                   safeJsStringLiteral
@@ -540,7 +537,7 @@ void WebRenderer::serveBootstrap(WebResponse& response)
 {
   Configuration& conf = session_.controller()->configuration();
 
-  FileServe boot(skeletons::Boot_html1);
+  FileServe boot(skeletons::Boot_html);
   setPageVars(boot);
 
   WStringStream noJsRedirectUrl;
@@ -665,7 +662,7 @@ void WebRenderer::serveMainpage(http::context *context)
   app->newBeforeLoadJavaScript_ = app->beforeLoadJavaScript_.length();
 
   bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
-  FileServe page(hybridPage ? skeletons::Hybrid_html1 : skeletons::Plain_html1);
+  FileServe page(hybridPage ? skeletons::Hybrid_html : skeletons::Plain_html);
 
   setPageVars(page);
   page.setVar("SESSION_ID", session_.sessionId());
@@ -1262,33 +1259,14 @@ void WebRenderer::collectJavaScript()
   }
 
   if (visibleOnly_) {
-    bool needFetchInvisible = false;
-
-    if (!updateMap_.empty()) {
-      needFetchInvisible = true;
-
-      if (twoPhaseThreshold_ > 0) {
-	/*
-	 * See how large the invisible changes are, perhaps we can
-	 * send them along
-	 */
-	visibleOnly_ = false;
-
-    collectJavaScriptUpdate(invisibleJS_);
-
-	if (invisibleJS_.length() < (unsigned)twoPhaseThreshold_) {
-	  collectedJS1_ << invisibleJS_.str();
-	  invisibleJS_.clear();
-	  needFetchInvisible = false;
-	}
-
-	visibleOnly_ = true;
-      }
+    preCollectInvisibleChanges();
+    if (twoPhaseThreshold_ > 0 && invisibleJS_.length() < static_cast<unsigned>(twoPhaseThreshold_)) {
+      collectedJS1_ << invisibleJS_.str();
+      invisibleJS_.clear();
+    } else {
+      collectedJS1_ << session_.app()->javaScriptClass()
+                    << "._p_.update(null, 'none', null, false);";
     }
-
-    if (needFetchInvisible)
-      collectedJS1_ << app->javaScriptClass()
-		    << "._p_.update(null, 'none', null, false);";
   }
 
   if (conf.inlineCss())
@@ -1354,114 +1332,88 @@ void WebRenderer::serveMainscript(WebResponse& response)
 
   const bool innerHtml = true;
 
-  if (serveSkeletons) {
-    bool haveJQuery = app->customJQuery();
+  FileServe script(skeletons::Wt_js);
 
-    if (!haveJQuery) {
-      out << "if (typeof window.$ === 'undefined') {";
-#ifndef WT_TARGET_JAVA
-      std::vector<const char *> parts = skeletons::JQuery_js();
-      for (std::size_t i = 0; i < parts.size(); ++i)
-	out << const_cast<char *>(parts[i]);
-#else
-      out << const_cast<char *>(skeletons::JQuery_js1);
-#endif
-      out << '}';
-    }
-
-#ifndef WT_TARGET_JAVA
-    std::vector<const char *> parts = skeletons::Wt_js();
-#else
-    std::vector<const char *> parts = std::vector<const char *>();
-#endif
-    std::string Wt_js_combined;
-    if (parts.size() > 1)
-      for (std::size_t i = 0; i < parts.size(); ++i)
-	Wt_js_combined += parts[i];
-
-    FileServe script(parts.size() > 1
-		     ? Wt_js_combined.c_str() : skeletons::Wt_js1);
-
-    script.setCondition
+  script.setCondition
       ("CATCH_ERROR", conf.errorReporting() != Configuration::NoErrors);
-    script.setCondition
+  script.setCondition
       ("SHOW_ERROR", conf.errorReporting() == Configuration::ErrorMessage);
-    script.setCondition
+  script.setCondition
       ("UGLY_INTERNAL_PATHS", session_.useUglyInternalPaths());
 
 #ifdef WT_DEBUG_JS
-    script.setCondition("DYNAMIC_JS", true);
+  script.setCondition("DYNAMIC_JS", true);
 #else
-    script.setCondition("DYNAMIC_JS", false);
+  script.setCondition("DYNAMIC_JS", false);
 #endif // WT_DEBUG_JS
 
-    script.setVar("WT_CLASS", WT_CLASS);
-    script.setVar("APP_CLASS", app->javaScriptClass());
-    script.setCondition("STRICTLY_SERIALIZED_EVENTS", conf.serializedEvents());
-    script.setCondition("WEB_SOCKETS", conf.webSockets());
-    script.setVar("INNER_HTML", innerHtml);
-    script.setVar("ACK_UPDATE_ID", expectedAckId_);
-    script.setVar("SESSION_URL", WWebWidget::jsStringLiteral(sessionUrl()));
-    script.setVar("QUITTED_STR",
-		  WString::tr("Wt.QuittedMessage").jsStringLiteral());
-    script.setVar("MAX_FORMDATA_SIZE", conf.maxFormDataSize());
-    script.setVar("MAX_PENDING_EVENTS", conf.maxPendingEvents());
+  script.setVar("WT_CLASS", WT_CLASS);
+  script.setVar("APP_CLASS", app->javaScriptClass());
+  script.setCondition("STRICTLY_SERIALIZED_EVENTS", conf.serializedEvents());
+  script.setCondition("WEB_SOCKETS", conf.webSockets());
+  script.setVar("INNER_HTML", innerHtml);
+  script.setVar("ACK_UPDATE_ID", expectedAckId_);
+  script.setVar("SESSION_URL", WWebWidget::jsStringLiteral(sessionUrl()));
+  script.setVar("QUITTED_STR",
+                WString::tr("Wt.QuittedMessage").jsStringLiteral());
+  script.setVar("MAX_FORMDATA_SIZE", conf.maxFormDataSize());
+  script.setVar("MAX_PENDING_EVENTS", conf.maxPendingEvents());
 
-    std::string deployPath = session_.env().publicDeploymentPath_;
-    if (deployPath.empty())
-      deployPath = session_.deploymentPath();
+  std::string deployPath = session_.env().publicDeploymentPath_;
+  if (deployPath.empty())
+    deployPath = session_.deploymentPath();
 
-    script.setVar("DEPLOY_PATH", WWebWidget::jsStringLiteral(deployPath));
+  script.setVar("DEPLOY_PATH", WWebWidget::jsStringLiteral(deployPath));
 
-    // WS_PATH = DEPLOY_PATH for C++, = CONTEXT_PATH for Java = request.contextPath()
-    // WS_ID = empty for C++, servlet ID for Java
+// WS_PATH = DEPLOY_PATH for C++, = CONTEXT_PATH for Java = request.contextPath()
+// WS_ID = empty for C++, servlet ID for Java
 #ifdef WT_TARGET_JAVA
-    script.setVar("WS_PATH", WWebWidget::jsStringLiteral(session_.controller()->getContextPath() + "/ws"));
-    script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::to_string(session_.controller()->getIdForWebSocket())));
+  script.setVar("WS_PATH", WWebWidget::jsStringLiteral(session_.controller()->getContextPath() + "/ws"));
+  script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::to_string(session_.controller()->getIdForWebSocket())));
 #else
-    script.setVar("WS_PATH", WWebWidget::jsStringLiteral(deployPath));
-    script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::string("")));
+  script.setVar("WS_PATH", WWebWidget::jsStringLiteral(deployPath));
+  script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::string("")));
 #endif
 
-    script.setVar("KEEP_ALIVE", std::to_string(conf.keepAlive()));
+  script.setVar("KEEP_ALIVE", std::to_string(conf.keepAlive()));
 
-    script.setVar("IDLE_TIMEOUT", conf.idleTimeout() != -1 ?
-        std::to_string(conf.idleTimeout()) : std::string("null"));
+  script.setVar("IDLE_TIMEOUT", conf.idleTimeout() != -1 ?
+                                    std::to_string(conf.idleTimeout()) : std::string("null"));
 
-    script.setVar("INDICATOR_TIMEOUT", conf.indicatorTimeout());
-    script.setVar("SERVER_PUSH_TIMEOUT", conf.serverPushTimeout() * 1000);
+  script.setVar("INDICATOR_TIMEOUT", conf.indicatorTimeout());
+  script.setVar("SERVER_PUSH_TIMEOUT", conf.serverPushTimeout() * 1000);
 
-    /*
+  /*
      * Was in honor of Mozilla Bugzilla #246651
      */
-    script.setVar("CLOSE_CONNECTION", false);
+  script.setVar("CLOSE_CONNECTION", false);
 
-    /*
+  /*
      * Set the original script params for a widgetset session, so that any
      * Ajax update request has all the information to reload the session.
      */
-    std::string params;
-    if (session_.type() == EntryPointType::WidgetSet) {
-      const Http::ParameterMap *m = &session_.env().getParameterMap();
-      Http::ParameterMap::const_iterator it = m->find("Wt-params");
-      Http::ParameterMap wtParams;
-      if (it != m->end()) {
-	// Parse and reencode Wt-params, so it's definitely safe
-	Http::Request::parseFormUrlEncoded(it->second[0], wtParams);
-	m = &wtParams;
-      }
-      for (Http::ParameterMap::const_iterator i = m->begin();
-	   i != m->end(); ++i) {
-	if (!params.empty())
-	  params += '&';
-	params
-	  += Utils::urlEncode(i->first) + '=' + Utils::urlEncode(i->second[0]);
-      }
+  std::string params;
+  if (session_.type() == EntryPointType::WidgetSet)
+  {
+    const Http::ParameterMap *m = &session_.env().getParameterMap();
+    Http::ParameterMap::const_iterator it = m->find("Wt-params");
+    Http::ParameterMap wtParams;
+    if (it != m->end()) {
+      // Parse and reencode Wt-params, so it's definitely safe
+      Http::Request::parseFormUrlEncoded(it->second[0], wtParams);
+      m = &wtParams;
     }
-    script.setVar("PARAMS", params);
-
-    script.stream(out);
+    for (auto i = m->begin(); i != m->end(); ++i)
+    {
+      if (!params.empty())
+        params += '&';
+      params += Utils::urlEncode(i->first) + '=' + Utils::urlEncode(i->second[0]);
+    }
   }
+  script.setVar("PARAMS", params);
+
+  script.stream(out);
+
 
   if (!serveRest) {
     out.spool(response.out());
@@ -1559,7 +1511,7 @@ void WebRenderer::serveMainscript(WebResponse& response)
 	<<   "}, 400);"
 	<< "else ";
 
-    out << "$(document).ready(function() { "
+    out << WT_CLASS ".ready(function() { "
 	<< app->javaScriptClass() << "._p_.load(true);});\n";
   }
 
@@ -1667,6 +1619,19 @@ void WebRenderer::serveMainAjax(WStringStream& out)
 
   preLearnStateless(app, collectedJS1_);
 
+  if (visibleOnly_) {
+    preCollectInvisibleChanges();
+    if (twoPhaseThreshold_ > 0 && invisibleJS_.length() < static_cast<unsigned>(twoPhaseThreshold_)) {
+      collectedJS1_ << invisibleJS_.str();
+      invisibleJS_.clear();
+    } else if (widgetset) {
+      // If application is not widgetset a 'load' signal will still
+      // be sent, so no extra update is necessary
+      collectedJS1_ << session_.app()->javaScriptClass()
+                    << "._p_.update(null, 'none', null, false);";
+    }
+  }
+
   LOG_DEBUG("js: {}", collectedJS1_.str());
 
   out << collectedJS1_.str();
@@ -1689,15 +1654,16 @@ void WebRenderer::serveMainAjax(WStringStream& out)
       << '}';
 
   if (!widgetset) {
-    if (!app->hasQuit())
+    if (!app->hasQuit()) {
       out << session_.app()->javaScriptClass()
-	  << "._p_.update(null, 'load', null, false);\n";
+          << "._p_.update(null, 'load', null, false);\n";
+    }
     out << "};\n";
   }
 
   renderSetServerPush(out);
 
-  out << "$(document).ready(function() { "
+  out << WT_CLASS ".ready(function() { "
       << app->javaScriptClass() << "._p_.load(" << !widgetset << ");});\n";
 
   loadScriptLibraries(out, app, librariesLoaded);
@@ -1864,114 +1830,87 @@ void WebRenderer::serveMainscript(http::context *context)
 
   const bool innerHtml = true;
 
-  if (serveSkeletons) {
-    bool haveJQuery = app->customJQuery();
+  FileServe script(skeletons::Wt_js);
 
-    if (!haveJQuery) {
-      out << "if (typeof window.$ === 'undefined') {";
-#ifndef WT_TARGET_JAVA
-      std::vector<const char *> parts = skeletons::JQuery_js();
-      for (std::size_t i = 0; i < parts.size(); ++i)
-        out << const_cast<char *>(parts[i]);
-#else
-      out << const_cast<char *>(skeletons::JQuery_js1);
-#endif
-      out << '}';
-    }
-
-#ifndef WT_TARGET_JAVA
-    std::vector<const char *> parts = skeletons::Wt_js();
-#else
-    std::vector<const char *> parts = std::vector<const char *>();
-#endif
-    std::string Wt_js_combined;
-    if (parts.size() > 1)
-      for (std::size_t i = 0; i < parts.size(); ++i)
-    Wt_js_combined += parts[i];
-
-    FileServe script(parts.size() > 1
-                         ? Wt_js_combined.c_str() : skeletons::Wt_js1);
-
-    script.setCondition
-        ("CATCH_ERROR", conf.errorReporting() != Configuration::NoErrors);
-    script.setCondition
-        ("SHOW_ERROR", conf.errorReporting() == Configuration::ErrorMessage);
-    script.setCondition
-        ("UGLY_INTERNAL_PATHS", session_.useUglyInternalPaths());
+  script.setCondition
+      ("CATCH_ERROR", conf.errorReporting() != Configuration::NoErrors);
+  script.setCondition
+      ("SHOW_ERROR", conf.errorReporting() == Configuration::ErrorMessage);
+  script.setCondition
+      ("UGLY_INTERNAL_PATHS", session_.useUglyInternalPaths());
 
 #ifdef WT_DEBUG_JS
-    script.setCondition("DYNAMIC_JS", true);
+  script.setCondition("DYNAMIC_JS", true);
 #else
-    script.setCondition("DYNAMIC_JS", false);
+  script.setCondition("DYNAMIC_JS", false);
 #endif // WT_DEBUG_JS
 
-    script.setVar("WT_CLASS", WT_CLASS);
-    script.setVar("APP_CLASS", app->javaScriptClass());
-    script.setCondition("STRICTLY_SERIALIZED_EVENTS", conf.serializedEvents());
-    script.setCondition("WEB_SOCKETS", conf.webSockets());
-    script.setVar("INNER_HTML", innerHtml);
-    script.setVar("ACK_UPDATE_ID", expectedAckId_);
-    script.setVar("SESSION_URL", WWebWidget::jsStringLiteral(sessionUrl()));
-    script.setVar("QUITTED_STR",
-                  WString::tr("Wt.QuittedMessage").jsStringLiteral());
-    script.setVar("MAX_FORMDATA_SIZE", conf.maxFormDataSize());
-    script.setVar("MAX_PENDING_EVENTS", conf.maxPendingEvents());
+  script.setVar("WT_CLASS", WT_CLASS);
+  script.setVar("APP_CLASS", app->javaScriptClass());
+  script.setCondition("STRICTLY_SERIALIZED_EVENTS", conf.serializedEvents());
+  script.setCondition("WEB_SOCKETS", conf.webSockets());
+  script.setVar("INNER_HTML", innerHtml);
+  script.setVar("ACK_UPDATE_ID", expectedAckId_);
+  script.setVar("SESSION_URL", WWebWidget::jsStringLiteral(sessionUrl()));
+  script.setVar("QUITTED_STR",
+                WString::tr("Wt.QuittedMessage").jsStringLiteral());
+  script.setVar("MAX_FORMDATA_SIZE", conf.maxFormDataSize());
+  script.setVar("MAX_PENDING_EVENTS", conf.maxPendingEvents());
 
-    std::string deployPath = session_.env().publicDeploymentPath_;
-    if (deployPath.empty())
-      deployPath = session_.deploymentPath();
+  std::string deployPath = session_.env().publicDeploymentPath_;
+  if (deployPath.empty())
+    deployPath = session_.deploymentPath();
 
-    script.setVar("DEPLOY_PATH", WWebWidget::jsStringLiteral(deployPath));
+  script.setVar("DEPLOY_PATH", WWebWidget::jsStringLiteral(deployPath));
 
 // WS_PATH = DEPLOY_PATH for C++, = CONTEXT_PATH for Java = request.contextPath()
 // WS_ID = empty for C++, servlet ID for Java
 #ifdef WT_TARGET_JAVA
-    script.setVar("WS_PATH", WWebWidget::jsStringLiteral(session_.controller()->getContextPath() + "/ws"));
-    script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::to_string(session_.controller()->getIdForWebSocket())));
+  script.setVar("WS_PATH", WWebWidget::jsStringLiteral(session_.controller()->getContextPath() + "/ws"));
+  script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::to_string(session_.controller()->getIdForWebSocket())));
 #else
-    script.setVar("WS_PATH", WWebWidget::jsStringLiteral(deployPath));
-    script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::string("")));
+  script.setVar("WS_PATH", WWebWidget::jsStringLiteral(deployPath));
+  script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::string("")));
 #endif
 
-    script.setVar("KEEP_ALIVE", std::to_string(conf.keepAlive()));
+  script.setVar("KEEP_ALIVE", std::to_string(conf.keepAlive()));
 
-    script.setVar("IDLE_TIMEOUT", conf.idleTimeout() != -1 ?
-                                      std::to_string(conf.idleTimeout()) : std::string("null"));
+  script.setVar("IDLE_TIMEOUT", conf.idleTimeout() != -1 ?
+                                    std::to_string(conf.idleTimeout()) : std::string("null"));
 
-    script.setVar("INDICATOR_TIMEOUT", conf.indicatorTimeout());
-    script.setVar("SERVER_PUSH_TIMEOUT", conf.serverPushTimeout() * 1000);
+  script.setVar("INDICATOR_TIMEOUT", conf.indicatorTimeout());
+  script.setVar("SERVER_PUSH_TIMEOUT", conf.serverPushTimeout() * 1000);
 
-    /*
+  /*
      * Was in honor of Mozilla Bugzilla #246651
      */
-    script.setVar("CLOSE_CONNECTION", false);
+  script.setVar("CLOSE_CONNECTION", false);
 
-    /*
+  /*
      * Set the original script params for a widgetset session, so that any
      * Ajax update request has all the information to reload the session.
      */
-    std::string params;
-    if (session_.type() == EntryPointType::WidgetSet)
-    {
-      const Http::ParameterMap *m = &session_.env().getParameterMap();
-      Http::ParameterMap::const_iterator it = m->find("Wt-params");
-      Http::ParameterMap wtParams;
-      if (it != m->end()) {
-        // Parse and reencode Wt-params, so it's definitely safe
-        Http::Request::parseFormUrlEncoded(it->second[0], wtParams);
-        m = &wtParams;
-      }
-      for (auto i = m->begin(); i != m->end(); ++i)
-      {
-        if (!params.empty())
-          params += '&';
-        params += Utils::urlEncode(i->first) + '=' + Utils::urlEncode(i->second[0]);
-      }
+  std::string params;
+  if (session_.type() == EntryPointType::WidgetSet)
+  {
+    const Http::ParameterMap *m = &session_.env().getParameterMap();
+    Http::ParameterMap::const_iterator it = m->find("Wt-params");
+    Http::ParameterMap wtParams;
+    if (it != m->end()) {
+      // Parse and reencode Wt-params, so it's definitely safe
+      Http::Request::parseFormUrlEncoded(it->second[0], wtParams);
+      m = &wtParams;
     }
-    script.setVar("PARAMS", params);
-
-    script.stream(out);
+    for (auto i = m->begin(); i != m->end(); ++i)
+    {
+      if (!params.empty())
+        params += '&';
+      params += Utils::urlEncode(i->first) + '=' + Utils::urlEncode(i->second[0]);
+    }
   }
+  script.setVar("PARAMS", params);
+
+  script.stream(out);
 
   if (!serveRest) {
     out.spool(response.out());
@@ -2069,10 +2008,13 @@ void WebRenderer::serveMainscript(http::context *context)
           <<              app->javaScriptClass() << "._p_.load(true);"
           <<   "}, 400);"
           << "else ";
+
+      out << WT_CLASS ".ready(function() { "
+          << app->javaScriptClass() << "._p_.load(true);});\n";
     }
 
-    out << "$(document).ready(function() { "
-        << app->javaScriptClass() << "._p_.load(true);});\n";
+//    out << "$(document).ready(function() { "
+//        << app->javaScriptClass() << "._p_.load(true);});\n";
   }
 
   out.spool(response.out());
@@ -2083,7 +2025,7 @@ void WebRenderer::serveBootstrap(http::context *context)
   auto& response = context->res();
   Configuration& conf = session_.controller()->configuration();
 
-  FileServe boot(skeletons::Boot_html1);
+  FileServe boot(skeletons::Boot_html);
   setPageVars(boot);
 
   WStringStream noJsRedirectUrl;
@@ -2254,7 +2196,7 @@ void WebRenderer::renderStyleSheet(WStringStream& out,
 //  app->newBeforeLoadJavaScript_ = app->beforeLoadJavaScript_.length();
 
 //  bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
-//  FileServe page(hybridPage ? skeletons::Hybrid_html1 : skeletons::Plain_html1);
+//  FileServe page(hybridPage ? skeletons::Hybrid_html1 : skeletons::Plain_html);
 
 //  setPageVars(page);
 //  page.setVar("SESSION_ID", session_.sessionId());
@@ -2474,7 +2416,7 @@ void WebRenderer::collectJavaScriptUpdate(WStringStream& out)
 {
   WApplication *app = session_.app();
 
-  out << '{';
+  //out << '{';
 
   try {
     if (session_.sessionIdChanged_) {
@@ -2487,7 +2429,7 @@ void WebRenderer::collectJavaScriptUpdate(WStringStream& out)
         } else {
           streamRedirectJS(out, app->url(app->internalPath()));
         }
-        out << '}';
+        //out << '}';
         return;
       }
 
@@ -2533,13 +2475,13 @@ void WebRenderer::collectJavaScriptUpdate(WStringStream& out)
 
     updateLoadIndicator(out, app, false);
   } catch (const std::exception &e) {
-    out << '}';
+    //out << '}';
     RETHROW(e);
   } catch (...) {
-    out << '}';
+    //out << '}';
     throw;
   }
-  out << '}';
+  //out << '}';
 }
 
 void WebRenderer::updateFormObjects(WWebWidget *source, bool checkDescendants)
@@ -2885,4 +2827,12 @@ void WebRenderer::addWsRequestId(int wsRqId)
   wsRequestsToHandle_.push_back(wsRqId);
 }
 
+void WebRenderer::preCollectInvisibleChanges()
+{
+  if (visibleOnly_ && !updateMap_.empty() && twoPhaseThreshold_ > 0) {
+    visibleOnly_ = false;
+    collectJavaScriptUpdate(invisibleJS_);
+    visibleOnly_ = true;
+  }
+}
 }
