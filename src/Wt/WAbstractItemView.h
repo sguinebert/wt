@@ -908,7 +908,7 @@ public:
 //  void setPageTabCallBack(std::function<void()>&& cb) {
 //    PageTabCallBack_ = std::move(cb);
 //  }
- 
+
 protected:
   /*! \brief Creates a new item view.
    */
@@ -1063,7 +1063,7 @@ protected:
    * selection or editing behaviour.
    */
   virtual awaitable<void> handleClick(const WModelIndex& index,
-			   const WMouseEvent& event);
+               const WMouseEvent& event);
 
   /*! \brief Handles a double click event.
    *

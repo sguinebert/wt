@@ -30,7 +30,7 @@ LOGGER("WDateEdit");
 WDateEdit::WDateEdit()
   : customFormat_(false)
 {
-  changed().connect(this, &WDateEdit::setFromLineEdit);
+    changed().connect(this, &WDateEdit::setFromLineEdit);
 
   uCalendar_ = std::make_unique<WCalendar>();
   calendar_ = uCalendar_.get();

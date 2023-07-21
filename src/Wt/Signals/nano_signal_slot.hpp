@@ -70,11 +70,12 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     {
         return observer::insert(function::template bind(instance), this);
     }
+    /* connect to a lambda passed by r or l-value */
     template <typename L>
     observer::Connection connect(L&& instance)
     {
 
-        /* it is a reference to a functor (example a lambda passed by ref) */
+        /* it is a reference to a functor (example a lambda passed by ref) - you need to watch the lifetime of the lambda */
         if constexpr(std::is_lvalue_reference_v<L>) {
             return connect(std::addressof(instance));
         }
@@ -122,17 +123,19 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     {
         return connect<mem_ptr, T>(std::addressof(instance));
     }
-    /* implementions detail of the connection to a member method of a class T */
+    /* implementions detail of the connection to a member method of a class T passed by pointer*/
     template <auto mem_ptr, typename T>
     observer::Connection connect(T* instance)
     {
         return insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
+    /* implementions detail of the connection to a member method of a class T passed by ref*/
     template <auto mem_ptr, typename T>
     observer::Connection connect(T& instance)
     {
         return connect<mem_ptr, T>(std::addressof(instance));
     }
+    /* implementions detail of the connection to a functor ptr */
     template <auto mem_ptr>
     observer::Connection connect()
     {

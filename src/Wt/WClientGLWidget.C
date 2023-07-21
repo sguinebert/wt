@@ -1125,18 +1125,18 @@ void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
 }
 
 void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
-				 WGLWidget::GLenum internalformat,
+                                 WGLWidget::GLenum internalformat,
                                  unsigned width, unsigned height, int border,
-				 WGLWidget::GLenum format,
-				 WGLWidget::GLenum type,
-				 WImage *image)
+                                 WGLWidget::GLenum format,
+                                 WGLWidget::GLenum type,
+                                 WImage *image)
 {
   js_ << "const img = new Image();"
     //<< "img.addEventListener('load', render);"
     << "img.crossOrigin = 'http://localhost';"
     << "img.src =  '" + image->imageLink().url() + "';";//'https://upload.wikimedia.org/wikipedia/commons/0/0b/RGBA_comp.png';";
- 
-  image->imageLoaded().connect([=, this] {
+
+  image->imageLoaded().connect([=, this] () {
     js_ << "img.addEventListener('load', () => {ctx.texImage2D(" << toString(target) << "," << level << ","
       << toString(internalformat) << "," << toString(format) << "," << toString(type)
       << ",img" << ");});";

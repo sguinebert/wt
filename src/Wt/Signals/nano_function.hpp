@@ -37,10 +37,40 @@ using is_awaitable_function = std::is_convertible<std::decay_t<_Ty>, std::functi
 template <typename F>
 struct function_traits : public function_traits<decltype(&std::decay_t<F>::operator())> {};
 
+// Specialization for std::bind
+#if defined _LIBCPP_VERSION  // libc++ (Clang)
+template <typename R, typename... Args>
+struct function_traits<std::__bind<R (Args...)>> {
+    using function_type = std::function<std::remove_pointer_t<R>>;
+    inline static bool constexpr value = contains_awaitable_impl<std::remove_pointer_t<R>>::value;
+};
+#elif defined _GLIBCXX_RELEASE  // glibc++ (GNU C++ >= 7.1)
+template <typename R, typename... Args>
+struct function_traits<std::_Bind<R (Args...)>> {
+    using function_type = std::function<std::remove_pointer_t<R>>;
+    inline static bool constexpr value = contains_awaitable_impl<std::remove_pointer_t<R>>::value; //std::is_convertible_v<function_type, ccc>;
+};
+// std::bind for object methods
+template<typename C, typename R, typename ... FArgs, typename ... Args>
+struct function_traits<std::_Bind<R(C::*(FArgs ...))(Args ...)>>
+{
+    using function_type = std::function<R(FArgs ...)>;
+    inline static bool constexpr value = contains_awaitable_impl<R(FArgs ...)>::value;
+};
+#elif defined _MSC_VER  // MS Visual Studio
+template <typename R, typename... Args>
+struct function_traits<std::_Binder<std::_Unforced, R (Args...)>> {
+    using function_type = std::function<std::remove_pointer_t<R>>;
+    inline static bool constexpr value = contains_awaitable_impl<std::remove_pointer_t<R>>::value;
+};
+#else
+#error "Unsupported C++ compiler / standard library"
+#endif
+
+
 template <typename R, typename C, typename... Args >
 struct function_traits<R (C::*)(Args...)>
 {
-
     using function_type = std::function<R (Args...)>;
     inline static bool constexpr value = contains_awaitable_impl<R (Args...)>::value;
 };
@@ -48,13 +78,15 @@ struct function_traits<R (C::*)(Args...)>
 template <typename R, typename C, typename... Args >
 struct function_traits<R (C::*)(Args...) const>
 {
-
     using function_type = std::function<R (Args...)>;
     inline static bool constexpr value = contains_awaitable_impl<R (Args...)>::value;
 };
 
 template <typename F>
 constexpr bool is_awaitable_lambda_v = function_traits<F>::value;
+
+template <typename F>
+using is_awaitable_lambda_t = function_traits<F>::function_traits::function_type;
 
 using Delegate_Key = std::array<std::uintptr_t, 2>;
 
