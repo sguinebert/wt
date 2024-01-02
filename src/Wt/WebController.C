@@ -141,7 +141,7 @@ void WebController::shutdown()
 
     for (unsigned i = 0; i < sessionList.size(); ++i) {
       std::shared_ptr<WebSession> session = sessionList[i];
-      WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock);
+      WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock); //general shutdown : block the thread is ok
       session->expire();
     }
   }
@@ -215,11 +215,16 @@ awaitable<bool> WebController::expireSessions()
     result = !sessions_.empty();
   }
 
-  for (unsigned i = 0; i < toExpire.size(); ++i) {
+  for (unsigned i = 0; i < toExpire.size(); ++i)
+  {
     std::shared_ptr<WebSession> session = toExpire[i];
 
     LOG_INFO_S(session, "timeout: expiring");
-    WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock);
+
+    //WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock);
+
+    WebSession::Handler handler(session, WebSession::Handler::LockOption::NoLock);
+    co_await session->takeLock();
 
 #ifdef WT_THREADED
     std::unique_lock<std::recursive_mutex> lock(mutex_);
@@ -1159,7 +1164,11 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
   if (!lock)
     co_return;
 
-  WebSession::Handler handler(lock, WebSession::Handler::LockOption::TakeLock);
+  //WebSession::Handler handler(lock, WebSession::Handler::LockOption::TakeLock);
+
+  WebSession::Handler handler(lock, WebSession::Handler::LockOption::NoLock);
+  co_await lock->takeLock();
+
   //  lock->handleRequest(handler, entryPoint);
 
 //  if (!lock->webSocket_ctx_)

@@ -571,7 +571,8 @@ IF(WIN32)
   ENDIF(SHARED_LIBS)
 ENDIF(WIN32)
 
-ADD_LIBRARY(wt ${libsources})
+ADD_LIBRARY(wt ${libsources}
+    Wt/cpp20/async_mutex.cpp Wt/cpp20/async_mutex.h)
 
 SET_PROPERTY(TARGET wt PROPERTY C_VISIBILITY_PRESET hidden)
 SET_PROPERTY(TARGET wt PROPERTY CXX_VISIBILITY_PRESET hidden)

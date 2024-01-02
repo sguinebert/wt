@@ -209,8 +209,7 @@ public:
    * \sa setDispositionType().
    */
   void suggestFileName(const Wt::WString &name,
-                       ContentDisposition disposition
-		         = ContentDisposition::Attachment);
+                       ContentDisposition disposition = ContentDisposition::Attachment);
 
   /*! \brief Returns the suggested file name.
    *
@@ -351,9 +350,9 @@ public:
    * This is a convenience method to serialize to a stream (for
    * example a file stream).
    */
-  void write(WT_BOSTREAM& out,
-	     const Http::ParameterMap& parameters = Http::ParameterMap(),
-	     const Http::UploadedFileMap& files = Http::UploadedFileMap());
+//  void write(WT_BOSTREAM& out,
+//	     const Http::ParameterMap& parameters = Http::ParameterMap(),
+//	     const Http::UploadedFileMap& files = Http::UploadedFileMap());
 
   /*! \brief Handles a request.
    *
@@ -372,7 +371,7 @@ public:
    * not being concurrently deleted, but multiple requests may happend
    * simultaneously for a single resource.
    */
-  virtual void handleRequest(const Http::Request& request, Http::Response& response) = 0;
+  //virtual void handleRequest(const Http::Request& request, Http::Response& response) = 0;
 
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) = 0;
 
@@ -395,7 +394,9 @@ public:
    * destructor, you should not forget to call beingDeleted() from the
    * specialized destructor of your resource.
    */
-  virtual void handleAbort(const Http::Request& request);
+  virtual void handleAbort(const Http::Request& request)
+  {
+  }
 
   /*! \brief Indicate that more data is available.
    *
@@ -415,42 +416,12 @@ public:
   void haveMoreData();
 
   /* to avoid dangling reference : store WRessource* into response and call erase */
-  std::vector<std::reference_wrapper<http::response>> vec;
-  std::vector<std::unique_ptr<http::Continuation>> cs_;
-  //asio::cancellation_slot cancel_slot_;
+  //std::vector<std::reference_wrapper<http::response>> vec;
+  std::vector<std::shared_ptr<http::Continuation>> cs_;
   asio::cancellation_signal cancel_signal_;
   awaitable<void> waitForMoreData(http::response& response) {
-
-      //vec.push_back(std::ref(response));
-
-      auto cs = std::make_unique<http::Continuation>(this, &response);
+      auto& cs = cs_.emplace_back(this, &response);
       response.continuation_ = cs.get();
-      cs_.push_back(std::move(cs));
-
-      //cancel_signal_.slot().assign([this]
-//      if (auto it = std::find(vec.begin(), vec.end(), std::ref(response)); it != vec.end()) {
-//          vec.erase(it);
-//      }
-//      asio::cancellation_slot sl = (co_await asio::this_coro::cancellation_state).slot();
-
-//      sl.assign(
-//          [&](asio::cancellation_type ct)
-//          {
-//              //response.chunk_flush()
-//              // cancel the timer, we don't need it anymore
-//              //tim.cancel();
-//              // forward the cancellation
-//              //cancel_read.emit(ct);
-//          });
-
-//      // reset the signal when we're done
-//      // this is very important, the outer signal might fire after we're out of scope!
-//      struct scope_exit
-//      {
-//          asio::cancellation_slot sl;
-//          ~scope_exit() { if(sl.is_connected()) sl.clear();}
-//      } scope_exit_{sl};
-
       co_await response.wait_for_more_data(asio::bind_cancellation_slot(cancel_signal_.slot(), use_awaitable));
   }
 
@@ -516,14 +487,11 @@ private:
   bool takesUpdateLock_;
   bool invalidAfterChanged_;
 
-  std::vector<Http::ResponseContinuationPtr> continuations_;
+//  std::vector<Http::ResponseContinuationPtr> continuations_;
 
-  void removeContinuation(Http::ResponseContinuationPtr continuation);
-  Http::ResponseContinuationPtr addContinuation(Http::ResponseContinuation *c);
-  void doContinue(Http::ResponseContinuationPtr continuation);
-  void handle(WebRequest *webRequest, WebResponse *webResponse,
-              Http::ResponseContinuationPtr continuation
-              = Http::ResponseContinuationPtr());
+//  void removeContinuation(Http::ResponseContinuationPtr continuation);
+//  Http::ResponseContinuationPtr addContinuation(Http::ResponseContinuation *c);
+//  void doContinue(Http::ResponseContinuationPtr continuation);
 
   awaitable<void> handle(Wt::http::context *context);
 

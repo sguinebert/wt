@@ -305,11 +305,11 @@ WebSession::~WebSession()
   if (deferredRequest_) {
     deferredRequest_->flush();
     deferredRequest_ = nullptr;
-  }    
+  }
 
-#ifdef WT_BOOST_THREADS
-  updatesPendingEvent_.notify_one();
-#endif // WT_BOOST_THREADS
+//#ifdef WT_BOOST_THREADS
+//  updatesPendingEvent_.notify_one();
+//#endif // WT_BOOST_THREADS
 
   flushBootStyleResponse();
 
@@ -1273,7 +1273,7 @@ std::shared_ptr<ApplicationEvent> WebSession::popQueuedEvent()
 {
 #ifdef WT_BOOST_THREADS
 #ifndef WT_TARGET_JAVA
-  std::unique_lock<std::mutex> lock(eventQueueMutex_);
+  std::unique_lock<std::mutex> lock(eventQueueMutex_); //contention is low for each session : async_mutex is not needed
 #else
   eventQueueMutex_.lock();
 #endif // WT_TARGET_JAVA
@@ -1299,7 +1299,7 @@ void WebSession::queueEvent(const std::shared_ptr<ApplicationEvent>& event)
 {
 #ifdef WT_BOOST_THREADS
 #ifndef WT_TARGET_JAVA
-  std::unique_lock<std::mutex> lock(eventQueueMutex_);
+  std::unique_lock<std::mutex> lock(eventQueueMutex_); //contention is low for each session : async_mutex is not needed
 #else
   eventQueueMutex_.lock();
 #endif // WT_TARGET_JAVA
@@ -1366,7 +1366,7 @@ WebSession::Handler::~Handler()
 //    Utils::erase(session_->handlers_, this);
 //  }
   if(!destroyed)
-    LOG_ERROR("No destroy call");
+    LOG_ERROR("destroy() not called");
 
   if (session_->handlers_.empty())
     session_->hibernate();
@@ -1377,7 +1377,6 @@ WebSession::Handler::~Handler()
 
 awaitable<void> WebSession::Handler::destroy()
 {
-  destroyed = true;
   if (haveLock()) {
     /* We should check that the session state is not dead ? */
     co_await session_->processQueuedEvents(*this);
@@ -1401,6 +1400,7 @@ awaitable<void> WebSession::Handler::destroy()
 
     Utils::erase(session_->handlers_, this);
   }
+  destroyed = true;
   co_return;
 }
 
@@ -1538,7 +1538,7 @@ awaitable<void> WebSession::doRecursiveEventLoop()
    */
 #ifndef WT_TARGET_JAVA
 
-  co_await wait(use_awaitable);
+  co_await async_wait(use_awaitable);
 //  if (webSocket_)
 //    webSocket_->readWebSocketMessage(std::bind(&WebSession::handleWebSocketMessage, shared_from_this(), std::placeholders::_1));
 
@@ -1580,9 +1580,9 @@ awaitable<void> WebSession::doRecursiveEventLoop()
   delete newRecursiveEvent_;
   newRecursiveEvent_ = nullptr;
 
-  if(recursiveCoro_)
-    recursiveCoro_(); //unlock externalNotify
-  recursiveCoro_ = nullptr;
+  if(suspended_handler_)
+    suspended_handler_(); //unlock externalNotify
+  suspended_handler_ = nullptr;
   //recursiveEventDone_.notify_one();
 
   recursiveEventHandler_ = prevRecursiveEventHandler;
@@ -1614,9 +1614,9 @@ bool WebSession::unlockRecursiveEventLoop()
 
 #ifdef WT_BOOST_THREADS
   //recursiveEvent_.notify_one();
-  if(recursiveCoro_)
-    recursiveCoro_(); //unlock externalNotify
-  recursiveCoro_ = nullptr;
+  if(suspended_handler_)
+    suspended_handler_(); //unlock externalNotify
+  suspended_handler_ = nullptr;
 #endif
 
   return true;
@@ -2213,7 +2213,7 @@ void WebSession::handleWebSocketRequest(Handler& handler)
 #endif // WT_TARGET_JAVA
 
 #ifndef WT_TARGET_JAVA
-void WebSession::webSocketConnect(std::weak_ptr<WebSession> session, WebWriteEvent event)
+void WebSession::webSocketConnect(std::weak_ptr<WebSession> session, WebWriteEvent event) //deprecated
 {
   LOG_DEBUG("webSocketConnect()");
 
@@ -2297,7 +2297,7 @@ void WebSession::handleWebSocketMessage(Handler& handler)
 #endif // WT_TARGET_JAVA
 
 #ifndef WT_TARGET_JAVA
-void WebSession::handleWebSocketMessage(std::weak_ptr<WebSession> session, WebReadEvent event)
+void WebSession::handleWebSocketMessage(std::weak_ptr<WebSession> session, WebReadEvent event) //deprecated
 {
   LOG_DEBUG("handleWebSocketMessage: {}", (int)event);
   std::shared_ptr<WebSession> lock = session.lock();
@@ -2525,16 +2525,16 @@ void WebSession::pushUpdates()
 //    }
   }
 
-  if (updatesPending_) {
-    LOG_DEBUG("pushUpdates(): cannot write now");
-#ifdef WT_BOOST_THREADS
-    updatesPendingEvent_.notify_one();
-#endif
-  }
+//  if (updatesPending_) {
+//    LOG_DEBUG("pushUpdates(): cannot write now");
+//#ifdef WT_BOOST_THREADS
+//    updatesPendingEvent_.notify_one();
+//#endif
+//  }
 }
 
 #ifndef WT_TARGET_JAVA
-void WebSession::webSocketReady(std::weak_ptr<WebSession> session, WebWriteEvent event)
+void WebSession::webSocketReady(std::weak_ptr<WebSession> session, WebWriteEvent event) //deprecated
 {
   LOG_DEBUG("webSocketReady()");
 
@@ -2704,22 +2704,22 @@ std::string_view WebSession::getSignal(Wt::http::context *context, const std::st
 
 awaitable<void> WebSession::externalNotify(const WEvent::Impl& event)
 {
-  if (recursiveEventHandler_ && !newRecursiveEvent_ && recursiveCoro_)
+  if (recursiveEventHandler_ && !newRecursiveEvent_ && suspended_handler_)
   {
 #ifdef WT_BOOST_THREADS
     newRecursiveEvent_ = new WEvent::Impl(event);
-    recursiveEvent_.notify_one();
-    recursiveCoro_(); //unlock doRecursiveEventLoop
-    recursiveCoro_ = nullptr;
+    //recursiveEvent_.notify_one();
+    if(suspended_handler_)
+      suspended_handler_(); //unlock doRecursiveEventLoop in this thread so no need to wait recursiveEventDone_
+    suspended_handler_ = nullptr;
 
-    while (newRecursiveEvent_) {
-#ifdef WT_TARGET_JAVA
-      recursiveEventDone_.wait();
-#else
-      co_await wait(use_awaitable);
-      //recursiveEventDone_.wait(event.handler->lock());
-#endif
-    }
+//    while (newRecursiveEvent_) {
+//#ifdef WT_TARGET_JAVA
+//      recursiveEventDone_.wait();
+//#else
+//      //recursiveEventDone_.wait(event.handler->lock());
+//#endif
+//    }
 #endif
   }
   else
@@ -3117,33 +3117,33 @@ awaitable<void> WebSession::notify(const WEvent& event)
 	  }
 
       if (signalE == "poll") {
-#ifdef WT_BOOST_THREADS
-	    /*
-	     * If we cannot do async I/O, we cannot suspend the current
-	     * request and return. Thus we need to block the thread, waiting
-	     * for a push update. We wait at most twice as long as the client
-	     * will renew this poll connection.
-	     */
-        if (!WebController::isAsyncSupported() && renderer_.jsSynced())
-        {
-          updatesPendingEvent_.notify_one();
-          if (!updatesPending_)
-          {
-#ifndef WT_TARGET_JAVA
-            updatesPendingEvent_.wait(handler->lock());
-#else
-            try {
-                updatesPendingEvent_.timed_wait
-                    (controller_->configuration().serverPushTimeout() * 2);
-            } catch (InterruptedException& e) { }
-#endif // WT_TARGET_JAVA
-          }
-          if (!updatesPending_) {
-            handler->flushResponse();
-            co_return;
-          }
-        }
-#endif // WT_BOOST_THREADS
+//#ifdef WT_BOOST_THREADS
+//	    /*
+//	     * If we cannot do async I/O, we cannot suspend the current
+//	     * request and return. Thus we need to block the thread, waiting
+//	     * for a push update. We wait at most twice as long as the client
+//	     * will renew this poll connection.
+//	     */
+//        if (!WebController::isAsyncSupported() && renderer_.jsSynced())
+//        {
+//          updatesPendingEvent_.notify_one();
+//          if (!updatesPending_)
+//          {
+//#ifndef WT_TARGET_JAVA
+//            updatesPendingEvent_.wait(handler->lock());
+//#else
+//            try {
+//                updatesPendingEvent_.timed_wait
+//                    (controller_->configuration().serverPushTimeout() * 2);
+//            } catch (InterruptedException& e) { }
+//#endif // WT_TARGET_JAVA
+//          }
+//          if (!updatesPending_) {
+//            handler->flushResponse();
+//            co_return;
+//          }
+//        }
+//#endif // WT_BOOST_THREADS
 
 	    // LOG_DEBUG("poll: " << updatesPending_ << ", " << (asyncResponse_ ? "async" : "no async"));
         if (!updatesPending_ && renderer_.jsSynced())
@@ -3172,15 +3172,15 @@ awaitable<void> WebSession::notify(const WEvent& event)
 	    } else
 	      pollRequestsIgnored_ = 0;
       }
-      else
-      {
-#ifdef WT_BOOST_THREADS
-	    if (!WebController::isAsyncSupported()) {
-	      updatesPending_ = false;
-	      updatesPendingEvent_.notify_one();
-	    }
-#endif
-	  }
+//      else
+//      {
+//#ifdef WT_BOOST_THREADS
+//	    if (!WebController::isAsyncSupported()) {
+//	      updatesPending_ = false;
+//	      updatesPendingEvent_.notify_one();
+//	    }
+//#endif
+//	  }
 
       if (handler->context()) {
         LOG_DEBUG("signal: {}", signalE);

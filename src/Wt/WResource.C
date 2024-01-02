@@ -87,19 +87,20 @@ namespace Wt
 
   void WResource::beingDeleted()
   {
-    cancel_signal_.emit(asio::cancellation_type::total);
-
     //std::vector<Http::ResponseContinuationPtr> cs;
 
     LOG_DEBUG("beingDeleted()");
     beingDeleted_.store(true, std::memory_order_relaxed);
+
+    cancel_signal_.emit(asio::cancellation_type::total); //what if handler called after ?
+
     {
 #ifdef WT_THREADED
       std::unique_lock<std::mutex> lock(*mutex_);
       //std::ranges::for_each(vec, [](http::response& res) { res.haveMoreData_(); });
-      for(auto& css : cs_) {
-        css->cancel();
-      }
+//      for(auto& css : cs_) { //deprecated ?
+//        css->cancel();
+//      }
 
       while (useCount_ > 0)
         useDone_.wait(lock);
@@ -143,31 +144,25 @@ namespace Wt
 
   void WResource::haveMoreData()
   {
-//    std::ranges::for_each(vec, [](http::response& res) { res.haveMoreData_(); });
-//    for(auto res : vec) {
-//      res.get().haveMoreData_();
-//    }
+    if(beingDeleted_.load(std::memory_order_acquire))
+      return;
 
-    //std::vector<Http::ResponseContinuationPtr> cs;
-    //cs[0].use_count()
+    std::vector<std::shared_ptr<http::Continuation>> cs;
     {
 #ifdef WT_THREADED
       std::unique_lock<std::mutex> lock(*mutex_);
-      for(auto& css : cs_){
-        css->haveMoreData();
-      }
+      cs = cs_;
       cs_.clear();
-
 #endif // WT_THREADED
-      //cs = continuations_;
     }
 
-//    for (unsigned i = 0; i < cs.size(); ++i)
-//      cs[i]->haveMoreData();
+    for(auto& css : cs){
+      css->haveMoreData();
+    }
   }
 
-  void WResource::doContinue(Http::ResponseContinuationPtr continuation)
-  {
+//  void WResource::doContinue(Http::ResponseContinuationPtr continuation)
+//  {
 //    WebResponse *webResponse = continuation->response();
 //    WebRequest *webRequest = webResponse;
 
@@ -183,32 +178,32 @@ namespace Wt
 //    {
 //      LOG_ERROR("exception while handling resource continuation");
 //    }
-  }
+//  }
 
-  void WResource::removeContinuation(Http::ResponseContinuationPtr continuation)
-  {
-#ifdef WT_THREADED
-    std::unique_lock<std::mutex> lock(*mutex_);
-#endif
-    Utils::erase(continuations_, continuation);
-  }
+//  void WResource::removeContinuation(Http::ResponseContinuationPtr continuation)
+//  {
+//#ifdef WT_THREADED
+//    std::unique_lock<std::mutex> lock(*mutex_);
+//#endif
+//    Utils::erase(continuations_, continuation);
+//  }
 
-  Http::ResponseContinuationPtr
-  WResource::addContinuation(Http::ResponseContinuation *c)
-  {
-    Http::ResponseContinuationPtr result(c);
+//  Http::ResponseContinuationPtr
+//  WResource::addContinuation(Http::ResponseContinuation *c)
+//  {
+//    Http::ResponseContinuationPtr result(c);
 
-#ifdef WT_THREADED
-    std::unique_lock<std::mutex> lock(*mutex_);
-#endif
-    continuations_.push_back(result);
+//#ifdef WT_THREADED
+//    std::unique_lock<std::mutex> lock(*mutex_);
+//#endif
+//    continuations_.push_back(result);
 
-    return result;
-  }
+//    return result;
+//  }
 
-  void WResource::handle(WebRequest *webRequest, WebResponse *webResponse,
-                         Http::ResponseContinuationPtr continuation)
-  {
+//  void WResource::handle(WebRequest *webRequest, WebResponse *webResponse,
+//                         Http::ResponseContinuationPtr continuation)
+//  {
     /*
    * If we are a new request for a dynamic resource, then we will have
    * the session lock at this point and thus the resource is protected
@@ -280,7 +275,7 @@ namespace Wt
 //                                   response.continuation_,
 //                                   std::placeholders::_1));
 //    }
-  }
+//  }
 
   awaitable<void> WResource::handle(Wt::http::context *ctx)
   {
@@ -299,7 +294,7 @@ namespace Wt
     /* NO continuation recursive loop with coroutine */
 //    std::unique_ptr<Wt::WApplication::UpdateLock> updateLock;
     /* NO continuation recursive loop with coroutine */
-//    if (takesUpdateLock() && continuation && app_)
+//    if (takesUpdateLock() && continuation && app_) /* DEPRECATED BY COROUTINE (since we can flush inside a simple loop / continuation is deprecated)*/
 //    {
 //      updateLock.reset(new Wt::WApplication::UpdateLock(app_));
 //      if (!*updateLock)
@@ -310,12 +305,12 @@ namespace Wt
 
     if (handler /*&& !continuation*/)
     {
-      //std::unique_lock<std::recursive_mutex> lock(*mutex_); //not needed if resource_->useCount_ is atomic
-
+      //1./ recursive is deprecated since continuation is not needed anymore 2/. not needed if resource_->useCount_ is atomic
+      //std::unique_lock<std::recursive_mutex> lock(*mutex_);
       if (!useLock.use(this))
         co_return;
 
-      if (!takesUpdateLock() &&
+      if (!takesUpdateLock() && //no lock except for webcontroller->shutdown() : suspended coroutines are not a problem
           handler->haveLock() &&
           handler->lockOwner() == std::this_thread::get_id())
       {
@@ -324,24 +319,25 @@ namespace Wt
     }
 #endif // WT_THREADED
 
+    /* let the user decide if he needs local or not */
     // if (!handler) {
     //   WLocale locale = webRequest->parseLocale();
     //   WLocale::setCurrentLocale(locale);
     // }
 
-    //if (!continuation)
     ctx->status(200);
 
 //    co_await handleRequest(*ctx);
-
     co_await handleRequest(ctx->req(), ctx->res());
 
+    /* NO continuation recursive loop with coroutine */
 //#ifdef WT_THREADED
 //    updateLock.reset();
 //#endif // WT_THREADED
 
     ctx->flush();
 
+    /* DEPRECATED with coroutines */
 //    if (!ctx->continuation_ || !ctx->continuation_->resource_)
 //    {
 //      if (ctx->continuation_)
@@ -367,10 +363,6 @@ namespace Wt
   {
     WLocale locale(request.parsePreferredAcceptValue());
     WLocale::setCurrentLocale(locale);
-  }
-
-  void WResource::handleAbort(const Http::Request &request)
-  {
   }
 
   void WResource::suggestFileName(const WString &name,
@@ -443,24 +435,24 @@ namespace Wt
     return currentUrl_;
   }
 
-  void WResource::write(WT_BOSTREAM &out,
-                        const Http::ParameterMap &parameters,
-                        const Http::UploadedFileMap &files)
-  {
-    Http::Request request(parameters, files);
-    Http::Response response(this, out);
+//  void WResource::write(WT_BOSTREAM &out,
+//                        const Http::ParameterMap &parameters,
+//                        const Http::UploadedFileMap &files)
+//  {
+//    Http::Request request(parameters, files);
+//    Http::Response response(this, out);
 
-    handleRequest(request, response);
+//    handleRequest(request, response);
 
-    // While the resource indicates more data to be sent, get it too.
-    while (response.continuation_ && response.continuation_->resource_)
-    {
-      response.continuation_->resource_ = nullptr;
-      request.continuation_ = response.continuation_.get();
+//    // While the resource indicates more data to be sent, get it too.
+//    while (response.continuation_ && response.continuation_->resource_)
+//    {
+//      response.continuation_->resource_ = nullptr;
+//      request.continuation_ = response.continuation_.get();
 
-      handleRequest(request, response);
-    }
-  }
+//      handleRequest(request, response);
+//    }
+//  }
 
   void WResource::setTakesUpdateLock(bool enabled)
   {

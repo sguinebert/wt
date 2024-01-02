@@ -34,6 +34,8 @@
 #include "Wt/WEnvironment.h"
 #include "Wt/WLogger.h"
 
+#include "Wt/cpp20/async_mutex.h"
+
 #ifdef WT_THREADED
 #include <atomic>
 #endif // WT_THREADED
@@ -82,6 +84,13 @@ public:
 #endif // WT_TARGET_JAVA
 
   static WebSession *instance();
+
+  cpp20::async_mutex asyncmutex_;
+  awaitable<void> takeLock() {
+      //async_mutex aquire lock or suspend coroutine
+      co_await asyncmutex_.scoped_lock_async(use_awaitable);
+      co_return;
+  }
 
   bool attachThreadToLockedHandler();
 
@@ -293,10 +302,10 @@ private:
 #endif
 
   template<class Token>
-  auto wait(Token&& handler)
+  auto async_wait(Token&& handler)
   {
     auto initiator = [this] (auto&& handler) mutable {
-        recursiveCoro_ = [this, handler = std::move(handler)] () mutable {
+        suspended_handler_ = [this, handler = std::move(handler)] () mutable {
             handler();
         };
     };
@@ -373,7 +382,7 @@ private:
   std::vector<Handler *> handlers_;
 
   Handler *recursiveEventHandler_;
-  Wt::cpp23::move_only_function<void()> recursiveCoro_/*, recusiveCoroDone_*/;
+  Wt::cpp23::move_only_function<void()> suspended_handler_/*, recusiveCoroDone_*/;
 
   void pushUpdates();
   WResource *decodeResource(const std::string& resourceId);

@@ -1260,6 +1260,8 @@ public:
    */
   void triggerUpdate();
 
+  awaitable<void> takeLock();
+
 #ifndef WT_TARGET_JAVA
   /*! \brief A RAII lock for manipulating and updating the
    *         application and its widgets outside of the event loop.

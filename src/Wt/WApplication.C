@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2008 Emweb bv, Herent, Belgium.
  *
  * See the LICENSE file for terms of use.
@@ -1438,6 +1438,25 @@ void WApplication::triggerUpdate()
   session_->setTriggerUpdate(true);
 }
 
+awaitable<void> WApplication::takeLock()
+{
+  /*
+   * If we are already handling this application, then we already have
+   * exclusive access, unless we are not having the lock (e.g. from a
+   * WResource::handleRequest()).
+   */
+  WebSession::Handler *handler = WebSession::Handler::instance();
+
+  std::shared_ptr<WebSession> appSession = this->weakSession_.lock();
+  if (handler && handler->haveLock() && handler->session() == appSession.get())
+    co_return;
+
+//  if (appSession.get() && appSession->dead())
+//    co_return;
+
+  co_return co_await appSession->takeLock();
+}
+
 #ifdef WT_TARGET_JAVA
 WApplication::UpdateLock WApplication::getUpdateLock()
 {
@@ -1449,13 +1468,13 @@ WApplication::UpdateLock WApplication::getUpdateLock()
 
 class UpdateLockImpl
 {
-public:
+  public:
   UpdateLockImpl(WApplication *app)
-    : handler_(nullptr)
+      : handler_(nullptr)
   {
 #ifdef WT_THREADED
     handler_ = new WebSession::Handler(app->weakSession_.lock(),
-				       WebSession::Handler::LockOption::TakeLock);
+                                       WebSession::Handler::LockOption::TakeLock);
 #endif // WT_THREADED
   }
 
@@ -1465,7 +1484,7 @@ public:
   }
 #endif // WT_THREADED
 
-private:
+  private:
   // Handler which we created for actual lock
   WebSession::Handler *handler_;
 };

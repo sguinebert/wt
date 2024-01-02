@@ -564,6 +564,8 @@ struct Continuation {
   void haveMoreData() {
     if(response_ && response_->haveMoreData_)
       response_->haveMoreData_();
+
+    response_->haveMoreData_ = nullptr;
   }
 
   void destroy() {

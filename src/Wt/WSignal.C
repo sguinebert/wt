@@ -159,7 +159,7 @@ const std::string EventSignalBase::javaScript() const
   for (unsigned i = 0; i < connections_.size(); ++i) {
     if (connections_[i].ok()) {
       if (connections_[i].slot->learned())
-	result += connections_[i].slot->javaScript();
+        result += connections_[i].slot->javaScript();
     }
   }
 
