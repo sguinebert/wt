@@ -268,6 +268,8 @@ EventSignalBase::connectStateless(WObject::Method method,
                                   WObject *target,
                                   WStatelessSlot *slot)
 {
+
+  //auto c = dummy_.connect<&WObject::Method>(target);
   Wt::Signals::connection c = dummy_.connect(std::bind(method, target), target);
   if (slot->addConnection(this))
     connections_.push_back(StatelessConnection(c, target, slot));

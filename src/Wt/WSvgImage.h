@@ -89,8 +89,9 @@ public:
   virtual WLength width() const override { return width_; }
   virtual WLength height() const override { return height_; }
 
+#ifdef DEPRECATED_OK
   virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
-
+#endif
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
 
 protected:

@@ -1113,7 +1113,7 @@ private:
   std::ostream &os_;
   LONG refcount_;
 };
-
+#ifdef DEPRECATED_OK
 void WRasterImage::handleRequest(const Http::Request& request,
 				 Http::Response& response)
 {
@@ -1166,6 +1166,61 @@ void WRasterImage::handleRequest(const Http::Request& request,
   SafeRelease(frameEncode);
   SafeRelease(encoder);
   SafeRelease(istream);
+}
+#endif
+
+awaitable<void> WRasterImage::handleRequest(http::request& request, http::response& response)
+{
+  response.setContentType("image/" + impl_->type_);
+
+  HRESULT hr = S_OK;
+
+  IWICBitmapEncoder *encoder = NULL;
+  IWICBitmapFrameEncode *frameEncode = NULL;
+
+  WICPixelFormatGUID format = GUID_WICPixelFormat32bppPRGBA;
+
+  IStreamToOStream *istream = new IStreamToOStream(response.out());
+  if (SUCCEEDED(hr)) {
+    hr = impl_->wicFactory_->CreateEncoder(
+        impl_->type_ == "png" ? GUID_ContainerFormatPng :
+            impl_->type_ == "jpg" ? GUID_ContainerFormatJpeg :
+            GUID_ContainerFormatPng, NULL, &encoder);
+  }
+  if (SUCCEEDED(hr)) {
+    hr = encoder->Initialize(istream, WICBitmapEncoderNoCache);
+  }
+  if (SUCCEEDED(hr)) {
+    hr = encoder->CreateNewFrame(&frameEncode, NULL);
+  }
+  if (SUCCEEDED(hr)) {
+    hr = frameEncode->Initialize(NULL);
+  }
+
+  if (SUCCEEDED(hr)) {
+    hr = frameEncode->SetSize(impl_->w_, impl_->h_);
+  }
+  if (SUCCEEDED(hr)) {
+    hr = frameEncode->SetPixelFormat(&format);
+  }
+  if (SUCCEEDED(hr)) {
+    hr = frameEncode->WriteSource(impl_->bitmap_, NULL);
+  }
+  if (SUCCEEDED(hr)) {
+    hr = frameEncode->Commit();
+  }
+  if (SUCCEEDED(hr)) {
+    hr = encoder->Commit();
+  }
+  if (!SUCCEEDED(hr)) {
+    LOG_ERROR("Error while serving raster image resource: HRESULT {}", hr);
+    response.status(500);
+  }
+
+  SafeRelease(frameEncode);
+  SafeRelease(encoder);
+  SafeRelease(istream);
+  co_return;
 }
 
 }

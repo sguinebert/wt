@@ -42,7 +42,7 @@ namespace cpp20 {
 
         async_mutex_lock_operation* m_next;
         Wt::cpp23::move_only_function<void(async_mutex_noscope)> m_awaiter; //store the asio handler
-        asio::io_context* m_context;
+        asio::any_io_executor* m_context;
         bool m_scopelocked = false;
 
     };

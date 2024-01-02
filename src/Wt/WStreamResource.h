@@ -57,6 +57,8 @@ private:
  */
 class WT_API WStreamResource : public WResource
 {
+
+    friend class WFileResource;
 public:
   /*! \brief Default constructor.
    *
@@ -88,26 +90,28 @@ public:
    * This configures the size of the buffer used to transmit the data
    * piece by piece.
    */
-  void setBufferSize(int size);
+  void setBufferSize(unsigned long size);
 
   /*! \brief Returns the buffer size.
    *
    * \sa setBufferSize()
    */
-  int bufferSize() const { return bufferSize_; }
+  unsigned long bufferSize() const { return bufferSize_.load(std::memory_order_relaxed); }
 
 protected:
   /*! \brief Handles a request and streams the data from a std::istream.
    *
    * You can call this method from a custom handleRequest() implementations.
    */
-  void handleRequestPiecewise(const Http::Request& request,
-                              Http::Response& response, std::istream& input);
+//  void handleRequestPiecewise(const Http::Request& request,
+//                              Http::Response& response, std::istream& input);
+
+  awaitable<void> handleRequestPiecewise(const http::request& request, http::response& response, std::istream& input);
 
 private:
   std::string mimeType_;
-  int bufferSize_;
-  std::streamsize beyondLastByte_;
+  std::atomic<unsigned long> bufferSize_;
+  //std::streamsize beyondLastByte_;
 };
 
 }

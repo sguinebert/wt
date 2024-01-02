@@ -85,48 +85,48 @@ public:
     o << "<html><body>OAuth error</body></html>";
   }
 
-  virtual void handleRequest(const Http::Request& request, Http::Response& response) override
-  {
-#ifndef WT_TARGET_JAVA
-    if (!request.continuation()) {
-#endif
-      response.setMimeType("text/html; charset=UTF-8");
+//  virtual void handleRequest(const Http::Request& request, Http::Response& response) override
+//  {
+//#ifndef WT_TARGET_JAVA
+//    if (!request.continuation()) {
+//#endif
+//      response.setMimeType("text/html; charset=UTF-8");
 
-      const std::string *stateE = request.getParameter("state");
-      if (!stateE || *stateE != process_->oAuthState_) {
-        LOG_ERROR("{}, state: {}", ERROR_MSG("invalid-state"), (stateE ? *stateE : "(empty)"));
-        process_->setError(ERROR_MSG("invalid-state"));
-        sendError(response);
-        return;
-      }
+//      const std::string *stateE = request.getParameter("state");
+//      if (!stateE || *stateE != process_->oAuthState_) {
+//        LOG_ERROR("{}, state: {}", ERROR_MSG("invalid-state"), (stateE ? *stateE : "(empty)"));
+//        process_->setError(ERROR_MSG("invalid-state"));
+//        sendError(response);
+//        return;
+//      }
 
-      const std::string *errorE = request.getParameter("error");
-      if (errorE) {
-        LOG_ERROR(fmt::runtime(ERROR_MSG(+ *errorE).toUTF8()));
-        process_->setError(ERROR_MSG(+ *errorE));
-        sendError(response);
-        return;
-      }
+//      const std::string *errorE = request.getParameter("error");
+//      if (errorE) {
+//        LOG_ERROR(fmt::runtime(ERROR_MSG(+ *errorE).toUTF8()));
+//        process_->setError(ERROR_MSG(+ *errorE));
+//        sendError(response);
+//        return;
+//      }
 
-      const std::string *codeE = request.getParameter("code");
-      if (!codeE) {
-        LOG_ERROR(fmt::runtime(ERROR_MSG("missing-code").toUTF8()));
-        process_->setError(ERROR_MSG("missing-code"));
-        sendError(response);
-        return;
-      }
+//      const std::string *codeE = request.getParameter("code");
+//      if (!codeE) {
+//        LOG_ERROR(fmt::runtime(ERROR_MSG("missing-code").toUTF8()));
+//        process_->setError(ERROR_MSG("missing-code"));
+//        sendError(response);
+//        return;
+//      }
 
-#ifndef WT_TARGET_JAVA
-      Http::ResponseContinuation *cont = response.createContinuation();
-      cont->waitForMoreData();
-#endif
+//#ifndef WT_TARGET_JAVA
+//      Http::ResponseContinuation *cont = response.createContinuation();
+//      cont->waitForMoreData();
+//#endif
 
-      process_->requestToken(*codeE); // Blocking in JWt, so no continuation necessary
-#ifndef WT_TARGET_JAVA
-    } else
-#endif
-      sendResponse(response);
-  }
+//      process_->requestToken(*codeE); // Blocking in JWt, so no continuation necessary
+//#ifndef WT_TARGET_JAVA
+//    } else
+//#endif
+//      sendResponse(response);
+//  }
 //#warning "how to handle continuation ? co_await waitForMoreData to avoid recursive call"
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
   {
@@ -675,41 +675,41 @@ struct OAuthService::Impl
       beingDeleted();
     }
 
-    virtual void handleRequest(const Http::Request& request, Http::Response& response) override
-    {
-      const std::string *stateE = request.getParameter("state");
+//    virtual void handleRequest(const Http::Request& request, Http::Response& response) override
+//    {
+//      const std::string *stateE = request.getParameter("state");
 
-      if (stateE)
-      {
-        std::string redirectUrl = service_.decodeState(*stateE);
+//      if (stateE)
+//      {
+//        std::string redirectUrl = service_.decodeState(*stateE);
 
-        if (!redirectUrl.empty()) {
-          bool hasQuery = redirectUrl.find('?') != std::string::npos;
-          redirectUrl += (hasQuery ? '&' : '?');
-          redirectUrl += "state=" + Wt::Utils::urlEncode(*stateE);
+//        if (!redirectUrl.empty()) {
+//          bool hasQuery = redirectUrl.find('?') != std::string::npos;
+//          redirectUrl += (hasQuery ? '&' : '?');
+//          redirectUrl += "state=" + Wt::Utils::urlEncode(*stateE);
 
-          const std::string *errorE = request.getParameter("error");
-          if (errorE)
-              redirectUrl += "&error=" + Wt::Utils::urlEncode(*errorE);
+//          const std::string *errorE = request.getParameter("error");
+//          if (errorE)
+//              redirectUrl += "&error=" + Wt::Utils::urlEncode(*errorE);
 
-          const std::string *codeE = request.getParameter("code");
-          if (codeE)
-              redirectUrl += "&code=" + Wt::Utils::urlEncode(*codeE);
+//          const std::string *codeE = request.getParameter("code");
+//          if (codeE)
+//              redirectUrl += "&code=" + Wt::Utils::urlEncode(*codeE);
 
-          response.setStatus(302);
-          response.addHeader("Location", redirectUrl);
-          return;
-        } else
-          LOG_ERROR("RedirectEndpoint: could not decode state {}", *stateE);
-      } else
-        LOG_ERROR("RedirectEndpoint: missing state");
+//          response.setStatus(302);
+//          response.addHeader("Location", redirectUrl);
+//          return;
+//        } else
+//          LOG_ERROR("RedirectEndpoint: could not decode state {}", *stateE);
+//      } else
+//        LOG_ERROR("RedirectEndpoint: missing state");
 
-      response.setStatus(400);
-      response.setMimeType("text/html");
-      response.out() << "<html><body>"
-                     << "<h1>OAuth Authentication error</h1>"
-                     << "</body></html>";
-    }
+//      response.setStatus(400);
+//      response.setMimeType("text/html");
+//      response.out() << "<html><body>"
+//                     << "<h1>OAuth Authentication error</h1>"
+//                     << "</body></html>";
+//    }
 
     virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
     {

@@ -354,6 +354,25 @@ public:
 //	     const Http::ParameterMap& parameters = Http::ParameterMap(),
 //	     const Http::UploadedFileMap& files = Http::UploadedFileMap());
 
+//  void write(WT_BOSTREAM& out,
+//                        const Http::ParameterMap& parameters,
+//                        const Http::UploadedFileMap& files)
+//  {
+//      Http::Request  request(parameters, files);
+//      http::cookies coockies;
+//      http::response response(coockies, out);
+
+//      handleRequest(request, response);
+
+//      // While the resource indicates more data to be sent, get it too.
+//      while (response.continuation_ && response.continuation_->resource_) {
+//          response.continuation_->resource_ = nullptr;
+//          request.continuation_ = response.continuation_.get();
+
+//          handleRequest(request, response);
+//      }
+//  }
+
   /*! \brief Handles a request.
    *
    * Reimplement this method so that a proper response is generated
@@ -415,12 +434,9 @@ public:
    */
   void haveMoreData();
 
-  /* to avoid dangling reference : store WRessource* into response and call erase */
-  //std::vector<std::reference_wrapper<http::response>> vec;
-  std::vector<std::shared_ptr<http::Continuation>> cs_;
-  asio::cancellation_signal cancel_signal_;
+
   awaitable<void> waitForMoreData(http::response& response) {
-      auto& cs = cs_.emplace_back(this, &response);
+      auto& cs = cs_.emplace_back(std::make_shared<http::Continuation>(this, &response));
       response.continuation_ = cs.get();
       co_await response.wait_for_more_data(asio::bind_cancellation_slot(cancel_signal_.slot(), use_awaitable));
   }
@@ -488,10 +504,14 @@ private:
   bool invalidAfterChanged_;
 
 //  std::vector<Http::ResponseContinuationPtr> continuations_;
-
 //  void removeContinuation(Http::ResponseContinuationPtr continuation);
 //  Http::ResponseContinuationPtr addContinuation(Http::ResponseContinuation *c);
 //  void doContinue(Http::ResponseContinuationPtr continuation);
+
+  /* to avoid dangling reference : store WRessource* into response and call erase */
+  //std::vector<std::reference_wrapper<http::response>> vec;
+  std::vector<std::shared_ptr<http::Continuation>> cs_;
+  asio::cancellation_signal cancel_signal_;
 
   awaitable<void> handle(Wt::http::context *context);
 

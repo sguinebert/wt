@@ -67,6 +67,11 @@ class response final : safe_noncopyable {
         last_gmt_date_str_{detail::utils::to_gmt_date_string(std::time(nullptr))},
         reply_handler_{std::move(handler)}, reply_handler_sg_{std::move(handler2)} {}
 
+  response(cookies& cookies, std::streambuf& ostream) noexcept
+      : cookies_{cookies}, ostream_(&ostream),
+      last_gmt_date_str_{detail::utils::to_gmt_date_string(std::time(nullptr))},
+      reply_handler_{}, reply_handler_sg_{} {}
+
   void minor_version(unsigned version) noexcept { minor_version_ = version; }
 
   unsigned status() const noexcept { return status_; }

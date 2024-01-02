@@ -89,7 +89,7 @@ const std::vector<unsigned char> WMemoryResource::data() const
   else
     return *data;
 }
-
+#ifdef DEPRECATED_OK
 void WMemoryResource::handleRequest(const Http::Request& request,
 				    Http::Response& response)
 {
@@ -109,7 +109,9 @@ void WMemoryResource::handleRequest(const Http::Request& request,
   for (unsigned int i = 0; i < (*data).size(); ++i)
     response.out().put((*data)[i]);
 }
+#endif
 
+#warning "change the logic whith suspend if atomic_bool modifying data_"
 awaitable<void> WMemoryResource::handleRequest(http::request &request, http::response &response)
 {
   DataPtr data;

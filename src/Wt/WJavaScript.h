@@ -105,13 +105,11 @@ namespace Wt {
  *
  * \ingroup signalslot
  */
-#ifndef WT_CNOR
+
+void WT_API addSignalToWidget(WObject* o, EventSignalBase* signal);
+std::string WT_API senderId(WObject *sender);
+
 template <typename... A>
-#else // WT_CNOR
-template <typename A1 = NoClass, typename A2 = NoClass,
-	  typename A3 = NoClass, typename A4 = NoClass,
-	  typename A5 = NoClass, typename A6 = NoClass>
-#endif // WT_CNOR
 class JSignal : public EventSignalBase
 {
 public:
@@ -132,18 +130,30 @@ public:
    *
    * \sa \link WObject::implementStateless() stateless slot learning\endlink
    */
-  JSignal(WObject *object, const std::string& name,
-	  bool collectSlotJavaScript = false);
+
+
+    JSignal(WObject *object, const std::string& name, bool collectSlotJavaScript = false):
+        EventSignalBase(nullptr, object, collectSlotJavaScript),
+        name_(name)
+    {
+        addSignalToWidget(object, dynamic_cast<EventSignalBase*>(this));
+    }
 
   /*! \brief Destructor.
    */
-  ~JSignal();
+  ~JSignal()
+  {
+      prepareDestruct();
+  }
 
   /*! \brief Returns the signal name.
    */
   const std::string& name() const { return name_; }
 
-  virtual const std::string encodeCmd() const override;
+  virtual const std::string encodeCmd() const override
+  {
+      return senderId(owner()) + "." + name_;
+  }
 
   /*! \brief Returns a JavaScript call that triggers the signal.
    *
@@ -164,7 +174,10 @@ public:
    * \sa createEventCall()
    */
 #ifndef WT_TARGET_JAVA
-  const std::string createCall(std::initializer_list<std::string> args) const;
+  const std::string createCall(std::initializer_list<std::string> args) const
+  {
+      return EventSignalBase::createUserEventCall(std::string(), std::string(), name_, args);
+  }
 #else // WT_TARGET_JAVA
   const std::string createCall(const std::string& arg1 = std::string(),
 			       const std::string& arg2 = std::string(),
@@ -196,9 +209,12 @@ public:
    */
 #ifndef WT_TARGET_JAVA
   const std::string createEventCall(const std::string& jsObject,
-				    const std::string& jsEvent,
-				    std::initializer_list<std::string> args)
-    const;
+                                    const std::string& jsEvent,
+                                    std::initializer_list<std::string> args) const
+  {
+      return EventSignalBase::createUserEventCall(jsObject, jsEvent,
+                                                  name_, args);
+  }
 #else // WT_TARGET_JAVA
   const std::string createEventCall(const std::string& jsObject,
 				    const std::string& jsEvent,
@@ -212,7 +228,10 @@ public:
 
   /*! \brief Returns whether the signal is connected to at least one slot.
    */
-  virtual bool isConnected() const override;
+  virtual bool isConnected() const override
+  {
+      return impl_.isConnected() || EventSignalBase::isConnected();
+  }
 
   /*! \brief Connect to a function.
    *
@@ -223,40 +242,48 @@ public:
    * automatically be disconnected when the object is deleted, as long as the
    * object inherits from WObject (or Wt::Signals::trackable).
    */
-  template<class F> Wt::Signals::connection connect(F function);
-  template<class F> Wt::Signals::connection connect(const WObject *target, F function);
+
+  template<auto memptr, class T>
+  void connect(T *target)
+  {
+      exposeSignal();
+
+      test_. template connect<memptr>(target);
+  }
+
+  template<class F>
+  Wt::Signals::connection connect(F function)
+  {
+      exposeSignal();
+      return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), nullptr);
+  }
+
+  template<class F>
+  Wt::Signals::connection connect(const WObject *target, F function)
+  {
+      exposeSignal();
+      return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), target);
+  }
 
   /*! \brief Connect a slot that takes no arguments.
    */
-#ifndef WT_CNOR
   template<class T, class V, class... B>
-    Wt::Signals::connection connect(T *target, void (V::*method)(B...));
+  Wt::Signals::connection connect(T *target, void (V::*method)(B...))
+  {
+      exposeSignal();
+
+      return Signals::Impl::ConnectHelper<sizeof...(B), A...>
+          ::connect(impl_, target, method);
+  }
 
   template<class T, class V, class... B>
-  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(B...));
-#else // WT_CNOR
-  template<class T, class V>
-    Wt::Signals::connection connect(T *target, void (V::*method)());
-  template<class T, class V>
-    Wt::Signals::connection connect(T *target, void (V::*method)(A1));
+  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(B...))
+  {
+      exposeSignal();
 
-  template<class T, class V>
-    Wt::Signals::connection connect(T *target, void (V::*method)(const A1&));
-  template<class T, class V>
-    Wt::Signals::connection connect(T *target, void (V::*method)(A1, A2));
-  template<class T, class V>
-    Wt::Signals::connection connect(T *target,
-				       void (V::*method)(A1,A2,A3));
-  template<class T, class V>
-    Wt::Signals::connection connect(T *target,
-				       void (V::*method)(A1,A2,A3,A4));
-  template<class T, class V>
-    Wt::Signals::connection connect(T *target,
-				       void (V::*method)(A1,A2,A3,A4,A5));
-  template<class T, class V>
-    Wt::Signals::connection connect(T *target,
-				       void (V::*method)(A1,A2,A3,A4,A5,A6));
-#endif // WT_CNOR
+      return Signals::Impl::ConnectHelper<sizeof...(B), A...>
+          ::connect(impl_, target, method);
+  }
 
   /*! \brief Connects a JavaScript function.
    *
@@ -274,8 +301,26 @@ public:
    * connection cannot be removed. If you need automatic connection
    * management, you should use connect(JSlot&) instead.
    */
-  void connect(const std::string& function);
-  void connect(const char * function);
+  void connect(const std::string& function)
+  {
+      if (!canAutoLearn()) {
+          Wt::log("error") << "JSignal: connect(const std::string&): signal does "
+                              "not collect JavaScript from slots";
+          return;
+      }
+
+      EventSignalBase::connect(function);
+  }
+  void connect(const char * function)
+  {
+      if (!canAutoLearn()) {
+          Wt::log("error") << "JSignal: connect(const std::string&): signal does "
+                              "not collect JavaScript from slots";
+          return;
+      }
+
+      EventSignalBase::connect(function);
+  }
 
   /*! \brief Connect a slot that is specified as JavaScript only.
    *
@@ -285,7 +330,16 @@ public:
    * application, and thus the state changes induced by the
    * \p slot are invisible to the server-side.
    */
-  void connect(JSlot& slot);
+  void connect(JSlot& slot)
+  {
+      if (!canAutoLearn()) {
+          Wt::log("error") << "JSignal: connect(JSlot): signal does not collect "
+                              "JavaScript from slots";
+          return;
+      }
+
+      EventSignalBase::connect(slot);
+  }
 
   /*! \brief Emit the signal.
    *
@@ -295,13 +349,10 @@ public:
    * This will cause all connected slots to be triggered, with the given
    * arguments.
    */
-#ifndef WT_CNOR
-  awaitable<void> emit(A... args) const;
-#else // WT_CNOR
-  void emit(A1 a1 = NoClass::none, A2 a2 = NoClass::none,
-	    A3 a3 = NoClass::none, A4 a4 = NoClass::none,
-	    A5 a5 = NoClass::none, A6 a6 = NoClass::none);
-#endif // WT_CNOR
+  awaitable<void> emit(A... args) const
+  {
+      co_await impl_.emit(args...);
+  }
 
   /*! \brief Emit the signal.
    *
@@ -309,30 +360,45 @@ public:
    *
    * \sa emit
    */
-#ifndef WT_CNOR
-  awaitable<void> operator()(A... args) const;
-#else // WT_CNOR
-  void operator()(A1 a1 = NoClass::none, A2 a2 = NoClass::none,
-		  A3 a3 = NoClass::none, A4 a4 = NoClass::none,
-		  A5 a5 = NoClass::none, A6 a6 = NoClass::none);
-#endif // WT_CNOR
+  awaitable<void> operator()(A... args) const
+  {
+      co_await impl_.emit(args...);
+  }
 
-  virtual Wt::Signals::connection connect(WObject *target, void (WObject::*method)()) override;
+  virtual Wt::Signals::connection connect(WObject *target, void (WObject::*method)()) override
+  {
+      exposeSignal();
+      WStatelessSlot *s = target->isStateless(method);
+      if (canAutoLearn() && s)
+          return EventSignalBase::connectStateless(method, target, s);
+      else
+          return impl_.connect(std::bind(method, target), target);
+  }
 
-  virtual Wt::Signals::connection connect(WObject *target, WObject::AsyncMethod method) override;
+  virtual Wt::Signals::connection connect(WObject *target, WObject::AsyncMethod method) override
+  {
+      exposeSignal();
+      //  WStatelessSlot *s = target->isStateless(method);
+      //  if (canAutoLearn() && s)
+      //    return EventSignalBase::connectStateless(method, target, s);
+      //  else
+      return impl_.connect(std::bind(method, target), target);
+  }
 
 protected:
-  virtual int argumentCount() const override;
+  virtual int argumentCount() const override
+  {
+      return sizeof...(A);
+  }
 
 private:
-#ifndef WT_CNOR
   typedef Signals::Signal<A...> SignalType;
-#endif // WT_CNOR
 
   std::string name_;
-#ifndef WT_CNOR
   SignalType impl_;
-#endif // WT_CNOR
+
+  Signal<awaitable<void>(A...)> test_;
+
 
   virtual awaitable<void> processDynamic(const JavaScriptEvent& e) const override;
 };
@@ -363,86 +429,86 @@ public:
 
 #ifndef WT_CNOR
 
-void WT_API addSignalToWidget(WObject* o, EventSignalBase* signal);
-std::string WT_API senderId(WObject *sender);
+//void WT_API addSignalToWidget(WObject* o, EventSignalBase* signal);
+//std::string WT_API senderId(WObject *sender);
 
-template <typename... A>
-JSignal<A...>::JSignal(WObject *object,
-		       const std::string& name,
-		       bool collectSlotJavaScript)
-  : EventSignalBase(nullptr, object, collectSlotJavaScript),
-    name_(name)
-{
-  addSignalToWidget(object, dynamic_cast<EventSignalBase*>(this));
-}
+//template <typename... A>
+//JSignal<A...>::JSignal(WObject *object,
+//		       const std::string& name,
+//		       bool collectSlotJavaScript)
+//  : EventSignalBase(nullptr, object, collectSlotJavaScript),
+//    name_(name)
+//{
+//  addSignalToWidget(object, dynamic_cast<EventSignalBase*>(this));
+//}
 
-template <typename... A>
-JSignal<A...>::~JSignal()
-{
-  prepareDestruct();
-}
+//template <typename... A>
+//JSignal<A...>::~JSignal()
+//{
+//  prepareDestruct();
+//}
 
-template <typename... A>
-const std::string JSignal<A...>::encodeCmd() const
-{
-  return senderId(owner()) + "." + name_;
-}
+//template <typename... A>
+//const std::string JSignal<A...>::encodeCmd() const
+//{
+//  return senderId(owner()) + "." + name_;
+//}
 
-template <typename... A>
-const std::string JSignal<A...>
-::createCall(std::initializer_list<std::string> args) const
-{
-  return EventSignalBase::createUserEventCall(std::string(), std::string(),
-					      name_, args);
-}
+//template <typename... A>
+//const std::string JSignal<A...>
+//::createCall(std::initializer_list<std::string> args) const
+//{
+//  return EventSignalBase::createUserEventCall(std::string(), std::string(),
+//					      name_, args);
+//}
 
-template <typename... A>
-const std::string JSignal<A...>
-::createEventCall(const std::string& jsObject, const std::string& jsEvent,
-		  std::initializer_list<std::string> args) const
-{
-  return EventSignalBase::createUserEventCall(jsObject, jsEvent,
-					      name_, args);
-}
+//template <typename... A>
+//const std::string JSignal<A...>
+//::createEventCall(const std::string& jsObject, const std::string& jsEvent,
+//		  std::initializer_list<std::string> args) const
+//{
+//  return EventSignalBase::createUserEventCall(jsObject, jsEvent,
+//					      name_, args);
+//}
 
-template <typename... A>
-template <class F>
-Wt::Signals::connection JSignal<A...>::connect(F function)
-{
-  exposeSignal();
-  return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), nullptr);
-}
+//template <typename... A>
+//template <class F>
+//Wt::Signals::connection JSignal<A...>::connect(F function)
+//{
+//  exposeSignal();
+//  return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), nullptr);
+//}
 
-template <typename... A>
-template <class F>
-Wt::Signals::connection JSignal<A...>::connect(const WObject *target,
-					       F function)
-{
-  exposeSignal();
-  return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), target);
-}
+//template <typename... A>
+//template <class F>
+//Wt::Signals::connection JSignal<A...>::connect(const WObject *target,
+//					       F function)
+//{
+//  exposeSignal();
+//  return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), target);
+//}
 
-template <class... A>
-template <class T, class V, class... B>
-Wt::Signals::connection JSignal<A...>
-::connect(T *target, void (V::*method)(B...))
-{
-  exposeSignal();
+//template <class... A>
+//template <class T, class V, class... B>
+//Wt::Signals::connection JSignal<A...>
+//::connect(T *target, void (V::*method)(B...))
+//{
+//  exposeSignal();
 
-  return Signals::Impl::ConnectHelper<sizeof...(B), A...>
-    ::connect(impl_, target, method);
-}
+//  return Signals::Impl::ConnectHelper<sizeof...(B), A...>
+//    ::connect(impl_, target, method);
+//}
 
-template <class... A>
-template <class T, class V, class... B>
-Wt::Signals::connection JSignal<A...>
-    ::connect(T *target, awaitable<void> (V::*method)(B...))
-{
-  exposeSignal();
+//template <class... A>
+//template <class T, class V, class... B>
+//Wt::Signals::connection JSignal<A...>
+//    ::connect(T *target, awaitable<void> (V::*method)(B...))
+//{
+//  exposeSignal();
 
-  return Signals::Impl::ConnectHelper<sizeof...(B), A...>
-      ::connect(impl_, target, method);
-}
+//  return Signals::Impl::ConnectHelper<sizeof...(B), A...>
+//      ::connect(impl_, target, method);
+//}
 
 /* Oops how to do that?
 template <typename A1, typename A2, typename A3,
@@ -465,88 +531,88 @@ Wt::Signals::connection JSignal<A1, A2, A3, A4, A5, A6>
 }
 */
 
-template <typename... A>
-void JSignal<A...>::connect(const std::string& function)
-{
-  if (!canAutoLearn()) {
-    Wt::log("error") << "JSignal: connect(const std::string&): signal does "
-      "not collect JavaScript from slots";
-    return;
-  }
+//template <typename... A>
+//void JSignal<A...>::connect(const std::string& function)
+//{
+//  if (!canAutoLearn()) {
+//    Wt::log("error") << "JSignal: connect(const std::string&): signal does "
+//      "not collect JavaScript from slots";
+//    return;
+//  }
 
-  EventSignalBase::connect(function);
-}
+//  EventSignalBase::connect(function);
+//}
 
-template <typename... A>
-void JSignal<A...>::connect(const char *function)
-{
-  if (!canAutoLearn()) {
-    Wt::log("error") << "JSignal: connect(const std::string&): signal does "
-      "not collect JavaScript from slots";
-    return;
-  }
+//template <typename... A>
+//void JSignal<A...>::connect(const char *function)
+//{
+//  if (!canAutoLearn()) {
+//    Wt::log("error") << "JSignal: connect(const std::string&): signal does "
+//      "not collect JavaScript from slots";
+//    return;
+//  }
 
-  EventSignalBase::connect(function);
-}
+//  EventSignalBase::connect(function);
+//}
 
-template <typename... A>
-void JSignal<A...>::connect(JSlot& slot)
-{
-  if (!canAutoLearn()) {
-    Wt::log("error") << "JSignal: connect(JSlot): signal does not collect "
-      "JavaScript from slots";
-    return;
-  }
+//template <typename... A>
+//void JSignal<A...>::connect(JSlot& slot)
+//{
+//  if (!canAutoLearn()) {
+//    Wt::log("error") << "JSignal: connect(JSlot): signal does not collect "
+//      "JavaScript from slots";
+//    return;
+//  }
 
-  EventSignalBase::connect(slot);
-}
+//  EventSignalBase::connect(slot);
+//}
 
-template <typename... A>
-Wt::Signals::connection JSignal<A...>::connect(WObject *target, void (WObject::*method)())
-{
-  exposeSignal();
-  WStatelessSlot *s = target->isStateless(method);
-  if (canAutoLearn() && s)
-    return EventSignalBase::connectStateless(method, target, s);
-  else
-    return impl_.connect(std::bind(method, target), target);
-}
-
-template <typename... A>
-Wt::Signals::connection JSignal<A...>::connect(WObject *target,
-                                               WObject::AsyncMethod method)
-{
-  exposeSignal();
+//template <typename... A>
+//Wt::Signals::connection JSignal<A...>::connect(WObject *target, void (WObject::*method)())
+//{
+//  exposeSignal();
 //  WStatelessSlot *s = target->isStateless(method);
 //  if (canAutoLearn() && s)
 //    return EventSignalBase::connectStateless(method, target, s);
 //  else
-    return impl_.connect(std::bind(method, target), target);
-}
+//    return impl_.connect(std::bind(method, target), target);
+//}
 
-template <typename... A>
-awaitable<void> JSignal<A...>::emit(A... args) const
-{
-  co_await impl_.emit(args...);
-}
+//template <typename... A>
+//Wt::Signals::connection JSignal<A...>::connect(WObject *target,
+//                                               WObject::AsyncMethod method)
+//{
+//  exposeSignal();
+////  WStatelessSlot *s = target->isStateless(method);
+////  if (canAutoLearn() && s)
+////    return EventSignalBase::connectStateless(method, target, s);
+////  else
+//    return impl_.connect(std::bind(method, target), target);
+//}
 
-template <typename... A>
-awaitable<void> JSignal<A...>::operator()(A... args) const
-{
-  co_await emit(args...);
-}
+//template <typename... A>
+//awaitable<void> JSignal<A...>::emit(A... args) const
+//{
+//  co_await impl_.emit(args...);
+//}
 
-template <typename... A>
-bool JSignal<A...>::isConnected() const
-{
-  return impl_.isConnected() || EventSignalBase::isConnected();
-}
+//template <typename... A>
+//awaitable<void> JSignal<A...>::operator()(A... args) const
+//{
+//  co_await emit(args...);
+//}
 
-template <typename... A>
-int JSignal<A...>::argumentCount() const
-{
-  return sizeof...(A);
-}
+//template <typename... A>
+//bool JSignal<A...>::isConnected() const
+//{
+//  return impl_.isConnected() || EventSignalBase::isConnected();
+//}
+
+//template <typename... A>
+//int JSignal<A...>::argumentCount() const
+//{
+//  return sizeof...(A);
+//}
 
 namespace Impl {
 

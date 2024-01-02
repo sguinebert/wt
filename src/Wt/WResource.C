@@ -7,11 +7,8 @@
 
 #include "Wt/WResource.h"
 #include "Wt/WApplication.h"
-#include "Wt/Http/Request.h"
-#include "Wt/Http/Response.h"
 
 #include "Wt/WebController.h"
-#include "WebRequest.h"
 #include "WebSession.h"
 #include "WebUtils.h"
 
@@ -161,122 +158,6 @@ namespace Wt
     }
   }
 
-//  void WResource::doContinue(Http::ResponseContinuationPtr continuation)
-//  {
-//    WebResponse *webResponse = continuation->response();
-//    WebRequest *webRequest = webResponse;
-
-//    try
-//    {
-//      handle(webRequest, webResponse, continuation);
-//    }
-//    catch (std::exception &e)
-//    {
-//      LOG_ERROR("exception while handling resource continuation: {}", e.what());
-//    }
-//    catch (...)
-//    {
-//      LOG_ERROR("exception while handling resource continuation");
-//    }
-//  }
-
-//  void WResource::removeContinuation(Http::ResponseContinuationPtr continuation)
-//  {
-//#ifdef WT_THREADED
-//    std::unique_lock<std::mutex> lock(*mutex_);
-//#endif
-//    Utils::erase(continuations_, continuation);
-//  }
-
-//  Http::ResponseContinuationPtr
-//  WResource::addContinuation(Http::ResponseContinuation *c)
-//  {
-//    Http::ResponseContinuationPtr result(c);
-
-//#ifdef WT_THREADED
-//    std::unique_lock<std::mutex> lock(*mutex_);
-//#endif
-//    continuations_.push_back(result);
-
-//    return result;
-//  }
-
-//  void WResource::handle(WebRequest *webRequest, WebResponse *webResponse,
-//                         Http::ResponseContinuationPtr continuation)
-//  {
-    /*
-   * If we are a new request for a dynamic resource, then we will have
-   * the session lock at this point and thus the resource is protected
-   * against deletion.
-   *
-   * If we come from a continuation, then the continuation increased the
-   * use count and we are thus protected against deletion.
-   */
-//    WebSession::Handler *handler = WebSession::Handler::instance();
-//    UseLock useLock;
-
-//#ifdef WT_THREADED
-//    std::unique_ptr<Wt::WApplication::UpdateLock> updateLock;
-//    if (takesUpdateLock() && continuation && app_)
-//    {
-//      updateLock.reset(new Wt::WApplication::UpdateLock(app_));
-//      if (!*updateLock)
-//      {
-//        return;
-//      }
-//    }
-
-//    if (handler && !continuation)
-//    {
-//      std::unique_lock<std::recursive_mutex> lock(*mutex_);
-
-//      if (!useLock.use(this))
-//        return;
-
-//      if (!takesUpdateLock() &&
-//          handler->haveLock() &&
-//          handler->lockOwner() == std::this_thread::get_id())
-//      {
-//        handler->unlock();
-//      }
-//    }
-//#endif // WT_THREADED
-
-//    // if (!handler) {
-//    //   WLocale locale = webRequest->parseLocale();
-//    //   WLocale::setCurrentLocale(locale);
-//    // }
-
-//    Http::Request request(*webRequest, continuation.get());
-//    Http::Response response(this, webResponse, continuation);
-
-//    if (!continuation)
-//      response.setStatus(200);
-
-//    handleRequest(request, response);
-
-//#ifdef WT_THREADED
-//    updateLock.reset();
-//#endif // WT_THREADED
-
-//    if (!response.continuation_ || !response.continuation_->resource_)
-//    {
-//      if (response.continuation_)
-//        removeContinuation(response.continuation_);
-
-//      response.out(); // trigger committing the headers if still necessary
-
-//      webResponse->flush(WebResponse::ResponseState::ResponseDone);
-//    }
-//    else
-//    {
-//      webResponse->flush(WebResponse::ResponseState::ResponseFlush,
-//                         std::bind(&Http::ResponseContinuation::readyToContinue,
-//                                   response.continuation_,
-//                                   std::placeholders::_1));
-//    }
-//  }
-
   awaitable<void> WResource::handle(Wt::http::context *ctx)
   {
   /*
@@ -291,18 +172,6 @@ namespace Wt
     UseLock useLock;
 
 #ifdef WT_THREADED
-    /* NO continuation recursive loop with coroutine */
-//    std::unique_ptr<Wt::WApplication::UpdateLock> updateLock;
-    /* NO continuation recursive loop with coroutine */
-//    if (takesUpdateLock() && continuation && app_) /* DEPRECATED BY COROUTINE (since we can flush inside a simple loop / continuation is deprecated)*/
-//    {
-//      updateLock.reset(new Wt::WApplication::UpdateLock(app_));
-//      if (!*updateLock)
-//      {
-//        co_return;
-//      }
-//    }
-
     if (handler /*&& !continuation*/)
     {
       //1./ recursive is deprecated since continuation is not needed anymore 2/. not needed if resource_->useCount_ is atomic
@@ -336,26 +205,6 @@ namespace Wt
 //#endif // WT_THREADED
 
     ctx->flush();
-
-    /* DEPRECATED with coroutines */
-//    if (!ctx->continuation_ || !ctx->continuation_->resource_)
-//    {
-//      if (ctx->continuation_)
-//        removeContinuation(ctx->continuation_);
-
-      //response.out(); // trigger committing the headers if still necessary
-
-      //webResponse->flush(WebResponse::ResponseState::ResponseDone);
-
-//    }
-//    else
-//    {
-      //ctx->flush();
-//      webResponse->flush(WebResponse::ResponseState::ResponseFlush,
-//                         std::bind(&Http::ResponseContinuation::readyToContinue,
-//                                   response.continuation_,
-//                                   std::placeholders::_1));
-//    }
     co_return;
   }
 
@@ -434,25 +283,6 @@ namespace Wt
 
     return currentUrl_;
   }
-
-//  void WResource::write(WT_BOSTREAM &out,
-//                        const Http::ParameterMap &parameters,
-//                        const Http::UploadedFileMap &files)
-//  {
-//    Http::Request request(parameters, files);
-//    Http::Response response(this, out);
-
-//    handleRequest(request, response);
-
-//    // While the resource indicates more data to be sent, get it too.
-//    while (response.continuation_ && response.continuation_->resource_)
-//    {
-//      response.continuation_->resource_ = nullptr;
-//      request.continuation_ = response.continuation_.get();
-
-//      handleRequest(request, response);
-//    }
-//  }
 
   void WResource::setTakesUpdateLock(bool enabled)
   {

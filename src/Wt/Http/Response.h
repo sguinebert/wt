@@ -94,7 +94,7 @@ public:
    *
    * \sa continuation()
    */
-  ResponseContinuation *createContinuation();
+//  ResponseContinuation *createContinuation();
 
   /*! \brief Return the continuation, if one was created for this response.
    *
@@ -103,7 +103,7 @@ public:
    *
    * \sa createContinuation()
    */
-  ResponseContinuation *continuation() const;
+//  ResponseContinuation *continuation() const;
 
   /*! \brief Returns the stream for getting the response output.
    */
@@ -113,13 +113,12 @@ public:
 
 private:
   WResource *resource_;
-  WebResponse *response_;
-  ResponseContinuationPtr continuation_;
+//  WebResponse *response_;
+//  ResponseContinuationPtr continuation_;
   WT_BOSTREAM *out_;
   bool headersCommitted_;
 
-  Response(WResource *resource, WebResponse *response,
-	   ResponseContinuationPtr continuation);
+//  Response(WResource *resource, WebResponse *response, ResponseContinuationPtr continuation);
   Response(WResource *resource, WT_BOSTREAM& out);
 
   friend class Wt::WResource;

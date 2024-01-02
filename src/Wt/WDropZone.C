@@ -36,6 +36,7 @@ public:
     //void setCurrentFile(File *file) { currentFile_ = file; }
 
 protected:
+#ifdef DEPRECATED_OK
     virtual void handleRequest(const Http::Request &request,
                                Http::Response &response) override
     {
@@ -101,6 +102,7 @@ protected:
 
         response.setMimeType("text/plain"); // else firefox complains
     }
+#endif
     virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
     {
         // In JWt we still have the update lock

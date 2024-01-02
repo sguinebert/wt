@@ -53,7 +53,7 @@ public:
   {
     beingDeleted();
   }
-
+#ifdef DEPRECATED_OK
   virtual void handleRequest(const Wt::Http::Request& request, Wt::Http::Response& response) override
   {
 #ifndef WT_TARGET_JAVA
@@ -95,7 +95,7 @@ public:
       "</script></head>"
       "<body onload=\"load();\"></body></html>";
   }
-
+#endif
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
   {
 #ifndef WT_TARGET_JAVA

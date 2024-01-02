@@ -41,6 +41,7 @@ public:
   }
 
 protected:
+#ifdef DEPRECATED_OK
   virtual void handleRequest(const Http::Request& request, Http::Response& response) override
   {
     bool triggerUpdate = false;
@@ -123,6 +124,7 @@ protected:
     if (!request.tooLarge() && !files.empty())
       fileUpload_->setFiles(files);
   }
+#endif
 
 #warning "need test fileupload"
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override

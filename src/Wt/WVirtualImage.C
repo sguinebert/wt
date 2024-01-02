@@ -85,7 +85,7 @@ void WVirtualImage::enableDragging()
      + impl_->jsRef() + ".removeAttribute('dsx');"
      "}");
 
-  impl_->mouseWentUp().connect(this, &WVirtualImage::mouseUp);
+  impl_->mouseWentUp().connect<&WVirtualImage::mouseUp>(this);
   impl_->decorationStyle().setCursor(Cursor::OpenHand);
 }
 

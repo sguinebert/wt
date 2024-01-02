@@ -83,8 +83,7 @@ public:
    * - bmp: Microsoft windows bitmap
    * - jpeg: Joint Photographic Experts Group JFIF format
    */
-  WRasterImage(const std::string& type,
-	       const WLength& width, const WLength& height);
+  WRasterImage(const std::string& type, const WLength& width, const WLength& height);
 
   /*! \brief Destructor.
    */
@@ -110,22 +109,21 @@ public:
 
   virtual WFlags<PaintDeviceFeatureFlag> features() const override;
   virtual void setChanged(WFlags<PainterChangeFlag> flags) override;
-  virtual void drawArc(const WRectF& rect, double startAngle,
-		       double spanAngle) override;
+  virtual void drawArc(const WRectF& rect, double startAngle, double spanAngle) override;
   virtual void drawImage(const WRectF& rect, const std::string& imgUri,
-			 int imgWidth, int imgHeight,
-			 const WRectF& sourceRect) override;
+                         int imgWidth, int imgHeight,
+                         const WRectF& sourceRect) override;
   virtual void drawLine(double x1, double y1, double x2, double y2) override;
   virtual void drawRect(const WRectF& rect) override;
   virtual void drawPath(const WPainterPath& path) override;
 
-  virtual void drawText(const WRectF& rect, 
-			WFlags<AlignmentFlag> alignmentFlags,
-			TextFlag textFlag,
-			const WString& text,
-			const WPointF *clipPoint) override;
+  virtual void drawText(const WRectF& rect,
+                        WFlags<AlignmentFlag> alignmentFlags,
+                        TextFlag textFlag,
+                        const WString& text,
+                        const WPointF *clipPoint) override;
   virtual WTextItem measureText(const WString& text, double maxWidth = -1,
-				bool wordWrap = false) override;
+                                bool wordWrap = false) override;
   virtual WFontMetrics fontMetrics() override;
   virtual void init() override;
   virtual void done() override;
@@ -134,8 +132,11 @@ public:
   virtual WLength width() const override { return width_; }
   virtual WLength height() const override { return height_; }
 
-  virtual void handleRequest(const Http::Request& request,
-			     Http::Response& response) override;
+//  virtual void handleRequest(const Http::Request& request,
+//                             Http::Response& response) override;
+
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
+
 
   /*! \brief Low-level paint method.
    *

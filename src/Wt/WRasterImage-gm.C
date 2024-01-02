@@ -312,6 +312,7 @@ void WRasterImage::Impl::internalDone()
   }
 }
 
+#ifdef DEPRECATED_OK
 void WRasterImage::handleRequest(const Http::Request &request,
                                  Http::Response &response)
 {
@@ -332,6 +333,29 @@ void WRasterImage::handleRequest(const Http::Request &request,
   } else {
     response.setStatus(500);
   }
+}
+#endif
+
+awaitable<void> WRasterImage::handleRequest(http::request& request, http::response& response)
+{
+  std::size_t size = 0;
+  std::shared_ptr<char> data;
+  {
+#ifdef WT_THREADED
+    std::lock_guard<std::mutex> lock(impl_->dataMutex_);
+#endif // WT_THREADED
+
+    data = impl_->data_;
+    size = impl_->dataSize_;
+  }
+
+  if (data) {
+    response.setContentType("image/" + impl_->type_);
+    response.out().write(data.get(), size);
+  } else {
+    response.status(500);
+  }
+  co_return;
 }
 
 void WRasterImage::Impl::applyTransform(const WTransform& t)

@@ -49,7 +49,7 @@ OidcUserInfoEndpoint::~OidcUserInfoEndpoint()
 {
   beingDeleted();
 }
-
+#ifdef DEPRECATED_OK
 void OidcUserInfoEndpoint::handleRequest(const Http::Request& request, Http::Response& response)
 {
   std::string authHeader = request.headerValue("Authorization");
@@ -84,6 +84,7 @@ void OidcUserInfoEndpoint::handleRequest(const Http::Request& request, Http::Res
   }
 #endif
 }
+#endif
 
 awaitable<void> OidcUserInfoEndpoint::handleRequest(http::request &request, http::response &response)
 {

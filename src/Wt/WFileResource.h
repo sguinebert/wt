@@ -97,8 +97,9 @@ public:
    * \endcode
    * \endif
    */
+#ifdef DEPRECATED_OK
   virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
-
+#endif
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
 
 private:

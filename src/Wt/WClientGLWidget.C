@@ -1313,10 +1313,10 @@ void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
 }
 
 void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
-				 WGLWidget::GLenum internalformat,
-				 WGLWidget::GLenum format,
-				 WGLWidget::GLenum type,
-				 WPaintDevice *paintdevice)
+                                 WGLWidget::GLenum internalformat,
+                                 WGLWidget::GLenum format,
+                                 WGLWidget::GLenum type,
+                                 WPaintDevice *paintdevice)
 {
   unsigned imgNb = images_++;
   if (dynamic_cast<WCanvasPaintDevice*>(paintdevice) != nullptr) {
@@ -1357,7 +1357,8 @@ void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
 std::unique_ptr<WResource> WClientGLWidget::rpdToMemResource(WRasterImage *rpd)
 {
   std::stringstream ss;
-  rpd->write(ss);
+#warning "broken"
+  //rpd->write(ss);
   std::unique_ptr<WMemoryResource> mr(new WMemoryResource("image/png", std::vector<unsigned char>(ss.view().begin(), ss.view().end())));
   //mr->setData(reinterpret_cast<const unsigned char*>(ss.str().c_str()), ss.str().size());
   return std::move(mr);
@@ -1365,10 +1366,10 @@ std::unique_ptr<WResource> WClientGLWidget::rpdToMemResource(WRasterImage *rpd)
 #endif
 
 void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
-				 WGLWidget::GLenum internalformat,
-				 WGLWidget::GLenum format,
-				 WGLWidget::GLenum type,
-				 WGLWidget::Texture texture)
+                                 WGLWidget::GLenum internalformat,
+                                 WGLWidget::GLenum format,
+                                 WGLWidget::GLenum type,
+                                 WGLWidget::Texture texture)
 {
   js_ << "ctx.texImage2D(" << toString(target) << "," << level << ","
       << toString(internalformat) << "," << toString(format) 

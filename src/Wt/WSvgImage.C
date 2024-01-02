@@ -900,6 +900,7 @@ std::string WSvgImage::rendered()
   return s.str();
 }
 
+#ifdef DEPRECATED_OK
 void WSvgImage::handleRequest(const Http::Request& request,
 			      Http::Response& response)
 {
@@ -913,6 +914,7 @@ void WSvgImage::handleRequest(const Http::Request& request,
 
   streamResourceData(o);
 }
+#endif
 
 awaitable<void> WSvgImage::handleRequest(http::request &request, http::response &response)
 {

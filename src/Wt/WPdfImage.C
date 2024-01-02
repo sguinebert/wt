@@ -735,7 +735,7 @@ WTextItem WPdfImage::measureText(const WString& text, double maxWidth,
       return WTextItem(text.value().substr(0, bytes), width);
   }
 }
-
+#ifdef DEPRECATED_OK
 void WPdfImage::handleRequest(const Http::Request& request, Http::Response& response)
 {
   HPDF_SaveToStream(pdf_);
@@ -755,6 +755,7 @@ void WPdfImage::handleRequest(const Http::Request& request, Http::Response& resp
     response.out().write((const char *)buf, siz);
   }
 }
+#endif
 
 awaitable<void> WPdfImage::handleRequest(http::request &request, http::response &response)
 {

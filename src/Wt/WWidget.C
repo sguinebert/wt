@@ -325,8 +325,10 @@ void WWidget::acceptDrops(const std::string& mimeType,
   WWebWidget *thisWebWidget = webWidget();
 
   if (thisWebWidget->setAcceptDropsImpl(mimeType, true, hoverStyleClass)) {
-    thisWebWidget->otherImpl_->dropSignal_->connect(this, &WWidget::getDrop);
-    thisWebWidget->otherImpl_->dropSignal2_->connect(this, &WWidget::getDropTouch);
+//    thisWebWidget->otherImpl_->dropSignal_->connect(this, &WWidget::getDrop);
+//    thisWebWidget->otherImpl_->dropSignal2_->connect(this, &WWidget::getDropTouch);
+    thisWebWidget->otherImpl_->dropSignal_->connect<&WWidget::getDrop>(this);
+    thisWebWidget->otherImpl_->dropSignal2_->connect<&WWidget::getDropTouch>(this);
   }
 }
 

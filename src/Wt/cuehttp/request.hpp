@@ -272,6 +272,19 @@ public:
     return ""sv;
   }
 
+  /*! \brief Returns the requested ranges as in the HTTP Range header
+   *
+   * The filesize is used to adapt the ranges to the actual file size
+   * as per rules of RFC 2616. If the file size is unknown, pass -1.
+   *
+   * You should check if the ranges are satisfiable using
+   * ByteRangeSpecifier::isSatisfiable().
+   */
+  ByteRangeSpecifier getRanges(::int64_t filesize) const
+  {
+    return getRanges(get("Range"), filesize);
+  }
+
   bool has_header(std::string_view field) const noexcept {
     for (std::size_t i{0}; i < phr_num_headers_; ++i) {
       const auto& header = phr_headers_[i];
@@ -696,6 +709,154 @@ public:
 
   ParameterMap parameters_;
   UploadedFileMap files_;
+
+  private:
+
+  ByteRangeSpecifier getRanges(std::string_view rangeHdr,
+                               ::int64_t filesize) const
+  {
+    ByteRangeSpecifier retval;
+
+    if (filesize == 0)
+    {
+      if (rangeHdr.empty())
+      {
+        retval.setSatisfiable(true);
+      }
+      else
+      {
+        // Don't waste CPU time and simplify code below.
+        retval.setSatisfiable(false);
+      }
+      return retval;
+    }
+
+    bool syntaxError = false;
+    bool satisfiable = filesize == -1;
+    std::vector<std::string> rangeSpecifier;
+    boost::split(rangeSpecifier, rangeHdr, boost::is_any_of("="));
+
+    if (rangeSpecifier.size() == 2)
+    {
+      boost::trim(rangeSpecifier[0]);
+      if (boost::iequals(rangeSpecifier[0], "bytes"))
+      {
+        std::vector<std::string> ranges;
+        boost::split(ranges, rangeSpecifier[1], boost::is_any_of(","));
+        for (std::size_t i = 0; i < ranges.size(); ++i)
+        {
+          std::vector<std::string> range;
+          boost::split(range, ranges[i], boost::is_any_of("-"));
+          if (range.size() == 2)
+          {
+            std::string start = range[0];
+            std::string end = range[1];
+
+            boost::trim(start);
+            boost::trim(end);
+
+            uint64_t startInt = 0, endInt = 0;
+            try
+            {
+              if (start != "")
+                  startInt = std::stoll(start);
+              if (end != "")
+                  endInt = std::stoll(end);
+            }
+            catch (std::exception &)
+            {
+              // syntactically invalid
+              syntaxError = true;
+            }
+            if (start == "")
+            {
+              // notation -599: return last 599 bytes
+              if (filesize != -1 && end != "")
+              {
+                  if (endInt >= (uint64_t)filesize)
+                  {
+                      endInt = (std::size_t)filesize;
+                  }
+                  if (endInt > 0)
+                  {
+                      satisfiable = true;
+                      retval.push_back(ByteRange(uint64_t(filesize - endInt), std::size_t(filesize - 1)));
+                  }
+                  else
+                  {
+                      // Not really specified as syntax error. The paragraph about
+                      // 'satisfiability' seems to imply that we should simply
+                      // ignore it.
+                  }
+              }
+              else
+              {
+                  // syntactically invalid
+                  syntaxError = true;
+              }
+            }
+            else
+            {
+              if (filesize == -1 || startInt < (uint64_t)filesize)
+              {
+                  if (end == "")
+                  {
+                      satisfiable = true;
+                      // notation 599-: returns from byte 599 to eof
+                      if (filesize == -1)
+                          retval.push_back(ByteRange(startInt, std::numeric_limits<uint64_t>::max()));
+                      else
+                          retval.push_back(ByteRange(startInt, uint64_t(filesize - 1)));
+                  }
+                  else
+                  {
+                      if (startInt <= endInt)
+                      {
+                          satisfiable = true;
+                          if (filesize >= 0 && endInt > (uint64_t)filesize)
+                              endInt = uint64_t(filesize - 1);
+                          retval.push_back(ByteRange(startInt, endInt));
+                      }
+                      else
+                      {
+                          // syntactically invalid
+                          syntaxError = true;
+                      }
+                  }
+              }
+              else
+              {
+                  // Not-satisfiable: just skip this range
+              }
+            }
+          }
+          else
+          {
+            syntaxError = true;
+          }
+        }
+      }
+      else
+      {
+        // only understand 'bytes'
+        syntaxError = true;
+      }
+    }
+    else
+    {
+      // Too many equals
+      syntaxError = true;
+    }
+    if (syntaxError)
+    {
+      return ByteRangeSpecifier();
+    }
+    else
+    {
+      retval.setSatisfiable(satisfiable);
+      return retval;
+    }
+  }
 };
 
 }  // namespace http

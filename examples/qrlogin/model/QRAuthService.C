@@ -38,7 +38,7 @@ public:
   {
     beingDeleted();
   }
-
+#ifdef DEPRECATED_OK
   virtual void handleRequest(const Wt::Http::Request &request, Wt::Http::Response &response) override
   {
     WApplication *app = WApplication::instance();
@@ -49,6 +49,7 @@ public:
     response.setMimeType("plain/text");
     response.out() << "ok";
   }
+#endif
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
   {
     WApplication *app = WApplication::instance();

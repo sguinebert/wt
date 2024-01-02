@@ -58,9 +58,9 @@ public:
   OidcUserInfoEndpoint(AbstractUserDatabase& db);
 
   virtual ~OidcUserInfoEndpoint();
-
+#ifdef DEPRECATED_OK
   virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
-
+#endif
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
   /*! \brief Maps the given scope token to the given set of claims.
    *

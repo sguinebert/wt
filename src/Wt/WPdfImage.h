@@ -171,8 +171,9 @@ public:
   virtual WLength height() const override { return height_; }
 
   void errorHandler(HPDF_STATUS error_no, HPDF_STATUS detail_no);
-
+#ifdef DEPRECATED_OK
   virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
+#endif
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
 protected:
   virtual WPainter *painter() const override { return painter_; }
