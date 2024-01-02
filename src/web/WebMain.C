@@ -69,7 +69,7 @@ awaitable<void> WebMain::run()
 //	.post(std::bind(&WebController::handleRequest,
 //	      &controller(), request));
 
-      asio::post(*thread_context, [request, controller = &controller()] () {  controller->handleRequest(request); });
+      asio::post(co_await asio::this_coro::executor, [request, controller = &controller()] () {  controller->handleRequest(request); });
     }
   }
 

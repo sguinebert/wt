@@ -867,9 +867,14 @@ bool WebSession::start(WebResponse *response, EntryPoint *ep)
 {
   try {
     app_ = controller_->doCreateApplication(this, ep).release();
-    if (!app_->internalPathValid_)
-      if (response->responseType() == WebResponse::ResponseType::Page)
-            response->setStatus(404);
+    if (app_) {
+        if (!app_->internalPathValid_)
+          if (response->responseType() == WebResponse::ResponseType::Page)
+                response->setStatus(404);
+    }
+    else {
+        throw WException("WebSession::start: ApplicationCreator returned a nullptr");
+    }
   } catch (std::exception& e) {
     app_ = nullptr;
 
@@ -2127,7 +2132,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
       kill();
 
       if (handler.context())
-        serveError(500, handler, e.what());
+        serveError(500, handler, e.what());// serveError(500, handler, "Internal Server Error"); // TO avoid client knowing what happen on the server
 
     }
     catch (std::exception& e) {
@@ -2140,7 +2145,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
       kill();
 
       if (handler.context())
-        serveError(500, handler, e.what());
+        serveError(500, handler, e.what());//serveError(500, handler, "Internal Server Error");
     }
     catch (...) {
       LOG_ERROR("fatal error: caught unknown exception.");
@@ -2148,7 +2153,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
       kill();
 
       if (handler.context())
-        serveError(500, handler, "Unknown exception");
+        serveError(500, handler, "Unknown exception");//serveError(500, handler, "Internal Server Error");
     }
 
   if (handler.context())

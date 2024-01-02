@@ -29,17 +29,20 @@ INCLUDE_DIRECTORIES(
 
 LINK_DIRECTORIES(${BOOST_LIB_DIRS})
 
-MACRO (FILE_TO_STRING infile outfile var)
-ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${outfile}
-               COMMAND ${CMAKE_COMMAND}
-                   ARGS -Dinfile:FILEPATH=${CMAKE_CURRENT_SOURCE_DIR}/${infile}
-                        -Doutfile:FILEPATH=${CMAKE_CURRENT_BINARY_DIR}/${outfile}
-                        -Dvar:STRING=${var}
-                        -P ${CMAKE_CURRENT_SOURCE_DIR}/filetostring.cmake
-           MAIN_DEPENDENCY
-                ${CMAKE_CURRENT_SOURCE_DIR}/${infile}
-)
-ENDMACRO (FILE_TO_STRING)
+function(file_to_string infile outfile var)
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${outfile}
+    COMMAND ${CMAKE_COMMAND}
+      ARGS -Dinfile:FILEPATH=${CMAKE_CURRENT_SOURCE_DIR}/${infile}
+           -Doutfile:FILEPATH=${CMAKE_CURRENT_BINARY_DIR}/${outfile}
+           -Dvar:STRING=${var}
+           -P ${CMAKE_CURRENT_SOURCE_DIR}/filetostring.cmake
+    MAIN_DEPENDENCY
+      ${CMAKE_CURRENT_SOURCE_DIR}/${infile}
+    DEPENDS
+      ${CMAKE_CURRENT_SOURCE_DIR}/filetostring.cmake
+  )
+endfunction()
 
 FILE_TO_STRING(web/skeleton/Plain.html    Plain_html.C      Plain_html)
 FILE_TO_STRING(web/skeleton/Hybrid.html   Hybrid_html.C     Hybrid_html)
@@ -63,7 +66,7 @@ ELSE(CMAKE_BUILD_TYPE STREQUAL "Debug")
   FILE_TO_STRING(js/WCartesianChart.min.js WCartesianChart_js.C WCartesianChart_js)
 ENDIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
-FILE_TO_STRING(web/skeleton/jquery.min.js JQuery_js.C JQuery_js)
+#FILE_TO_STRING(web/skeleton/jquery.min.js JQuery_js.C JQuery_js)
 
 FILE_TO_STRING(xml/wt.xml Wt_xml.C Wt_xml)
 FILE_TO_STRING(xml/auth_strings.xml AuthStrings_xml.C AuthStrings_xml)
@@ -312,6 +315,7 @@ Wt/Auth/PasswordStrengthValidator.h Wt/Auth/PasswordStrengthValidator.C
 Wt/Auth/PasswordVerifier.h Wt/Auth/PasswordVerifier.C
 Wt/Auth/RegistrationModel.h Wt/Auth/RegistrationModel.C
 Wt/Auth/RegistrationWidget.h Wt/Auth/RegistrationWidget.C
+Wt/Auth/ResendEmailVerificationWidget.h Wt/Auth/ResendEmailVerificationWidget.C
 Wt/Auth/Token.h Wt/Auth/Token.C
 Wt/Auth/UpdatePasswordWidget.h Wt/Auth/UpdatePasswordWidget.C
 Wt/Auth/User.h Wt/Auth/User.C
@@ -371,6 +375,7 @@ Wt/cuehttp/request.hpp Wt/cuehttp/response.hpp Wt/cuehttp/router.hpp Wt/cuehttp/
 Wt/Http/Configuration.h Wt/Http/Configuration.C
 Wt/Http/HttpUtils.h Wt/Http/HttpUtils.C
 Wt/Http/Client.h Wt/Http/Client.C
+Wt/Http/Cookie.h Wt/Http/Cookie.C #https://github.com/emweb/wt/commit/052c49901811e8b3d2ac3a6bf4d72d05c21aa363
 Wt/Http/Message.h Wt/Http/Message.C
 Wt/Http/Request.h Wt/Http/Request.C
 Wt/Http/Response.h Wt/Http/Response.C
@@ -439,7 +444,7 @@ BootstrapTheme_xml.C
 Bootstrap3Theme_xml.C
 Bootstrap5Theme_xml.C
 AuthCssTheme_xml.C
-JQuery_js.C
+#JQuery_js.C
 )
 
 IF (WT_CPP20_DATE_TZ_IMPLEMENTATION STREQUAL "date")
@@ -484,9 +489,9 @@ IF(WT_HAS_SAML)
 ENDIF(WT_HAS_SAML)
 
 
-IF(HAVE_URING)
+#IF(HAVE_URING)
 #target_link_libraries (wt PRIVATE liburing)
-ENDIF(HAVE_URING)
+#ENDIF(HAVE_URING)
 
 ADD_DEFINITIONS(-DWT_BUILDING)
 
@@ -507,11 +512,13 @@ ENDIF(HAVE_HARU)
 
 IF("${WT_WRASTERIMAGE_IMPLEMENTATION}" STREQUAL "GraphicsMagick")
   SET(libsources ${libsources} Wt/WRasterImage.h Wt/WRasterImage-gm.C)
-ELSEIF("${WT_WRASTERIMAGE_IMPLEMENTATION}" STREQUAL "skia")
-  SET(libsources ${libsources} Wt/WRasterImage.h Wt/WRasterImage-skia.C)
 ELSEIF("${WT_WRASTERIMAGE_IMPLEMENTATION}" STREQUAL "Direct2D")
   SET(libsources ${libsources} Wt/WRasterImage.h Wt/WRasterImage-d2d1.C)
 ENDIF("${WT_WRASTERIMAGE_IMPLEMENTATION}" STREQUAL "GraphicsMagick")
+
+if(WT_USE_OPENGL)
+  list(APPEND libsources Wt/WServerGLWidget.h Wt/WServerGLWidget.C)
+endif()
 
 IF(HAVE_GL)
   SET(libsources ${libsources} Wt/WServerGLWidget.h Wt/WServerGLWidget.C)
@@ -675,25 +682,27 @@ IF("${WT_WRASTERIMAGE_IMPLEMENTATION}" STREQUAL "GraphicsMagick")
   TARGET_LINK_LIBRARIES(wt PRIVATE ${GM_LIBRARIES})
   INCLUDE_DIRECTORIES(${GM_INCLUDE_DIRS})
   ADD_DEFINITIONS(-DHAVE_GRAPHICSMAGICK)
-ELSEIF("${WT_WRASTERIMAGE_IMPLEMENTATION}" STREQUAL "skia")
-  TARGET_LINK_LIBRARIES(wt PRIVATE ${SKIA_LIBRARIES})
-  INCLUDE_DIRECTORIES(${SKIA_INCLUDE_DIRS})
-  ADD_DEFINITIONS(${SKIA_DEFINES})
 ELSEIF("${WT_WRASTERIMAGE_IMPLEMENTATION}" STREQUAL "Direct2D")
   TARGET_LINK_LIBRARIES(wt PRIVATE d2d1 dwrite windowscodecs shlwapi)
 ELSE("${WT_WRASTERIMAGE_IMPLEMENTATION}" STREQUAL "GraphicsMagick")
-  MESSAGE("** Disabling raster image support (WRasterImage): set WT_WRASTERIMAGE_IMPLEMENTATION to GraphicsMagick or skia.")
+  MESSAGE("** Disabling raster image support (WRasterImage): set WT_WRASTERIMAGE_IMPLEMENTATION to GraphicsMagick or Direct2D.")
 ENDIF("${WT_WRASTERIMAGE_IMPLEMENTATION}" STREQUAL "GraphicsMagick")
 
-IF(HAVE_GL)
-  INCLUDE_DIRECTORIES(${GL_INCLUDE_DIRS})
-  IF(USE_SYSTEM_GLEW)
-    TARGET_LINK_LIBRARIES(wt PRIVATE GLEW)
-  ENDIF(USE_SYSTEM_GLEW)
-  TARGET_LINK_LIBRARIES(wt PRIVATE ${GL_LIBRARIES})
-ELSE(HAVE_GL)
-  MESSAGE("** Disabling server-side opengl rendering for WGLWidget: requires gl, glew and WRasterImage (GraphicsMagick or skia).")
-ENDIF(HAVE_GL)
+if(WT_USE_OPENGL)
+  target_link_libraries(wt PRIVATE OpenGL::GL GLEW::GLEW)
+else()
+  MESSAGE("** Disabling server-side opengl rendering for WGLWidget: requires gl, glew and WRasterImage (GraphicsMagick or Direct2D).")
+endif()
+
+#IF(HAVE_GL)
+#  INCLUDE_DIRECTORIES(${GL_INCLUDE_DIRS})
+#  IF(USE_SYSTEM_GLEW)
+#    TARGET_LINK_LIBRARIES(wt PRIVATE GLEW)
+#  ENDIF(USE_SYSTEM_GLEW)
+#  TARGET_LINK_LIBRARIES(wt PRIVATE ${GL_LIBRARIES})
+#ELSE(HAVE_GL)
+#  MESSAGE("** Disabling server-side opengl rendering for WGLWidget: requires gl, glew and WRasterImage (GraphicsMagick or skia).")
+#ENDIF(HAVE_GL)
 
 IF(WT_FONTSUPPORT_SIMPLE)
   ADD_DEFINITIONS(-DWT_FONTSUPPORT_SIMPLE)

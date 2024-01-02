@@ -370,15 +370,15 @@ DomElement * WPaintedWidget::createDomElement(WApplication *app)
     setLayoutSizeAware(true);
     setJavaScriptMember(WT_RESIZE_JS,
 			"function(self, w, h) {"
-			"""var u = $(self).find('canvas, img');"
+            """let u = self.querySelector('canvas, img');"
 			"""if (w >= 0) "
-			""  "u.width(w);"
+            "" "u.style.width = `${w}px`;"
                         """else "
-                        ""  "u.width('auto');"
+                        "" "u.style.width = 'auto';"
 			"""if (h >= 0) "
-			""  "u.height(h);"
+            "" "u.style.height = `${h}px`;"
                         """else "
-                        ""  "u.height('auto');"
+                        "" "u.style.height = 'auto';"
 			"}");
   }
 
@@ -762,7 +762,7 @@ std::unique_ptr<WPaintDevice> WWidgetRasterPainter
   return std::unique_ptr<WPaintDevice>
     (new WRasterImage("png", widget_->renderWidth_, widget_->renderHeight_));
 #else
-  throw WException("Wt was built without WRasterImage (graphicsmagick, skia or Direct2D)");
+  throw WException("Wt was built without WRasterImage (graphicsmagick or Direct2D)");
 #endif
 }
 
@@ -773,7 +773,7 @@ std::unique_ptr<WPaintDevice> WWidgetRasterPainter
 #ifdef WT_HAS_WRASTERIMAGE
     device_ = createPaintDevice(paintUpdate);
 #else
-    throw WException("Wt was built without WRasterImage (graphicsmagick, skia or Direct2D)");
+    throw WException("Wt was built without WRasterImage (graphicsmagick or Direct2D)");
 #endif
   }
 

@@ -109,10 +109,10 @@ public:
     js <<
       """), i, il;"
       """for (i=0; i<" << states_.size() << "; ++i) {"
-      ""  "if ($(s).hasClass(states[i])) {"
+      ""  "if (s.classList.contains(states[i])) {"
       "" << app->javaScriptClass() << ".emit(s, 't-'+states[i]);"
-      ""    "$(s).removeClass(states[i])"
-      ""        ".addClass(states[(i+1) % " << states_.size() << "]);"
+      ""    "s.classList.remove(states[i]);"
+      ""        "s.classList.add(states[(i+1) % " << states_.size() << "]);"
       ""    "break;"
       ""  "}"
       """}"
@@ -1144,9 +1144,11 @@ void WTreeView::setRowHeaderCount(int count)
        * application/xml on Firefox (jQuery suffers)
        */
       tieRowsScrollJS_.setJavaScript
-	("function(obj, event) {"
-	 "$('#" + id() + " .Wt-tv-rowc').parent().scrollLeft(obj.scrollLeft);"
-	 "}");
+          ("function(obj, event) {"
+           "document.querySelectorAll('#" + id() + " .Wt-tv-rowc').forEach(function(elem){"
+                    """if (elem.parentElement) elem.parentElement.scrollLeft = obj.scrollLeft;"
+                    "});"
+        "}");
     }
 
     WContainerWidget *scrollBarContainer = new WContainerWidget();
@@ -1779,7 +1781,7 @@ bool WTreeView::isExpandedRecursive(const WModelIndex& index) const
     if (index != rootIndex())
       return isExpanded(index.parent());
     else
-      return false;
+      return true;
   } else
     return false;
 }

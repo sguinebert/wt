@@ -40,13 +40,11 @@ namespace Wt {
 //};
 
 //  namespace backend {
-
 //  class Sqlite3;
 //  class Postgres;
 //  class MySQL;
 //  class MSSQLServer;
 //  class Firebird;
-
 //  }
 
 

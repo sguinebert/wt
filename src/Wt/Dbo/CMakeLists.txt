@@ -31,6 +31,7 @@ IF(ENABLE_LIBWTDBO)
     EscapeOStream.h EscapeOStream.C
     StringStream.h StringStream.C
     Logger.h Logger.C
+    Redis.h Redis.C #/usr/local/include/boost/redis/src.hpp
   )
 
   SET_PROPERTY(TARGET wtdbo PROPERTY C_VISIBILITY_PRESET hidden)

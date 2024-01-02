@@ -45,6 +45,8 @@ public:
    */
   AbstractUserDatabase& users() { return users_; }
 
+  AbstractUserDatabase& users() const { return users_; }
+
   /*! \brief Adds a password authentication service.
    *
    * This enables password-based registration, including choosing a proper

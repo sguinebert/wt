@@ -339,9 +339,13 @@ void WFormWidget::setValidator(const std::shared_ptr<WValidator>& validator)
     if (firstValidator) {
       setToolTip(toolTip());
 
-      this->changed().connect(this, [this] () -> awaitable<void> {
+      this->changed().connect([this] () -> awaitable<void> {
           co_await validated_.emit(validState_);
       });
+//      Signal<awaitable<void>()> test;
+//      test.connect([this] () -> awaitable<void> {
+//          co_await validated_.emit(validState_);
+//      });
     }
 
     validatorChanged();
