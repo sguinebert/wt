@@ -380,8 +380,7 @@ template <class T>
 WStatelessSlot *WObject::implementStateless(void (T::*method)(), void (T::*undoMethod)())
 {
   assert(dynamic_cast<T *>(this));
-  return implementPrelearn(static_cast<Method>(method),
-			   static_cast<Method>(undoMethod));
+  return implementPrelearn(static_cast<Method>(method), static_cast<Method>(undoMethod));
 }
 #endif // WT_TARGET_JAVA
 

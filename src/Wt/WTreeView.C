@@ -155,7 +155,7 @@ public:
     else
     {
 //#warning "FIX ME"
-      clicked().connect(this, &ToggleButton::handleClick);
+      clicked().connect<&ToggleButton::handleClick>(this);
       for (unsigned i = 0; i < config_->states().size(); ++i)
         signals_.emplace_back();
     }
@@ -462,8 +462,8 @@ void WTreeViewNode::updateGraphics(bool isLast, bool isEmpty)
         expandButton->setWidth(19);
 
       if (WApplication::instance()->environment().ajax()) {
-          expandButton->jsignal(0).connect(this, &WTreeViewNode::doExpand);
-          expandButton->jsignal(1).connect(this, &WTreeViewNode::doCollapse);
+        expandButton->jsignal(0).connect<&WTreeViewNode::doExpand>(this);
+        expandButton->jsignal(1).connect<&WTreeViewNode::doCollapse>(this);
       }
       else {
           expandButton->signal(0).connect<&WTreeViewNode::doExpand>(this);
@@ -1038,7 +1038,7 @@ void WTreeView::setup()
     contentsContainer_ = new ContentsContainer(this);
     contentsContainer_->setStyleClass("cwidth");
     contentsContainer_->setOverflow(Overflow::Auto);
-    contentsContainer_->scrolled().connect(this, &WTreeView::onViewportChange);
+    contentsContainer_->scrolled().connect<&WTreeView::onViewportChange>(this);
     contentsContainer_->addWidget(std::unique_ptr<WWidget>(contents_));
 
     layout->addWidget(std::unique_ptr<WWidget>(headerContainer_));
@@ -1420,13 +1420,13 @@ void WTreeView::render(WFlags<RenderFlag> flags)
     defineJavaScript();
 
     if (!rowDropEvent_.isConnected())
-      rowDropEvent_.connect(this, &WTreeView::onRowDropEvent);
+      rowDropEvent_.connect<&WTreeView::onRowDropEvent>(this);
 
     if (!itemTouchEvent_.isConnected())
-      itemTouchEvent_.connect(this, &WTreeView::onItemTouchEvent);
+      itemTouchEvent_.connect<&WTreeView::onItemTouchEvent>(this);
 
     if (!itemEvent_.isConnected()) {
-      itemEvent_.connect(this, &WTreeView::onItemEvent);
+      itemEvent_.connect<&WTreeView::onItemEvent>(this);
 
       addCssRule("#" + id() + " .cwidth", "");
 

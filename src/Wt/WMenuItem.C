@@ -298,7 +298,7 @@ void WMenuItem::setCloseable(bool closeable)
       WApplication *app = WApplication::instance();
       app->theme()->apply(this, closeIcon, MenuItemClose);
 
-      closeIcon->clicked().connect(this, &WMenuItem::close);
+      closeIcon->clicked().connect<&WMenuItem::close>(this);
     } else
       removeWidget(widget(0));
   }
@@ -459,33 +459,43 @@ void WMenuItem::connectSignals()
 
     if (a)
     {
-      SignalBase *as;
+      //SignalBase *as;
       bool selectFromCheckbox = false;
 
       if (checkBox_ && !checkBox_->clicked().propagationPrevented()) {
-        as = &checkBox_->changed();
+        //as = &checkBox_->changed();
         /*
          * Because the checkbox is not a properly exposed form object,
          * we need to relay its value ourselves
          */
-        checkBox_->checked().connect(this, &WMenuItem::setCheckBox);
-        checkBox_->unChecked().connect(this, &WMenuItem::setUnCheckBox);
+        checkBox_->checked().connect<&WMenuItem::setCheckBox>(this);
+        checkBox_->unChecked().connect<&WMenuItem::setUnCheckBox>(this);
         selectFromCheckbox = true;
+
+        if (uContents_)
+            checkBox_->changed().connect<&WMenuItem::selectNotLoaded>(this);
+        else
+        {
+            checkBox_->changed().connect<&WMenuItem::selectVisual>(this);
+            if (!selectFromCheckbox)
+                checkBox_->changed().connect<&WMenuItem::select>(this);
+        }
       }
       else
-        as = &a->clicked();
+      {
+        if (uContents_)
+            a->clicked().connect<&WMenuItem::selectNotLoaded>(this);
+        else
+        {
+            a->clicked().connect<&WMenuItem::selectVisual>(this);
+            if (!selectFromCheckbox)
+                a->clicked().connect<&WMenuItem::select>(this);
+        }
 
+      }
       if (checkBox_)
         a->setLink(WLink());
 
-      if (uContents_)
-        as->connect(this, &WMenuItem::selectNotLoaded);
-      else
-      {
-        as->connect(this, &WMenuItem::selectVisual);
-        if (!selectFromCheckbox)
-          as->connect(this, &WMenuItem::select);
-      }
     }
   }
 }

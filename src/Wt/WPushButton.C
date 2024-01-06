@@ -70,7 +70,7 @@ void WPushButton::setCheckable(bool checkable)
 
   if (checkable) {
     clicked().connect("function(o,e) { o.classList.toggle('active'); }");
-    clicked().connect(this, &WPushButton::toggled);
+    clicked().connect<&WPushButton::toggled>(this);
   }
 }
 
@@ -261,7 +261,7 @@ void WPushButton::renderHRef(DomElement& element)
       clicked().connect(*linkState_.clickJS);
 
       if (!app->environment().ajax())
-	clicked().connect(this, &WPushButton::doRedirect);
+    clicked().connect<&WPushButton::doRedirect>(this);
     }
 
     if (linkState_.link.type() == LinkType::InternalPath)

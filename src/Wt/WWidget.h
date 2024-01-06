@@ -864,7 +864,7 @@ public:
    *
    * \sa setCanReceiveFocus()
    */
-  void setFocus();
+  void focus();
 
   /*! \brief Sets focus.
    *

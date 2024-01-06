@@ -48,48 +48,6 @@ private:
   WModelIndex index_;
 };
 
-#ifdef WT_CNOR
-class IndexCheckBox : public IndexEdit<WCheckBox>
-{
-public:
-  IndexCheckBox(const WModelIndex& index);
-
-  void setIndex(const WModelIndex& index);
-  const WModelIndex& index();
-  virtual WString toolTip() const;
-};
-
-class IndexContainerWidget : public IndexEdit<WContainerWidget>
-{
-public:
-  IndexContainerWidget(const WModelIndex& index);
-
-  void setIndex(const WModelIndex& index);
-  const WModelIndex& index();
-  virtual WString toolTip() const;
-};
-
-class IndexAnchor : public IndexEdit<WAnchor>
-{
-public:
-  IndexAnchor(const WModelIndex& index);
-
-  void setIndex(const WModelIndex& index);
-  const WModelIndex& index();
-  virtual WString toolTip() const;
-};
-
-class IndexText : public IndexEdit<WText>
-{
-public:
-  IndexText(const WModelIndex& index);
-
-  void setIndex(const WModelIndex& index);
-  const WModelIndex& index();
-  virtual WString toolTip() const;
-};
-#endif // WT_CNOR
-
 WItemDelegate::WItemDelegate()
 { }
 

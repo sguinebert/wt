@@ -74,7 +74,7 @@ HelloApplication::HelloApplication(const WEnvironment& env, bool embedded)
 
   top->addWidget(std::make_unique<WText>("Your name, please ? "));
   nameEdit_ = top->addWidget(std::make_unique<WLineEdit>());
-  nameEdit_->setFocus();
+  nameEdit_->focus();
 
   auto b = top->addWidget(std::make_unique<WPushButton>("Greet me."));
   b->setMargin(5, Side::Left);

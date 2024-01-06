@@ -1487,8 +1487,8 @@ void WCartesianChart::init()
     touchEnded().connect("function(o, e){var o=" + this->cObjJsRef() + ";if(o){o.touchEnd(o, e);}}");
     touchMoved().connect("function(o, e){var o=" + this->cObjJsRef() + ";if(o){o.touchMoved(o, e);}}");
     clicked().connect("function(o, e){var o=" + this->cObjJsRef() + ";if(o){o.clicked(o, e);}}");
-    jsSeriesSelected_.connect(this, &WCartesianChart::jsSeriesSelected);
-    loadTooltip_.connect(this, &WCartesianChart::loadTooltip);
+    jsSeriesSelected_.connect<&WCartesianChart::jsSeriesSelected>(this);
+    loadTooltip_.connect<&WCartesianChart::loadTooltip>(this);
     voidEventSignal("dragstart", true)->preventDefaultAction(true);
   }
 

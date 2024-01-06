@@ -283,8 +283,8 @@ WApplication::WApplication(const WEnvironment& env
   setLoadingIndicator
     (std::unique_ptr<WLoadingIndicator>(new WDefaultLoadingIndicator()));
 
-  unloaded_.connect(this, &WApplication::doUnload);
-  idleTimeout_.connect(this, &WApplication::doIdleTimeout);
+  unloaded_.connect<&WApplication::doUnload>(this);
+  idleTimeout_.connect<&WApplication::doIdleTimeout>(this);
 }
 
 void WApplication::setJavaScriptClass(const std::string& javaScriptClass)
@@ -312,8 +312,8 @@ void WApplication
     domRoot_->addWidget(std::move(indicator));
 
 #ifndef WT_TARGET_JAVA
-    showLoadingIndicator_.connect(loadingIndicator_, &WWidget::show);
-    hideLoadingIndicator_.connect(loadingIndicator_, &WWidget::hide);
+    showLoadingIndicator_.connect<&WWidget::show>(loadingIndicator_);
+    hideLoadingIndicator_.connect<&WWidget::hide>(loadingIndicator_);
 #else
     // stateless learning does not work in Java
     showLoadJS.setJavaScript

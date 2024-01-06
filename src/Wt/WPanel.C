@@ -153,15 +153,15 @@ void WPanel::setCollapsible(bool on)
       
       titleBarWidget()->insertWidget(0, std::move(icon));
 
-      collapseIcon_->icon1Clicked().connect(this, &WPanel::doCollapse);
-      collapseIcon_->icon1Clicked().connect(this, &WPanel::onCollapse);
+      collapseIcon_->icon1Clicked().connect<&WPanel::doCollapse>(this);
+      collapseIcon_->icon1Clicked().connect<&WPanel::onCollapse>(this);
       collapseIcon_->icon1Clicked().preventPropagation();
-      collapseIcon_->icon2Clicked().connect(this, &WPanel::doExpand);
-      collapseIcon_->icon2Clicked().connect(this, &WPanel::onExpand);
+      collapseIcon_->icon2Clicked().connect<&WPanel::doExpand>(this);
+      collapseIcon_->icon2Clicked().connect<&WPanel::onExpand>(this);
       collapseIcon_->icon2Clicked().preventPropagation();
       collapseIcon_->setState(isCollapsed() ? 1 : 0);
 
-      titleBarWidget()->clicked().connect(this, &WPanel::toggleCollapse);
+      titleBarWidget()->clicked().connect<&WPanel::toggleCollapse>(this);
       
       app->theme()->apply(this, collapseIcon_, PanelCollapseButton);
     } else if (!on && collapseIcon_) {

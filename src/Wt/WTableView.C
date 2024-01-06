@@ -815,16 +815,16 @@ void WTableView::defineJavaScript()
   setJavaScriptMember(" WTableView", s.str());
 
   if (!dropEvent_.isConnected())
-    dropEvent_.connect(this, &WTableView::onDropEvent);
+    dropEvent_.connect<&WTableView::onDropEvent>(this);
 
   if (!rowDropEvent_.isConnected())
-    rowDropEvent_.connect(this, &WTableView::onRowDropEvent);
+    rowDropEvent_.connect<&WTableView::onRowDropEvent>(this);
 
   if (!scrolled_.isConnected())
-    scrolled_.connect(this, &WTableView::onViewportChange);
+    scrolled_.connect<&WTableView::onViewportChange>(this);
 
   if (!itemTouchSelectEvent_.isConnected())
-    itemTouchSelectEvent_.connect(this, &WTableView::handleTouchSelected);
+    itemTouchSelectEvent_.connect<&WTableView::handleTouchSelected>(this);
 
   if (!columnResizeConnected_) {
     columnResized().connect<&WTableView::onColumnResize>(this);
@@ -891,22 +891,19 @@ void WTableView::render(WFlags<RenderFlag> flags)
 			 std::placeholders::_1));
     }
 
-    if (!touchStartConnection_.isConnected()
-        && touchStarted().isConnected()) {
-      touchStartConnection_ = canvas_->touchStarted()
-	.connect(this, &WTableView::handleTouchStarted);
+    if (!touchStartConnection_.isConnected() && touchStarted().isConnected()) {
+      touchStartConnection_ ;
+      canvas_->touchStarted().connect<&WTableView::handleTouchStarted>(this);
     }
 
-    if (!touchMoveConnection_.isConnected()
-        && touchMoved().isConnected()) {
-      touchMoveConnection_ = canvas_->touchMoved()
-        .connect(this, &WTableView::handleTouchMoved);
+    if (!touchMoveConnection_.isConnected() && touchMoved().isConnected()) {
+      touchMoveConnection_ ;
+      canvas_->touchMoved().connect<&WTableView::handleTouchMoved>(this);
     }
 
-    if (!touchEndConnection_.isConnected()
-        && touchEnded().isConnected()) {
-      touchEndConnection_ = canvas_->touchEnded()
-	.connect(this, &WTableView::handleTouchEnded);
+    if (!touchEndConnection_.isConnected() && touchEnded().isConnected()) {
+      touchEndConnection_;
+          canvas_->touchEnded().connect<&WTableView::handleTouchEnded>(this);
     }
 
     WStringStream s;

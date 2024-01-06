@@ -51,8 +51,8 @@ PasswordPromptDialog
 
   model_->configureThrottling(okButton);
 
-  okButton->clicked().connect(this, &PasswordPromptDialog::check);
-  cancelButton->clicked().connect(this, &PasswordPromptDialog::reject);
+  okButton->clicked().connect<&PasswordPromptDialog::check>(this);
+  cancelButton->clicked().connect<&PasswordPromptDialog::reject>(this);
 
   if (!WApplication::instance()->environment().ajax()) {
     /*

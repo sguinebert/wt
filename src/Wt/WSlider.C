@@ -151,9 +151,9 @@ void PaintedSlider::connectSlots()
     handle_->mouseWentUp().connect(mouseUpJS_);
     handle_->touchEnded().connect(mouseUpJS_);
 
-    slider_->clicked().connect(this, &PaintedSlider::onSliderClick);
+    slider_->clicked().connect<&PaintedSlider::onSliderClick>(this);
 
-    sliderReleased_.connect(this, &PaintedSlider::onSliderReleased);
+    sliderReleased_.connect<&PaintedSlider::onSliderReleased>(this);
   }
 }
 
@@ -636,10 +636,10 @@ void WSlider::updateDom(DomElement& element, bool all)
 
       if (!changedConnected_ && (valueChanged_.isConnected() || sliderMoved_.isConnected())) {
         changedConnected_ = true;
-        changed().connect(this, &WSlider::onChange);
+        changed().connect<&WSlider::onChange>(this);
       } else if (!inputConnected_ && (valueChanged_.isConnected() || sliderMoved_.isConnected())) {
         changedConnected_ = true;
-        input().connect(this, &WSlider::onChange);
+        input().connect<&WSlider::onChange>(this);
       }
 
       changed_ = false;

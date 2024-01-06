@@ -75,8 +75,8 @@ UpdatePasswordWidget
   if (!authModel_)
     password->setFocus(true);
 
-  okButton->clicked().connect(this, &UpdatePasswordWidget::doUpdate);
-  cancelButton->clicked().connect(this, &UpdatePasswordWidget::cancel);
+  okButton->clicked().connect<&UpdatePasswordWidget::doUpdate>(this);
+  cancelButton->clicked().connect<&UpdatePasswordWidget::cancel>(this);
 }
 
 std::unique_ptr<WWidget> UpdatePasswordWidget
@@ -93,13 +93,13 @@ std::unique_ptr<WWidget> UpdatePasswordWidget
   } else if (field == RegistrationModel::ChoosePasswordField) {
     WLineEdit *p = new WLineEdit();
     p->setEchoMode(EchoMode::Password);
-    p->keyWentUp().connect(this, &UpdatePasswordWidget::checkPassword);
-    p->changed().connect(this, &UpdatePasswordWidget::checkPassword);
+    p->keyWentUp().connect<&UpdatePasswordWidget::checkPassword>(this);
+    p->changed().connect<&UpdatePasswordWidget::checkPassword>(this);
     result.reset(p);
   } else if (field == RegistrationModel::RepeatPasswordField) {
     WLineEdit *p = new WLineEdit();
     p->setEchoMode(EchoMode::Password);
-    p->changed().connect(this, &UpdatePasswordWidget::checkPassword2);
+    p->changed().connect<&UpdatePasswordWidget::checkPassword2>(this);
     result.reset(p);
   }
 

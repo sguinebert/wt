@@ -30,8 +30,8 @@ WPopupWidget::WPopupWidget(std::unique_ptr<WWidget> impl)
   setPopup(true);
   setPositionScheme(PositionScheme::Absolute);
 
-  jsHidden_.connect(this, &WWidget::hide);
-  jsShown_.connect(this, &WWidget::show);
+  jsHidden_.connect<&WWidget::hide>(this);
+  jsShown_.connect<&WWidget::show>(this);
 
   WApplication::instance()->internalPathChanged().connect<&WPopupWidget::onPathChange>(this);
 }

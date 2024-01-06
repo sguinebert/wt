@@ -57,17 +57,17 @@ void WInPlaceEdit::create()
   /*
    * This is stateless implementation heaven
    */
-  text_->clicked().connect(text_, &WWidget::hide);
-  text_->clicked().connect(editing_, &WWidget::show);
-  text_->clicked().connect(edit_, &WWidget::setFocus);
+  text_->clicked().connect<&WWidget::hide>(text_);
+  text_->clicked().connect<&WWidget::show>(editing_);
+  text_->clicked().connect<&WWidget::focus>(edit_);
 
-  edit_->enterPressed().connect(edit_, &WFormWidget::disable);
-  edit_->enterPressed().connect(this, &WInPlaceEdit::save);
+  edit_->enterPressed().connect<&WFormWidget::disable>(edit_);
+  edit_->enterPressed().connect<&WInPlaceEdit::save>(this);
   edit_->enterPressed().preventPropagation();
 
-  edit_->escapePressed().connect(editing_, &WWidget::hide);
-  edit_->escapePressed().connect(text_, &WWidget::show);
-  edit_->escapePressed().connect(this, &WInPlaceEdit::cancel);
+  edit_->escapePressed().connect<&WWidget::hide>(editing_);
+  edit_->escapePressed().connect<&WWidget::show>(text_);
+  edit_->escapePressed().connect<&WInPlaceEdit::cancel>(this);
   edit_->escapePressed().preventPropagation();
 
   auto app = WApplication::instance();
@@ -164,21 +164,22 @@ void WInPlaceEdit::setButtonsEnabled(bool enabled)
     app->theme()->apply(this, save_, InPlaceEditingButton);
     app->theme()->apply(this, cancel_, InPlaceEditingButton);
 
-    save_->clicked().connect(edit_, &WFormWidget::disable);
-    save_->clicked().connect(save_, &WFormWidget::disable);
-    save_->clicked().connect(cancel_, &WFormWidget::disable);
-    save_->clicked().connect(this, &WInPlaceEdit::save);
+    save_->clicked().connect<&WFormWidget::disable>(edit_);
+    save_->clicked().connect<&WFormWidget::disable>(save_);
+    save_->clicked().connect<&WFormWidget::disable>(cancel_);
+    save_->clicked().connect<&WInPlaceEdit::save>(this);
     
-    cancel_->clicked().connect(editing_, &WWidget::hide);
-    cancel_->clicked().connect(text_, &WWidget::show);
-    cancel_->clicked().connect(this, &WInPlaceEdit::cancel);
+    cancel_->clicked().connect<&WWidget::hide>(editing_);
+    cancel_->clicked().connect<&WWidget::show>(text_);
+    cancel_->clicked().connect<&WInPlaceEdit::cancel>(this);
   } else if (!enabled && save_) {
     save_->parent()->removeWidget(save_);
     cancel_->parent()->removeWidget(cancel_);
     save_ = nullptr;
     cancel_ = nullptr;
 
-    c2_ = edit_->blurred().connect(this, &WInPlaceEdit::save);
+#warning "c2_ "
+    c2_ ; edit_->blurred().connect<&WInPlaceEdit::save>(this);
   }
 }
 

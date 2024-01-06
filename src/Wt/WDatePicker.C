@@ -59,7 +59,7 @@ void WDatePicker::create(std::unique_ptr<WInteractWidget> displayWidget, WLineEd
   displayWidget_ = displayWidget.get();
   forEdit_ = forEdit;
   forEdit_->setVerticalAlignment(AlignmentFlag::Middle);
-  forEdit_->changed().connect(this, &WDatePicker::setFromLineEdit);
+  forEdit_->changed().connect<&WDatePicker::setFromLineEdit>(this);
 
   format_ = "dd/MM/yyyy";
 
@@ -77,8 +77,8 @@ void WDatePicker::create(std::unique_ptr<WInteractWidget> displayWidget, WLineEd
   WTemplate *temp;
   std::unique_ptr<WTemplate> t(temp = new WTemplate(WString::fromUTF8(TEMPLATE)));
   popup_.reset(new WPopupWidget(std::move(t)));
-  temp->escapePressed().connect(popup_.get(), &WTemplate::hide);
-  temp->escapePressed().connect(forEdit_, &WWidget::setFocus);
+  temp->escapePressed().connect<&WTemplate::hide>(popup_.get());
+  temp->escapePressed().connect<&WWidget::focus>(forEdit_);
   temp->bindWidget("calendar", std::unique_ptr<WWidget>(calendar_));
 
   popup_->setAnchorWidget(displayWidget_, Orientation::Horizontal);
@@ -87,8 +87,8 @@ void WDatePicker::create(std::unique_ptr<WInteractWidget> displayWidget, WLineEd
 
   WApplication::instance()->theme()->apply(this, popup_.get(), DatePickerPopup);
 
-  displayWidget_->clicked().connect(popup_.get(), &WWidget::show);
-  displayWidget_->clicked().connect(this, &WDatePicker::setFromLineEdit);
+  displayWidget_->clicked().connect<&WWidget::show>(popup_.get());
+  displayWidget_->clicked().connect<&WDatePicker::setFromLineEdit>(this);
 
   if (!forEdit_->validator())
     forEdit_->setValidator(std::make_shared<WDateValidator>(format_));

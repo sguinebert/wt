@@ -32,8 +32,8 @@ ResendEmailVerificationWidget::ResendEmailVerificationWidget(const User& user,
     ("cancel-button",
      std::make_unique<WPushButton>(tr("Wt.WMessageBox.Cancel")));
 
-  okButton->clicked().connect(this, &ResendEmailVerificationWidget::send);
-  cancelButton->clicked().connect(this, &ResendEmailVerificationWidget::cancel);
+  okButton->clicked().connect<&ResendEmailVerificationWidget::send>(this);
+  cancelButton->clicked().connect<&ResendEmailVerificationWidget::cancel>(this);
 }
 
 void ResendEmailVerificationWidget::send()

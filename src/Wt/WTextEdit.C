@@ -98,13 +98,13 @@ void WTextEdit::init()
     
   setReadMode_.setJavaScript("function(e) {var txt="+ this->jsRef() + "; if(txt&&txt.ed)txt.ed.setMode( e ? 'readonly' : 'design');}");
   
-  onChange_.connect(this, &WTextEdit::propagateOnChange);
-  onClick_.connect(this, &WTextEdit::propagateOnClick);
-  onDoubleClick_.connect(this, &WTextEdit::propagateOnDoubleClick);
-  onMouseWentDown_.connect(this, &WTextEdit::propagateOnMouseWentDown);
-  onMouseWentUp_.connect(this, &WTextEdit::propagateOnMouseWentUp);
-  onFocusIn_.connect(this, &WTextEdit::propagateOnFocusIn);
-  onFocusOut_.connect(this, &WTextEdit::propagateOnFocusOut);
+  onChange_.connect<&WTextEdit::propagateOnChange>(this);
+  onClick_.connect<&WTextEdit::propagateOnClick>(this);
+  onDoubleClick_.connect<&WTextEdit::propagateOnDoubleClick>(this);
+  onMouseWentDown_.connect<&WTextEdit::propagateOnMouseWentDown>(this);
+  onMouseWentUp_.connect<&WTextEdit::propagateOnMouseWentUp>(this);
+  onFocusIn_.connect<&WTextEdit::propagateOnFocusIn>(this);
+  onFocusOut_.connect<&WTextEdit::propagateOnFocusOut>(this);
 }
 
 WTextEdit::~WTextEdit()

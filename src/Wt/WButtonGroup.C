@@ -34,7 +34,7 @@ void WButtonGroup::addButton(WRadioButton *button, int id)
 #endif
 
   if (checkedChangedConnected_)
-    button->changed().connect(this, &WButtonGroup::onButtonChange);
+    button->changed().connect<&WButtonGroup::onButtonChange>(this);
 }
 
 void WButtonGroup::removeButton(WRadioButton *button)
@@ -169,8 +169,7 @@ Signal<awaitable<void>(WRadioButton *)>& WButtonGroup::checkedChanged()
     checkedChangedConnected_ = true;
 
     for (unsigned i = 0; i < buttons_.size(); ++i)
-      buttons_[i].button->changed()
-	.connect(this, &WButtonGroup::onButtonChange);
+      buttons_[i].button->changed().connect<&WButtonGroup::onButtonChange>(this);
   }
 
   return checkedChanged_;

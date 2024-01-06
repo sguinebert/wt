@@ -69,7 +69,7 @@ void WPopupMenu::setButton(WInteractWidget *button)
   button_ = button;
 
   if (button_) {
-    button_->clicked().connect(this, &WPopupMenu::popupAtButton);
+    button_->clicked().connect<&WPopupMenu::popupAtButton>(this);
     button_->addStyleClass("dropdown-toggle");
   }
 }
@@ -207,7 +207,7 @@ void WPopupMenu::prepareRender(WApplication *app)
 
     setJavaScriptMember(" WPopupMenu", s.str());
 
-    cancel_.connect(this, &WPopupMenu::cancel);
+    cancel_.connect<&WPopupMenu::cancel>(this);
 
     connectSignals(this);
   }

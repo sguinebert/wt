@@ -93,6 +93,32 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
             return observer::insert(function::template bind(shrd.get()), this, std::move(shrd));
         }
     }
+    template <typename L, typename T>
+    observer::Connection connect(L&& func, T* instance)
+    {
+
+        /* it is a reference to a functor (example a lambda passed by ref) - you need to watch the lifetime of the lambda */
+        if constexpr(std::is_lvalue_reference_v<L>) {
+            return insert_sfinae<T>(function::template bind<std::addressof(func)>(instance), instance);
+            //return connect(std::addressof(func), instance);
+        }
+        /* the size of the object L is less than the size of a pointer */
+        //        else if constexpr (sizeof(std::remove_pointer_t<L>) <= sizeof(void*))
+        //        {
+        //        }
+        /* allocate & copy the lambda in the heap and keep shared_ptr in std::any inside Connection*/
+        else {
+            using f_type = std::remove_pointer_t<std::remove_reference_t<L>>;
+
+            //instance->insert(function::template bind<&func>(instance), this);
+            //auto shrd = std::shared_ptr<f_type>(new f_type(std::move(instance)));
+            auto shrd = std::make_shared<f_type>(std::move(instance));
+            //std::cerr << "test rvalue lambda store and call " << std::addressof(*shrd) << " // " << shrd.get() << std::endl;
+            return insert_sfinae<T>(function::template bind<shrd.get()>(instance), instance);
+            //return observer::insert(function::template bind(shrd.get()), this, std::move(shrd));
+        }
+    }
+
     /* static function connection */
     template <RT(*fun_ptr)(Args...)>
     observer::Connection connect()

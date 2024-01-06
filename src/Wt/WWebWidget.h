@@ -268,7 +268,7 @@ public:
   EventSignal<>& focussed();
 
 #ifndef WT_TARGET_JAVA
-  using WWidget::setFocus;
+  using WWidget::focus;
 #endif
 
   virtual bool scrollVisibilityEnabled() const final override;

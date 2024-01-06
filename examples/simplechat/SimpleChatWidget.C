@@ -69,7 +69,7 @@ void SimpleChatWidget::letLogin()
 
   userNameEdit_ = hLayout->addWidget(std::make_unique<Wt::WLineEdit>(user_),
 				     0, Wt::AlignmentFlag::Middle);
-  userNameEdit_->setFocus();
+  userNameEdit_->focus();
 
   auto button = hLayout->addWidget(std::make_unique<Wt::WPushButton>("Login"),
 				    0, Wt::AlignmentFlag::Middle);
@@ -216,7 +216,7 @@ bool SimpleChatWidget::startChat(const Wt::WString& user)
     Wt::Core::observing_ptr<Wt::WPushButton> logoutButton = logoutButtonPtr.get();
 
     messageEdit_->setRows(2);
-    messageEdit_->setFocus();
+    messageEdit_->focus();
 
     // Display scroll bars if contents overflows
     messages_->setOverflow(Wt::Overflow::Auto);
@@ -272,12 +272,12 @@ bool SimpleChatWidget::startChat(const Wt::WString& user)
       sendButton_->clicked().connect(this, &SimpleChatWidget::send);
       sendButton_->clicked().connect(clearInput_);
       sendButton_->clicked().connect((WWidget *)messageEdit_,
-				     &WWidget::setFocus);
+                                     &WWidget::focus);
     }
     messageEdit_->enterPressed().connect(this, &SimpleChatWidget::send);
     messageEdit_->enterPressed().connect(clearInput_);
     messageEdit_->enterPressed().connect((WWidget *)messageEdit_,
-					 &WWidget::setFocus);
+                                         &WWidget::focus);
 
     // Prevent the enter from generating a new line, which is its default
     // action

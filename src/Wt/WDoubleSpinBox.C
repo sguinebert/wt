@@ -111,7 +111,7 @@ void WDoubleSpinBox::signalConnectionsChanged()
 {
   if (valueChanged_.isConnected() && !valueChangedConnection_) {
     valueChangedConnection_ = true;
-    changed().connect(this, &WDoubleSpinBox::onChange);
+    changed().connect<&WDoubleSpinBox::onChange>(this);
   }
 
   WAbstractSpinBox::signalConnectionsChanged();

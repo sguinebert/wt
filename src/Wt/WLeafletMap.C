@@ -422,8 +422,8 @@ void WLeafletMap::setup()
 {
   setImplementation(std::unique_ptr<Impl>(impl_ = new Impl()));
 
-  zoomLevelChanged().connect(this, &WLeafletMap::handleZoomLevelChanged);
-  panChanged().connect(this, &WLeafletMap::handlePanChanged);
+  zoomLevelChanged().connect<&WLeafletMap::handleZoomLevelChanged>(this);
+  panChanged().connect<&WLeafletMap::handlePanChanged>(this);
 
   WApplication *app = WApplication::instance();
   if (app) {

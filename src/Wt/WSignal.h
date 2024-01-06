@@ -248,194 +248,6 @@ using Signal = ::Nano::Signal<A...> ;
 using Observer = ::Nano::Observer<NanoPolicy>;
 
 
-//#ifndef WT_CNOR
-//template <class... A>
-//#else // WT_CNOR
-//template <typename A1 = NoClass, typename A2 = NoClass,
-//      typename A3 = NoClass, typename A4 = NoClass,
-//      typename A5 = NoClass, typename A6 = NoClass>
-//#endif // WT_CNOR
-//class Signal : public SignalBase
-//{
-//public:
-//  /*! \brief Creates a signal.
-//   */
-//  Signal() {}
-
-//  virtual Wt::Signals::connection connect(WObject *target, WObject::Method method) override
-//  {
-//    return impl_.connect(std::bind(method, target), target);
-//  }
-
-//  virtual Wt::Signals::connection connect(WObject *target, WObject::AsyncMethod method) override
-//  {
-//    return impl_.connect(std::bind(method, target), target);
-//  }
-
-//  /*! \brief Connects to a function.
-//   *
-//   * This variant of the overloaded connect() method supports a
-//   * template function object (which supports operator ()).
-//   *
-//   * When the receiver function is an object method, the signal will
-//   * automatically be disconnected when the object is deleted, as long
-//   * as the object inherits from WObject (or Wt::Core::observable).
-//   *
-//   * The function may leave up to <i>N</i> parameters unbound
-//   * (e.g. using std::bind placeholders _1 to _N) that may be bound
-//   * to values passed by the signal.
-//   */
-//  template <class F>
-//  Wt::Signals::connection connect(F function)
-//  {
-//    return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), nullptr);
-//  }
-//  template <class F>
-//  Wt::Signals::connection connect(const WObject *target, F function)
-//  {
-//    return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), target);
-//  }
-
-//  /*! \brief Connects a slot.
-//   *
-//   * The slot is as a \p method of an object \p target of class \p T,
-//   * which equals class \p V, or is a base class of class \p V. Thus,
-//   * the following statement must return a non-null pointer:
-//   *
-//   * \code
-//   * V *v = dynamic_cast<V *>(target);
-//   * \endcode
-//   *
-//   * In practice, to facilitate automatic disconnects on deletion of
-//   * the \p target, class \p T must be also be a descendant of WObject,
-//   * but this is not enforced by the interface.
-//   */
-//#ifndef WT_CNOR
-//  template<class T, class V, class... B>
-//  Wt::Signals::connection connect(T *target, void (V::*method)(B...))
-//  {
-//    return Signals::Impl::ConnectHelper<sizeof...(B), A...>
-//        ::connect(impl_, target, method);
-//  }
-
-//  template<class T, class V, class... B>
-//  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(B...))
-//  {
-//    return Signals::Impl::ConnectHelper<sizeof...(B), A...>
-//        ::connect(impl_, target, method);
-//  }
-//#else // WT_CNOR
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)());
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(A1));
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(const A1&));
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(A1, A2));
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(const A1&,
-//                                    A2));
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(A1,
-//                                    const A2&));
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(const A1&,
-//                                    const A2&));
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target,
-//                       void (V::*method)(A1,A2,A3));
-
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(const A1&,
-//                                    A2,A3));
-
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(const A1&,
-//                                    const A2&,
-//                                    A3));
-
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(const A1&,
-//                                    const A2&,
-//                                    const A3&));
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target,
-//                       void (V::*method)(A1,A2,A3,A4));
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target,
-//                       void (V::*method)(A1,A2,A3,A4,A5));
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target,
-//                       void (V::*method)(A1,A2,A3,A4,A5,A6));
-//#endif // WT_CNOR
-
-//  /*! \brief Emits the signal.
-//   *
-//   * The arguments must exactly match the arguments of the target
-//   * function.
-//   *
-//   * This will cause all connected slots to be triggered, with the given
-//   * arguments.
-//   */
-//#ifndef WT_CNOR
-//  awaitable<void> emit(A... args) const
-//  {
-//    co_await impl_.emit(args...);
-//  }
-//#else // WT_CNOR
-//  void emit(A1 a1 = NoClass::none, A2 a2 = NoClass::none,
-//        A3 a3 = NoClass::none, A4 a4 = NoClass::none,
-//        A5 a5 = NoClass::none, A6 a6 = NoClass::none) const;
-//#endif // WT_CNOR
-
-//  /*! \brief Emits the signal.
-//   *
-//   * This is equivalent to emit().
-//   *
-//   * \sa emit
-//   */
-//#ifndef WT_CNOR
-//  awaitable<void> operator()(A... args) const
-//  {
-//    co_await emit(args...);
-//  }
-//#else // WT_CNOR
-//  void operator()(A1 a1 = NoClass::none, A2 a2 = NoClass::none,
-//          A3 a3 = NoClass::none, A4 a4 = NoClass::none,
-//          A5 a5 = NoClass::none, A6 a6 = NoClass::none) const;
-//#endif // WT_CNOR
-
-//  virtual bool isConnected() const override
-//  {
-//    return impl_.isConnected();
-//  }
-
-//#ifndef WT_CNOR
-//private:
-//  typedef Signals::Signal<A...> SignalType;
-//  SignalType impl_;
-//#endif // WT_CNOR
-//};
-
-//#ifdef WT_CNOR
-
-//class WT_API Signal0 : public Signal<NoClass>
-//{
-//public:
-//  Signal0();
-
-//  void emit() const;
-
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)());
-//  template <class F> Wt::Signals::connection connect(F function);
-//  template <class F> Wt::Signals::connection connect(const WObject *target,
-//                             F function);
-//};
-
-//#endif // WT_CNOR
-
 /*! \brief Abstract base class of an event signal.
  *
  * An event signal is directly associated with a user-interface generated
@@ -499,22 +311,10 @@ public:
    */
   bool propagationPrevented() const;
 
-#ifndef WT_CNOR
   const std::string createUserEventCall(const std::string& jsObject,
                                         const std::string& jsEvent,
                                         const std::string& eventName,
                                         std::initializer_list<std::string> args) const;
-#else // WT_CNOR
-  const std::string createUserEventCall(const std::string& jsObject,
-					const std::string& jsEvent,
-					const std::string& eventName,
-					const std::string& arg1,
-					const std::string& arg2,
-					const std::string& arg3,
-					const std::string& arg4,
-					const std::string& arg5,
-					const std::string& arg6) const;
-#endif // WT_CNOR
 
   Wt::Signals::connection connectStateless(WObject::Method method,
                                            WObject *target,
@@ -561,10 +361,9 @@ protected:
    * Dummy signal used for knowing if stateless connections are still
    * connected.
    */
-#ifndef WT_CNOR
   Signals::Signal<> dummy_;
   //Signal<void()> dummy_;
-#endif
+
 
   EventSignalBase(const char *name, WObject *owner, bool autoLearn);
 
@@ -651,33 +450,49 @@ public:
    * automatically be disconnected when the object is deleted, as long as the
    * object inherits from WObject (or Wt::Signals::trackable).
    */
+//  template <class F>
+//  Wt::Signals::connection connect(F function)
+//  {
+//    exposeSignal();
+//     return Signals::Impl::connectFunction<F, E>(dynamic_, std::move(function), nullptr);
+//  }
+
+//  template <class F>
+//  Wt::Signals::connection connect(const WObject *target, F function)
+//  {
+//    exposeSignal();
+//    return Signals::Impl::connectFunction<F, E>(dynamic_, std::move(function), target);
+//  }
+
   template <class F>
   Wt::Signals::connection connect(F function)
   {
-    exposeSignal();
-    //  dynamic_.connect(std::forward<F>(function));
-    //  return Wt::Signals::connection();
-    //  test_.connect(function);
-    //  if constexpr(std::is_same_v<E, NoClass>) {
-    //    Signal<awaitable<void>()> test;
-    //    test.connect(function);
-    //  }
-    //  else {
-    //    Signal<awaitable<void>(E)> test;
-    //    test.connect(function);
-    //  }
-
-    //test_.connect(function);
-
-    //connectFunction<F, E>(function);
-
-    return Signals::Impl::connectFunction<F, E>(dynamic_, std::move(function), nullptr);
+     exposeSignal();
+     if constexpr(std::is_function_v<F>) {
+        dynamic_. template connect<&function>();
+     }
+     else {
+        dynamic_.connect(function);
+     }
+     return Wt::Signals::connection();
   }
 
-  template <class F> Wt::Signals::connection connect(const WObject *target, F function)
+  template <class F>
+  Wt::Signals::connection connect(const WObject *target, F function)
   {
     exposeSignal();
-    return Signals::Impl::connectFunction<F, E>(dynamic_, std::move(function), target);
+
+     if constexpr(std::is_function_v<F>) {
+        dynamic_. template connect<&function>(target);
+     }
+     else {
+        dynamic_.connect(function);
+     }
+//    test_.connect(std::bind(function, target));
+
+     //test_. template connect<&function>(target);
+    return Wt::Signals::connection();
+    //return Signals::Impl::connectFunction<F, E>(dynamic_, std::move(function), target);
   }
 
   /*! \brief Connects a slot that takes no arguments.
@@ -715,136 +530,112 @@ public:
             return;
         }
     }
-//    else {
-//        WStatelessSlot *s = o->isStateless(static_cast<WObject::AsyncMethod>(memptr));
 
-//        if (s) {
-//            EventSignalBase::connectStateless(static_cast<WObject::Method>(memptr), o, s);
-//            return;
-//        }
-//    }
-
-    test_. template connect<memptr>(target);
+    dynamic_. template connect<memptr>(target);
   }
+//
+//  template <class T, class V>
+//  Wt::Signals::connection connect(T *target, void (V::*method)())
+//  {
+//    exposeSignal();
+//    WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
+//    assert(o);
 
-//  template<class T, class V>
-//  Wt::Signals::connection connect(T *target, void (V::*method)());
+//    WStatelessSlot *s = o->isStateless(static_cast<WObject::Method>(method));
 
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)());
-
-  /*! \brief Connects a slot that takes one argument.
-   *
-   * This is only possible for signals that take at least one argument.
-   */
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(E));
-
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(E));
-
-  /*! \brief Connects a slot that takes a 'const argument&'.
-   *
-   * This is only possible for signals that take at least one argument.
-   */
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, void (V::*method)(const E&));
-
-//  template<class T, class V>
-//    Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(const E&));
+//    if (s)
+//      return EventSignalBase::connectStateless(static_cast<WObject::Method>(method), o, s);
 
 
-  template <class T, class V>
-  Wt::Signals::connection connect(T *target, void (V::*method)())
-  {
-    exposeSignal();
-    WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
-    assert(o);
+//  #ifdef DYN_TEST
+//    dynamic_. template connect<method>(target);
+//    return Wt::Signals::connection();
+//  #else
+//    return dynamic_.connect(std::bind(method, target), o);
+//  #endif
+//  }
 
-    WStatelessSlot *s = o->isStateless(static_cast<WObject::Method>(method));
+//  template <class T, class V>
+//  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)())
+//  {
+//    exposeSignal();
+//    WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
+//    assert(o);
 
-    if (s)
-      return EventSignalBase::connectStateless(static_cast<WObject::Method>(method), o, s);
+//    WStatelessSlot *s = o->isStateless(static_cast<WObject::Method>(method));
 
+//    if (s)
+//      return EventSignalBase::connectStateless(static_cast<WObject::Method>(method), o, s);
 
-  #ifdef DYN_TEST
-    dynamic_. template connect<method>(target);
-    return Wt::Signals::connection();
-  #else
-    return dynamic_.connect(std::bind(method, target), o);
-  #endif
-  }
+//  #ifdef DYN_TEST
+//    dynamic_. template connect<method>(target);
+//    return Wt::Signals::connection();
+//  #else
+//    return dynamic_.connect(std::bind(method, target), o);
+//  #endif
+//  }
+//  /*! \brief Connects a slot that takes one argument.
+//   *
+//   * This is only possible for signals that take at least one argument.
+//   */
+//  template <class T, class V>
+//  Wt::Signals::connection connect(T *target, void (V::*method)(E))
+//  {
+//    exposeSignal();
+//    assert(dynamic_cast<V *>(target));
 
-  template <class T, class V>
-  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)())
-  {
-    exposeSignal();
-    WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
-    assert(o);
+//  #ifdef DYN_TEST
+//    dynamic_.connect(std::bind(method, target, std::placeholders::_1));
+//    return Wt::Signals::connection();
+//  #else
+//    return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
+//  #endif
+//  }
 
-  #ifdef DYN_TEST
-    dynamic_. template connect<method>(target);
-    return Wt::Signals::connection();
-  #else
-    return dynamic_.connect(std::bind(method, target), o);
-  #endif
-  }
+//  template <class T, class V>
+//  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(E))
+//  {
+//    exposeSignal();
+//    assert(dynamic_cast<V *>(target));
 
-  template <class T, class V>
-  Wt::Signals::connection connect(T *target, void (V::*method)(E))
-  {
-    exposeSignal();
-    assert(dynamic_cast<V *>(target));
+//  #ifdef DYN_TEST
+//    dynamic_.connect(std::bind(method, target, std::placeholders::_1));
+//    return Wt::Signals::connection();
+//  #else
+//    return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
+//  #endif
+//  }
+//  /*! \brief Connects a slot that takes a 'const argument&'.
+//   *
+//   * This is only possible for signals that take at least one argument.
+//   */
+//  template <class T, class V>
+//  Wt::Signals::connection connect(T *target, void (V::*method)(const E&))
+//  {
+//    exposeSignal();
+//    assert(dynamic_cast<V *>(target));
 
-  #ifdef DYN_TEST
-    dynamic_.connect(std::bind(method, target, std::placeholders::_1));
-    return Wt::Signals::connection();
-  #else
-    return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
-  #endif
-  }
+//  #ifdef DYN_TEST
+//    dynamic_.connect(std::bind(method, target, std::placeholders::_1));
+//    return Wt::Signals::connection();
+//  #else
+//    return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
+//  #endif
+//  }
 
-  template <class T, class V>
-  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(E))
-  {
-    exposeSignal();
-    assert(dynamic_cast<V *>(target));
+//  template <class T, class V>
+//  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(const E&))
+//  {
+//    exposeSignal();
+//    assert(dynamic_cast<V *>(target));
 
-  #ifdef DYN_TEST
-    dynamic_.connect(std::bind(method, target, std::placeholders::_1));
-    return Wt::Signals::connection();
-  #else
-    return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
-  #endif
-  }
-
-  template <class T, class V>
-  Wt::Signals::connection connect(T *target, void (V::*method)(const E&))
-  {
-    exposeSignal();
-    assert(dynamic_cast<V *>(target));
-
-  #ifdef DYN_TEST
-    dynamic_.connect(std::bind(method, target, std::placeholders::_1));
-    return Wt::Signals::connection();
-  #else
-    return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
-  #endif
-  }
-
-  template <class T, class V>
-  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(const E&))
-  {
-    exposeSignal();
-    assert(dynamic_cast<V *>(target));
-
-  #ifdef DYN_TEST
-    dynamic_.connect(std::bind(method, target, std::placeholders::_1));
-    return Wt::Signals::connection();
-  #else
-    return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
-  #endif
-  }
+//  #ifdef DYN_TEST
+//    dynamic_.connect(std::bind(method, target, std::placeholders::_1));
+//    return Wt::Signals::connection();
+//  #else
+//    return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
+//  #endif
+//  }
 
 
   /*! \brief Connects a JavaScript function.
@@ -901,7 +692,10 @@ public:
     processLearnedStateless();
     processNonLearnedStateless();
 
-    co_await dynamic_.emit(e);
+    if constexpr(std::is_same_v<E, NoClass>)
+        co_await dynamic_.emit();
+    else
+        co_await dynamic_.emit(e);
   }
 
   /*! \brief Emits the signal.
@@ -915,6 +709,7 @@ public:
     co_await emit(e);
   }
 
+#define DYN_TEST
   virtual Wt::Signals::connection connect(WObject *target, WObject::Method method) override
   {
     exposeSignal();
@@ -936,11 +731,6 @@ public:
   virtual Wt::Signals::connection connect(WObject *target, WObject::AsyncMethod method) override
   {
     exposeSignal();
-
-    //  WStatelessSlot *s = target->isStateless(method);
-    //  if (s)
-    //    return EventSignalBase::connectStateless(method, target, s);
-    //  else
 
 #ifdef DYN_TEST
         //dynamic_. template connect<WObject::AsyncMethod>(target);
@@ -964,7 +754,7 @@ private:
   typedef Signals::Signal<E> SignalType;
 #endif
   SignalType dynamic_;
-  std::conditional_t<std::is_same_v<E, NoClass>, Signal<awaitable<void>()>, Signal<awaitable<void>(E)>> test_;
+//  std::conditional_t<std::is_same_v<E, NoClass>, Signal<awaitable<void>()>, Signal<awaitable<void>(E)>> test_;
 
 
   awaitable<void> processDynamic(const JavaScriptEvent& jse) const override
@@ -973,397 +763,13 @@ private:
 
     E event(jse);
 
-    co_await dynamic_.emit(event);
+    if constexpr(std::is_same_v<E, NoClass>)
+        co_await dynamic_.emit();
+    else
+        co_await dynamic_.emit(event);
     co_return;
   }
 };
-
-#ifdef WT_CNOR
-
-class WT_API EventSignal0 : public EventSignalBase
-{
-public:
-  EventSignal0(const char *name, WObject *owner);
-  ~EventSignal0();
-
-  virtual bool isConnected() const override;
-
-  template <class F> Wt::Signals::connection connect(F function);
-  template <class F> Wt::Signals::connection connect(const WObject *target,
-						     F function);
-  void connect(const std::string& function);
-  void connect(JSlot& slot);
-  template<class T, class V>
-    Wt::Signals::connection connect(T *target, void (V::*method)());
-
-  void emit() const;
-  void operator()() const;
-};
-
-#endif // WT_CNOR
-
-#ifndef WT_CNOR
-
-//template <class T, class V>
-//Wt::Signals::connection SignalBase::connect(T *target, void (V::*method)())
-//{
-//  WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
-//  assert(o);
-//  return connect(o, static_cast<WObject::Method>(method));
-//}
-
-//template <class T, class V>
-//Wt::Signals::connection SignalBase::connect(T *target,
-//                                            awaitable<void> (V::*method)())
-//{
-//  WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
-//  assert(o);
-//  return connect(o, static_cast<WObject::AsyncMethod>(method));
-//}
-
-//template <class... A>
-//Signal<A...>::Signal()
-//{ }
-
-//template <class... A>
-//Wt::Signals::connection Signal<A...>::connect(WObject *target, WObject::Method method)
-//{
-//  return impl_.connect(std::bind(method, target), target);
-//}
-
-//template <class... A>
-//Wt::Signals::connection Signal<A...>::connect(WObject *target, WObject::AsyncMethod method)
-//{
-//  return impl_.connect(std::bind(method, target), target);
-//}
-
-//template <class... A>
-//template <class F>
-//Wt::Signals::connection Signal<A...>::connect(F function)
-//{
-//  return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), nullptr);
-//}
-
-//template <class... A>
-//template <class F>
-//Wt::Signals::connection Signal<A...>::connect(const WObject *target, F function)
-//{
-//  return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), target);
-//}
-
-//template <class... A>
-//template <class T, class V, class... B>
-//Wt::Signals::connection Signal<A...>
-//::connect(T *target, void (V::*method)(B...))
-//{
-//  return Signals::Impl::ConnectHelper<sizeof...(B), A...>
-//    ::connect(impl_, target, method);
-//}
-
-//template <class... A>
-//template <class T, class V, class... B>
-//Wt::Signals::connection Signal<A...>
-//    ::connect(T *target, awaitable<void> (V::*method)(B...))
-//{
-//  return Signals::Impl::ConnectHelper<sizeof...(B), A...>
-//      ::connect(impl_, target, method);
-//}
-
-//template <class... A>
-//awaitable<void> Signal<A...>::emit(A... args) const
-//{
-//  co_await impl_.emit(args...);
-//}
-
-//template <class... A>
-//awaitable<void> Signal<A...>::operator()(A... args) const
-//{
-//  co_await emit(args...);
-//}
-
-//template <class... A>
-//bool Signal<A...>::isConnected() const
-//{
-//  return impl_.isConnected();
-//}
-
-//template <typename E>
-//void *EventSignal<E>::operator new(std::size_t) {
-//  return EventSignalBase::alloc();
-//}
-
-//template <typename E>
-//void EventSignal<E>::operator delete(void *deletable, std::size_t) {
-//  EventSignalBase::free(deletable);
-//}
-
-//template <typename E>
-//EventSignal<E>::EventSignal(const char *name, WObject *owner)
-//  : EventSignalBase(name, owner, true)
-//{ }
-
-//template <typename E>
-//bool EventSignal<E>::isConnected() const
-//{
-//  if (EventSignalBase::isConnected())
-//    return true;
-
-//  return dynamic_.isConnected();
-//}
-
-//template <typename E>
-//int EventSignal<E>::argumentCount() const
-//{
-//  return 0; // excluding the event 'e'
-//}
-
-//template <typename F, class... Args>
-//void connectFunction (F function)
-//{
-////  Signal<awaitable<void>(Args...)> test;
-////  test.connect(function);
-//  if constexpr(std::disjunction_v<std::is_same<Args, NoClass>...>) {
-//    Signal<awaitable<void>()> test;
-//    test.connect(function);
-//  }
-//  else {
-//    Signal<awaitable<void>(Args...)> test;
-//    test.connect(function);
-//  }
-//}
-
-//template <typename E>
-//template <class F>
-//Wt::Signals::connection EventSignal<E>::connect(F function)
-//{
-//  exposeSignal();
-//  dynamic_.connect(std::forward<F>(function));
-//  return Wt::Signals::connection();
-//  test_.connect(function);
-//  if constexpr(std::is_same_v<E, NoClass>) {
-//    Signal<awaitable<void>()> test;
-//    test.connect(function);
-//  }
-//  else {
-//    Signal<awaitable<void>(E)> test;
-//    test.connect(function);
-//  }
-
-  //test_.connect(function);
-
-  //connectFunction<F, E>(function);
-
-//  return Signals::Impl::connectFunction<F, E>(dynamic_, std::move(function), nullptr);
-//}
-
-//template <typename E>
-//template <class T, class V>
-//Wt::Signals::connection EventSignal<E>::connect(T *target, void (V::*method)())
-//{
-//  exposeSignal();
-//  WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
-//  assert(o);
-
-//  WStatelessSlot *s = o->isStateless(static_cast<WObject::Method>(method));
-
-//  if (s)
-//    return EventSignalBase::connectStateless(static_cast<WObject::Method>(method), o, s);
-
-
-//#ifdef DYN_TEST
-//  dynamic_. template connect<method>(target);
-//  return Wt::Signals::connection();
-//#else
-//  return dynamic_.connect(std::bind(method, target), o);
-//#endif
-//}
-
-//template <typename E>
-//template <class T, class V>
-//Wt::Signals::connection EventSignal<E>::connect(T *target, awaitable<void> (V::*method)())
-//{
-//  exposeSignal();
-//  WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
-//  assert(o);
-
-//#ifdef DYN_TEST
-//  dynamic_. template connect<method>(target);
-//  return Wt::Signals::connection();
-//#else
-//  return dynamic_.connect(std::bind(method, target), o);
-//#endif
-
-////  dynamic_.connect(std::bind(method, target));
-////  return Wt::Signals::connection();
-////  return dynamic_.connect(std::bind(method, target), o);
-//}
-
-//template <typename E>
-//template <class T, class V>
-//Wt::Signals::connection EventSignal<E>::connect(T *target, void (V::*method)(E))
-//{
-//  exposeSignal();
-//  assert(dynamic_cast<V *>(target));
-
-//#ifdef DYN_TEST
-//  dynamic_. template connect<method>(target);
-//  return Wt::Signals::connection();
-//#else
-//  return dynamic_.connect(std::bind(method, target), o);
-//#endif
-
-////  dynamic_.connect(std::bind(method, target, std::placeholders::_1));
-////  return Wt::Signals::connection();
-////  return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
-//}
-
-//template <typename E>
-//template <class T, class V>
-//Wt::Signals::connection EventSignal<E>::connect(T *target, awaitable<void> (V::*method)(E))
-//{
-//  exposeSignal();
-//  assert(dynamic_cast<V *>(target));
-
-//#ifdef DYN_TEST
-//  dynamic_. template connect<method>(target);
-//  return Wt::Signals::connection();
-//#else
-//  return dynamic_.connect(std::bind(method, target), o);
-//#endif
-
-////  dynamic_.connect(std::bind(method, target, std::placeholders::_1));
-////  return Wt::Signals::connection();
-////  return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
-//}
-
-//template <typename E>
-//template <class T, class V>
-//Wt::Signals::connection EventSignal<E>::connect(T *target, void (V::*method)(const E&))
-//{
-//  exposeSignal();
-//  assert(dynamic_cast<V *>(target));
-
-//#ifdef DYN_TEST
-//  dynamic_. template connect<method>(target);
-//  return Wt::Signals::connection();
-//#else
-//  return dynamic_.connect(std::bind(method, target), o);
-//#endif
-
-////  dynamic_.connect(std::bind(method, target, std::placeholders::_1));
-////  return Wt::Signals::connection();
-////  return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
-//}
-
-//template <typename E>
-//template <class T, class V>
-//Wt::Signals::connection EventSignal<E>::connect(T *target, awaitable<void> (V::*method)(const E&))
-//{
-//  exposeSignal();
-//  assert(dynamic_cast<V *>(target));
-
-//#ifdef DYN_TEST
-//  dynamic_. template connect<method>(target);
-//  return Wt::Signals::connection();
-//#else
-//  return dynamic_.connect(std::bind(method, target), o);
-//#endif
-
-////  dynamic_.connect(std::bind(method, target, std::placeholders::_1));
-////  return Wt::Signals::connection();
-// // return dynamic_.connect(std::bind(method, target, std::placeholders::_1), target);
-//}
-
-//template <typename E>
-//void EventSignal<E>::connect(const char *function)
-//{
-//  EventSignalBase::connect(function);
-//}
-
-//template <typename E>
-//void EventSignal<E>::connect(const std::string& function)
-//{
-//  EventSignalBase::connect(function);
-//}
-
-//template <typename E>
-//void EventSignal<E>::connect(JSlot& slot)
-//{
-//  EventSignalBase::connect(slot);
-//}
-
-//template <typename E>
-//Wt::Signals::connection
-//EventSignal<E>::connect(WObject *target, WObject::AsyncMethod method)
-//{
-//  exposeSignal();
-
-////  WStatelessSlot *s = target->isStateless(method);
-////  if (s)
-////    return EventSignalBase::connectStateless(method, target, s);
-////  else
-
-//#ifdef DYN_TEST
-//  dynamic_. template connect<WObject::AsyncMethod>(target);
-//  return Wt::Signals::connection();
-//#else
-//  return dynamic_.connect(std::bind(method, target), o);
-//#endif
-
-//  //dynamic_.connect(std::bind(method, target));
-//  //return Wt::Signals::connection();
-// // return dynamic_.connect(std::bind(method, target), target);
-//}
-
-//template <typename E>
-//Wt::Signals::connection
-//EventSignal<E>::connect(WObject *target, WObject::Method method)
-//{
-//  exposeSignal();
-
-//  WStatelessSlot *s = target->isStateless(method);
-//  if (s)
-//    return EventSignalBase::connectStateless(method, target, s);
-
-//#ifdef DYN_TEST
-//  dynamic_. template connect<WObject::Method>(target);
-//  return Wt::Signals::connection();
-//#else
-//  return dynamic_.connect(std::bind(method, target), o);
-//#endif
-
-//  //dynamic_.connect(std::bind(method, target));
-//  //return Wt::Signals::connection();
-// // return dynamic_.connect(std::bind(method, target), target);
-//}
-
-//template <typename E>
-//awaitable<void> EventSignal<E>::emit(E e) const
-//{
-//  processLearnedStateless();
-//  processNonLearnedStateless();
-
-//  co_await dynamic_.emit(e);
-//}
-
-//template <typename E>
-//awaitable<void> EventSignal<E>::operator()(E e) const
-//{
-//  co_await emit(e);
-//}
-
-//template <typename E>
-//awaitable<void> EventSignal<E>::processDynamic(const JavaScriptEvent& jse) const
-//{
-//  processNonLearnedStateless();
-
-//  E event(jse);
-
-//  co_await dynamic_.emit(event);
-//  co_return;
-//}
-
-#endif // WT_CNOR
 
 }
 

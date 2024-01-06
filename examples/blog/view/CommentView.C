@@ -55,7 +55,7 @@ void CommentView::edit()
   auto editArea = std::make_unique<Wt::WTextArea>();
   editArea_ = editArea.get();
   editArea_->setText(comment_->textSrc());
-  editArea_->setFocus();
+  editArea_->focus();
 
   auto save = std::make_unique<Wt::WPushButton>(tr("save"));
   save->clicked().connect(this, &CommentView::save);

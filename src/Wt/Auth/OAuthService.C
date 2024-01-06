@@ -317,7 +317,7 @@ OAuthProcess::OAuthProcess(const OAuthService& service,
   std::string url = app->makeAbsoluteUrl(redirectEndpoint_->url());
   oAuthState_ = service_.encodeState(url);
 
-  redirected_.connect(this, &OAuthProcess::onOAuthDone);
+  redirected_.connect<&OAuthProcess::onOAuthDone>(this);
 
 #ifndef WT_TARGET_JAVA
   if (service_.popupEnabled()) {
@@ -407,7 +407,7 @@ void OAuthProcess::connectStartAuthenticate(EventSignalBase &s)
     s.connect(js.str());
   }
 
-  s.connect(this, &OAuthProcess::startAuthenticate);
+  s.connect<&OAuthProcess::startAuthenticate>(this);
 }
 #endif
 

@@ -180,17 +180,17 @@ public:
      */
     switch (item.column()) {
     case 2:
-      typeEdit_->setFocus(); break;
+        typeEdit_->focus(); break;
     case 3:
-      sizeEdit_->setFocus(); break;
+        sizeEdit_->focus(); break;
     case 4:
-      createdPicker_->lineEdit()->setFocus();
+        createdPicker_->lineEdit()->focus();
       break;
     case 5:
-      modifiedPicker_->lineEdit()->setFocus();
+      modifiedPicker_->lineEdit()->focus();
       break;
     default:
-      nameEdit_->setFocus(); break;
+      nameEdit_->focus(); break;
     }
 
     layout->addWidget(std::move(buttons), row, 0, 0, 3, AlignmentFlag::Center);

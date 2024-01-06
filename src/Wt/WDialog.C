@@ -319,7 +319,7 @@ void WDialog::create()
 
   setMovable(true);
 
-  zIndexChanged_.connect(this, &WDialog::zIndexChanged);
+  zIndexChanged_.connect<&WDialog::zIndexChanged>(this);
 }
 
 WDialog::~WDialog()
@@ -448,7 +448,7 @@ void WDialog::render(WFlags<RenderFlag> flags)
   }
 
   if (!isModal())
-    impl_->mouseWentDown().connect(this, &WDialog::bringToFront);
+    impl_->mouseWentDown().connect<&WDialog::bringToFront>(this);
 
   if ( flags.test(RenderFlag::Full) && autoFocus_) {
     if (!impl_->findById(Wt::WApplication::instance()->focus()))
@@ -507,9 +507,8 @@ void WDialog::setClosable(bool closable)
 
       std::unique_ptr<WText> closeIcon(closeIcon_ = new WText());
       titleBar_->insertWidget(0, std::move(closeIcon));
-      WApplication::instance()->theme()->apply
-    (this, closeIcon_, DialogCloseIcon);
-      closeIcon_->clicked().connect(this, &WDialog::reject);
+      WApplication::instance()->theme()->apply(this, closeIcon_, DialogCloseIcon);
+      closeIcon_->clicked().connect<&WDialog::reject>(this);
     }
   } else {
     titleBar_->removeWidget(closeIcon_);
@@ -615,12 +614,12 @@ void WDialog::setHidden(bool hidden, const WAnimation& animation)
       if (footer_) {
 	for (int i = 0; i < footer()->count(); ++i) {
 	  WPushButton *b = dynamic_cast<WPushButton *>(footer()->widget(i));
-	  if (b && b->isDefault()) {
-            enterConnection1_ = enterPressed()
-              .connect(this, &WDialog::onDefaultPressed);
+      if (b && b->isDefault()) {
+          enterConnection1_ ;
+          enterPressed().connect<&WDialog::onDefaultPressed>(this);
 
-	    enterConnection2_ = impl_->enterPressed()
-	      .connect(this, &WDialog::onDefaultPressed);
+          enterConnection2_ ;
+            impl_->enterPressed().connect<&WDialog::onDefaultPressed>(this);
 	    break;
 	  }
 	}
@@ -628,15 +627,17 @@ void WDialog::setHidden(bool hidden, const WAnimation& animation)
 
       if (escapeIsReject_) {
         if (isModal()) {
-          escapeConnection1_ = escapePressed()
-            .connect(this, &WDialog::onEscapePressed);
+#warning "connection pb"
+      escapeConnection1_ ;
+            escapePressed().connect<&WDialog::onEscapePressed>(this);
         } else {
-          escapeConnection1_ = WApplication::instance()->globalEscapePressed()
-            .connect(this, &WDialog::onEscapePressed);
+            escapeConnection1_ ;
+            WApplication::instance()->globalEscapePressed()
+                .connect<&WDialog::onEscapePressed>(this);
         }
 
-	escapeConnection2_ = impl_->escapePressed()
-	  .connect(this, &WDialog::onEscapePressed);
+        escapeConnection2_ ;
+        impl_->escapePressed().connect<&WDialog::onEscapePressed>(this);
       }
     } else {
       escapeConnection1_.disconnect();

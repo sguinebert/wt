@@ -85,10 +85,9 @@ WGLWidget::WGLWidget()
 {
   setInline(false);
   setLayoutSizeAware(true);
-  webglNotAvailable_.connect(this, &WGLWidget::webglNotAvailable);
-  repaintSignal_.connect(this, std::bind(&WGLWidget::repaintGL, this,
-					 GLClientSideRenderer::PAINT_GL));
-  contextRestored_.connect(this, std::bind(&WGLWidget::contextRestored, this));
+  webglNotAvailable_.connect<&WGLWidget::webglNotAvailable>(this);
+  repaintSignal_.connect(this, std::bind(&WGLWidget::repaintGL, this, GLClientSideRenderer::PAINT_GL));
+  contextRestored_.connect<&WGLWidget::contextRestored>(this);
   mouseWentDown().connect(mouseWentDownSlot_);
   mouseWentUp().connect(mouseWentUpSlot_);
   mouseDragged().connect(mouseDraggedSlot_);

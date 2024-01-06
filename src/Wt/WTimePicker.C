@@ -37,13 +37,13 @@ void WTimePicker::init(const WTime &time)
     sbhour_ = container->bindWidget("hour", std::make_unique<WSpinBox>());
     sbhour_->setWidth(70);
     sbhour_->setSingleStep(1);
-    sbhour_->changed().connect(this, &WTimePicker::hourValueChanged);
+    sbhour_->changed().connect<&WTimePicker::hourValueChanged>(this);
 
     sbminute_ = container->bindWidget("minute", std::make_unique<WSpinBox>());
     sbminute_->setWidth(70);
     sbminute_->setRange(0, 59);
     sbminute_->setSingleStep(1);
-    sbminute_->changed().connect(this, &WTimePicker::minuteValueChanged);
+    sbminute_->changed().connect<&WTimePicker::minuteValueChanged>(this);
 
     sbsecond_ = nullptr;
     container->bindEmpty("second");
@@ -126,7 +126,7 @@ void WTimePicker::configure()
       sbsecond_->setWidth(70);
       sbsecond_->setRange(0, 59);
       sbsecond_->setSingleStep(1);
-      sbsecond_->changed().connect(this, &WTimePicker::secondValueChanged);
+      sbsecond_->changed().connect<&WTimePicker::secondValueChanged>(this);
 
       sbsecond_->setWrapAroundEnabled(wrapAroundEnabled());
     } else {
@@ -143,7 +143,7 @@ void WTimePicker::configure()
         sbmillisecond_->setWidth(70);
         sbmillisecond_->setRange(0, 999);
         sbmillisecond_->setSingleStep(1);
-        sbmillisecond_->changed().connect(this, &WTimePicker::msecValueChanged);
+        sbmillisecond_->changed().connect<&WTimePicker::msecValueChanged>(this);
 
         sbmillisecond_->setWrapAroundEnabled(wrapAroundEnabled());
       }
@@ -162,7 +162,7 @@ void WTimePicker::configure()
         cbAP_->setWidth(90);
 //        co_await cbAP_->addItem("AM");
 //        co_await cbAP_->addItem("PM");
-        cbAP_->changed().connect(this, &WTimePicker::ampmValueChanged);
+        cbAP_->changed().connect<&WTimePicker::ampmValueChanged>(this);
       }
       sbhour_->setRange(1, 12);
     } else {

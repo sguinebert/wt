@@ -148,7 +148,7 @@ public:
    *
    * This calls \p registerNewUser(0).
    */
-  awaitable<void> registerNewUser();
+  awaitable<void> registerNewuser();
 
   /*! \brief Starts a new registration process.
    *

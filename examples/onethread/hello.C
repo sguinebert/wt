@@ -45,7 +45,7 @@ void HelloApplication::create()
 
   root()->addWidget(std::make_unique<WText>("Your name, please? "));
   nameEdit_ = root()->addWidget(std::make_unique<WLineEdit>());
-  nameEdit_->setFocus();
+  nameEdit_->focus();
 
   auto button = root()->addWidget(std::make_unique<WPushButton>("Greet me"));
   button->setMargin(5, Side::Left);

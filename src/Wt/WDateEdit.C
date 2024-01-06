@@ -30,7 +30,7 @@ LOGGER("WDateEdit");
 WDateEdit::WDateEdit()
   : customFormat_(false)
 {
-    changed().connect(this, &WDateEdit::setFromLineEdit);
+    changed().connect<&WDateEdit::setFromLineEdit>(this);
 
   uCalendar_ = std::make_unique<WCalendar>();
   calendar_ = uCalendar_.get();
@@ -71,8 +71,8 @@ void WDateEdit::load()
   WApplication::instance()->theme()->apply
     (this, popup_.get(), DatePickerPopup);
 
-  escapePressed().connect(popup_.get(), &WPopupWidget::hide);
-  escapePressed().connect(this, &WDateEdit::setFocusS);
+  escapePressed().connect<&WPopupWidget::hide>(popup_.get());
+  escapePressed().connect<&WDateEdit::setFocusS>(this);
 }
 
 void WDateEdit::refresh()

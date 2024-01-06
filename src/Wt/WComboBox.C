@@ -354,7 +354,7 @@ void WComboBox::updateDom(DomElement& element, bool all)
   if (!currentlyConnected_
       && (activated_.isConnected() || sactivated_.isConnected())) {
     currentlyConnected_ = true;
-    changed().connect(this, &WComboBox::propagateChange);
+    changed().connect<&WComboBox::propagateChange>(this);
   }
 
   WFormWidget::updateDom(element, all);

@@ -23,7 +23,7 @@ WTimer::WTimer()
     timeout_(new Time())
 {
   timerWidget_ = uTimerWidget_.get();
-  timeout().connect(this, &WTimer::gotTimeout);
+  timeout().connect<&WTimer::gotTimeout>(this);
 }
 
 EventSignal<WMouseEvent>& WTimer::timeout()

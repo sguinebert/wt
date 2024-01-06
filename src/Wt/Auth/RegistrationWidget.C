@@ -76,19 +76,19 @@ std::unique_ptr<WWidget> RegistrationWidget
 
   if (field == RegistrationModel::LoginNameField) {
     result.reset(new WLineEdit());
-    result->changed().connect(this, &RegistrationWidget::checkLoginName);
+    result->changed().connect<&RegistrationWidget::checkLoginName>(this);
   } else if (field == RegistrationModel::EmailField) {
     result.reset(new WLineEdit());
   } else if (field == RegistrationModel::ChoosePasswordField) {
     WLineEdit *p = new WLineEdit();
     p->setEchoMode(EchoMode::Password);
-    p->keyWentUp().connect(this, &RegistrationWidget::checkPassword);
-    p->changed().connect(this, &RegistrationWidget::checkPassword);
+    p->keyWentUp().connect<&RegistrationWidget::checkPassword>(this);
+    p->changed().connect<&RegistrationWidget::checkPassword>(this);
     result.reset(p);
   } else if (field == RegistrationModel::RepeatPasswordField) {
     WLineEdit *p = new WLineEdit();
     p->setEchoMode(EchoMode::Password);
-    p->changed().connect(this, &RegistrationWidget::checkPassword2);
+    p->changed().connect<&RegistrationWidget::checkPassword2>(this);
     result.reset(p);
   }
 
@@ -129,7 +129,7 @@ void RegistrationWidget::update()
 
   if (model_->isConfirmUserButtonVisible()) {
     if (!isYou->clicked().isConnected())
-      isYou->clicked().connect(this, &RegistrationWidget::confirmIsYou);
+      isYou->clicked().connect<&RegistrationWidget::confirmIsYou>(this);
     isYou->show();
   } else
     isYou->hide();
@@ -158,7 +158,7 @@ void RegistrationWidget::update()
 #ifdef WT_HAS_SAML
       for (const Saml::Service *saml : model_->saml()) {
         Saml::Widget *w = icons->addNew<Saml::Widget>(*saml);
-        w->authenticated().connect(this, &RegistrationWidget::samlDone);
+        w->authenticated().connect<&RegistrationWidget::samlDone>(this);
       }
 #endif // WT_HAS_SAML
     }
@@ -175,8 +175,8 @@ void RegistrationWidget::update()
       bindWidget("cancel-button",
                  std::make_unique<WPushButton>(tr("Wt.WMessageBox.Cancel")));
 
-    okButton->clicked().connect(this, &RegistrationWidget::doRegister);
-    cancelButton->clicked().connect(this, &RegistrationWidget::close);
+    okButton->clicked().connect<&RegistrationWidget::doRegister>(this);
+    cancelButton->clicked().connect<&RegistrationWidget::close>(this);
 
     created_ = true;
   }

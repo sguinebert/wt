@@ -19,7 +19,7 @@ OAuthWidget::OAuthWidget(const OAuthService& oAuthService)
 
   process_ = oAuthService.createProcess(oAuthService.authenticationScope());
 #ifndef WT_TARGET_JAVA
-  clicked().connect(process_.get(), &OAuthProcess::startAuthenticate);
+  clicked().connect<&OAuthProcess::startAuthenticate>(process_.get());
 #else
   auto clickedSignal = clicked();
   process_->connectStartAuthenticate(clickedSignal);

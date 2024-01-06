@@ -88,7 +88,7 @@ public:
     auto registerLink = std::make_unique<Wt::WText>(tr("Wt.Auth.register"));
     registerLink->setStyleClass("link");
     registerLink->clicked().connect(loginWidget_,
-				    &BlogLoginWidget::registerNewUser);
+                                    &BlogLoginWidget::registerNewuser);
 
     auto archiveLink
         = std::make_unique<Wt::WAnchor>(Wt::WLink(Wt::LinkType::InternalPath, basePath_ + "all"),

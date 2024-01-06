@@ -42,8 +42,8 @@ WIconPair::WIconPair(const std::string& icon1URI, const std::string& icon2URI,
     icon2_->clicked().preventPropagation();
 #endif // WT_TARGET_JAVA
 
-    icon1_->clicked().connect(this, &WIconPair::showIcon2);
-    icon2_->clicked().connect(this, &WIconPair::showIcon1);
+    icon1_->clicked().connect<&WIconPair::showIcon2>(this);
+    icon2_->clicked().connect<&WIconPair::showIcon1>(this);
 
     decorationStyle().setCursor(Cursor::PointingHand);
   }

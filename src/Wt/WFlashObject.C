@@ -43,7 +43,7 @@ WFlashObject::WFlashObject(const std::string& url)
        std::unique_ptr<WImage>
        (new WImage(WLink("http://www.adobe.com/images/"
 			 "shared/download_buttons/get_flash_player.gif"))))));
-  ieRendersAlternative_.connect(this, &WFlashObject::renderIeAltnerative);
+  ieRendersAlternative_.connect<&WFlashObject::renderIeAltnerative>(this);
 }
 
 WFlashObject::~WFlashObject()

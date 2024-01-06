@@ -39,8 +39,8 @@ LostPasswordWidget::LostPasswordWidget(AbstractUserDatabase& users,
     ("cancel-button",
      std::make_unique<WPushButton>(tr("Wt.WMessageBox.Cancel")));
 
-  okButton->clicked().connect(this, &LostPasswordWidget::send);
-  cancelButton->clicked().connect(this, &LostPasswordWidget::cancel);
+  okButton->clicked().connect<&LostPasswordWidget::send>(this);
+  cancelButton->clicked().connect<&LostPasswordWidget::cancel>(this);
 }
 
 void LostPasswordWidget::send()

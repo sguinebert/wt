@@ -138,8 +138,8 @@ WWebWidget::WWebWidget()
 WStatelessSlot *WWebWidget::getStateless(Method method)
 {
   typedef void (WWebWidget::*Type)();
-
-  Type focusMethod = &WWebWidget::setFocus;
+  
+  Type focusMethod = &WWebWidget::focus;
 
   if (method == static_cast<WObject::Method>(focusMethod))
     return implementStateless(focusMethod, &WWebWidget::undoSetFocus);
@@ -1262,7 +1262,7 @@ JSignal<int, int>& WWebWidget::resized()
 
   if (!otherImpl_->resized_) {
     otherImpl_->resized_.reset(new JSignal<int, int>(this, "resized"));
-    otherImpl_->resized_->connect(this, &WWidget::layoutSizeChanged);
+    otherImpl_->resized_->connect<&WWidget::layoutSizeChanged>(this);
 
     std::string v = javaScriptMember(WT_RESIZE_JS);
     if (v.empty())
@@ -1588,9 +1588,8 @@ void WWebWidget::updateDom(DomElement& element, bool all)
                                                  utilityCssClass(ToolTipOuter))
                                  + ");");
 
-          if (flags_.test(BIT_TOOLTIP_DEFERRED) &&
-              !lookImpl_->loadToolTip_.isConnected())
-            lookImpl_->loadToolTip_.connect(this, &WWebWidget::loadToolTip);
+          if (flags_.test(BIT_TOOLTIP_DEFERRED) && !lookImpl_->loadToolTip_.isConnected())
+            lookImpl_->loadToolTip_.connect<&WWebWidget::loadToolTip>(this);
 
           element.removeAttribute("title");
         } else
@@ -2728,7 +2727,7 @@ void WWebWidget::setScrollVisibilityEnabled(bool enabled)
       otherImpl_.reset(new OtherImpl(this));
     if (!otherImpl_->jsScrollVisibilityChanged_) {
       otherImpl_->jsScrollVisibilityChanged_.reset(new JSignal<bool>(this, "scrollVisibilityChanged"));
-      otherImpl_->jsScrollVisibilityChanged_->connect(this, &WWebWidget::jsScrollVisibilityChanged);
+      otherImpl_->jsScrollVisibilityChanged_->connect<&WWebWidget::jsScrollVisibilityChanged>(this);
     }
   }
 

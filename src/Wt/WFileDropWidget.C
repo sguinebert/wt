@@ -286,12 +286,12 @@ void WFileDropWidget::setup()
                       + maxFileSize + ");");
 
 
-  dropSignal_.connect(this, &WFileDropWidget::handleDrop);
-  requestSend_.connect(this, &WFileDropWidget::handleSendRequest);
-  fileTooLarge_.connect(this, &WFileDropWidget::handleTooLarge);
-  uploadFinished_.connect(this, &WFileDropWidget::emitUploaded);
-  doneSending_.connect(this, &WFileDropWidget::stopReceiving);
-  jsFilterNotSupported_.connect(this, &WFileDropWidget::disableJavaScriptFilter);
+  dropSignal_.connect<&WFileDropWidget::handleDrop>(this);
+  requestSend_.connect<&WFileDropWidget::handleSendRequest>(this);
+  fileTooLarge_.connect<&WFileDropWidget::handleTooLarge>(this);
+  uploadFinished_.connect<&WFileDropWidget::emitUploaded>(this);
+  doneSending_.connect<&WFileDropWidget::stopReceiving>(this);
+  jsFilterNotSupported_.connect<&WFileDropWidget::disableJavaScriptFilter>(this);
 
   addStyleClass("Wt-filedropzone");
 }

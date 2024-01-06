@@ -314,7 +314,7 @@ WString WWidget::tr(const std::string& key)
   return WString::tr(key);
 }
 
-void WWidget::setFocus()
+void WWidget::focus()
 {
   setFocus(true);
 }
@@ -325,8 +325,6 @@ void WWidget::acceptDrops(const std::string& mimeType,
   WWebWidget *thisWebWidget = webWidget();
 
   if (thisWebWidget->setAcceptDropsImpl(mimeType, true, hoverStyleClass)) {
-//    thisWebWidget->otherImpl_->dropSignal_->connect(this, &WWidget::getDrop);
-//    thisWebWidget->otherImpl_->dropSignal2_->connect(this, &WWidget::getDropTouch);
     thisWebWidget->otherImpl_->dropSignal_->connect<&WWidget::getDrop>(this);
     thisWebWidget->otherImpl_->dropSignal2_->connect<&WWidget::getDropTouch>(this);
   }
@@ -450,7 +448,7 @@ void WWidget::setLayoutSizeAware(bool aware)
     if (w == this)
       webWidget()->resized();
     else
-      webWidget()->resized().connect(this, &WWidget::layoutSizeChanged);
+      webWidget()->resized().connect<&WWidget::layoutSizeChanged>(this);
   } else
     webWidget()->setImplementLayoutSizeAware(false);
 }

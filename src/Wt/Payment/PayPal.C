@@ -197,7 +197,7 @@ PayPalExpressCheckout::PayPalExpressCheckout(
 
   impl_->usePopup_ = WApplication::instance()->environment().ajax();
 
-  impl_->redirected_.connect(this, &PayPalExpressCheckout::onRedirect);
+  impl_->redirected_.connect<&PayPalExpressCheckout::onRedirect>(this);
 }
 
 const Customer& PayPalExpressCheckout::customer() const

@@ -38,24 +38,24 @@ public:
     firstButton_ = addWidget(
           std::make_unique<WPushButton>(
             tr("Wt.WAbstractItemView.PageBar.First")));
-    firstButton_->clicked().connect(this, &DefaultPagingBar::showFirstPage);
+    firstButton_->clicked().connect<&DefaultPagingBar::showFirstPage>(this);
 
     prevButton_ = addWidget(
           std::make_unique<WPushButton>(
             tr("Wt.WAbstractItemView.PageBar.Previous")));
-    prevButton_->clicked().connect(this, &DefaultPagingBar::showPreviousPage);
+    prevButton_->clicked().connect<&DefaultPagingBar::showPreviousPage>(this);
 
     current_ = addWidget(std::make_unique<WText>());
 
     nextButton_ = addWidget(
           std::make_unique<WPushButton>(
             tr("Wt.WAbstractItemView.PageBar.Next")));
-    nextButton_->clicked().connect(this, &DefaultPagingBar::showNextPage);
+    nextButton_->clicked().connect<&DefaultPagingBar::showNextPage>(this);
 
     lastButton_ = addWidget(
           std::make_unique<WPushButton>(
             tr("Wt.WAbstractItemView.PageBar.Last")));
-    lastButton_->clicked().connect(this, &DefaultPagingBar::showLastPage);
+    lastButton_->clicked().connect<&DefaultPagingBar::showLastPage>(this);
 
     //view_->setPageTabCallBack([this]() { this->update(); });
 
@@ -277,7 +277,7 @@ awaitable<void> WAbstractItemView
 ::setModel(const std::shared_ptr<WAbstractItemModel>& model)
 {
   if (!columnWidthChanged_.isConnected())
-    columnWidthChanged_.connect(this, &WAbstractItemView::updateColumnWidth);
+    columnWidthChanged_.connect<&WAbstractItemView::updateColumnWidth>(this);
 
   bool isReset = model_.get();
 

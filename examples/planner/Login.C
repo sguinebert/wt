@@ -16,7 +16,7 @@ Login::Login()
   WLabel* userNameL =
       this->addWidget(std::make_unique<WLabel>(tr("login.userName")));
   userNameEdit_ = this->addWidget(std::make_unique<WLineEdit>());
-  userNameEdit_->setFocus();
+  userNameEdit_->focus();
   userNameEdit_->setValidator(std::make_shared<WValidator>(true));
   userNameL->setBuddy(userNameEdit_);
 
@@ -37,7 +37,7 @@ co_return; Login::captchaCompleted()
   if (userNameEdit_->validate() != ValidationState::Valid) {
     captcha_->hide();
     loginButton_->show();
-    userNameEdit_->setFocus();
+    userNameEdit_->focus();
   } else {
     co_await login();
   }

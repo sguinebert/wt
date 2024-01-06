@@ -92,19 +92,18 @@ void WCalendar::create()
   std::unique_ptr<WTemplate> t(new WTemplate());
   impl_ = t.get();
   setImplementation(std::move(t));
-  impl_->setTemplateText(WString::fromUTF8(text.str()),
-			 TextFormat::UnsafeXHTML);
+  impl_->setTemplateText(WString::fromUTF8(text.str()), TextFormat::UnsafeXHTML);
   impl_->setStyleClass("Wt-cal");
 
   setSelectable(false);
 
   std::unique_ptr<WText> prevMonth(new WText(tr("Wt.WCalendar.PrevMonth")));
   prevMonth->setStyleClass("Wt-cal-navbutton");
-  prevMonth->clicked().connect(this, &WCalendar::browseToPreviousMonth);
+  prevMonth->clicked().connect<&WCalendar::browseToPreviousMonth>(this);
 
   std::unique_ptr<WText> nextMonth(new WText(tr("Wt.WCalendar.NextMonth")));
   nextMonth->setStyleClass("Wt-cal-navbutton");
-  nextMonth->clicked().connect(this, &WCalendar::browseToNextMonth);
+  nextMonth->clicked().connect<&WCalendar::browseToNextMonth>(this);
 
   std::vector<WString> months;
   for (unsigned i = 0; i < 12; ++i)

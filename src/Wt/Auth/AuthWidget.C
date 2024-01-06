@@ -115,7 +115,7 @@ awaitable<bool> AuthWidget::handleRegistrationPath(const std::string& path)
           std::string ap = app->internalSubPath(basePath_);
 
           if (ap == "register/") {
-              co_await registerNewUser();
+              co_await registerNewUser(Identity::Invalid);
               co_return true;
           }
       }
@@ -124,7 +124,7 @@ awaitable<bool> AuthWidget::handleRegistrationPath(const std::string& path)
   co_return false;
 }
 
-awaitable<void> AuthWidget::registerNewUser()
+awaitable<void> AuthWidget::registerNewuser()
 {
   co_await registerNewUser(Identity::Invalid);
 }
@@ -374,7 +374,7 @@ std::unique_ptr<WWidget> AuthWidget::createFormWidget(WFormModel::Field field)
     result->setFocus(true);
   } else if (field == AuthModel::PasswordField) {
     WLineEdit *p = new WLineEdit();
-    p->enterPressed().connect(this, &AuthWidget::attemptPasswordLogin);
+    p->enterPressed().connect<&AuthWidget::attemptPasswordLogin>(this);
     p->setEchoMode(EchoMode::Password);
     result.reset(p);
   } else if (field == AuthModel::RememberMeField) {
@@ -395,44 +395,44 @@ void AuthWidget::updatePasswordLoginView()
 
     if (!login) {
       login = bindWidget("login", std::make_unique<WPushButton>(tr("Wt.Auth.login")));
-      login->clicked().connect(this, &AuthWidget::attemptPasswordLogin);
+      login->clicked().connect<&AuthWidget::attemptPasswordLogin>(this);
 
       model_->configureThrottling(login);
 
       if (model_->baseAuth()->emailVerificationEnabled()) {
-	WText *text =
-	  bindWidget("lost-password",
-		     std::make_unique<WText>(tr("Wt.Auth.lost-password")));
-	text->clicked().connect(this, &AuthWidget::handleLostPassword);
+        WText *text =
+            bindWidget("lost-password",
+                       std::make_unique<WText>(tr("Wt.Auth.lost-password")));
+        text->clicked().connect<&AuthWidget::handleLostPassword>(this);
       } else
-	bindEmpty("lost-password");
+        bindEmpty("lost-password");
 
       if (registrationEnabled_) {
-	if (!basePath_.empty()) {
-	  bindWidget("register",
-		     std::make_unique<WAnchor>
-		     (WLink(LinkType::InternalPath, basePath_ + "register"),
-		      tr("Wt.Auth.register")));
-	} else {
-	  WText *t = 
-	    bindWidget("register",
-		       std::make_unique<WText>(tr("Wt.Auth.register")));
-	  t->clicked().connect(this, &AuthWidget::registerNewUser);
-	}
+        if (!basePath_.empty()) {
+            bindWidget("register",
+                       std::make_unique<WAnchor>
+                       (WLink(LinkType::InternalPath, basePath_ + "register"),
+                        tr("Wt.Auth.register")));
+        } else {
+            WText *t =
+                bindWidget("register",
+                           std::make_unique<WText>(tr("Wt.Auth.register")));
+            t->clicked().connect<&AuthWidget::registerNewuser>(this);
+        }
       } else
-	bindEmpty("register");
+        bindEmpty("register");
 
       if (model_->baseAuth()->emailVerificationEnabled()
-	  && registrationEnabled_)
-	bindString("sep", " | ");
+          && registrationEnabled_)
+        bindString("sep", " | ");
       else
-	bindEmpty("sep");
+        bindEmpty("sep");
     }
 
     if (model_->showResendEmailVerification()) {
       auto resendAnchor = bindNew<WAnchor>("user-confirm-email");
       resendAnchor->setText(WString::tr("Wt.Auth.resend-email-verification"));
-      resendAnchor->clicked().connect(this, &AuthWidget::letResendEmailVerification);
+      resendAnchor->clicked().connect<&AuthWidget::letResendEmailVerification>(this);
     } else {
       bindEmpty("user-confirm-email");
     }
@@ -557,7 +557,7 @@ void AuthWidget::createLoggedInView()
   WPushButton *logout
     = bindWidget("logout",
 		 std::make_unique<WPushButton>(tr("Wt.Auth.logout")));
-  logout->clicked().connect(this, &AuthWidget::logout);
+  logout->clicked().connect<&AuthWidget::logout>(this);
 }
 
 awaitable<void> AuthWidget::processEnvironment()

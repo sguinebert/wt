@@ -228,12 +228,12 @@ void Composer::createUi()
   addcc_->item()->clicked().connect(ccEdit_, &WWidget::show);
   addcc_->item()->clicked().connect(addcc_, &WWidget::hide);
   addcc_->item()->clicked().connect(options_, &OptionList::update);
-  addcc_->item()->clicked().connect(ccEdit_, &WWidget::setFocus);
+  addcc_->item()->clicked().connect(ccEdit_, &WWidget::focus);
 
   addbcc_->item()->clicked().connect(bccEdit_, &WWidget::show);
   addbcc_->item()->clicked().connect(addbcc_, &WWidget::hide);
   addbcc_->item()->clicked().connect(options_, &OptionList::update);
-  addbcc_->item()->clicked().connect(bccEdit_, &WWidget::setFocus);
+  addbcc_->item()->clicked().connect(bccEdit_, &WWidget::focus);
 
   /*
    * Option event to attach the first attachment.

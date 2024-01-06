@@ -110,10 +110,10 @@ void WSuggestionPopup::init()
 
   setModel(std::shared_ptr<WStringListModel>(new WStringListModel()));
 
-  impl_->escapePressed().connect(this, &WWidget::hide);
+  impl_->escapePressed().connect<&WWidget::hide>(this);
 
-  filter_.connect(this, &WSuggestionPopup::scheduleFilter);
-  jactivated_.connect(this, &WSuggestionPopup::doActivate);
+  filter_.connect<&WSuggestionPopup::scheduleFilter>(this);
+  jactivated_.connect<&WSuggestionPopup::doActivate>(this);
 }
 
 void WSuggestionPopup::defineJavaScript()

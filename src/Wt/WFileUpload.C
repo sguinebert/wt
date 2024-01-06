@@ -274,8 +274,8 @@ void WFileUpload::create()
 
   displayWidgetRedirect_.setJavaScript(displayWidgetClickJS());
 
-  uploaded().connect(this, &WFileUpload::onUploaded);
-  fileTooLarge().connect(this, &WFileUpload::onUploaded);
+  uploaded().connect<&WFileUpload::onUploaded>(this);
+  fileTooLarge().connect<&WFileUpload::onUploaded>(this);
 }
 
 WFileUpload::~WFileUpload()

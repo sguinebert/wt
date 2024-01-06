@@ -111,7 +111,7 @@ void WNavigationBar::setResponsive(bool responsive)
       "}");
 
     if (!app->environment().ajax()) {
-      collapseButton->clicked().connect(this, &WNavigationBar::toggleContents);
+      collapseButton->clicked().connect<&WNavigationBar::toggleContents>(this);
     }
 
     wApp->theme()->apply(this, contents, NavCollapse);
@@ -125,16 +125,14 @@ void WNavigationBar::setResponsive(bool responsive)
       auto b = createCollapseButton();
       collapseButton = b.get();
       bindWidget("collapse-button", std::move(b));
-      collapseButton->clicked().connect(this,
-                                        &WNavigationBar::collapseContents);
+      collapseButton->clicked().connect<&WNavigationBar::collapseContents>(this);
 
       collapseButton->hide();
 
       b = createExpandButton();
       expandButton = b.get();
       bindWidget("expand-button", std::move(b));
-      expandButton->clicked().connect(this,
-                                      &WNavigationBar::expandContents);
+      expandButton->clicked().connect<&WNavigationBar::expandContents>(this);
     }
 
     wApp->theme()->apply(this, contents, NavCollapse);

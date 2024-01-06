@@ -123,6 +123,9 @@ class Function<RT(Args...)> final
                 {
                     nullptr, [](void* /*NULL*/, Args&&... args) -> RT
                     {
+                    if constexpr(std::is_invocable_v<f_type>)
+                        co_return (*fun_ptr)();
+                    else
                         co_return (*fun_ptr)(std::forward<Args>(args)...);
                         //return [/*&args...*/](Args&&... args) -> RT { co_return (*fun_ptr)(std::forward<Args>(args)...); }(std::forward<Args>(args)...);
                     }
@@ -133,7 +136,10 @@ class Function<RT(Args...)> final
             {
                 nullptr, [](void* /*NULL*/, Args&&... args)
                 {
-                    return (*fun_ptr)(std::forward<Args>(args)...);
+                    if constexpr(std::is_invocable_v<f_type>)
+                        return (*fun_ptr)();
+                    else
+                        return (*fun_ptr)(std::forward<Args>(args)...);
                 }
             };
         }
@@ -149,8 +155,10 @@ class Function<RT(Args...)> final
                 {
                     pointer, [](void* this_ptr, Args&&... args) -> RT
                     {
-                        co_return (static_cast<T*>(this_ptr)->*mem_ptr)(std::forward<Args>(args)...);
-                        //return [/*this_ptr, &args...*/](void* this_ptr, Args&&... args) -> RT { co_return (static_cast<T*>(this_ptr)->*mem_ptr)(std::forward<Args>(args)...); }(this_ptr, std::forward<Args>(args)...);
+                        if constexpr(std::is_invocable_v<f_type, T*>)
+                            co_return (static_cast<T*>(this_ptr)->*mem_ptr)();
+                        else
+                            co_return (static_cast<T*>(this_ptr)->*mem_ptr)(std::forward<Args>(args)...);
                     }
                 };
         }
@@ -159,7 +167,10 @@ class Function<RT(Args...)> final
                 {
                     pointer, [](void* this_ptr, Args&&... args)
                     {
-                        return (static_cast<T*>(this_ptr)->*mem_ptr)(std::forward<Args>(args)...);
+                        if constexpr(std::is_invocable_v<f_type, T*>)
+                            return (static_cast<T*>(this_ptr)->*mem_ptr)();
+                        else
+                            return (static_cast<T*>(this_ptr)->*mem_ptr)(std::forward<Args>(args)...);
                     }
                 };
         }
@@ -169,13 +180,13 @@ class Function<RT(Args...)> final
     template <typename L>
     static inline Function bind(L* pointer)
     {//std::is_convertible_v<RT, boost::asio::awaitable<void>>
-        if constexpr(contains_awaitable_impl<RT(Args...)>::value && !is_awaitable_lambda_v<L>) {
+        using ReturnType = std::invoke_result_t<L, Args...>;
+        if constexpr(contains_awaitable_impl<RT(Args...)>::value && (/*!is_awaitable_lambda_v<L> &&*/ !contains_awaitable<ReturnType>::value)) {
             return
                 {
                     pointer, [](void* this_ptr, Args&&... args) -> RT
                     {
                         co_return static_cast<L*>(this_ptr)->operator()(std::forward<Args>(args)...);
-                        //return [/*this_ptr, &args...*/](void* this_ptr, Args&&... args) -> RT { co_return static_cast<L*>(this_ptr)->operator()(std::forward<Args>(args)...); }(this_ptr, std::forward<Args>(args)...);
                     }
                 };
         }

@@ -41,7 +41,7 @@ HelloApplication::HelloApplication(const Wt::WEnvironment& env)
   root()->addWidget(std::make_unique<Wt::WText>("Your name, please ? ")); // show some text
 
   nameEdit_ = root()->addWidget(std::make_unique<Wt::WLineEdit>()); // allow text input
-  nameEdit_->setFocus();                              // give focus
+  nameEdit_->focus();                              // give focus
 
   auto button = root()->addWidget(std::make_unique<Wt::WPushButton>("Greet me."));
                                                       // create a button

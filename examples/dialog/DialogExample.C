@@ -151,8 +151,8 @@ void DialogExample::custom()
   WLineEdit *edit = dialog.contents()->addWidget(std::make_unique<WLineEdit>());
   WPushButton *ok = dialog.footer()->addWidget(std::make_unique<WPushButton>("Ok"));
   ok->setDefault(true);
-
-  edit->setFocus();
+  
+  edit->focus();
   ok->clicked().connect(&dialog, &WDialog::accept);
 
   if (dialog.exec() == DialogCode::Accepted) {

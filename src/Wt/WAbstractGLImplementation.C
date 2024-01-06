@@ -12,7 +12,7 @@ WAbstractGLImplementation::WAbstractGLImplementation(WGLWidget *glInterface)
     debugging_(false),
     webglNotAvailable_(this, "webglNotAvailable")
 {
-  webglNotAvailable_.connect(glInterface_, &WGLWidget::webglNotAvailable);
+    webglNotAvailable_.connect<&WGLWidget::webglNotAvailable>(glInterface_);
 }
 
 void WAbstractGLImplementation::repaintGL(WFlags<GLClientSideRenderer> which)

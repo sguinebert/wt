@@ -248,42 +248,46 @@ public:
   {
       exposeSignal();
 
-      test_. template connect<memptr>(target);
+      impl_. template connect<memptr>(target);
   }
 
   template<class F>
   Wt::Signals::connection connect(F function)
   {
       exposeSignal();
-      return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), nullptr);
+      impl_.connect(function);
+      return Wt::Signals::connection();
+      //return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), nullptr);
   }
 
   template<class F>
   Wt::Signals::connection connect(const WObject *target, F function)
   {
       exposeSignal();
-      return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), target);
+      impl_.connect(function); //TODO : need the observer
+      return Wt::Signals::connection();
+      //return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), target);
   }
 
-  /*! \brief Connect a slot that takes no arguments.
-   */
-  template<class T, class V, class... B>
-  Wt::Signals::connection connect(T *target, void (V::*method)(B...))
-  {
-      exposeSignal();
+//  /*! \brief Connect a slot that takes no arguments.
+//   */
+//  template<class T, class V, class... B>
+//  Wt::Signals::connection connect(T *target, void (V::*method)(B...))
+//  {
+//      exposeSignal();
 
-      return Signals::Impl::ConnectHelper<sizeof...(B), A...>
-          ::connect(impl_, target, method);
-  }
+//      return Signals::Impl::ConnectHelper<sizeof...(B), A...>
+//          ::connect(impl_, target, method);
+//  }
 
-  template<class T, class V, class... B>
-  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(B...))
-  {
-      exposeSignal();
+//  template<class T, class V, class... B>
+//  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)(B...))
+//  {
+//      exposeSignal();
 
-      return Signals::Impl::ConnectHelper<sizeof...(B), A...>
-          ::connect(impl_, target, method);
-  }
+//      return Signals::Impl::ConnectHelper<sizeof...(B), A...>
+//          ::connect(impl_, target, method);
+//  }
 
   /*! \brief Connects a JavaScript function.
    *
@@ -365,14 +369,17 @@ public:
       co_await impl_.emit(args...);
   }
 
-  virtual Wt::Signals::connection connect(WObject *target, void (WObject::*method)()) override
+  virtual Wt::Signals::connection connect(WObject *target, WObject::Method method) override
   {
       exposeSignal();
       WStatelessSlot *s = target->isStateless(method);
       if (canAutoLearn() && s)
           return EventSignalBase::connectStateless(method, target, s);
-      else
-          return impl_.connect(std::bind(method, target), target);
+      else {
+          //return impl_.connect(std::bind(method, target), target);
+          impl_.connect(std::bind(method, target));
+          return Wt::Signals::connection();
+      }
   }
 
   virtual Wt::Signals::connection connect(WObject *target, WObject::AsyncMethod method) override
@@ -382,7 +389,10 @@ public:
       //  if (canAutoLearn() && s)
       //    return EventSignalBase::connectStateless(method, target, s);
       //  else
-      return impl_.connect(std::bind(method, target), target);
+      //return impl_.connect(std::bind(method, target), target);
+
+      impl_.connect(std::bind(method, target));
+      return Wt::Signals::connection();
   }
 
 protected:
@@ -392,40 +402,21 @@ protected:
   }
 
 private:
+#ifdef DYN_TEST
+  using SignalType = Signal<awaitable<void>(A...)>;
+#else
   typedef Signals::Signal<A...> SignalType;
+#endif
 
   std::string name_;
   SignalType impl_;
 
-  Signal<awaitable<void>(A...)> test_;
+  //Signal<awaitable<void>(A...)> test_;
 
 
   virtual awaitable<void> processDynamic(const JavaScriptEvent& e) const override;
 };
 
-#ifdef WT_CNOR
-
-class WT_API JSignal0 : public JSignal<NoClass>
-{
-public:
-  JSignal0(WObject *object, const std::string& name,
-	   bool collectSlotJavaScript = false);
-
-  template<class T, class V>
-    Wt::Signals::connection connect(T *target, void (V::*method)());
-  template<class F> Wt::Signals::connection connect(F f);
-  template<class F> Wt::Signals::connection connect(const WObject *target,
-						    F function);
-  
-  void connect(const std::string& function);
-  void connect(const char * function);
-
-  void connect(JSlot& slot);
-
-  void emit() const;
-};
-
-#endif // WT_CNOR
 
 #ifndef WT_CNOR
 

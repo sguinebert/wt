@@ -20,18 +20,11 @@ namespace Wt {
   class WLineEdit;
   class WText;
 
-#ifndef WT_CNOR
   template <class Widget> class IndexEdit;
   typedef IndexEdit<WCheckBox> IndexCheckBox;
   typedef IndexEdit<WContainerWidget> IndexContainerWidget;
   typedef IndexEdit<WAnchor> IndexAnchor;
   typedef IndexEdit<WText> IndexText;
-#else
-  class IndexCheckBox;
-  class IndexContainerWidget;
-  class IndexAnchor;
-  class IndexText;
-#endif // WT_CNOR
 
 /*! \class WItemDelegate Wt/WItemDelegate.h Wt/WItemDelegate.h
  *  \brief Standard delegate class for rendering a view item.
@@ -70,12 +63,9 @@ public:
    * When the flags indicates Wt::ViewItemRenderFlag::Editing, then createEditor() is
    * called to create a suitable editor for editing the item.
    */
-  virtual std::unique_ptr<WWidget> update
-    (WWidget *widget, const WModelIndex& index,
-     WFlags<ViewItemRenderFlag> flags) override;
+  virtual std::unique_ptr<WWidget> update(WWidget *widget, const WModelIndex& index, WFlags<ViewItemRenderFlag> flags) override;
 
-  virtual void updateModelIndex(WWidget *widget, const WModelIndex& index)
-    override;
+  virtual void updateModelIndex(WWidget *widget, const WModelIndex& index) override;
 
   /*! \brief Sets the text format string.
    *
@@ -193,9 +183,7 @@ public:
    *
    * \sa createEditor()
    */
-  virtual void setEditState(WWidget *editor, const WModelIndex& index,
-			    const cpp17::any& value) const
-    override;
+  virtual void setEditState(WWidget *editor, const WModelIndex& index, const cpp17::any& value) const override;
 
 protected:
   /*! \brief Creates an editor for a data item.
@@ -286,8 +274,7 @@ private:
     WidgetRef(WWidget *widget) : w(widget) { }
   };
 
-  IndexCheckBox *checkBox(WidgetRef& w, const WModelIndex& index,
-			 bool autoCreate, bool update = false, bool triState = false);
+  IndexCheckBox *checkBox(WidgetRef& w, const WModelIndex& index, bool autoCreate, bool update = false, bool triState = false);
 
   IndexText *textWidget(WidgetRef& w, const WModelIndex& index);
   WImage *iconWidget(WidgetRef& w, const WModelIndex& index, bool autoCreate = false);

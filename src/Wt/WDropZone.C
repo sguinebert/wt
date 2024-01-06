@@ -426,11 +426,11 @@ void WDropZone::setup()
 
 
 
-    dropSignal_.connect(this, &WDropZone::handleDrop);
+    dropSignal_.connect<&WDropZone::handleDrop>(this);
 //    requestSend_.connect(this, &WDropZone::handleSendRequest);
-    fileTooLarge_.connect(this, &WDropZone::handleTooLarge);
-    errorUpload_.connect(this, &WDropZone::handleErrorUpload);
-    uploadFinished_.connect(this, &WDropZone::emitUploaded);
+    fileTooLarge_.connect<&WDropZone::handleTooLarge>(this);
+    errorUpload_.connect<&WDropZone::handleErrorUpload>(this);
+    uploadFinished_.connect<&WDropZone::emitUploaded>(this);
 //    doneSending_.connect(this, &WDropZone::stopReceiving);
 //    jsFilterNotSupported_.connect(this, &WDropZone::disableJavaScriptFilter);
 
