@@ -192,7 +192,9 @@ public:
 #ifndef WT_TARGET_JAVA
     WApplication::UpdateLock lock(app);
 #endif
-    process_->doneCallbackConnection_ =
+
+#warning "connection signal"
+    //process_->doneCallbackConnection_;
         app->unsuspended().connect<&OAuthProcess::onOAuthDone>(process_);
 
     std::string redirectTo = app->makeAbsoluteUrl(app->url(process_->startInternalPath_));
@@ -241,8 +243,8 @@ public:
 #ifndef WT_TARGET_JAVA
       WApplication::UpdateLock lock(app);
 #endif
-      process_->doneCallbackConnection_ =
-          app->unsuspended().connect<&OAuthProcess::onOAuthDone>(process_);
+      //process_->doneCallbackConnection_ =
+      app->unsuspended().connect<&OAuthProcess::onOAuthDone>(process_);
 
       std::string redirectTo = app->makeAbsoluteUrl(app->url(process_->startInternalPath_));
       o <<
@@ -437,8 +439,10 @@ awaitable<void> OAuthProcess::onOAuthDone()
     redirectEndpoint_->haveMoreData();
 #endif // WT_TARGET_JAVA
 
-  if (doneCallbackConnection_.isConnected())
-    doneCallbackConnection_.disconnect();
+//  if (doneCallbackConnection_.isConnected())
+//    doneCallbackConnection_.disconnect();
+
+  WApplication::instance()->unsuspended().disconnect<&OAuthProcess::onOAuthDone>(this);
   co_return;
 }
 

@@ -198,14 +198,14 @@ private:
  *   {
  *      ...
  *      Wt::WPushButton *button = addWidget(std::make_unique<Wt::WPushButton>("Okay"));
- *      button->clicked().connect(this, &MyWidget::process);
+ *      button->clicked().connect<&MyWidget::process>(this);
  *   }
  *
  *   // provide an accessor for the signal
- *   Wt::Signal<int, std::string>& done() { return done_; }
+ *   Wt::Signal<void(int, std::string)>& done() { return done_; }
  *
  * private:
- *   Wt::Signal<int, std::string> done_;
+ *   Wt::Signal<void(int, std::string)> done_;
  *
  *   void process() {
  *     ...
@@ -225,7 +225,7 @@ private:
  * private:
  *   void init() {
  *     MyWidget *widget = addWidget(std::make_unique<MyWidget>());
- *     widget->done().connect(this, &GUIClass::whenDone);
+ *     widget->done().connect<&GUIClass::whenDone>(this);
  *   }
  *
  *   void whenDone(int result, const std::string& description) {
@@ -531,11 +531,11 @@ public:
   {
     exposeSignal();
 
-    WObject *o = dynamic_cast<WObject *>(target);
-    assert(o);
-
     if constexpr (std::is_convertible_v<decltype(memptr), WObject::Method>)
     {
+        WObject *o = dynamic_cast<WObject *>(target);
+        assert(o);
+
         WStatelessSlot *s = o->isStateless(static_cast<WObject::Method>(memptr));
 
         if (s) {

@@ -119,51 +119,51 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
 
     /* static function connection */
     template <RT(*fun_ptr)(Args...)>
-    observer::Connection connect()
+    void connect()
     {
-        return observer::insert(function::template bind<fun_ptr>(), this);
+        observer::insert(function::template bind<fun_ptr>(), this);
     }
     /* connect to a member method of a class T passed by pointer*/
     template <typename T, RT(T::*mem_ptr)(Args...)>
-    observer::Connection connect(T* instance)
+    void connect(T* instance)
     {
-        return insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
+        insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
     /* connect to a member const method of a class T passed by pointer */
     template <typename T, RT(T::*mem_ptr)(Args...) const>
-    observer::Connection connect(T* instance)
+    void connect(T* instance)
     {
-        return insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
+        insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
     /* connect to a member method of a class T passed by ref*/
     template <typename T, RT(T::*mem_ptr)(Args...)>
-    observer::Connection connect(T& instance)
+    void connect(T& instance)
     {
-        return connect<mem_ptr, T>(std::addressof(instance));
+        connect<mem_ptr, T>(std::addressof(instance));
     }
     /* connect to a member const method of a class T passed by ref */
     template <typename T, RT(T::*mem_ptr)(Args...) const>
-    observer::Connection connect(T& instance)
+    void connect(T& instance)
     {
-        return connect<mem_ptr, T>(std::addressof(instance));
+        connect<mem_ptr, T>(std::addressof(instance));
     }
     /* implementions detail of the connection to a member method of a class T passed by pointer*/
     template <auto mem_ptr, typename T>
-    observer::Connection connect(T* instance)
+    void connect(T* instance)
     {
-        return insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
+        insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
     /* implementions detail of the connection to a member method of a class T passed by ref*/
     template <auto mem_ptr, typename T>
-    observer::Connection connect(T& instance)
+    void connect(T& instance)
     {
-        return connect<mem_ptr, T>(std::addressof(instance));
+        connect<mem_ptr, T>(std::addressof(instance));
     }
     /* implementions detail of the connection to a functor ptr */
     template <auto mem_ptr>
-    observer::Connection connect()
+    void connect()
     {
-        return observer::insert(function::template bind<mem_ptr>(), this);
+        observer::insert(function::template bind<mem_ptr>(), this);
     }
 
     //----------------------------------------------------------------DISCONNECT

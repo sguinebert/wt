@@ -3,39 +3,70 @@
 #include <array>
 #include <cstdint>
 #include <functional>
-#include <boost/asio.hpp>
+#include <future>
+//#include <Wt/AsioWrapper/asio.hpp>
 
 namespace Nano
 {
 
-template<typename T>
+namespace internal
+{
+// Helper to detect operator co_await
+template <typename T, typename = void>
+struct has_operator_co_await : std::false_type {};
+
+template <typename T>
+struct has_operator_co_await<T, std::void_t<decltype(std::declval<T>().operator co_await())>> : std::true_type {};
+
+// Helper to detect await_resume
+template <typename T, typename = void>
+struct has_await_resume : std::false_type {};
+
+template <typename T>
+struct has_await_resume<T, std::void_t<decltype(std::declval<T>().await_resume())>> : std::true_type {};
+
+}  // end namespace internal
+
+//default
+template<typename T, typename = void>
 struct contains_awaitable : std::false_type {};
 
-template<typename R>
-struct contains_awaitable<boost::asio::awaitable<R>> : std::true_type {};
+// Specialization for types with operator co_await or for types with await_resume
+template <typename T>
+struct contains_awaitable<T, std::enable_if_t<internal::has_operator_co_await<T>::value ||
+                                              internal::has_await_resume<T>::value>> : std::true_type {};
+
+// Check for std::future specializations
+template<typename T>
+struct contains_awaitable<std::future<T>> : std::true_type {};
+
+// Check for boost::asio::awaitable specializations
+//template<typename R>
+//struct contains_awaitable<boost::asio::awaitable<R>> : std::true_type {};
+
+template <typename R>
+inline constexpr bool is_awaitable_type_v = contains_awaitable<R>::value;
 
 template<typename Func>
 struct contains_awaitable_impl {
     static constexpr bool value = false;
 };
 
-template<typename R, typename... Args>
-struct contains_awaitable_impl<boost::asio::awaitable<R>(Args...)> : std::true_type {};
+//template<typename R, typename... Args>
+//struct contains_awaitable_impl<boost::asio::awaitable<R>(Args...)> : std::true_type {};
 
 template<typename R, typename... Args>
 struct contains_awaitable_impl<R(Args...)> : contains_awaitable<R> {};
 
-//template <typename _Ty, typename... _Args>
-//using is_awaitable_function2 = std::is_convertible<std::decay_t<_Ty>, std::function<boost::asio::awaitable<void>(void*, _Args...)>>;
-
 template <typename R, typename... _Args>
-inline constexpr bool is_awaitable_function_v = contains_awaitable_impl<R(_Args...)>::value;
-
-template <typename _Ty, typename... _Args>
-using is_awaitable_function = std::is_convertible<std::decay_t<_Ty>, std::function<boost::asio::awaitable<void>(_Args...)>>;
+inline constexpr bool is_awaitable_v = contains_awaitable_impl<R(_Args...)>::value;
 
 template <typename F>
-struct function_traits : public function_traits<decltype(&std::decay_t<F>::operator())> {};
+struct function_traits : public function_traits<decltype(&std::decay_t<F>::operator())>
+{
+//    using return_type = std::invoke_result_t<F>;
+//    inline static bool constexpr value = contains_awaitable<return_type>::value;
+};
 
 // Specialization for std::bind
 #if defined _LIBCPP_VERSION  // libc++ (Clang)
@@ -83,7 +114,7 @@ struct function_traits<R (C::*)(Args...) const>
 };
 
 template <typename F>
-constexpr bool is_awaitable_lambda_v = function_traits<F>::value;
+constexpr bool is_awaitable_callable_v = function_traits<F>::value;
 
 template <typename F>
 using is_awaitable_lambda_t = function_traits<F>::function_traits::function_type;
@@ -117,7 +148,7 @@ class Function<RT(Args...)> final
     static inline Function bind()
     {
         using f_type = std::remove_pointer_t<std::remove_reference_t<decltype(fun_ptr)>>;
-        if constexpr(contains_awaitable_impl<RT(Args...)>::value && !contains_awaitable_impl<f_type>::value)
+        if constexpr(is_awaitable_type_v<RT> && !is_awaitable_callable_v<f_type>)
         {
             return
                 {
@@ -149,7 +180,7 @@ class Function<RT(Args...)> final
     static inline Function bind(T* pointer)
     {
         using f_type = std::remove_pointer_t<std::remove_reference_t<decltype(mem_ptr)>>;
-        if constexpr(contains_awaitable_impl<RT(Args...)>::value && !is_awaitable_lambda_v<f_type>)
+        if constexpr(is_awaitable_type_v<RT> && !is_awaitable_callable_v<f_type>)
         {
             return
                 {
@@ -181,7 +212,7 @@ class Function<RT(Args...)> final
     static inline Function bind(L* pointer)
     {//std::is_convertible_v<RT, boost::asio::awaitable<void>>
         using ReturnType = std::invoke_result_t<L, Args...>;
-        if constexpr(contains_awaitable_impl<RT(Args...)>::value && (/*!is_awaitable_lambda_v<L> &&*/ !contains_awaitable<ReturnType>::value)) {
+        if constexpr(is_awaitable_type_v<RT> && (/*!is_awaitable_lambda_v<L> &&*/ !is_awaitable_type_v<ReturnType>)) {
             return
                 {
                     pointer, [](void* this_ptr, Args&&... args) -> RT

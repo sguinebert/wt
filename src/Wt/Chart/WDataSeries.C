@@ -65,8 +65,9 @@ WDataSeries::WDataSeries(int modelColumn, SeriesType type, int axis)
 WDataSeries::~WDataSeries()
 {
   if (model_) {
-    for (unsigned i = 0; i < modelConnections_.size(); ++i)
-      modelConnections_[i].disconnect();
+//    for (unsigned i = 0; i < modelConnections_.size(); ++i)
+//      modelConnections_[i].disconnect();
+       model_->changed().disconnect<&WDataSeries::modelReset>(this);
   }
 }
 
@@ -346,21 +347,22 @@ void WDataSeries::setModel(const std::shared_ptr<WAbstractChartModel>& model)
 {
   if (model_) {
     /* disconnect slots from previous model */
-    for (unsigned i = 0; i < modelConnections_.size(); ++i)
-      modelConnections_[i].disconnect();
+//    for (unsigned i = 0; i < modelConnections_.size(); ++i)
+//      modelConnections_[i].disconnect();
 
-    modelConnections_.clear();
+//    modelConnections_.clear();
+    model_->changed().disconnect<&WDataSeries::modelReset>(this);
   }
 
   model_ = model;
 
-  if (model_) {
-#ifdef WT_TARGET_JAVA
-    modelConnections_.push_back(model_->changed().connect(this, std::bind(&WDataSeries::modelReset, this)));
-#else // !WT_TARGET_JAVA
-    modelConnections_.push_back(model_->changed().connect<&WDataSeries::modelReset>(this));
-#endif // WT_TARGET_JAVA
-  }
+//  if (model_) {
+//#ifdef WT_TARGET_JAVA
+//    modelConnections_.push_back(model_->changed().connect(this, std::bind(&WDataSeries::modelReset, this)));
+//#else // !WT_TARGET_JAVA
+//    modelConnections_.push_back(model_->changed().connect<&WDataSeries::modelReset>(this));
+//#endif // WT_TARGET_JAVA
+//  }
 
   if (chart_)
     chart_->update();

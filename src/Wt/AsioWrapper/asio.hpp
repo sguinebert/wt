@@ -47,6 +47,12 @@ extern thread_local boost::asio::io_context* thread_context;
 
 #else // WT_ASIO_IS_STANDALONE_ASIO
 
+#define ASIO_HAS_IO_URING 1
+#define BOOST_ASIO_HAS_IO_URING 1
+#define ASIO_DISABLE_EPOLL 1
+#define BOOST_ASIO_DISABLE_EPOLL 1
+#define BOOST_ASIO_HAS_FILE 1
+
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/stream_file.hpp>
@@ -71,11 +77,6 @@ inline thread_local asio::io_context* thread_context = nullptr;
 #endif
 
 #endif // WT_ASIO_IS_BOOST_ASIO
-
-static boost::asio::io_context* get_thread_context() {
-    asm volatile("":::"memory");
-    return thread_context;
-}
 
 #include "namespace.hpp"
 
