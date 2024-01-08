@@ -7,10 +7,6 @@
 namespace Nano
 {
 
-//namespace Signals {
-//    using Connection = Observer<MT_Policy>::Connection;
-//}
-
 template <typename R>
 struct is_asio_awaitable : std::false_type {};
 
@@ -70,7 +66,7 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     {
         return observer::insert(function::template bind(instance), this);
     }
-    /* connect to a lambda passed by r or l-value */
+    /* connect to a lambda or std::bind callable object passed by r or l-value */
     template <typename L>
     observer::Connection connect(L&& instance)
     {
@@ -79,11 +75,12 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
         if constexpr(std::is_lvalue_reference_v<L>) {
             return connect(std::addressof(instance));
         }
-        /* the size of the object L is less than the size of a pointer */
+        /* the size of the object L is less or equal than the size of a pointer : rational -> if the size is a pointer then no internal state present in the lambda so no save needed on the heap */
 //        else if constexpr (sizeof(std::remove_pointer_t<L>) <= sizeof(void*))
 //        {
+//            return connect(std::addressof(instance));
 //        }
-        /* allocate & copy the lambda in the heap and keep shared_ptr in std::any inside Connection*/
+        /* allocate & copy the lambda on the heap and keep shared_ptr alive in a std::any object inside a Connection object*/
         else {
             using f_type = std::remove_pointer_t<std::remove_reference_t<L>>;
 
@@ -105,6 +102,7 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
         /* the size of the object L is less than the size of a pointer */
         //        else if constexpr (sizeof(std::remove_pointer_t<L>) <= sizeof(void*))
         //        {
+        //            return insert_sfinae<T>(function::template bind<std::addressof(func)>(instance), instance);
         //        }
         /* allocate & copy the lambda in the heap and keep shared_ptr in std::any inside Connection*/
         else {

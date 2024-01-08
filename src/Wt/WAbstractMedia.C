@@ -467,14 +467,16 @@ WAbstractMedia::Source::Source(WAbstractMedia *parent,
     connection = link.resource()->dataChanged().connect
       (this, std::bind(&Source::resourceChanged, this));
 #else // !WT_TARGET_JAVA
-    connection = link.resource()->dataChanged().connect<&Source::resourceChanged>(this);
+    //connection;
+    link.resource()->dataChanged().connect<&Source::resourceChanged>(this);
 #endif // WT_TARGET_JAVA
   }
 }
 
 WAbstractMedia::Source::~Source()
 {
-  connection.disconnect();
+  link.resource()->dataChanged().disconnect<&Source::resourceChanged>(this);
+  //connection.disconnect();
 }
 
 void WAbstractMedia::Source::resourceChanged()

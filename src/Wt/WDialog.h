@@ -456,8 +456,8 @@ private:
   DialogCode result_;
   bool recursiveEventLoop_;
 
-  Wt::Signals::connection escapeConnection1_, escapeConnection2_,
-    enterConnection1_, enterConnection2_;
+//  Wt::Signals::connection escapeConnection1_, escapeConnection2_,
+//    enterConnection1_, enterConnection2_;
 
   void create();
   awaitable<void> onEscapePressed();

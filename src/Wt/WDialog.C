@@ -615,10 +615,10 @@ void WDialog::setHidden(bool hidden, const WAnimation& animation)
 	for (int i = 0; i < footer()->count(); ++i) {
 	  WPushButton *b = dynamic_cast<WPushButton *>(footer()->widget(i));
       if (b && b->isDefault()) {
-          enterConnection1_ ;
+          //enterConnection1_ ;
           enterPressed().connect<&WDialog::onDefaultPressed>(this);
 
-          enterConnection2_ ;
+          //enterConnection2_ ;
             impl_->enterPressed().connect<&WDialog::onDefaultPressed>(this);
 	    break;
 	  }
@@ -628,22 +628,27 @@ void WDialog::setHidden(bool hidden, const WAnimation& animation)
       if (escapeIsReject_) {
         if (isModal()) {
 #warning "connection pb"
-      escapeConnection1_ ;
+      //escapeConnection1_ ;
             escapePressed().connect<&WDialog::onEscapePressed>(this);
         } else {
-            escapeConnection1_ ;
+            //escapeConnection1_ ;
             WApplication::instance()->globalEscapePressed()
                 .connect<&WDialog::onEscapePressed>(this);
         }
 
-        escapeConnection2_ ;
+        //escapeConnection2_ ;
         impl_->escapePressed().connect<&WDialog::onEscapePressed>(this);
       }
     } else {
-      escapeConnection1_.disconnect();
-      escapeConnection2_.disconnect();
-      enterConnection1_.disconnect();
-      enterConnection2_.disconnect();
+      escapePressed().disconnect<&WDialog::onEscapePressed>(this);
+      WApplication::instance()->globalEscapePressed().disconnect<&WDialog::onEscapePressed>(this);
+      impl_->escapePressed().disconnect<&WDialog::onEscapePressed>(this);
+      enterPressed().disconnect<&WDialog::onDefaultPressed>(this);
+      impl_->enterPressed().disconnect<&WDialog::onDefaultPressed>(this);
+//      escapeConnection1_.disconnect();
+//      escapeConnection2_.disconnect();
+//      enterConnection1_.disconnect();
+//      enterConnection2_.disconnect();
     }
 
     DialogCover *c = cover();

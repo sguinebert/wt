@@ -189,9 +189,9 @@ void EventSignalBase::disconnect(JSlot &slot)
 }
 #endif
 
-void EventSignalBase::disconnect(Wt::Signals::connection& conn)
+void EventSignalBase::disconnect(/*Wt::Signals::connection& conn*/)
 {
-  conn.disconnect();
+  //conn.disconnect();
 
   if (flags_.test(BIT_EXPOSED))
     if (!isConnected()) {
@@ -262,15 +262,16 @@ EventSignalBase::~EventSignalBase()
   }
 }
 
-#ifndef WT_CNOR
 Wt::Signals::connection
 EventSignalBase::connectStateless(WObject::Method method,
                                   WObject *target,
                                   WStatelessSlot *slot)
 {
-
-  //auto c = dummy_.connect<&WObject::Method>(target);
-  Wt::Signals::connection c = dummy_.connect(std::bind(method, target), target);
+#warning "TODO finish implementation"
+  Wt::Signals::connection c;
+  dummy_.connect(std::bind(method, target));
+  //auto c = dummy_. template connect<method>(target);
+  //Wt::Signals::connection c = dummy_.connect(std::bind(method, target), target);
   if (slot->addConnection(this))
     connections_.push_back(StatelessConnection(c, target, slot));
 
@@ -278,7 +279,6 @@ EventSignalBase::connectStateless(WObject::Method method,
 
   return c;
 }
-#endif // WT_CNOR
 
 void EventSignalBase::connect(JSlot& slot)
 {

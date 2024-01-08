@@ -167,7 +167,7 @@ private:
   WLineEdit *edit_;
   WPushButton *save_, *cancel_;
   WString placeholderText_;
-  Wt::Signals::connection c2_;
+  //Wt::Signals::connection c2_;
   bool empty_;
 };
 

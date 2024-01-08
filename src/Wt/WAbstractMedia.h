@@ -213,7 +213,7 @@ private:
     void resourceChanged();
 
     WAbstractMedia *parent;
-    Wt::Observer::Connection connection;
+    //Wt::Observer::Connection connection;
     std::string type, media;
     WLink link;
   };

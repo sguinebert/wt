@@ -187,7 +187,7 @@ awaitable<void> WTree::nodeRemoved(WTreeNode *node)
 {
   co_await select(node, false);
 
-  node->clickedConnection_.disconnect();
+  //node->clickedConnection_.disconnect();
 
   for (unsigned i = 0; i < node->childNodes().size(); ++i)
     co_await nodeRemoved(node->childNodes()[i]);
@@ -203,10 +203,11 @@ void WTree::nodeAdded(WTreeNode * const node)
     else
       w = node->label();
 
-    node->clickedConnection_ = w->clicked().connect(this, std::bind(&WTree::onClick,
-                                                                    this,
-                                                                    node,
-                                                                    std::placeholders::_1));
+    //node->clickedConnection_ ;
+    w->clicked().connect(this, std::bind(&WTree::onClick,
+                                         this,
+                                         node,
+                                         std::placeholders::_1));
     w->clicked().preventPropagation();
 
     for (unsigned i = 0; i < node->childNodes().size(); ++i)

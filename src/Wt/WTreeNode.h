@@ -395,7 +395,7 @@ private:
   static const char* imagePlusRtl_;
   static const char* imageMinRtl_;
 
-  Wt::Signals::connection clickedConnection_;
+  //Wt::Signals::connection clickedConnection_;
   friend class WTree;
 };
 

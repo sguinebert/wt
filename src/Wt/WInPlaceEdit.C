@@ -142,7 +142,8 @@ void WInPlaceEdit::cancel()
 void WInPlaceEdit::setButtonsEnabled(bool enabled)
 {
   if (enabled && !save_) {
-    c2_.disconnect();
+    //c2_.disconnect();
+    edit_->blurred().disconnect<&WInPlaceEdit::save>(this);
 
     auto app = WApplication::instance();
     auto bs5Theme = std::dynamic_pointer_cast<WBootstrap5Theme>(app->theme());
@@ -178,8 +179,9 @@ void WInPlaceEdit::setButtonsEnabled(bool enabled)
     save_ = nullptr;
     cancel_ = nullptr;
 
-#warning "c2_ "
-    c2_ ; edit_->blurred().connect<&WInPlaceEdit::save>(this);
+//#warning "c2_ "
+    //c2_ ;
+    edit_->blurred().connect<&WInPlaceEdit::save>(this);
   }
 }
 
