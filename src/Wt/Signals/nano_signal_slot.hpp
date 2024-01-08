@@ -7,15 +7,6 @@
 namespace Nano
 {
 
-template <typename R>
-struct is_asio_awaitable : std::false_type {};
-
-template <typename R>
-struct is_asio_awaitable<boost::asio::awaitable<R>> : std::true_type {};
-
-template <typename R>
-inline constexpr bool is_asio_awaitable_v = is_asio_awaitable<R>::value;
-
 template <typename RT, typename MT_Policy = ST_Policy>
 class Signal;
 template <typename RT, typename MT_Policy, typename... Args>
@@ -25,11 +16,11 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     using function = Function<RT(Args...)>;
 
     template <typename T>
-    observer::Connection insert_sfinae(Delegate_Key const& key, typename T::Observer* instance)
+    void insert_sfinae(Delegate_Key const& key, typename T::Observer* instance)
     {
         auto conn = observer::insert(key, instance);
         instance->insert(key, this);
-        return conn;
+        //return conn;
     }
     template <typename T>
     void remove_sfinae(Delegate_Key const& key, typename T::Observer* instance)
@@ -38,9 +29,9 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
         instance->remove(key);
     }
     template <typename T>
-    observer::Connection insert_sfinae(Delegate_Key const& key, ...)
+    void insert_sfinae(Delegate_Key const& key, ...)
     {
-        return observer::insert(key, this);
+        observer::insert(key, this);
     }
     template <typename T>
     void remove_sfinae(Delegate_Key const& key, ...)
@@ -59,12 +50,25 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     Signal(Signal&&) noexcept = default;
     Signal& operator=(Signal&&) noexcept = default;
 
+    template <auto mem_ptr, typename T>
+    Observer<MT_Policy>::Connection make_Connection(T* instance)
+    {
+        Delegate_Key key = function::template bind<mem_ptr>(instance);
+        return Observer<MT_Policy>::Connection(key, this);
+    }
+    template <typename L>
+    Observer<MT_Policy>::Connection make_Connection(L* function)
+    {
+        Delegate_Key key = function::template bind(function);
+        return Observer<MT_Policy>::Connection(key, this);
+    }
+
     //-------------------------------------------------------------------CONNECT
 
     template <typename L>
-    observer::Connection connect(L* instance)
+    void connect(L* instance)
     {
-        return observer::insert(function::template bind(instance), this);
+        observer::insert(function::template bind(instance), this);
     }
     /* connect to a lambda or std::bind callable object passed by r or l-value */
     template <typename L>
@@ -73,7 +77,8 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
 
         /* it is a reference to a functor (example a lambda passed by ref) - you need to watch the lifetime of the lambda */
         if constexpr(std::is_lvalue_reference_v<L>) {
-            return connect(std::addressof(instance));
+            connect(std::addressof(instance));
+            return typename observer::Connection(function::template bind(std::addressof(instance)), this);
         }
         /* the size of the object L is less or equal than the size of a pointer : rational -> if the size is a pointer then no internal state present in the lambda so no save needed on the heap */
 //        else if constexpr (sizeof(std::remove_pointer_t<L>) <= sizeof(void*))
@@ -87,7 +92,8 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
             //auto shrd = std::shared_ptr<f_type>(new f_type(std::move(instance)));
             auto shrd = std::make_shared<f_type>(std::move(instance));
             //std::cerr << "test rvalue lambda store and call " << std::addressof(*shrd) << " // " << shrd.get() << std::endl;
-            return observer::insert(function::template bind(shrd.get()), this, std::move(shrd));
+            observer::insert(function::template bind(shrd.get()), this, std::move(shrd));
+            return typename observer::Connection(function::template bind(shrd.get()), this);
         }
     }
     template <typename L, typename T>
@@ -96,7 +102,8 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
 
         /* it is a reference to a functor (example a lambda passed by ref) - you need to watch the lifetime of the lambda */
         if constexpr(std::is_lvalue_reference_v<L>) {
-            return insert_sfinae<T>(function::template bind<std::addressof(func)>(instance), instance);
+            insert_sfinae<T>(function::template bind<std::addressof(func)>(instance), instance);
+            return typename observer::Connection(function::template bind(std::addressof(func)), this);
             //return connect(std::addressof(func), instance);
         }
         /* the size of the object L is less than the size of a pointer */
@@ -112,8 +119,9 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
             //auto shrd = std::shared_ptr<f_type>(new f_type(std::move(instance)));
             auto shrd = std::make_shared<f_type>(std::move(instance));
             //std::cerr << "test rvalue lambda store and call " << std::addressof(*shrd) << " // " << shrd.get() << std::endl;
-            return insert_sfinae<T>(function::template bind<shrd.get()>(instance), instance);
+            insert_sfinae<T>(function::template bind<shrd.get()>(instance), instance);
             //return observer::insert(function::template bind(shrd.get()), this, std::move(shrd));
+            return typename observer::Connection(function::template bind(shrd.get()), this);
         }
     }
 
@@ -221,43 +229,17 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     //----------------------------------------------------FIRE / FIRE ACCUMULATE
 
     template <typename... Uref>
-    requires(!is_asio_awaitable_v<RT>)
+    requires(!is_awaitable_type_v<RT>)
     void emit(Uref&&... args)
     {
         observer::template for_each<function>(std::forward<Uref>(args)...);
     }
 
     template <typename... Uref>
-    requires(is_asio_awaitable_v<RT>)
-    //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
-    boost::asio::awaitable<void>
-    emit(Uref&&... args)
-    {
-        co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
-    }
-
-    template <typename... Uref>
-        requires(is_asio_awaitable_v<RT>)
-    //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
-    boost::asio::awaitable<void>
-    emit(Uref&&... args) const
-    {
-        co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
-    }
-
-    template <typename... Uref>
-        requires(!is_asio_awaitable_v<RT>)
+    requires(!is_awaitable_type_v<RT>)
     void operator()(Uref&&... args)
     {
         observer::template for_each<function>(std::forward<Uref>(args)...);
-    }
-
-    template <typename... Uref>
-    //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
-    boost::asio::awaitable<void>
-    operator()(Uref&&... args)
-    {
-        co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
     }
 
     template <typename Accumulate, typename... Uref>
@@ -266,6 +248,41 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
         observer::template for_each_accumulate<function, Accumulate>
             (std::forward<Accumulate>(accumulate), std::forward<Uref>(args)...);
     }
+
+#if __has_include("boost/asio.hpp") || __has_include("asio.hpp")
+    template <typename... Uref>
+    requires(is_awaitable_type_v<RT>)
+    //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
+    asio::awaitable<void>
+    emit(Uref&&... args)
+    {
+        co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
+    }
+    template <typename... Uref>
+        requires(is_awaitable_type_v<RT>)
+    //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
+    asio::awaitable<void>
+    emit(Uref&&... args) const
+    {
+        co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
+    }
+
+    template <typename... Uref>
+    //std::enable_if_t<is_asio_awaitable_v<RT>, boost::asio::awaitable<void>>
+    asio::awaitable<void>
+    operator()(Uref&&... args)
+    {
+        co_await observer::template coro_for_each<function>(std::forward<Uref>(args)...);
+    }
+//    template <typename Accumulate, typename... Uref>
+//    asio::awaitable<void> fire_accumulate(Accumulate&& accumulate, Uref&&... args)
+//    {
+//        observer::template for_each_accumulate<function, Accumulate>
+//            (std::forward<Accumulate>(accumulate), std::forward<Uref>(args)...);
+//    }
+#endif
+
+
 };
 
 } // namespace Nano ------------------------------------------------------------

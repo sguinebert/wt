@@ -45,7 +45,7 @@ void EventSignalBase::free(void *s)
 }
 
 EventSignalBase
-::StatelessConnection::StatelessConnection(const Wt::Signals::connection& c,
+::StatelessConnection::StatelessConnection(const Wt::Signals::Connection& c,
                                            WObject *t,
                                            WStatelessSlot *s)
   : connection(c),
@@ -262,14 +262,14 @@ EventSignalBase::~EventSignalBase()
   }
 }
 
-Wt::Signals::connection
-EventSignalBase::connectStateless(WObject::Method method,
+Wt::Signals::Connection
+EventSignalBase::connectStateless(Wt::Signals::Connection c,
                                   WObject *target,
                                   WStatelessSlot *slot)
 {
-#warning "TODO finish implementation"
-  Wt::Signals::connection c;
-  dummy_.connect(std::bind(method, target));
+//#warning "TODO finish implementation"
+  //Wt::Signals::connection c;
+  //dummy_.connect(std::bind(method, target));
   //auto c = dummy_. template connect<method>(target);
   //Wt::Signals::connection c = dummy_.connect(std::bind(method, target), target);
   if (slot->addConnection(this))
@@ -285,7 +285,7 @@ void EventSignalBase::connect(JSlot& slot)
   WStatelessSlot *s = slot.slotimp();
 
   if (s->addConnection(this)) {
-    Wt::Signals::connection c;
+    Wt::Signals::Connection c;
     connections_.push_back(StatelessConnection(c, nullptr, s));
 
     ownerRepaint();
@@ -294,7 +294,7 @@ void EventSignalBase::connect(JSlot& slot)
 
 void EventSignalBase::connect(const std::string& javaScript)
 {
-  Wt::Signals::connection c;
+  Wt::Signals::Connection c;
 
   int argc = argumentCount(); // user arguments, excluding 'e'
 
@@ -318,7 +318,7 @@ bool EventSignalBase::isConnected() const
   if (!result) {
     for (unsigned i = 0; i < connections_.size(); ++i) {
       if (connections_[i].target == nullptr)
-	return true;
+        return true;
     }
   }
 

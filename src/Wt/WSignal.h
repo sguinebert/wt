@@ -106,60 +106,6 @@ namespace Signals {
    \endif
 */
 
-/*! \brief Abstract base class of a signal.
- *
- * Base class for all signals.
- *
- * \ingroup signalslot
- */
-class WT_API SignalBase
-{
-public:
-  virtual ~SignalBase();
-
-  /*! \brief Returns whether this signal is connected.
-   *
-   * Returns true when the signal was connected to to at least one slot.
-   */
-  virtual bool isConnected() const = 0;
-
-  /*! \brief Connects to a slot.
-   *
-   * Every signal can be connected to a slot which does not take any
-   * arguments (and may thus ignore signal arguments).
-   */
-//  virtual Wt::Signals::connection connect(WObject *target, WObject::Method method) = 0;
-
-//  virtual Wt::Signals::connection connect(WObject *target, WObject::AsyncMethod method) = 0;
-
-  /*! \brief Connects to a slot.
-   *
-   * Every signal can be connected to a slot which does not take any
-   * arguments (and may thus ignore signal arguments).
-   */
-  template<class T, class V>
-  Wt::Signals::connection connect(T *target, void (V::*method)())
-  {
-      WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
-      assert(o);
-      return connect(o, static_cast<WObject::Method>(method));
-  }
-
-  template<class T, class V>
-  Wt::Signals::connection connect(T *target, awaitable<void> (V::*method)())
-  {
-      WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
-      assert(o);
-      return connect(o, static_cast<WObject::AsyncMethod>(method));
-  }
-
-
-protected:
-  SignalBase();
-
-private:
-  SignalBase(const SignalBase& other);
-};
 
 /*
  * Normal signals wrap simply around boost signals
@@ -240,12 +186,73 @@ private:
 
 /* Creating aliases when using nano-signal-slot will increase the maintainability of your code
  * especially if you are choosing to use the alternative policies.*/
-using NanoPolicy = ::Nano::ST_Policy_Safe;
+using NanoPolicy = ::Nano::ST_Policy;
 
 template <class... A>
 using Signal = ::Nano::Signal<A...> ;
 
 using Observer = ::Nano::Observer<NanoPolicy>;
+
+namespace Signals {
+using Connection = ::Nano::Observer<NanoPolicy>::Connection;
+}
+
+
+/*! \brief Abstract base class of a signal.
+ *
+ * Base class for all signals.
+ *
+ * \ingroup signalslot
+ */
+class WT_API SignalBase
+{
+public:
+  virtual ~SignalBase();
+
+  /*! \brief Returns whether this signal is connected.
+   *
+   * Returns true when the signal was connected to to at least one slot.
+   */
+  virtual bool isConnected() const = 0;
+
+  /*! \brief Connects to a slot.
+   *
+   * Every signal can be connected to a slot which does not take any
+   * arguments (and may thus ignore signal arguments).
+   */
+//  virtual Wt::Signals::connection connect(WObject *target, WObject::Method method) = 0;
+
+//  virtual Wt::Signals::connection connect(WObject *target, WObject::AsyncMethod method) = 0;
+
+  /*! \brief Connects to a slot.
+   *
+   * Every signal can be connected to a slot which does not take any
+   * arguments (and may thus ignore signal arguments).
+   */
+  template<class T, class V>
+  Wt::Signals::Connection connect(T *target, void (V::*method)())
+  {
+      WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
+      assert(o);
+      return connect(o, static_cast<WObject::Method>(method));
+  }
+
+  template<class T, class V>
+  Wt::Signals::Connection connect(T *target, awaitable<void> (V::*method)())
+  {
+      WObject *o = dynamic_cast<WObject *>(dynamic_cast<V *>(target));
+      assert(o);
+      return connect(o, static_cast<WObject::AsyncMethod>(method));
+  }
+
+
+protected:
+  SignalBase();
+
+private:
+  SignalBase(const SignalBase& other);
+};
+
 
 
 /*! \brief Abstract base class of an event signal.
@@ -318,7 +325,7 @@ public:
                                         const std::string& eventName,
                                         std::initializer_list<std::string> args) const;
 
-  Wt::Signals::connection connectStateless(WObject::Method method,
+  Wt::Signals::Connection connectStateless(Wt::Signals::Connection c,
                                            WObject *target,
                                            WStatelessSlot *slot);
   using SignalBase::connect;
@@ -330,13 +337,13 @@ public:
 
 protected:
   struct StatelessConnection {
-    Wt::Signals::connection connection;
+    Wt::Signals::Connection connection;
     WObject *target;
     WStatelessSlot *slot;
 
     bool ok() const;
 
-    StatelessConnection(const Wt::Signals::connection& c, WObject *target, WStatelessSlot *slot);
+    StatelessConnection(const Wt::Signals::Connection& c, WObject *target, WStatelessSlot *slot);
   };
 
   static const int BIT_NEED_UPDATE = 0;
@@ -480,31 +487,36 @@ public:
 //  }
 
   template <class F>
-  Wt::Signals::connection connect(F function)
+  Wt::Signals::Connection connect(F function)
   {
      exposeSignal();
      if constexpr(std::is_function_v<F>) {
         dynamic_. template connect<&function>();
      }
      else {
-        dynamic_.connect(function);
+        return dynamic_.connect(function);
      }
-     return Wt::Signals::connection();
+     return Wt::Signals::Connection();
   }
 
   template <class F>
-  Wt::Signals::connection connect(const WObject *target, F function)
+  Wt::Signals::Connection connect(const WObject *target, F function)
   {
     exposeSignal();
 
      if constexpr(std::is_function_v<F>) {
         dynamic_. template connect<&function>(target);
+
+        //Nano::Delegate_Key key { target, function };
+        auto conn = dynamic_. template make_Connection<&function>(target);
+        //Wt::Signals::Connection conn(key, (Nano::Observer<NanoPolicy>*)target);
+        return conn;
      }
      else {
-        dynamic_.connect(function);
+         return dynamic_.connect(function);
      }
 
-    return Wt::Signals::connection();
+    return Wt::Signals::Connection();
     //return Signals::Impl::connectFunction<F, E>(dynamic_, std::move(function), target);
   }
 
@@ -540,7 +552,11 @@ public:
 
         if (s) {
             dummy_. template connect<memptr>(target);
-            EventSignalBase::connectStateless(static_cast<WObject::Method>(memptr), o, s);
+            //implement DelegateKey
+//            Nano::Delegate_Key key { (std::uintptr_t)target, (std::uintptr_t)memptr };
+//            Wt::Signals::Connection conn(key, target);
+            auto conn = dummy_. template make_Connection<memptr>(target);
+            EventSignalBase::connectStateless(conn, o, s);
             return;
         }
     }

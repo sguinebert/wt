@@ -252,18 +252,18 @@ public:
   }
 
   template<class F>
-  Wt::Signals::connection connect(F function)
+  Wt::Signals::Connection connect(F function)
   {
       exposeSignal();
 
       impl_.connect(function);
 
-      return Wt::Signals::connection();
+      return Wt::Signals::Connection();
       //return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), nullptr);
   }
 
   template<class F>
-  Wt::Signals::connection connect(const WObject *target, F function)
+  Wt::Signals::Connection connect(const WObject *target, F function)
   {
       exposeSignal();
 
@@ -274,7 +274,7 @@ public:
           impl_.connect(function);//TODO : need the observer
       }
 
-      return Wt::Signals::connection();
+      return Wt::Signals::Connection();
       //return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), target);
   }
 

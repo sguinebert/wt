@@ -16,13 +16,13 @@
 
 using namespace Wt;
 
-namespace {
-  void clearConnections(std::vector<Wt::Signals::connection> connections) {
-    for (unsigned i=0; i < connections.size(); i++)
-      connections[i].disconnect();
-    connections.clear();
-  }
-}
+//namespace {
+//  void clearConnections(std::vector<Wt::Signals::connection> connections) {
+//    for (unsigned i=0; i < connections.size(); i++)
+//      connections[i].disconnect();
+//    connections.clear();
+//  }
+//}
 
 namespace Wt {
   namespace Chart {

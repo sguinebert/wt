@@ -5,8 +5,14 @@
 
 #include "nano_function.hpp"
 #include "nano_mutex.hpp"
-#include <boost/asio.hpp>
 #include <iostream>
+
+#if __has_include("boost/asio.hpp")
+#include <boost/asio.hpp>
+using namespace boost;
+#elif defined(ASIO_HPP)
+#include <asio.hpp>
+#endif
 
 namespace Nano
 {
@@ -56,16 +62,20 @@ public:
             return *this;
         }
 
-
         void disconnect() noexcept {
-//            if (auto observed = observer->visiting(observer))
-//            {
-//                auto ptr = static_cast<Observer*>(observer->unmask(observer));
-//                ptr->remove(delegate);
-//            }
+            if (auto observed = observer->visiting(observer))
+            {
+                auto ptr = static_cast<Observer*>(observer->unmask(observer));
+                ptr->remove(delegate);
+            }
         }
         bool isConnected() const noexcept {
-            return true; //observer->unmask(observer);
+            if (auto observed = observer->visiting(observer))
+            {
+                auto ptr = static_cast<Observer*>(observer->unmask(observer));
+                return ptr->nolock_isConnected(delegate);
+            }
+            return false;
         }
     };
 private:
@@ -103,6 +113,17 @@ private:
     std::vector<Connection> connections;
 
     //--------------------------------------------------------------------------
+    bool nolock_isConnected(Delegate_Key const& key) const noexcept
+    {
+//        auto begin = std::begin(connections);
+//        auto end = std::end(connections);
+
+        for (auto& conn : connections) {
+            if(conn.delegate[0] == key[0] && conn.delegate[1] == key[1])
+                return true;
+        }
+        return false;
+    }
 
     Connection nolock_insert(Delegate_Key const& key, Observer* obs)
     {
@@ -161,7 +182,37 @@ private:
     }
 
     template <typename Function, typename... Uref>
-    boost::asio::awaitable<void> coro_for_each(Uref&&... args)
+    void for_each(Uref&&... args) const
+    {
+        [[maybe_unused]]
+        auto lock = MT_Policy::lock_guard();
+
+        for (auto const& slot : MT_Policy::copy_or_ref(connections, lock))
+        {
+            if (auto observer = MT_Policy::observed(slot.observer))
+            {
+                Function::bind(slot.delegate)(args...);
+            }
+        }
+    }
+    template <typename Function, typename Accumulate, typename... Uref>
+    void for_each_accumulate(Accumulate&& accumulate, Uref&&... args)
+    {
+        [[maybe_unused]]
+        auto lock = MT_Policy::lock_guard();
+
+        for (auto const& slot : MT_Policy::copy_or_ref(connections, lock))
+        {
+            if (auto observer = MT_Policy::observed(slot.observer))
+            {
+                accumulate(Function::bind(slot.delegate)(args...));
+            }
+        }
+    }
+
+#if __has_include("boost/asio.hpp") || __has_include("asio.hpp")
+    template <typename Function, typename... Uref>
+    asio::awaitable<void> coro_for_each(Uref&&... args)
     {
         [[maybe_unused]]
         auto lock = MT_Policy::lock_guard();
@@ -177,22 +228,7 @@ private:
     }
 
     template <typename Function, typename... Uref>
-    void for_each(Uref&&... args) const
-    {
-        [[maybe_unused]]
-        auto lock = MT_Policy::lock_guard();
-
-        for (auto const& slot : MT_Policy::copy_or_ref(connections, lock))
-        {
-            if (auto observer = MT_Policy::observed(slot.observer))
-            {
-                Function::bind(slot.delegate)(args...);
-            }
-        }
-    }
-
-    template <typename Function, typename... Uref>
-    boost::asio::awaitable<void> coro_for_each(Uref&&... args) const
+    asio::awaitable<void> coro_for_each(Uref&&... args) const
     {
         [[maybe_unused]]
         auto lock = MT_Policy::lock_guard();
@@ -208,7 +244,7 @@ private:
     }
 
     template <typename Function, typename Accumulate, typename... Uref>
-    void for_each_accumulate(Accumulate&& accumulate, Uref&&... args)
+    asio::awaitable<void> for_each_accumulate(Accumulate&& accumulate, Uref&&... args)
     {
         [[maybe_unused]]
         auto lock = MT_Policy::lock_guard();
@@ -217,10 +253,13 @@ private:
         {
             if (auto observer = MT_Policy::observed(slot.observer))
             {
-                accumulate(Function::bind(slot.delegate)(args...));
+                accumulate(co_await Function::bind(slot.delegate)(args...));
             }
         }
     }
+#endif
+
+
 
     //--------------------------------------------------------------------------
 
