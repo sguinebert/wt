@@ -423,15 +423,15 @@ public:
         co_return res_;
     }
 
-    virtual result_base sync_execute() override
-    {
-        return result_base();
-    }
+//    virtual result_base sync_execute() override
+//    {
+//        return result_base();
+//    }
 
-    virtual void async_execute(std::function<void(result_base)> cb) override
-    {
+//    virtual void async_execute(std::function<void(result_base)> cb) override
+//    {
 
-    }
+//    }
 
     virtual long long insertedId() override
     {

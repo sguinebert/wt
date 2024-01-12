@@ -203,9 +203,9 @@ private:
   JSignal<int, int, int, int> scrolled_;
   JSignal<WTouchEvent> itemTouchSelectEvent_;
 
-  Signals::connection touchStartConnection_;
-  Signals::connection touchMoveConnection_;
-  Signals::connection touchEndConnection_;
+  Signals::Connection touchStartConnection_;
+  Signals::Connection touchMoveConnection_;
+  Signals::Connection touchEndConnection_;
 
   WLength preloadMargin_[4];
 

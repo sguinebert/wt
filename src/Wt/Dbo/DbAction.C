@@ -7,7 +7,8 @@
 #include "Wt/Dbo/DbAction.h"
 #include "DbAction_impl.h"
 #include "Wt/Dbo/Session.h"
-#include "Wt/Dbo/backend/connection.hpp" //#include "Wt/Dbo/sqlConnection.h"
+#include "Wt/Dbo/SqlConnection.h"
+//#include "Wt/Dbo/backend/connection.hpp" //#include "Wt/Dbo/sqlConnection.h"
 #include "Wt/Dbo/SqlStatement.h"
 
 namespace Wt {
@@ -62,25 +63,8 @@ void DropSchema::actMapping(Impl::MappingInfo *mapping)
 
 awaitable<void> DropSchema::drop(const std::string& table)
 {
-  //  tablesDropped_.insert(table);
 
-  //  auto conn = *co_await session_.assign_connection(false);
-  //  if (table == mapping_.tableName && mapping_.surrogateIdFieldName) {
-
-  //    auto sql = std::visit([&](const auto &conn) -> std::vector<std::string> {
-  //        return conn.autoincrementDropSequenceSql(Impl::quoteSchemaDot(table),
-  //                                                 mapping_.surrogateIdFieldName);
-  //    }, conn);
-
-  //    for (unsigned i = 0; i < sql.size(); i++)
-  //          co_await std::visit([&](auto &conn) -> awaitable<void>
-  //          {
-  //              co_await conn.executeSql(sql[i]);
-  //          }, conn);
-  //  }
-  //  std::visit([&](auto &conn) {
-  //      conn.executeSql("drop table \"" + Impl::quoteSchemaDot(table) + "\"");
-  //  }, conn);
+#ifndef VARIANT
   tablesDropped_.insert(table);
 
   auto conn = co_await session_.connection(true);
@@ -88,12 +72,36 @@ awaitable<void> DropSchema::drop(const std::string& table)
   if (table == mapping_.tableName && mapping_.surrogateIdFieldName) {
     std::vector<std::string> sql = conn->autoincrementDropSequenceSql(Impl::quoteSchemaDot(table),
                                                                       mapping_.surrogateIdFieldName);
-      
-      for (unsigned i = 0; i < sql.size(); i++)
-        co_await conn->executeSql(sql[i]);
+
+    for (unsigned i = 0; i < sql.size(); i++)
+          co_await conn->executeSql(sql[i]);
   }
 
   co_await conn->executeSql("drop table \"" + Impl::quoteSchemaDot(table) + "\"");
+#else
+  tablesDropped_.insert(table);
+
+  auto conn = co_await session_.assign_connection(false);
+  if (table == mapping_.tableName && mapping_.surrogateIdFieldName) {
+
+    auto sql = std::visit([&](const auto &conn) -> std::vector<std::string> {
+        return conn.autoincrementDropSequenceSql(Impl::quoteSchemaDot(table),
+                                                 mapping_.surrogateIdFieldName);
+    }, *conn);
+
+    for (unsigned i = 0; i < sql.size(); i++)
+          co_await std::visit([&](auto &conn) -> awaitable<void>
+          {
+              co_await conn.executeSql(sql[i]);
+          }, *conn);
+  }
+  co_await std::visit([&](auto &conn) ->awaitable<void> {
+      co_await conn.executeSql("drop table \"" + Impl::quoteSchemaDot(table) + "\"");
+  }, *conn);
+#endif
+
+
+
 }
 
 bool DropSchema::getsValue() const { return false; }

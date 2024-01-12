@@ -10,6 +10,7 @@
 #include <memory>
 #include <vector>
 #include <Wt/Dbo/WDboDllDefs.h>
+#include <Wt/Dbo/SqlConnection.h>
 #include <Wt/Dbo/backend/connection.hpp>
 #include <Wt/Dbo/backend/work.hpp>
 #include <Wt/Dbo/backend/result.hpp>

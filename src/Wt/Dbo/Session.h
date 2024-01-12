@@ -22,6 +22,8 @@
 #include <Wt/Dbo/SqlConnectionPool.h>
 #include <Wt/Dbo/backend/connection.hpp> //#include <Wt/Dbo/sqlConnection.h> virtual polymorphism move to std::variant
 
+
+
 namespace Wt {
   namespace Dbo {
     namespace Impl {

@@ -22,13 +22,6 @@
 namespace Wt {
 LOGGER("WTemplate");
 
-#define STR(x) #x
-
-const char* a =
-{
-#include "WebSession.h"
-};
-
 bool WTemplate::_tr(const std::vector<WString>& args,
 		    std::ostream& result)
 {

@@ -10,7 +10,8 @@
 #include "Wt/Dbo/Exception.h"
 
 #include "Wt/Dbo/Session.h"
-#include "Wt/Dbo/backend/connection.hpp"//#include "Wt/Dbo/sqlConnection.h"
+#include "Wt/Dbo/SqlConnection.h"
+//#include "Wt/Dbo/backend/connection.hpp"//#include "Wt/Dbo/sqlConnection.h"
 #include "Wt/Dbo/StringStream.h"
 #include "Wt/Dbo/Transaction.h"
 #include "Wt/Dbo/ptr.h"
@@ -169,10 +170,14 @@ awaitable<void> Transaction::Impl::open()
 {
   if (!open_) {
     open_ = true;
-    //std::visit([] (auto& conn) { conn.startTransaction(); }, *connection_);
-    auto tx = co_await connection_->async_transaction(use_awaitable);
-    transaction_ = std::make_shared<postgrespp::work>(std::move(tx));
+//#ifndef VARIANT
+//    auto tx = co_await connection_->async_transaction(use_awaitable);
+//#else
+//    auto tx = co_await std::visit([] (auto& conn) ->awaitable<postgrespp::work> { co_return co_await conn.startTransaction(); }, *connection_);
+//#endif
+//    transaction_ = std::make_shared<postgrespp::work>(std::move(tx));
   }
+  co_return;
 }
 
 awaitable<void> Transaction::Impl::commit()
@@ -183,8 +188,11 @@ awaitable<void> Transaction::Impl::commit()
 
   if (open_) {
     //transaction_->commit(use_awaitable);//connection_->commitTransaction();
-    //std::visit([] (auto& conn) { conn.commitTransaction(); }, *connection_);
+#ifndef VARIANT
     co_await transaction_->commit(use_awaitable);
+#else
+    co_await std::visit([] (auto& conn) ->awaitable<void> { co_await conn.commitTransaction(); }, *connection_);
+#endif
   }
 
   for (unsigned i = 0; i < objects_.size(); ++i) {
@@ -209,8 +217,13 @@ awaitable<void> Transaction::Impl::rollback()
   try {
     if (open_) {
       //connection_->rollbackTransaction();
-      //std::visit([] (auto& conn) { conn.rollbackTransaction(); }, *connection_);
+#ifndef VARIANT
       co_await transaction_->rollback(use_awaitable);
+#else
+      co_await std::visit([] (auto& conn)->awaitable<void> {co_await conn.rollbackTransaction(); }, *connection_);
+#endif
+      //
+
     }
   } catch (const std::exception& e) {
     //LOG_ERROR("Transaction::rollback(): {}", e.what());

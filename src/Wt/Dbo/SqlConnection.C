@@ -22,159 +22,160 @@ namespace {
   static const std::size_t WARN_NUM_STATEMENTS_THRESHOLD = 10;
 }
 
-SqlConnection::SqlConnection()
-{ }
+//SqlConnection::SqlConnection()
+//{ }
 
-SqlConnection::SqlConnection(const SqlConnection& other)
-  : properties_(other.properties_)
-{ }
-
-SqlConnection::~SqlConnection()
-{
-  assert(statementCache_.empty());
-}
-
-awaitable<void> SqlConnection::executeSql(const std::string &sql)
-{
-    std::unique_ptr<SqlStatement> s = prepareStatement(sql);
-    co_await s->execute();
-}
-
-void SqlConnection::clearStatementCache()
-{
-    statementCache_.clear();
-}
+//SqlConnection::SqlConnection(const SqlConnection& other)
+//  //: properties_(other.properties_)
+//{ }
 
 
+//SqlConnection::~SqlConnection()
+//{
+//    //assert(statementCache_.empty());
+//}
 
-awaitable<void> SqlConnection::executeSqlStateful(const std::string& sql)
-{
-    statefulSql_.push_back(sql);
-  co_await executeSql(sql);
-}
+//awaitable<void> SqlConnection::executeSql(const std::string &sql)
+//{
+//    std::unique_ptr<SqlStatement> s = prepareStatement(sql);
+//    co_await s->execute();
+//}
 
-SqlStatement *SqlConnection::getStatement(const std::string& id)
-{
-  StatementMap::const_iterator start;
-  StatementMap::const_iterator end;
-  std::tie(start, end) = statementCache_.equal_range(id);
-  SqlStatement *result = nullptr;
-  for (auto i = start; i != end; ++i) {
-    result = i->second.get();
-    if (result->use())
-      return result;
-  }
-  if (result) {
-    auto count = statementCache_.count(id);
-    if (count >= WARN_NUM_STATEMENTS_THRESHOLD) {
-      //LOG_WARN("Warning: number of instances ({}) of prepared statement '{}' for this connection exceeds threshold ({}). This could indicate a programming error.", (count + 1), id, WARN_NUM_STATEMENTS_THRESHOLD);
-      //fmtlog::poll();
-    }
-    auto stmt = prepareStatement(result->sql());
-    result = stmt.get();
-    saveStatement(id, std::move(stmt));
-  }
-  return nullptr;
-}
+//void SqlConnection::clearStatementCache()
+//{
+//    statementCache_.clear();
+//}
 
-void SqlConnection::saveStatement(const std::string& id,
-                  std::unique_ptr<SqlStatement> statement)
-{
-  statementCache_.emplace(id, std::move(statement));
-}
 
-std::string SqlConnection::property(const std::string& name) const
-{
-  std::map<std::string, std::string>::const_iterator i = properties_.find(name);
 
-  if (i != properties_.end())
-    return i->second;
-  else
-    return std::string();
-}
+//awaitable<void> SqlConnection::executeSqlStateful(const std::string& sql)
+//{
+//    statefulSql_.push_back(sql);
+//  co_await executeSql(sql);
+//}
 
-void SqlConnection::setProperty(const std::string& name,
-                const std::string& value)
-{
-  properties_[name] = value;
-}
+//SqlStatement *SqlConnection::getStatement(const std::string& id)
+//{
+//  StatementMap::const_iterator start;
+//  StatementMap::const_iterator end;
+//  std::tie(start, end) = statementCache_.equal_range(id);
+//  SqlStatement *result = nullptr;
+//  for (auto i = start; i != end; ++i) {
+//    result = i->second.get();
+//    if (result->use())
+//      return result;
+//  }
+//  if (result) {
+//    auto count = statementCache_.count(id);
+//    if (count >= WARN_NUM_STATEMENTS_THRESHOLD) {
+//      //LOG_WARN("Warning: number of instances ({}) of prepared statement '{}' for this connection exceeds threshold ({}). This could indicate a programming error.", (count + 1), id, WARN_NUM_STATEMENTS_THRESHOLD);
+//      //fmtlog::poll();
+//    }
+//    auto stmt = prepareStatement(result->sql());
+//    result = stmt.get();
+//    saveStatement(id, std::move(stmt));
+//  }
+//  return nullptr;
+//}
 
-bool SqlConnection::usesRowsFromTo() const
-{
-  return false;
-}
+//void SqlConnection::saveStatement(const std::string& id,
+//                  std::unique_ptr<SqlStatement> statement)
+//{
+//  statementCache_.emplace(id, std::move(statement));
+//}
 
-LimitQuery SqlConnection::limitQueryMethod() const
-{
-  return LimitQuery::Limit;
-}
+//std::string SqlConnection::property(const std::string& name) const
+//{
+//  if (auto i = properties_.find(name); i != properties_.end())
+//    return i->second;
 
-bool SqlConnection::supportAlterTable() const
-{
-  return false;
-}
+//  return std::string();
+//}
 
-bool SqlConnection::supportDeferrableFKConstraint() const
-{
-  return false;
-}
+//void SqlConnection::setProperty(const std::string& name,
+//                const std::string& value)
+//{
+//  properties_[name] = value;
+//}
 
-const char *SqlConnection::alterTableConstraintString() const
-{
-  return "constraint";
-}
+//bool SqlConnection::usesRowsFromTo() const
+//{
+//  return false;
+//}
 
-bool SqlConnection::showQueries() const
-{
-  return property("show-queries") == "true";
-}
+//bool SqlConnection::supportAlterTable() const
+//{
+//  return false;
+//}
 
-std::string SqlConnection::textType(int size) const
-{
-  if (size == -1)
-    return "text";
-  else{
-    return "varchar(" + std::to_string(size) + ")";
-  }
-}
+//LimitQuery SqlConnection::limitQueryMethod() const
+//{
+//  return LimitQuery::Limit;
+//}
 
-std::string SqlConnection::longLongType() const
-{
-  return "bigint";
-}
 
-const char *SqlConnection::booleanType() const
-{
-  return "boolean";
-}
 
-bool SqlConnection::supportUpdateCascade() const
-{
-  return true;
-}
+//bool SqlConnection::supportDeferrableFKConstraint() const
+//{
+//  return false;
+//}
 
-bool SqlConnection::requireSubqueryAlias() const
-{
-  return false;
-}
+//const char *SqlConnection::alterTableConstraintString() const
+//{
+//  return "constraint";
+//}
 
-std::string SqlConnection::autoincrementInsertInfix(const std::string &) const
-{
-  return "";
-}
+//bool SqlConnection::showQueries() const
+//{
+//  return property("show-queries") == "true";
+//}
 
-void SqlConnection::prepareForDropTables()
-{ }
+//std::string SqlConnection::textType(int size) const
+//{
+//  if (size == -1)
+//    return "text";
+//  else{
+//    return "varchar(" + std::to_string(size) + ")";
+//  }
+//}
 
-std::vector<SqlStatement *> SqlConnection::getStatements() const
-{
-  std::vector<SqlStatement *> result;
+//std::string SqlConnection::longLongType() const
+//{
+//  return "bigint";
+//}
 
-  for (auto i = statementCache_.begin(); i != statementCache_.end(); ++i)
-    result.push_back(i->second.get());
+//const char *SqlConnection::booleanType() const
+//{
+//  return "boolean";
+//}
 
-  return result;
-}
+//bool SqlConnection::supportUpdateCascade() const
+//{
+//  return true;
+//}
+
+//bool SqlConnection::requireSubqueryAlias() const
+//{
+//  return false;
+//}
+
+//std::string SqlConnection::autoincrementInsertInfix(const std::string &) const
+//{
+//  return "";
+//}
+
+//void SqlConnection::prepareForDropTables()
+//{ }
+
+//std::vector<SqlStatement *> SqlConnection::getStatements() const
+//{
+//  std::vector<SqlStatement *> result;
+
+//  for (auto i = statementCache_.begin(); i != statementCache_.end(); ++i)
+//    result.push_back(i->second.get());
+
+//  return result;
+//}
   
   }
 }

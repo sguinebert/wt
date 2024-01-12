@@ -3,7 +3,7 @@
 #include "work.hpp"
 #include "statement_name.hpp"
 
-#include <boost/asio/async_result.hpp>
+#include <Wt/AsioWrapper/asio.hpp>
 
 #include <memory>
 #include <utility>

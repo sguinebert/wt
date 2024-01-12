@@ -134,9 +134,9 @@ public:
    */
   virtual awaitable<result_base> execute() = 0;
 
-  virtual result_base sync_execute() = 0;
+  //virtual result_base sync_execute() = 0;
 
-  virtual void async_execute(std::function<void(result_base)>) = 0;
+  //virtual void async_execute(std::function<void(result_base)>) = 0;
 
   /*! \brief Returns the id if the statement was an SQL <tt>insert</tt>.
    */

@@ -13,7 +13,8 @@
 #include <chrono>
 #include <Wt/Dbo/SqlTraits.h>
 #include <Wt/Dbo/SqlStatement.h>
-#include <Wt/Dbo/backend/connection.hpp>
+#include <Wt/Dbo/SqlConnection.h>
+//#include <Wt/Dbo/backend/connection.hpp>
 
 namespace boost {
   template<typename T> class optional;

@@ -8,6 +8,7 @@
 #define WT_DBO_SQL_CONNECTION_POOL_H_
 
 #include <Wt/Dbo/WDboDllDefs.h>
+#include <Wt/Dbo/SqlConnection.h>
 #include <Wt/Dbo/backend/connection.hpp>
 
 #include <memory>

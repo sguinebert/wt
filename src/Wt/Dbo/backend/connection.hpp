@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef HAS_POSTGRES
+#define HAS_POSTGRES
+#endif
+
 #include "basic_connection.hpp"
 
 #include <map>
@@ -7,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include <Wt/Dbo/SqlConnectionBase.h>
 #include "Wt/Dbo/SqlStatement.h"
 #include <Wt/Dbo/backend/WDboPostgresDllDefs.h>
 #include <Wt/cuehttp/detail/engines.hpp>
@@ -25,8 +30,9 @@ namespace postgrespp {
 //using connection = basic_connection;
 
 
-class connection : public basic_connection
+class connection : public basic_connection, public Wt::Dbo::SqlConnectionBase
 {
+    friend class SqlConnection;
 public:
     template <class ExecutorT>
     connection(ExecutorT& exc, const char* pgconninfo) : basic_connection(exc, pgconninfo), connInfo_(pgconninfo) {}
@@ -180,21 +186,21 @@ public:
         statementCache_.emplace(id, std::move(statement));
     }
 
-    std::string property(const std::string& name) const
-    {
-        std::map<std::string, std::string>::const_iterator i = properties_.find(name);
+//    std::string property(const std::string& name) const
+//    {
+//        std::map<std::string, std::string>::const_iterator i = properties_.find(name);
 
-        if (i != properties_.end())
-            return i->second;
-        else
-            return std::string();
-    }
+//        if (i != properties_.end())
+//            return i->second;
+//        else
+//            return std::string();
+//    }
 
-    void setProperty(const std::string& name,
-                                    const std::string& value)
-    {
-        properties_[name] = value;
-    }
+//    void setProperty(const std::string& name,
+//                                    const std::string& value)
+//    {
+//        properties_[name] = value;
+//    }
 
     bool usesRowsFromTo() const
     {
@@ -263,28 +269,28 @@ public:
     void prepareForDropTables()
     { }
 
-    std::vector<Wt::Dbo::SqlStatement *> getStatements() const
-    {
-        std::vector<Wt::Dbo::SqlStatement *> result;
+//    std::vector<Wt::Dbo::SqlStatement *> getStatements() const
+//    {
+//        std::vector<Wt::Dbo::SqlStatement *> result;
 
-        for (StatementMap::const_iterator i = statementCache_.begin();
-             i != statementCache_.end(); ++i)
-            result.push_back(i->second.get());
+//        for (StatementMap::const_iterator i = statementCache_.begin();
+//             i != statementCache_.end(); ++i)
+//            result.push_back(i->second.get());
 
-        return result;
-    }
+//        return result;
+//    }
     //strict cloning with the same executor
     std::unique_ptr<connection> clone()  {
         //auto& engine = cue::http::detail::engines::default_engines();
         return std::make_unique<connection>(this->socket().get_executor(), connInfo_.data());
     }
-    std::unique_ptr<connection> clone(Wt::http::detail::engines& engine)  {
-        return std::make_unique<connection>(engine.get(), connInfo_.data());
+    connection clone(Wt::http::detail::engines& engine)  {
+        return connection(engine.get(), connInfo_.data());
     }
     using txn_t = basic_transaction<void, void>;
-    awaitable<txn_t> startTransaction() {
-        co_return co_await async_transaction(use_awaitable);
-//        co_return;
+    awaitable<void> startTransaction() {
+        co_await async_transaction(use_awaitable);
+        co_return;
     }
     awaitable<void> commitTransaction() {
         //exec("commit transaction", false);
@@ -341,16 +347,16 @@ public:
 
     void setCancelSignal(asio::cancellation_signal* cancel) { cancel_wait_ = cancel;  }
 
-protected:
-    const std::vector<std::string>& getStatefulSql() const { return statefulSql_; }
+//protected:
+//    const std::vector<std::string>& getStatefulSql() const { return statefulSql_; }
 
 private:
-    typedef std::multimap<std::string, std::unique_ptr<Wt::Dbo::SqlStatement>> StatementMap;
+//    typedef std::multimap<std::string, std::unique_ptr<Wt::Dbo::SqlStatement>> StatementMap;
 
     std::string connInfo_;
-    StatementMap statementCache_;
-    std::map<std::string, std::string> properties_;
-    std::vector<std::string> statefulSql_;
+//    StatementMap statementCache_;
+//    std::map<std::string, std::string> properties_;
+//    std::vector<std::string> statefulSql_;
 
     std::chrono::microseconds timeout_;
     std::chrono::seconds maximumLifetime_;
@@ -361,12 +367,4 @@ private:
 
 
 }
-namespace Wt {
-namespace Dbo {
 
-using sqlConnection = pg::connection;
-//typedef pg::connection sqlConnection;
-
-}
-
-}

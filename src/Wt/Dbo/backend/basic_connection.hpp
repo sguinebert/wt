@@ -7,9 +7,10 @@
 
 #include <postgresql/libpq-fe.h>
 
-#include <boost/asio.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/ip/tcp.hpp>
+//#include <boost/asio.hpp>
+//#include <boost/asio/io_context.hpp>
+//#include <boost/asio/ip/tcp.hpp>
+#include <Wt/AsioWrapper/asio.hpp>
 
 #include <stdexcept>
 #include <string>

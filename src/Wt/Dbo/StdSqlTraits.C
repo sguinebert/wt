@@ -19,8 +19,11 @@ namespace Wt {
    */
 std::string sql_value_traits<std::string>::type(sqlConnection *conn, int size)
 {
-  return std::string(conn->textType(size)) + " not null";
-    //return std::visit([&] (auto& conn) -> std::string { return conn.textType(size); }, *conn) + " not null";
+#ifndef VARIANT
+    return std::string(conn->textType(size)) + " not null";
+#else
+    return std::visit([&] (auto& conn) -> std::string { return conn.textType(size); }, *conn) + " not null";
+#endif
 }
 
 void sql_value_traits<std::string>::bind(const std::string& v,
@@ -31,8 +34,8 @@ void sql_value_traits<std::string>::bind(const std::string& v,
 }
 
 bool sql_value_traits<std::string>::read(std::string& v,
-					 SqlStatement *statement, int column,
-					 int size)
+                                         SqlStatement *statement, int column,
+                                         int size)
 {
   if (!statement->getResult(column, &v, size)) {
     v.clear();
@@ -47,8 +50,11 @@ bool sql_value_traits<std::string>::read(std::string& v,
 
 std::string sql_value_traits<long long>::type(sqlConnection *conn, int size)
 {
+#ifndef VARIANT
   return conn->longLongType() + " not null";
-  //return std::visit([] (auto& conn) -> std::string { return conn.longLongType(); }, *conn) + " not null";
+#else
+  return std::visit([] (auto& conn) -> std::string { return conn.longLongType(); }, *conn) + " not null";
+#endif
 }
 
 void sql_value_traits<long long>::bind(long long v,
@@ -75,8 +81,11 @@ std::string sql_value_traits<long>::type(sqlConnection *conn, int size)
   if (sizeof(long) == 4)
     return "integer not null";
   else
+#ifndef VARIANT
     return conn->longLongType() + " not null";
-  //return std::visit([] (auto& conn) -> std::string { return conn.longLongType(); }, *conn) + " not null";
+#else
+    return std::visit([] (auto& conn) -> std::string { return conn.longLongType(); }, *conn) + " not null";
+#endif
 }
 
 void sql_value_traits<long>::bind(long v,
@@ -150,8 +159,11 @@ bool sql_value_traits<short>::read(short& v, SqlStatement *statement, int column
 
 std::string sql_value_traits<bool>::type(sqlConnection *conn, int size)
 {
+#ifndef VARIANT
   return std::string(conn->booleanType()) + " not null";
-  //return std::visit([&] (auto& conn) -> std::string { return conn.booleanType(); }, *conn) + " not null";
+#else
+  return std::visit([&] (auto& conn) -> std::string { return conn.booleanType(); }, *conn) + " not null";
+#endif
 }
 
 void sql_value_traits<bool>::bind(bool v, SqlStatement *statement, int column, int size)
@@ -218,8 +230,11 @@ bool sql_value_traits<double>::read(double& v, SqlStatement *statement,
 const char *sql_value_traits<std::chrono::system_clock::time_point>
 ::type(sqlConnection *conn, int size)
 {
+#ifndef VARIANT
   return conn->dateTimeType(SqlDateTimeType::DateTime);
-  //return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::DateTime); }, *conn);
+#else
+  return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::DateTime); }, *conn);
+#endif
 }
 
 void sql_value_traits<std::chrono::system_clock::time_point>
@@ -241,8 +256,11 @@ bool sql_value_traits<std::chrono::system_clock::time_point>
 const char *sql_value_traits<std::chrono::duration<int, std::milli>>
 ::type(sqlConnection *conn, int size)
 {
+#ifndef VARIANT
   return conn->dateTimeType(SqlDateTimeType::Time);
-  //return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::Time); }, *conn);
+#else
+  return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::Time); }, *conn);
+#endif
 }
 
 void sql_value_traits<std::chrono::duration<int, std::milli>>
@@ -264,7 +282,11 @@ bool sql_value_traits<std::chrono::duration<int, std::milli>>
 const char *sql_value_traits<std::vector<unsigned char> >
 ::type(sqlConnection *conn, int size)
 {
+#ifndef VARIANT
   return conn->blobType();
+#else
+  return std::visit([] (auto& conn) -> const char* { return conn.blobType(); }, *conn);
+#endif
 }
 
 void sql_value_traits<std::vector<unsigned char> >

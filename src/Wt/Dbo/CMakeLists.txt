@@ -21,7 +21,7 @@ IF(ENABLE_LIBWTDBO)
     QueryColumn.h QueryColumn.C
     SqlQueryParse.C
     Session.h Session_impl.h Session.C
-    SqlConnection.h SqlConnection.C
+    SqlConnectionBase.h SqlConnection.h SqlConnection.C
     SqlConnectionPool.h SqlConnectionPool.C
     SqlStatement.h SqlStatement.C
     SqlTraits.h SqlTraits_impl.h SqlTraits.C
