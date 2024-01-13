@@ -1,9 +1,5 @@
 #pragma once
 
-#ifndef HAS_POSTGRES
-#define HAS_POSTGRES
-#endif
-
 #include "basic_connection.hpp"
 
 #include <map>
@@ -12,7 +8,7 @@
 #include <vector>
 
 #include <Wt/Dbo/SqlConnectionBase.h>
-#include "Wt/Dbo/SqlStatement.h"
+#include <Wt/Dbo/SqlStatement.h>
 #include <Wt/Dbo/backend/WDboPostgresDllDefs.h>
 #include <Wt/cuehttp/detail/engines.hpp>
 

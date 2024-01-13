@@ -943,7 +943,7 @@ bool MSSQLServer::connect(const std::string &connectionString)
   return true;
 }
 
-void MSSQLServer::executeSql(const std::string &sql)
+awaitable<void> MSSQLServer::executeSql(const std::string &sql)
 {
   if (showQueries()) {
     LOG_INFO(sql);
@@ -980,17 +980,19 @@ void MSSQLServer::executeSql(const std::string &sql)
     throw;
   }
   SQLFreeStmt(impl_->stmt, SQL_CLOSE);
+  co_return;
 }
 
-void MSSQLServer::startTransaction()
+awaitable<void> MSSQLServer::startTransaction()
 {
   if (showQueries()) {
     LOG_INFO("begin transaction -- implicit");
     fmtlog::poll();
   }
+  co_return;
 }
 
-void MSSQLServer::commitTransaction()
+awaitable<void> MSSQLServer::commitTransaction()
 {
   if (showQueries()) {
     LOG_INFO("commit transaction -- using SQLEndTran");
@@ -999,9 +1001,10 @@ void MSSQLServer::commitTransaction()
 
   SQLRETURN rc = SQLEndTran(SQL_HANDLE_DBC, impl_->dbc, SQL_COMMIT);
   handleErr(SQL_HANDLE_DBC, impl_->dbc, rc);
+  co_return;
 }
 
-void MSSQLServer::rollbackTransaction()
+awaitable<void> MSSQLServer::rollbackTransaction()
 {
   if (showQueries()) {
     LOG_INFO("rollback transaction -- using SQLEndTran");
@@ -1010,6 +1013,7 @@ void MSSQLServer::rollbackTransaction()
 
   SQLRETURN rc = SQLEndTran(SQL_HANDLE_DBC, impl_->dbc, SQL_ROLLBACK);
   handleErr(SQL_HANDLE_DBC, impl_->dbc, rc);
+  co_return;
 }
 
 std::unique_ptr<SqlStatement> MSSQLServer::prepareStatement(const std::string &sql)

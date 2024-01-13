@@ -292,7 +292,7 @@ public:
     #define BYTEAOID 17
     const std::chrono::seconds TRANSACTION_LIFETIME_MARGIN = std::chrono::seconds(120);
 
-    virtual awaitable<result_base> execute() override
+    virtual awaitable<void> execute() override
     {
         conn_.checkConnection(TRANSACTION_LIFETIME_MARGIN);
 
@@ -420,7 +420,7 @@ public:
 //        }
         handleErr(PQresultStatus(result_), result_);
 
-        co_return res_;
+        co_return;
     }
 
 //    virtual result_base sync_execute() override

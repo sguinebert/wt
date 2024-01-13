@@ -40,6 +40,7 @@ using namespace std::literals::chrono_literals;
 using std::chrono::steady_clock;
 using executor_t = boost::asio::io_context::executor_type;
 extern thread_local boost::asio::io_context* thread_context;
+using boost::asio::io_context;
 
 #else
 #  error Sorry, this code is only compilable with coroutine support and asio 1.21+

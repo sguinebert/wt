@@ -526,8 +526,7 @@ public:
   }
 
 
-  virtual bool getResult(int column, std::vector<unsigned char> *value,
-             int size) override
+  virtual bool getResult(int column, std::vector<unsigned char> *value, int size) override
   {
     if (sqlite3_column_type(st_, column) == SQLITE_NULL)
       return false;

@@ -25,9 +25,9 @@ awaitable<result_base> Call::run()
 {
   try {
     run_ = true;
-    auto result = co_await statement_->execute();
+    /*auto result =*/ co_await statement_->execute();
     statement_->done();
-    co_return result;
+    co_return result_base();
   } catch (...) {
     statement_->done();
     throw;

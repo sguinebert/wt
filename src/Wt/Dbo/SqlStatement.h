@@ -132,7 +132,7 @@ public:
 
   /*! \brief Executes the statement.
    */
-  virtual awaitable<result_base> execute() = 0;
+  virtual awaitable<void> execute() = 0;
 
   //virtual result_base sync_execute() = 0;
 

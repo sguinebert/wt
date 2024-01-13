@@ -70,6 +70,9 @@ class SqlStatement;
       friend class SqlConnection;
       friend class backend::Sqlite3;
       friend class backend::Postgres;
+      friend class backend::MySQL;
+      friend class backend::MSSQLServer;
+      friend class backend::Firebird;
       friend class postgrespp::connection;
   public:
       /*! \brief Destructor.

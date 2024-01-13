@@ -309,6 +309,7 @@ IF(ENABLE_MYSQL AND MYSQL_FOUND)
 
   ADD_LIBRARY(wtdbomysql
     MySQL.h MySQL.C
+    MySQL/MySQLStatement.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${mysql_SRCS}
     )

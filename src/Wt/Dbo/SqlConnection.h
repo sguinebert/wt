@@ -14,6 +14,8 @@
 #include <Wt/AsioWrapper/asio.hpp>
 #include <Wt/Dbo/backend/connection.hpp>
 #include <Wt/Dbo/backend/Sqlite3.h>
+#include <Wt/Dbo/backend/MySQL.h>
+#include <Wt/Dbo/backend/MSSQLServer.h>
 
 //#define HAS_POSTGRES
 //#define VARIANT
@@ -108,9 +110,9 @@ class SqlStatement;
 //#ifdef HAS_SQLITE
                            backend::Sqlite3,
 //#endif
-#ifdef HAS_POSTGRES
+//#ifdef HAS_POSTGRES
                            pg::connection
-#endif
+//#endif
 #ifdef HAS_MYSQL
                            , backend::MySQL
 #endif
@@ -659,7 +661,7 @@ class SqlStatement;
           return std::visit(overloaded
                             {
                              [&](auto &connection ) -> std::vector<SqlStatement *> { return connection.getStatements(); },
-                                [&](std::monostate) -> std::vector<SqlStatement *> { return {}; },
+                             [&](std::monostate) -> std::vector<SqlStatement *> { return {}; },
                              }, sqlconnection_);
       }
       const std::vector<std::string>& getStatefulSql() const {

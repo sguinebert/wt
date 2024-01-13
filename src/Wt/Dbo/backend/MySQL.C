@@ -1,19 +1,21 @@
-///*
-// * Copyright (C) 2008 Emweb bv, Herent, Belgium.
-// *
-// * See the LICENSE file for terms of use.
-// *
-// * Contributed by: Paul Harrison
-// */
-//#include "Wt/WConfig.h"
+/*
+ * Copyright (C) 2008 Emweb bv, Herent, Belgium.
+ *
+ * See the LICENSE file for terms of use.
+ *
+ * Contributed by: Paul Harrison
+ */
+#include "Wt/WConfig.h"
 
-//#ifdef WT_WIN32
-//#define NOMINMAX
-// // WinSock2.h warns that it should be included before windows.h
-//#include <WinSock2.h>
-//#endif // WT_WIN32
+#ifdef WT_WIN32
+#define NOMINMAX
+ // WinSock2.h warns that it should be included before windows.h
+#include <WinSock2.h>
+#endif // WT_WIN32
 
-//#include "Wt/Dbo/backend/MySQL.h"
+#include "Wt/Dbo/backend/MySQL.h"
+//#include <boost/mysql/src
+
 //#include "Wt/Dbo/Exception.h"
 //#include "Wt/Dbo/Logger.h"
 //#include "Wt/Dbo/StringStream.h"
