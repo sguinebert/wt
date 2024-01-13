@@ -11,9 +11,6 @@
 #include <vector>
 #include <Wt/Dbo/WDboDllDefs.h>
 #include <Wt/Dbo/SqlConnection.h>
-#include <Wt/Dbo/backend/connection.hpp>
-#include <Wt/Dbo/backend/work.hpp>
-#include <Wt/Dbo/backend/result.hpp>
 
 namespace Wt {
   namespace Dbo {
@@ -159,7 +156,7 @@ private:
     //std::unique_ptr<sqlConnection> connection_;
     sqlConnection* connection_ = nullptr;
     //inline thread_local static sqlConnection* connection_ = nullptr;
-    std::shared_ptr<postgrespp::work> transaction_;
+    //std::shared_ptr<postgrespp::work> transaction_;
 
     awaitable<void> open();
     awaitable<void> commit();

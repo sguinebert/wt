@@ -21,18 +21,18 @@ Call::Call(const Call& other)
   const_cast<Call&>(other).copied_ = true;
 }
 
-awaitable<result_base> Call::run()
+awaitable<void> Call::run()
 {
   try {
     run_ = true;
     /*auto result =*/ co_await statement_->execute();
     statement_->done();
-    co_return result_base();
+    co_return;
   } catch (...) {
     statement_->done();
     throw;
   }
-  co_return result_base(); //std::variant<result_pp, result_mysql, ...>
+  co_return; //std::variant<result_pp, result_mysql, ...>
 }
 
 Call::Call(Session& session, const std::string& sql)

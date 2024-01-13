@@ -8,8 +8,8 @@
 #define WT_DBO_SESSION_IMPL_H_
 
 #include <iostream>
-
-#include <Wt/Dbo/backend/connection.hpp> //#include <Wt/Dbo/sqlConnection.h>
+#include <Wt/Dbo/SqlConnection.h>
+//#include <Wt/Dbo/backend/connection.hpp> //#include <Wt/Dbo/sqlConnection.h>
 #include <Wt/Dbo/Query.h>
 
 namespace Wt {

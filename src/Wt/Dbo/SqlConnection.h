@@ -12,7 +12,7 @@
 #include <vector>
 #include <Wt/Dbo/WDboDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/Dbo/backend/connection.hpp>
+#include <Wt/Dbo/backend/Postgres/connection.hpp>
 #include <Wt/Dbo/backend/Sqlite3.h>
 #include <Wt/Dbo/backend/MySQL.h>
 #include <Wt/Dbo/backend/MSSQLServer.h>

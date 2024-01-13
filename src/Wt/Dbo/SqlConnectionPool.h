@@ -9,7 +9,6 @@
 
 #include <Wt/Dbo/WDboDllDefs.h>
 #include <Wt/Dbo/SqlConnection.h>
-#include <Wt/Dbo/backend/connection.hpp>
 
 #include <memory>
 #include <vector>

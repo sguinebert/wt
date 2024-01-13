@@ -15,7 +15,7 @@
 #include <Wt/Dbo/SqlTraits.h>
 #include <Wt/Dbo/StdSqlTraits.h>
 
-#include <Wt/Dbo/backend/result.hpp>
+//#include <Wt/Dbo/backend/result.hpp>
 
 namespace Wt {
   namespace Dbo {
@@ -68,13 +68,13 @@ public:
    * This may throw an exception if there was a problem with the SQL
    * command.
    */
-  awaitable<result_base> run();
+  awaitable<void> run();
 
-  template<Specifier S>
-  awaitable<postgrespp::result> run() requires(S == Specifier::Postgres);
+//  template<Specifier S>
+//  awaitable<postgrespp::result> run() requires(S == Specifier::Postgres);
 
-  template<Specifier S>
-  awaitable<void> run() requires(S == Specifier::MySql);
+//  template<Specifier S>
+//  awaitable<void> run() requires(S == Specifier::MySql);
 
 private:
   bool copied_, run_;

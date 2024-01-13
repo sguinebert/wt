@@ -156,7 +156,7 @@ Transaction::Impl::Impl(Session& session)
 }
 
 awaitable<void> Transaction::Impl::assign_connection() {
-  connection_ = co_await session_.assign_connection(true);
+  //connection_ = co_await session_.assign_connection(true);
 }
 
 Transaction::Impl::~Impl()
@@ -189,7 +189,7 @@ awaitable<void> Transaction::Impl::commit()
   if (open_) {
     //transaction_->commit(use_awaitable);//connection_->commitTransaction();
 #ifndef VARIANT
-    co_await transaction_->commit(use_awaitable);
+    //co_await transaction_->commit(use_awaitable);
 #else
     co_await std::visit([] (auto& conn) ->awaitable<void> { co_await conn.commitTransaction(); }, *connection_);
 #endif
@@ -218,7 +218,7 @@ awaitable<void> Transaction::Impl::rollback()
     if (open_) {
       //connection_->rollbackTransaction();
 #ifndef VARIANT
-      co_await transaction_->rollback(use_awaitable);
+      //co_await transaction_->rollback(use_awaitable);
 #else
       co_await std::visit([] (auto& conn)->awaitable<void> {co_await conn.rollbackTransaction(); }, *connection_);
 #endif
@@ -253,13 +253,13 @@ void Transaction::Impl::commit(bool)
         try {
             if (open_) {
                 //transaction_->commit(cb);
-                transaction_->commit([this, tr = transaction_] (auto &&res) {
-                    --this->transactionCount_;
+//                transaction_->commit([this, tr = transaction_] (auto &&res) {
+//                    --this->transactionCount_;
 
-                    if (this->transactionCount_ == 0){
-                        delete this;
-                    }
-                });
+//                    if (this->transactionCount_ == 0){
+//                        delete this;
+//                    }
+//                });
             }
         } catch (const std::exception& e) {
             //LOG_ERROR("Transaction::rollback(): {}", e.what());
@@ -288,13 +288,13 @@ void Transaction::Impl::rollback(bool)
 
   try {
     if (open_) {
-      transaction_->rollback([this, tr = transaction_] (auto &&res) {
-          --this->transactionCount_;
+//      transaction_->rollback([this, tr = transaction_] (auto &&res) {
+//          --this->transactionCount_;
 
-          if (this->transactionCount_ == 0){
-              delete this;
-          }
-      });
+//          if (this->transactionCount_ == 0){
+//              delete this;
+//          }
+//      });
     }
   } catch (const std::exception& e) {
     //LOG_ERROR("Transaction::rollback(): {}", e.what());

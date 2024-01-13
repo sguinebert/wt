@@ -1,6 +1,6 @@
 #include "connection.hpp"
 
-#include "Wt/Dbo/backend/postgresStatement.h"
+#include "Wt/Dbo/backend/Postgres/postgresStatement.h"
 
 
 std::unique_ptr<SqlStatement> postgrespp::connection::prepareStatement(const std::string &sql) {

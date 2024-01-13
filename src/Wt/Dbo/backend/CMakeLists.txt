@@ -121,28 +121,28 @@ IF(ENABLE_POSTGRES AND POSTGRES_FOUND)
 
   ADD_LIBRARY(wtdbopostgres
     Postgres.h Postgres.C
-    async_exec.hpp
-    async_exec_prepared.hpp
-    basic_connection.hpp
-    basic_transaction.hpp
-    builtin_type_decoders.hpp
-    builtin_type_encoders.hpp
-    connection.hpp connection.cpp
-    field.hpp
-    field_type.hpp
-    postgresStatement.h
-    postgrespp.hpp
-    query.hpp
-    result.hpp
-    result_iterator.hpp
-    row.hpp
-    socket_operations.hpp
-    statement_name.hpp
-    type_decoder.hpp
-    type_encoder.hpp
-    use_future.hpp
-    utility.hpp
-    work.hpp
+    Postgres/async_exec.hpp
+    Postgres/async_exec_prepared.hpp
+    Postgres/basic_connection.hpp
+    Postgres/basic_transaction.hpp
+    Postgres/builtin_type_decoders.hpp
+    Postgres/builtin_type_encoders.hpp
+    Postgres/connection.hpp Postgres/connection.cpp
+    Postgres/field.hpp
+    Postgres/field_type.hpp
+    Postgres/postgresStatement.h
+    Postgres/postgrespp.hpp
+    Postgres/query.hpp
+    Postgres/result.hpp
+    Postgres/result_iterator.hpp
+    Postgres/row.hpp
+    Postgres/socket_operations.hpp
+    Postgres/statement_name.hpp
+    Postgres/type_decoder.hpp
+    Postgres/type_encoder.hpp
+    Postgres/use_future.hpp
+    Postgres/utility.hpp
+    Postgres/work.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${postgres_SRCS}
     )
