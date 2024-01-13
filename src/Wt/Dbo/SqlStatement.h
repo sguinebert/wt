@@ -11,7 +11,7 @@
 #include <vector>
 #include <chrono>
 
-//#include "Dbo/connection.hpp"//#include <Wt/Dbo/sqlConnection.h>
+//#include "Dbo/connection.hpp"//#include <Wt/Dbo/SqlConnection.h>
 #include <Wt/Dbo/WDboDllDefs.h>
 //#include <Dbo/connection.hpp>
 #include <Wt/cpp17/any.hpp>
@@ -32,7 +32,7 @@ namespace Wt {
  * directly. Its interface must be reimplemented for each backend
  * corresponding to a supported database.
  *
- * \sa sqlConnection
+ * \sa SqlConnection
  *
  * \ingroup dbo
  */

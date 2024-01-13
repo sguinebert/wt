@@ -82,6 +82,25 @@ public:
    */
   MySQL(const MySQL& other);
 
+    MySQL& operator=(MySQL& other)
+    {
+        properties_ = std::move(other.properties_);
+        connection_ = std::move(other.connection_);
+        //statementCache_ = std::move(other.statementCache_);
+        statefulSql_ = std::move(other.statefulSql_);
+        return *this;
+    }
+
+    MySQL& operator=(const MySQL& other)
+    {
+        properties_ = std::move(other.properties_);
+        connection_ = std::move(other.connection_);
+        //statementCache_ = std::move(other.statementCache_);
+        statefulSql_ = std::move(other.statefulSql_);
+        return *this;
+    }
+
+
   /*! \brief Destructor.
    *
    * Closes the connection.
@@ -209,6 +228,8 @@ public:
 
   std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql);
 
+  SqlStatement *getStatement(const std::string &id);
+
   /** @name Methods that return dialect information
    */
   //!@{
@@ -270,6 +291,61 @@ public:
   {
     return "foreign key";
   }
+
+
+  bool usesRowsFromTo() const
+  {
+    return false;
+  }
+
+  LimitQuery limitQueryMethod() const
+  {
+    return LimitQuery::Limit;
+  }
+
+
+
+  bool supportDeferrableFKConstraint() const
+  {
+    return false;
+  }
+
+  bool showQueries() const
+  {
+    return property("show-queries") == "true";
+  }
+
+  std::string textType(int size) const
+  {
+    if (size == -1)
+      return "text";
+    else{
+      return "varchar(" + std::to_string(size) + ")";
+    }
+  }
+
+  std::string longLongType() const
+  {
+    return "bigint";
+  }
+
+  const char *booleanType() const
+  {
+    return "boolean";
+  }
+
+  bool supportUpdateCascade() const
+  {
+    return true;
+  }
+
+  std::string autoincrementInsertInfix(const std::string &) const
+  {
+    return "";
+  }
+
+  void prepareForDropTables()
+  { }
 
   bool requireSubqueryAlias() const {return true;}
   //!@}
@@ -351,7 +427,7 @@ private:
   int fractionalSecondsPart_;
   std::string dateType_, timeType_;
 
-  std::unique_ptr<boost::mysql::tcp_ssl_connection> connection_;
+  mutable std::unique_ptr<boost::mysql::tcp_ssl_connection> connection_;
   cpp20::async_mutex async_mutex_;
 
   MySQL_impl* impl_; // MySQL connection handle

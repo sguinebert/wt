@@ -40,7 +40,7 @@ public:
    * The pool is initialized with the provided \p connection, which is
    * cloned (\p size - 1) times.
    */
-  FixedSqlConnectionPool(std::unique_ptr<sqlConnection> connection, unsigned size, http::detail::engines& engine);
+  FixedSqlConnectionPool(std::unique_ptr<SqlConnection> connection, unsigned size, http::detail::engines& engine);
 
   /*! \brief Set a timeout to get a connection.
    *
@@ -61,14 +61,14 @@ public:
   std::chrono::steady_clock::duration timeout() const;
   
   virtual ~FixedSqlConnectionPool();
-  virtual std::unique_ptr<sqlConnection> getConnection() override;
-  virtual void returnConnection(std::unique_ptr<sqlConnection>) override;
+  virtual std::unique_ptr<SqlConnection> getConnection() override;
+  virtual void returnConnection(std::unique_ptr<SqlConnection>) override;
   virtual void prepareForDropTables() const override;
 
-  virtual sqlConnection* get_rconnection() override;
+  virtual SqlConnection* get_rconnection() override;
 
-  virtual awaitable<sqlConnection*> async_connection(bool transaction = false) override;
-  virtual void async_connection(bool transaction, std::function<void(sqlConnection*)> cb) override;
+  virtual awaitable<SqlConnection*> async_connection(bool transaction = false) override;
+  virtual void async_connection(bool transaction, std::function<void(SqlConnection*)> cb) override;
 
 protected:
   /*! \brief Handle a timeout that occured while getting a connection.

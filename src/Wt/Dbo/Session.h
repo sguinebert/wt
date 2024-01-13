@@ -20,7 +20,7 @@
 #include <Wt/Dbo/Transaction.h>
 #include <Wt/Dbo/SqlConnection.h>
 #include <Wt/Dbo/SqlConnectionPool.h>
-//#include <Wt/Dbo/backend/connection.hpp> //#include <Wt/Dbo/sqlConnection.h> virtual polymorphism move to std::variant
+//#include <Wt/Dbo/backend/connection.hpp> //#include <Wt/Dbo/SqlConnection.h> virtual polymorphism move to std::variant
 
 
 
@@ -97,7 +97,7 @@ enum class FlushMode {
 };
 
 class Call;
-//class sqlConnection;
+//class SqlConnection;
 class SqlConnectionPool;
 class SqlStatement;
 template <typename Result, typename BindStrategy> class Query;
@@ -154,7 +154,7 @@ public:
    *
    * \sa setConnectionPool()
    */
-  void setConnection(std::unique_ptr<sqlConnection> connection);
+  void setConnection(std::unique_ptr<SqlConnection> connection);
 
   /*! \brief Sets a connection pool.
    *
@@ -582,7 +582,7 @@ public:
             handler(conn);
         });
     };
-    return asio::async_initiate<ResultcallableT, void(sqlConnection*)>(initiator, handler);
+    return asio::async_initiate<ResultcallableT, void(SqlConnection*)>(initiator, handler);
   }
 private:
   mutable std::string longlongType_;
@@ -640,11 +640,11 @@ private:
   inline thread_local static Impl::MetaDboBaseSet *dirtyObjects_ = nullptr;
   //Impl::MetaDboBaseSet *dirtyObjects_ = nullptr;
   std::vector<MetaDboBase*> objectsToAdd_;
-  std::unique_ptr<sqlConnection> connection_;
+  std::unique_ptr<SqlConnection> connection_;
   SqlConnectionPool *connectionPool_;
   //inline thread_local static Transaction::Impl *transaction_;
   Transaction::Impl *transaction_ = nullptr;
-  mutable sqlConnection *active_conn = nullptr;
+  mutable SqlConnection *active_conn = nullptr;
   //std::mutex mutex_;
   FlushMode flushMode_;
 
@@ -724,22 +724,21 @@ private:
   SqlStatement *getStatement(const char *tableName, int statementIdx);
   const std::string& getStatementSql(const char *tableName, int statementIdx);
 
-  SqlStatement *prepareStatement(const std::string& id,
-				 const std::string& sql);
+  SqlStatement *prepareStatement(const std::string& id, const std::string& sql);
   SqlStatement *getOrPrepareStatement(const std::string& sql);
 
   template <class C> void prepareStatements();
   template <class C> std::string manyToManyJoinId(const std::string& joinName,
 						  const std::string& notId);
 
-  std::unique_ptr<sqlConnection> useConnection();
-  void returnConnection(std::unique_ptr<sqlConnection> connection);
-  awaitable<sqlConnection*> connection(bool openTransaction);
-  inline sqlConnection* connection();
-  sqlConnection* get_rconnection();
+  std::unique_ptr<SqlConnection> useConnection();
+  void returnConnection(std::unique_ptr<SqlConnection> connection);
+  awaitable<SqlConnection*> connection(bool openTransaction);
+  inline SqlConnection* connection();
+  SqlConnection* get_rconnection();
 
 
-  awaitable<sqlConnection*> assign_connection(bool transaction);
+  awaitable<SqlConnection*> assign_connection(bool transaction);
 
 
 

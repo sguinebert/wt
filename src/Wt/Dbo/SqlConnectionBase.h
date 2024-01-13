@@ -9,7 +9,13 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <Wt/Dbo/SqlStatement.h>
+#include <Wt/cpp20/async_mutex.h>
 //#include <Wt/Dbo/WDboDllDefs.h>
+
+namespace {
+static constexpr std::size_t WARN_NUM_STATEMENTS_THRESHOLD = 10;
+}
 
 namespace postgrespp {
 class connection;
@@ -117,6 +123,11 @@ class SqlStatement;
           return property("show-queries") == "true";
       }
 
+      void saveStatement(const std::string& id,
+                         std::unique_ptr<SqlStatement> statement)
+      {
+          statementCache_.emplace(id, std::move(statement));
+      }
 
   protected:
       SqlConnectionBase();

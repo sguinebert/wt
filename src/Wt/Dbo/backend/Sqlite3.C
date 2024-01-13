@@ -24,9 +24,7 @@
 #endif
 
 #define USEC_PER_DAY (24.0 * 60 * 60 * 1000 * 1000)
-namespace {
-static const std::size_t WARN_NUM_STATEMENTS_THRESHOLD = 10;
-}
+
 namespace {
 #ifndef WT_WIN32
   thread_local std::tm local_tm;
@@ -264,7 +262,7 @@ public:
     handleErr(err);
   }
 
-  virtual awaitable<result_base> execute() override
+  virtual awaitable<void> execute() override
   {
     if (db_.showQueries()) {
       LOG_INFO(fmt::runtime(sql_));
@@ -282,7 +280,7 @@ public:
 
       handleErr(result);
     }
-    co_return result_base();
+    co_return;
   }
 
   virtual long long insertedId() override

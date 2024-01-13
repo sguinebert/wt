@@ -377,6 +377,9 @@ IF(ENABLE_MSSQLSERVER AND ODBC_FOUND)
 
   ADD_LIBRARY(wtdbomssqlserver
     MSSQLServer.h MSSQLServer.C
+    MSSql/MSSQLStatement.h
+    MSSql/nanodbc/nanodbc.h MSSql/nanodbc/nanodbc.cpp
+    #MSSql/nanodbc/variant_row_cached_result.h MSSql/nanodbc/variant_row_cached_result.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${mssqlserver_SRCS}
   )

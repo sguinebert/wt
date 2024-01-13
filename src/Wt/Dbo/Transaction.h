@@ -16,7 +16,7 @@ namespace Wt {
   namespace Dbo {
 
 class Session;
-//class sqlConnection;
+//class SqlConnection;
 
 class ptr_base;
 
@@ -114,8 +114,7 @@ public:
    *
    * \sa rollback()
    */
-  bool commit();
-  awaitable<bool> commit(bool);
+  awaitable<bool> commit();
 
   /*! \brief Rolls back the transaction.
    *
@@ -124,8 +123,7 @@ public:
    *
    * \sa commit()
    */
-  bool rollback();
-  awaitable<bool> rollback(bool);
+  awaitable<bool> rollback();
 
   /*! \brief Returns the session associated with this transaction.
    *
@@ -135,15 +133,11 @@ public:
 
   /*! \brief Returns the connection used by this transaction
    */
-  awaitable<sqlConnection *> connection() const;
-
-//  template <class Result, typename BindStrategy>
-//  Query<Result, BindStrategy> query(const std::string& sql)
-//  {
-//      return Query<Result, BindStrategy>(session(), sql);
-//  }
+  awaitable<SqlConnection *> connection() const;
 
 private:
+  bool commit(bool);
+  bool rollback(bool);
   struct Impl {
     Session& session_;
     bool active_;
@@ -153,10 +147,8 @@ private:
     int transactionCount_;
     std::vector<ptr_base *> objects_;
 
-    //std::unique_ptr<sqlConnection> connection_;
-    sqlConnection* connection_ = nullptr;
-    //inline thread_local static sqlConnection* connection_ = nullptr;
-    //std::shared_ptr<postgrespp::work> transaction_;
+    //std::unique_ptr<SqlConnection> connection_;
+    SqlConnection* connection_ = nullptr;
 
     awaitable<void> open();
     awaitable<void> commit();

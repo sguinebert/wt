@@ -108,6 +108,10 @@ public:
 
     virtual void bind(int column, const std::string& value) override
     {
+        if(!paramCount_) {
+            params_.emplace_back(value);
+            return;
+        }
         if (column >= paramCount_)
             throw MySQLException(std::string("Try to bind too much?"));
 
@@ -134,6 +138,10 @@ public:
 
     virtual void bind(int column, short value) override
     {
+        if(!paramCount_) {
+            params_.emplace_back(value);
+            return;
+        }
         if (column >= paramCount_)
             throw MySQLException(std::string("Try to bind too much?"));
 
@@ -152,6 +160,10 @@ public:
 
     virtual void bind(int column, int value) override
     {
+        if(!paramCount_) {
+            params_.emplace_back(value);
+            return;
+        }
         if (column >= paramCount_)
             throw MySQLException(std::string("Try to bind too much?"));
 
@@ -169,6 +181,10 @@ public:
 
     virtual void bind(int column, long long value) override
     {
+        if(!paramCount_) {
+            params_.emplace_back(value);
+            return;
+        }
         if (column >= paramCount_)
             throw MySQLException(std::string("Try to bind too much?"));
 
@@ -186,6 +202,10 @@ public:
 
     virtual void bind(int column, float value) override
     {
+        if(!paramCount_) {
+            params_.emplace_back(value);
+            return;
+        }
         if (column >= paramCount_)
             throw MySQLException(std::string("Try to bind too much?"));
 
@@ -202,6 +222,10 @@ public:
 
     virtual void bind(int column, double value) override
     {
+        if(!paramCount_) {
+            params_.emplace_back(value);
+            return;
+        }
         if (column >= paramCount_)
             throw MySQLException(std::string("Try to bind too much?"));
 
@@ -221,6 +245,10 @@ public:
     virtual void bind(int column, const std::chrono::system_clock::time_point& value,
                       SqlDateTimeType type) override
     {
+        if(!paramCount_) {
+            params_.emplace_back(datetime(std::chrono::time_point_cast<std::chrono::microseconds>(value)));
+            return;
+        }
         if (column >= paramCount_)
             throw MySQLException(std::string("Try to bind too much?"));
 
@@ -233,8 +261,8 @@ public:
             WT_LOG("debug") << WT_LOGGER << ": " << this << " bind " << column << " " << ss.str();
         }
 #endif
-
-        params_[column] = datetime();
+        auto t = std::chrono::time_point_cast<std::chrono::microseconds>(value);
+        params_[column] = datetime(t);
 
 //        MYSQL_TIME*  ts = (MYSQL_TIME*)malloc(sizeof(MYSQL_TIME));
 
@@ -272,6 +300,10 @@ public:
 
     virtual void bind(int column, const std::chrono::duration<int, std::milli>& value) override
     {
+        if(!paramCount_) {
+            params_.emplace_back(value);
+            return;
+        }
         if (column >= paramCount_)
             throw MySQLException(std::string("Try to bind too much?"));
 
@@ -313,6 +345,10 @@ public:
 
     virtual void bind(int column, const std::vector<unsigned char>& value) override
     {
+        if(!paramCount_) {
+            params_.emplace_back(value);
+            return;
+        }
         if (column >= paramCount_)
             throw MySQLException(std::string("Try to bind too much?"));
 
@@ -343,6 +379,10 @@ public:
 
     void bindNull(int column) override
     {
+        if(!paramCount_) {
+            params_.emplace_back(nullptr);
+            return;
+        }
         if (column >= paramCount_)
             throw MySQLException(std::string("Try to bind too much?"));
 
@@ -378,7 +418,8 @@ public:
         conn_.checkConnection();
 
         error_code ec;
-        std::tie(ec, stmt_) = co_await conn_.connection()->async_prepare_statement(sql_, use_nothrow_awaitable);
+        if(!stmt_.valid())
+            std::tie(ec, stmt_) = co_await conn_.connection()->async_prepare_statement(sql_, use_nothrow_awaitable);
 
 
         if(!ec) {

@@ -38,7 +38,7 @@ struct sql_value_traits<WDate, void>
 
   static const char *format;
 
-  static const char *type(sqlConnection *conn, int size);
+  static const char *type(SqlConnection *conn, int size);
   static void bind(const WDate& v, SqlStatement *statement, int column, int size);
   static bool read(WDate& v, SqlStatement *statement, int column, int size);
 };
@@ -48,7 +48,7 @@ struct sql_value_traits<WDateTime, void>
 {
   static const bool specialized = true;
 
-  static const char *type(sqlConnection *conn, int size);
+  static const char *type(SqlConnection *conn, int size);
   static void bind(const WDateTime& v, SqlStatement *statement, int column,
 		   int size);
   static bool read(WDateTime& v, SqlStatement *statement, int column, int size);
@@ -61,7 +61,7 @@ struct sql_value_traits<WTime, void>
 
   static const char *format;
 
-  static const char *type(sqlConnection *conn, int size);
+  static const char *type(SqlConnection *conn, int size);
   static void bind(const WTime& v, SqlStatement *statement, int column,
 		   int size);
   static bool read(WTime& v, SqlStatement *statement, int column, int size);
@@ -72,7 +72,7 @@ struct sql_value_traits<WString, void>
 {
   static const bool specialized = true;
 
-  static std::string type(sqlConnection *conn, int size);
+  static std::string type(SqlConnection *conn, int size);
   static void bind(const WString& v, SqlStatement *statement, int column,
 		   int size);
   static bool read(WString& v, SqlStatement *statement, int column, int size);
@@ -83,7 +83,7 @@ struct sql_value_traits<Json::Object, void>
 {
   static const bool specialized = true;
 
-  static std::string type(sqlConnection *conn, int size);
+  static std::string type(SqlConnection *conn, int size);
   static void bind(const Json::Object& v, SqlStatement *statement, int column,
 		   int size);
   static bool read(Json::Object& v, SqlStatement *statement, int column, int size);
@@ -94,7 +94,7 @@ struct sql_value_traits<Json::Array, void>
 {
   static const bool specialized = true;
 
-  static std::string type(sqlConnection *conn, int size);
+  static std::string type(SqlConnection *conn, int size);
   static void bind(const Json::Array& v, SqlStatement *statement, int column,
 		   int size);
   static bool read(Json::Array& v, SqlStatement *statement, int column, int size);
@@ -104,7 +104,7 @@ struct sql_value_traits<Json::Array, void>
      * WDate
      */
 
-inline const char *sql_value_traits<WDate, void>::type(sqlConnection *conn,
+inline const char *sql_value_traits<WDate, void>::type(SqlConnection *conn,
 						       int /* size */)
 {
 #ifndef VARIANT
@@ -141,7 +141,7 @@ inline bool sql_value_traits<WDate, void>
      * WTime
      */
 
-inline const char *sql_value_traits<WTime, void>::type(sqlConnection *conn,
+inline const char *sql_value_traits<WTime, void>::type(SqlConnection *conn,
 						       int /* size */)
 {
 #ifndef VARIANT
@@ -184,7 +184,7 @@ inline bool sql_value_traits<WTime, void>
      * WDateTime
      */
 
-inline const char *sql_value_traits<WDateTime, void>::type(sqlConnection *conn,
+inline const char *sql_value_traits<WDateTime, void>::type(SqlConnection *conn,
 							   int /* size */)
 {
 #ifndef VARIANT
@@ -221,7 +221,7 @@ inline bool sql_value_traits<WDateTime, void>
      * WString
      */
 
-inline std::string sql_value_traits<WString, void>::type(sqlConnection *conn,
+inline std::string sql_value_traits<WString, void>::type(SqlConnection *conn,
 							 int size)
 {
 #ifndef VARIANT
@@ -256,7 +256,7 @@ inline bool sql_value_traits<WString, void>
      * Json::Object
      */
 
-inline std::string sql_value_traits<Json::Object, void>::type(sqlConnection *conn, int size)
+inline std::string sql_value_traits<Json::Object, void>::type(SqlConnection *conn, int size)
 {
 #ifndef VARIANT
   return conn->textType(size) + " not null";
@@ -288,7 +288,7 @@ inline bool sql_value_traits<Json::Object, void>
      * Json::Array
      */
 
-inline std::string sql_value_traits<Json::Array, void>::type(sqlConnection *conn, int size)
+inline std::string sql_value_traits<Json::Array, void>::type(SqlConnection *conn, int size)
 {
 #ifndef VARIANT
   return conn->textType(size) + " not null";

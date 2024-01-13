@@ -9,7 +9,7 @@
 #include "Wt/Dbo/Exception.h"
 #include "Wt/Dbo/Session.h"
 #include "Wt/Dbo/SqlConnection.h"
-//#include "Wt/Dbo/backend/connection.hpp"//#include "Wt/Dbo/sqlConnection.h"
+//#include "Wt/Dbo/backend/connection.hpp"//#include "Wt/Dbo/SqlConnection.h"
 #include "Wt/Dbo/SqlConnectionPool.h"
 #include "Wt/Dbo/SqlStatement.h"
 #include "Wt/Dbo/StdSqlTraits.h"
@@ -193,7 +193,7 @@ Session::~Session()
     delete i->second;
 }
 
-void Session::setConnection(std::unique_ptr<sqlConnection> connection)
+void Session::setConnection(std::unique_ptr<SqlConnection> connection)
 {
   connection_ = std::move(connection);
 }
@@ -203,7 +203,7 @@ void Session::setConnectionPool(SqlConnectionPool &pool)
   connectionPool_ = &pool;
 }
 
-awaitable<sqlConnection*> Session::connection(bool openTransaction)
+awaitable<SqlConnection*> Session::connection(bool openTransaction)
 { 
   if (!transaction_)
     throw Exception("Operation requires an active transaction");
@@ -214,7 +214,7 @@ awaitable<sqlConnection*> Session::connection(bool openTransaction)
   co_return transaction_->connection_;
 }
 
-sqlConnection *Session::connection()
+SqlConnection *Session::connection()
 {
   if (!transaction_)
     throw Exception("Operation requires an active transaction");
@@ -222,13 +222,13 @@ sqlConnection *Session::connection()
   return transaction_->connection_;
 }
 
-sqlConnection *Session::get_rconnection() {
+SqlConnection *Session::get_rconnection() {
   if(connection_)
     return connection_.get();
   return connectionPool_->get_rconnection();
 }
 
-awaitable<sqlConnection *> Session::assign_connection(bool transaction)
+awaitable<SqlConnection *> Session::assign_connection(bool transaction)
 {
   if (connectionPool_)
     co_return co_await connectionPool_->async_connection(transaction);
@@ -236,7 +236,7 @@ awaitable<sqlConnection *> Session::assign_connection(bool transaction)
     co_return connection_.get();
 }
 
-std::unique_ptr<sqlConnection> Session::useConnection()
+std::unique_ptr<SqlConnection> Session::useConnection()
 {
   if (connectionPool_)
     return connectionPool_->getConnection();
@@ -244,7 +244,7 @@ std::unique_ptr<sqlConnection> Session::useConnection()
     return std::move(connection_);
 }
 
-void Session::returnConnection(std::unique_ptr<sqlConnection> connection)
+void Session::returnConnection(std::unique_ptr<SqlConnection> connection)
 {
   if (connectionPool_)
     connectionPool_->returnConnection(std::move(connection));
@@ -302,7 +302,7 @@ void Session::initSchema() const
 //    this->active_conn = connectionPool_->get_rconnection();
 //  }
 
-  sqlConnection *conn = connection_ ? connection_.get() : connectionPool_->get_rconnection(); //this->active_conn;// co_await self->connection(false);
+  SqlConnection *conn = connection_ ? connection_.get() : connectionPool_->get_rconnection(); //this->active_conn;// co_await self->connection(false);
   longlongType_ = sql_value_traits<long long>::type(conn, 0);
   intType_ = sql_value_traits<int>::type(conn, 0);
 
@@ -368,9 +368,9 @@ void Session::prepareStatements(Impl::MappingInfo *mapping)
 
   sql << ")";
 
-//  std::unique_ptr<sqlConnection> connPtr;
+//  std::unique_ptr<SqlConnection> connPtr;
   //we just want a connection object for connection properties read only mode (no SQL command will be executed)
-  sqlConnection *conn = connection_ ? connection_.get() : connectionPool_->get_rconnection();
+  SqlConnection *conn = connection_ ? connection_.get() : connectionPool_->get_rconnection();
 
 //  if (transaction_)
 //    conn = transaction_->connection_;
@@ -868,7 +868,7 @@ awaitable<void> Session::createTable(Impl::MappingInfo *mapping,
 
   //auto conn = co_await connection(false);
   //we just want a connection object in connection properties read only mode (no SQL command will be executed)
-  sqlConnection *conn = connection_ ? connection_.get() : connectionPool_->get_rconnection();
+  SqlConnection *conn = connection_ ? connection_.get() : connectionPool_->get_rconnection();
 
   // Auto-generated id
   if (mapping->surrogateIdFieldName) {
@@ -1447,7 +1447,7 @@ Session::getStatementSql(const char *tableName, int statementIdx)
 
 SqlStatement *Session::prepareStatement(const std::string& id, const std::string& sql)
 {
-  //sqlConnection *conn = connection();// connection(false);
+  //SqlConnection *conn = connection();// connection(false);
   auto conn = transaction_ != nullptr ? transaction_->connection_ :  active_conn;
 
 #ifndef VARIANT

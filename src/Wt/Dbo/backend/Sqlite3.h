@@ -68,7 +68,7 @@ enum class DateTimeStorage {
  *
  * \ingroup dbo
  */
-class WTDBOSQLITE3_API Sqlite3 : public SqlConnectionBase
+class WTDBOSQLITE3_API Sqlite3 final : public SqlConnectionBase
 {
 public:
     /*! \brief Opens a new SQLite3 backend connection.
@@ -113,6 +113,7 @@ public:
 
     std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql);
 
+    SqlStatement *getStatement(const std::string& id);
     /** @name Methods that return dialect information
    */
     //@{
@@ -141,14 +142,6 @@ public:
     {
         statefulSql_.push_back(sql);
         co_await executeSql(sql);
-    }
-
-    SqlStatement *getStatement(const std::string& id);
-
-    void saveStatement(const std::string& id,
-                      std::unique_ptr<SqlStatement> statement)
-    {
-      statementCache_.emplace(id, std::move(statement));
     }
 
 private:

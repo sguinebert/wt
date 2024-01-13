@@ -1,6 +1,7 @@
 // This may look like C code, but it's really -*- C++ -*-
 /*
  * Copyright (C) 2017 Emweb bv, Herent, Belgium.
+ * Copyright (C) 2024 Sylvain Guinebert, Paris, France.
  *
  * See the LICENSE file for terms of use.
  */
@@ -25,14 +26,14 @@ namespace Wt {
     class WTDBOMSSQLSERVER_API MSSQLServer : public SqlConnectionBase
     {
     public:
-        /*! \brief Creates a new Microsoft SQL Server backend connection.
+   /*! \brief Creates a new Microsoft SQL Server backend connection.
    *
    * The connection is not yet open, and requires a connect() before it
    * can be used.
    */
         MSSQLServer();
 
-        /*! \brief Creates a new Microsoft SQL Server backend connection.
+   /*! \brief Creates a new Microsoft SQL Server backend connection.
    *
    * For info about the connection string, see the connect() method.
    *
@@ -48,6 +49,15 @@ namespace Wt {
    * \sa clone()
    */
         MSSQLServer(const MSSQLServer& other);
+
+        MSSQLServer& operator=(const MSSQLServer& other)
+        {
+            properties_ = std::move(other.properties_);
+            //statementCache_ = std::move(other.statementCache_);
+            statefulSql_ = std::move(other.statefulSql_);
+            return *this;
+        }
+
 
         /*! \brief Destructor.
    *
@@ -86,33 +96,128 @@ namespace Wt {
 
         awaitable<void> executeSql(const std::string &sql);
 
+        awaitable<void> executeSqlStateful(const std::string& sql)
+        {
+            co_await async_mutex_.scoped_lock_async(use_nothrow_awaitable);
+            statefulSql_.push_back(sql);
+            co_await executeSql(sql);
+        }
+
         awaitable<void> startTransaction();
         awaitable<void> commitTransaction();
         awaitable<void> rollbackTransaction();
 
         std::unique_ptr<SqlStatement> prepareStatement(const std::string &sql);
 
+        SqlStatement *getStatement(const std::string &id);
+
         /** @name Methods that return dialect information
    */
         //!@{
-        std::string autoincrementSql() const;
-        std::vector<std::string> autoincrementCreateSequenceSql(const std::string &table, const std::string &id) const;
-        std::vector<std::string> autoincrementDropSequenceSql(const std::string &table, const std::string &id) const;
-        std::string autoincrementType() const;
-        std::string autoincrementInsertInfix(const std::string &id) const;
-        std::string autoincrementInsertSuffix(const std::string &id) const;
-        const char *dateTimeType(SqlDateTimeType type) const;
-        const char *blobType() const;
-        bool requireSubqueryAlias() const;
-        const char *booleanType() const;
-        bool supportAlterTable() const;
-        std::string textType(int size) const;
-        LimitQuery limitQueryMethod() const;
+        std::string autoincrementSql() const
+        {
+            return "IDENTITY(1,1)";
+        }
+        std::vector<std::string> autoincrementCreateSequenceSql(const std::string &/*table*/, const std::string &/*id*/) const
+        {
+            return std::vector<std::string>();
+        }
+        std::vector<std::string> autoincrementDropSequenceSql(const std::string &/*table*/, const std::string &/*id*/) const
+        {
+            return std::vector<std::string>();
+        }
+        std::string autoincrementType() const
+        {
+            return "bigint";
+        }
+        std::string autoincrementInsertInfix(const std::string &id) const
+        {
+            return " OUTPUT Inserted.\"" + id + "\"";
+        }
+        std::string autoincrementInsertSuffix(const std::string &/*id*/) const
+        {
+            return "";
+        }
+        const char *dateTimeType(SqlDateTimeType type) const
+        {
+            if (type == SqlDateTimeType::Date)
+                return "date";
+            if (type == SqlDateTimeType::Time)
+                return "bigint"; // SQL Server has no proper duration type, so store duration as number of milliseconds
+            if (type == SqlDateTimeType::DateTime)
+                return "datetime2";
+            return "";
+        }
+        const char *blobType() const
+        {
+            return "varbinary(max)";
+        }
+        bool requireSubqueryAlias() const
+        {
+            return true;
+        }
+        const char *booleanType() const
+        {
+            return "bit";
+        }
+        bool supportAlterTable() const
+        {
+            return true;
+        }
+        std::string textType(int size) const
+        {
+            if (size == -1)
+                return "nvarchar(max)";
+            else
+                return std::string("nvarchar(") + std::to_string(size) + ")";
+        }
+        LimitQuery limitQueryMethod() const
+        {
+            return LimitQuery::OffsetFetch;
+        }
+
+
+        bool usesRowsFromTo() const
+        {
+          return false;
+        }
+
+        bool supportDeferrableFKConstraint() const
+        {
+          return false;
+        }
+
+        const char *alterTableConstraintString() const
+        {
+          return "constraint";
+        }
+
+        bool showQueries() const
+        {
+          return property("show-queries") == "true";
+        }
+
+        std::string longLongType() const
+        {
+          return "bigint";
+        }
+
+
+        bool supportUpdateCascade() const
+        {
+          return true;
+        }
+
+        void prepareForDropTables()
+        { }
+
+
         //!@}
 
     private:
         struct Impl;
         Impl *impl_;
+        cpp20::async_mutex async_mutex_;
 
         friend class MSSQLServerStatement;
     };

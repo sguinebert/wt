@@ -169,7 +169,7 @@ struct MSSQLServer::Impl {
   } resultBuffer;
 };
 
-class MSSQLServerStatement : public SqlStatement {
+class MSSQLServerStatement final : public SqlStatement {
 public:
   MSSQLServerStatement(MSSQLServer &conn, const std::string &sql)
     : paramValues_(NULL),
@@ -228,12 +228,12 @@ public:
   }
 
 
-  virtual void reset() override
+  void reset() override
   {
     SQLFreeStmt(stmt_, SQL_CLOSE);
   }
 
-  virtual void bind(int column, const std::string &value) override
+  void bind(int column, const std::string &value) override
   {
     checkColumnIndex(column);
     Value &v = paramValues_[column];
@@ -280,7 +280,7 @@ public:
     }
   }
 
-  virtual void bind(int column, short value) override
+  void bind(int column, short value) override
   {
     checkColumnIndex(column);
     Value &v = paramValues_[column];
@@ -307,7 +307,7 @@ public:
     }
   }
 
-  virtual void bind(int column, int value) override
+  void bind(int column, int value) override
   {
     checkColumnIndex(column);
     Value &v = paramValues_[column];
@@ -334,7 +334,7 @@ public:
     }
   }
 
-  virtual void bind(int column, long long value) override
+  void bind(int column, long long value) override
   {
     checkColumnIndex(column);
     Value &v = paramValues_[column];
@@ -361,7 +361,7 @@ public:
     }
   }
 
-  virtual void bind(int column, float value) override
+  void bind(int column, float value) override
   {
     checkColumnIndex(column);
     Value &v = paramValues_[column];
@@ -388,7 +388,7 @@ public:
     }
   }
 
-  virtual void bind(int column, double value) override
+  void bind(int column, double value) override
   {
     checkColumnIndex(column);
     Value &v = paramValues_[column];
@@ -415,7 +415,7 @@ public:
     }
   }
 
-  virtual void bind(
+  void bind(
     int column,
     const std::chrono::system_clock::time_point& value,
     SqlDateTimeType type) override
@@ -483,7 +483,7 @@ public:
     }
   }
 
-  virtual void bind(
+  void bind(
     int column,
     const std::chrono::duration<int, std::milli>& value) override
   {
@@ -491,7 +491,7 @@ public:
     bind(column, msec);
   }
 
-  virtual void bind(
+  void bind(
     int column,
     const std::vector<unsigned char>& value) override
   {
@@ -518,7 +518,7 @@ public:
     }
   }
 
-  virtual void bindNull(int column) override
+  void bindNull(int column) override
   {
     checkColumnIndex(column);
     Value &v = paramValues_[column];
@@ -545,10 +545,10 @@ public:
     }
   }
 
-  virtual void execute() override
+  awaitable<void> execute() override
   {
     if (conn_.showQueries()) {
-      LOG_INFO(sql_);
+      LOG_INFO("{}", sql_);
       fmtlog::poll();
     }
 
@@ -576,19 +576,20 @@ public:
         affectedRows_ = 1;
       }
     }
+    co_return;
   }
 
-  virtual long long insertedId() override
+  long long insertedId() override
   {
     return lastId_;
   }
 
-  virtual int affectedRowCount() override
+  int affectedRowCount() override
   {
     return static_cast<int>(affectedRows_);
   }
 
-  virtual bool nextRow() override
+  bool nextRow() override
   {
     SQLRETURN rc = SQLFetch(stmt_);
     if (rc == SQL_NO_DATA)
@@ -599,12 +600,12 @@ public:
     }
   }
 
-  virtual int columnCount() const override
+  int columnCount() const override
   {
     return resultColCount_;
   }
 
-  virtual bool getResult(int column, std::string *value, int /*size*/) override
+  bool getResult(int column, std::string *value, int /*size*/) override
   {
     MSSQLServer::Impl::ResultBuffer &resultBuffer = conn_.impl_->resultBuffer;
     std::size_t resultBufferPos = 0;
@@ -659,32 +660,32 @@ public:
     return true;
   }
 
-  virtual bool getResult(int column, short * value) override
+  bool getResult(int column, short * value) override
   {
     return getRes<SQL_C_SSHORT>(column, value);
   }
 
-  virtual bool getResult(int column, int * value) override
+  bool getResult(int column, int * value) override
   {
     return getRes<SQL_C_SLONG>(column, value);
   }
 
-  virtual bool getResult(int column, long long * value) override
+  bool getResult(int column, long long * value) override
   {
     return getRes<SQL_C_SBIGINT>(column, value);
   }
 
-  virtual bool getResult(int column, float * value) override
+  bool getResult(int column, float * value) override
   {
     return getRes<SQL_C_FLOAT>(column, value);
   }
 
-  virtual bool getResult(int column, double * value) override
+  bool getResult(int column, double * value) override
   {
     return getRes<SQL_C_DOUBLE>(column, value);
   }
 
-  virtual bool getResult(
+  bool getResult(
     int column,
     std::chrono::system_clock::time_point *value,
     SqlDateTimeType type) override
@@ -715,7 +716,7 @@ public:
     return false;
   }
 
-  virtual bool getResult(
+  bool getResult(
     int column,
     std::chrono::duration<int, std::milli> *value) override
   {
@@ -728,7 +729,7 @@ public:
     return true;
   }
 
-  virtual bool getResult(
+  bool getResult(
     int column,
     std::vector<unsigned char> *value,
     int size) override
@@ -764,7 +765,7 @@ public:
     return true;
   }
 
-  virtual std::string sql() const override
+  std::string sql() const override
   {
     return sql_;
   }
@@ -945,8 +946,10 @@ bool MSSQLServer::connect(const std::string &connectionString)
 
 awaitable<void> MSSQLServer::executeSql(const std::string &sql)
 {
+  co_await async_mutex_.scoped_lock_async(use_nothrow_awaitable);
+
   if (showQueries()) {
-    LOG_INFO(sql);
+    LOG_INFO("{}", sql);
     fmtlog::poll();
   }
 
@@ -1021,80 +1024,30 @@ std::unique_ptr<SqlStatement> MSSQLServer::prepareStatement(const std::string &s
   return std::unique_ptr<SqlStatement>(new MSSQLServerStatement(*this, sql));
 }
 
-std::string MSSQLServer::autoincrementSql() const
+SqlStatement *MSSQLServer::getStatement(const std::string &id)
 {
-  return "IDENTITY(1,1)";
-}
-
-std::vector<std::string> MSSQLServer::autoincrementCreateSequenceSql(const std::string &table, const std::string &id) const
-{
-  return std::vector<std::string>();
-}
-
-std::vector<std::string> MSSQLServer::autoincrementDropSequenceSql(const std::string &table, const std::string &id) const
-{
-  return std::vector<std::string>();
-}
-
-std::string MSSQLServer::autoincrementType() const
-{
-  return "bigint";
-}
-
-std::string MSSQLServer::autoincrementInsertInfix(const std::string &id) const
-{
-  return " OUTPUT Inserted.\"" + id + "\"";
-}
-
-std::string MSSQLServer::autoincrementInsertSuffix(const std::string &id) const
-{
-  return "";
-}
-
-const char *MSSQLServer::dateTimeType(SqlDateTimeType type) const
-{
-  if (type == SqlDateTimeType::Date)
-    return "date";
-  if (type == SqlDateTimeType::Time)
-    return "bigint"; // SQL Server has no proper duration type, so store duration as number of milliseconds
-  if (type == SqlDateTimeType::DateTime)
-    return "datetime2";
-  return "";
-}
-
-bool MSSQLServer::requireSubqueryAlias() const
-{
-  return true;
-}
-
-const char *MSSQLServer::blobType() const
-{
-  return "varbinary(max)";
-}
-
-const char *MSSQLServer::booleanType() const
-{
-  return "bit";
-}
-
-bool MSSQLServer::supportAlterTable() const
-{
-  return true;
-}
-
-std::string MSSQLServer::textType(int size) const
-{
-  if (size == -1)
-    return "nvarchar(max)";
-  else
-    return std::string("nvarchar(") + std::to_string(size) + ")";
-}
-
-LimitQuery MSSQLServer::limitQueryMethod() const
-{
-  return LimitQuery::OffsetFetch;
-}
-
-    }
+  StatementMap::const_iterator start;
+  StatementMap::const_iterator end;
+  std::tie(start, end) = statementCache_.equal_range(id);
+  SqlStatement *result = nullptr;
+  for (auto i = start; i != end; ++i) {
+    result = i->second.get();
+    if (result->use())
+      return result;
   }
+  if (result) {
+    auto count = statementCache_.count(id);
+    if (count >= WARN_NUM_STATEMENTS_THRESHOLD) {
+      LOG_WARN("Warning: number of instances ({}) of prepared statement '{}' for this connection exceeds threshold ({}). This could indicate a programming error.", (count + 1), id, WARN_NUM_STATEMENTS_THRESHOLD);
+      fmtlog::poll();
+    }
+    auto stmt = prepareStatement(result->sql());
+    result = stmt.get();
+    saveStatement(id, std::move(stmt));
+  }
+  return nullptr;
+}
+
+}
+}
 }

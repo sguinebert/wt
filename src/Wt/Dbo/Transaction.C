@@ -11,10 +11,11 @@
 
 #include "Wt/Dbo/Session.h"
 #include "Wt/Dbo/SqlConnection.h"
-//#include "Wt/Dbo/backend/connection.hpp"//#include "Wt/Dbo/sqlConnection.h"
+//#include "Wt/Dbo/backend/connection.hpp"//#include "Wt/Dbo/SqlConnection.h"
 #include "Wt/Dbo/StringStream.h"
 #include "Wt/Dbo/Transaction.h"
 #include "Wt/Dbo/ptr.h"
+#include "Wt/Dbo/Logger.h"
 
 namespace Wt {
   namespace Dbo {
@@ -65,12 +66,12 @@ Transaction::~Transaction() noexcept(false)
             impl_->rollback(true);
         }
         catch (std::exception &e) {
-          //LOG_ERROR("Unexpected exception during Transaction::rollback(): {}", e.what());
-          //fmtlog::poll();
+          LOG_ERROR("Unexpected exception during Transaction::rollback(): {}", e.what());
+          fmtlog::poll();
         }
         catch (...) {
-          //LOG_ERROR("Unexpected exception during Transaction::rollback()");
-          //fmtlog::poll();
+          LOG_ERROR("Unexpected exception during Transaction::rollback()");
+          fmtlog::poll();
         }
 
         //release();
@@ -78,7 +79,6 @@ Transaction::~Transaction() noexcept(false)
       }
     }
   }
-
   //release();
 }
 
@@ -96,7 +96,7 @@ bool Transaction::isActive() const
   return impl_->active_;
 }
 
-bool Transaction::commit()
+bool Transaction::commit(bool)
 {
   if (isActive()) {
     committed_ = true;
@@ -111,7 +111,7 @@ bool Transaction::commit()
   return false;
 }
 
-awaitable<bool> Transaction::commit(bool)
+awaitable<bool> Transaction::commit()
 {
   if (isActive()) {
     committed_ = true;
@@ -126,7 +126,7 @@ awaitable<bool> Transaction::commit(bool)
   co_return false;
 }
 
-awaitable<bool> Transaction::rollback(bool)
+awaitable<bool> Transaction::rollback()
 {
   if (isActive())
     co_await impl_->rollback();
@@ -138,7 +138,7 @@ Session& Transaction::session() const
   return session_;
 }
 
-awaitable<sqlConnection *> Transaction::connection() const
+awaitable<SqlConnection *> Transaction::connection() const
 {
   co_await impl_->open();
   //co_return impl_->connection_.get();
@@ -156,7 +156,7 @@ Transaction::Impl::Impl(Session& session)
 }
 
 awaitable<void> Transaction::Impl::assign_connection() {
-  //connection_ = co_await session_.assign_connection(true);
+  connection_ = co_await session_.assign_connection(true);
 }
 
 Transaction::Impl::~Impl()
@@ -170,6 +170,8 @@ awaitable<void> Transaction::Impl::open()
 {
   if (!open_) {
     open_ = true;
+
+    co_await connection_->startTransaction();
 //#ifndef VARIANT
 //    auto tx = co_await connection_->async_transaction(use_awaitable);
 //#else
@@ -187,7 +189,7 @@ awaitable<void> Transaction::Impl::commit()
     co_await session_.flush();
 
   if (open_) {
-    //transaction_->commit(use_awaitable);//connection_->commitTransaction();
+    co_await connection_->commitTransaction();
 #ifndef VARIANT
     //co_await transaction_->commit(use_awaitable);
 #else
@@ -216,7 +218,7 @@ awaitable<void> Transaction::Impl::rollback()
 
   try {
     if (open_) {
-      //connection_->rollbackTransaction();
+      co_await connection_->rollbackTransaction();
 #ifndef VARIANT
       //co_await transaction_->rollback(use_awaitable);
 #else
@@ -226,8 +228,8 @@ awaitable<void> Transaction::Impl::rollback()
 
     }
   } catch (const std::exception& e) {
-    //LOG_ERROR("Transaction::rollback(): {}", e.what());
-    //fmtlog::poll();
+    LOG_ERROR("Transaction::rollback(): {}", e.what());
+    fmtlog::poll();
   }
 
   for (unsigned i = 0; i < objects_.size(); ++i) {
@@ -252,6 +254,13 @@ void Transaction::Impl::commit(bool)
     session_.flush([this] () {
         try {
             if (open_) {
+                co_spawn(connection_->get_executor(), connection_->commitTransaction(), [this] (auto &&ec) {
+                    --this->transactionCount_;
+
+                    if (this->transactionCount_ == 0){
+                        delete this;
+                    }
+                });
                 //transaction_->commit(cb);
 //                transaction_->commit([this, tr = transaction_] (auto &&res) {
 //                    --this->transactionCount_;
@@ -262,8 +271,8 @@ void Transaction::Impl::commit(bool)
 //                });
             }
         } catch (const std::exception& e) {
-            //LOG_ERROR("Transaction::rollback(): {}", e.what());
-            //fmtlog::poll();
+            LOG_ERROR("Transaction::rollback(): {}", e.what());
+            fmtlog::poll();
         }
 
         for (unsigned i = 0; i < objects_.size(); ++i) {
@@ -288,6 +297,13 @@ void Transaction::Impl::rollback(bool)
 
   try {
     if (open_) {
+      co_spawn(connection_->get_executor(), connection_->rollbackTransaction(), [this] (auto &&ec) {
+          --this->transactionCount_;
+
+          if (this->transactionCount_ == 0){
+              delete this;
+          }
+      });
 //      transaction_->rollback([this, tr = transaction_] (auto &&res) {
 //          --this->transactionCount_;
 
@@ -297,8 +313,8 @@ void Transaction::Impl::rollback(bool)
 //      });
     }
   } catch (const std::exception& e) {
-    //LOG_ERROR("Transaction::rollback(): {}", e.what());
-    //fmtlog::poll();
+    LOG_ERROR("Transaction::rollback(): {}", e.what());
+    fmtlog::poll();
   }
 
   for (unsigned i = 0; i < objects_.size(); ++i) {

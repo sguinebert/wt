@@ -15,12 +15,6 @@
 namespace pg = postgrespp;
 //class postgresStatement;
 
-
-namespace {
-static const std::size_t WARN_NUM_STATEMENTS_THRESHOLD = 10;
-}
-
-
 namespace postgrespp {
 
 //using connection = basic_connection;
@@ -176,11 +170,11 @@ public:
    */
     std::chrono::microseconds timeout() const { return timeout_; }
 
-    void saveStatement(const std::string& id,
-                       std::unique_ptr<Wt::Dbo::SqlStatement> statement)
-    {
-        statementCache_.emplace(id, std::move(statement));
-    }
+//    void saveStatement(const std::string& id,
+//                       std::unique_ptr<Wt::Dbo::SqlStatement> statement)
+//    {
+//        statementCache_.emplace(id, std::move(statement));
+//    }
 
 //    std::string property(const std::string& name) const
 //    {
