@@ -1316,7 +1316,7 @@ awaitable<void> Session::dropTables()
   for (auto i = classRegistry_.begin(); i != classRegistry_.end(); ++i)
     i->second->dropTable(*this, tablesDropped);
 
-  t.commit();
+  co_await t.commit();
 }
 
 Impl::MappingInfo *Session::getMapping(const char *tableName) const

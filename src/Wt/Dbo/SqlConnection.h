@@ -12,53 +12,14 @@
 #include <vector>
 #include <Wt/Dbo/WDboDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/Dbo/backend/Postgres/connection.hpp>
 #include <Wt/Dbo/backend/Sqlite3.h>
+#include <Wt/Dbo/backend/Postgres.h>
 #include <Wt/Dbo/backend/MySQL.h>
 #include <Wt/Dbo/backend/MSSQLServer.h>
 
-//#define HAS_POSTGRES
-//#define VARIANT
 
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
-namespace Wt {
-namespace Dbo {
-
-//namespace backend {
-//class Sqlite3;
-//class Postgres;
-//class MySQL;
-//class MSSQLServer;
-//class Firebird;
-//}
-
-//typedef std::variant<
-//#ifdef HAS_POSTGRES
-//                     pg::connection
-//#endif
-//#ifdef HAS_SQLITE
-//                     , backend::Sqlite3
-//#endif
-//#ifdef HAS_MYSQL
-//                     , backend::MySQL
-//#endif
-//#ifdef HAS_MSSQL
-//                     , backend::MSSQLServer
-//#endif
-//#ifdef HAS_Firebird
-//                     , backend::Firebird
-//#endif
-//                     > SqlConnection;
-
-//using SqlConnection = pg::connection;
-//typedef pg::connection SqlConnection;
-
-}
-
-}
-
 
 namespace Wt {
   namespace Dbo {
@@ -107,18 +68,10 @@ class SqlStatement;
   {
       friend class backend::Sqlite3;
       typedef std::variant<std::monostate,
-//#ifdef HAS_SQLITE
                            backend::Sqlite3,
-//#endif
-//#ifdef HAS_POSTGRES
-                           pg::connection
-//#endif
-//#ifdef HAS_MYSQL
-                           , backend::MySQL
-//#endif
-//#ifdef HAS_MSSQL
-                           , backend::MSSQLServer
-//#endif
+                           backend::Postgres,
+                           backend::MySQL,
+                           backend::MSSQLServer
 #ifdef HAS_Firebird
                            , backend::Firebird
 #endif
@@ -128,7 +81,8 @@ class SqlStatement;
           SQlite,
           Postgres,
           MySql,
-          MSSql
+          MSSql,
+          Firebird
       };
       explicit SqlConnection(asio::io_context& context, std::string& connection, Backend backend)
       {
@@ -137,19 +91,23 @@ class SqlStatement;
               sqlconnection_ = backend::Sqlite3(connection);
               break;
           case Postgres:
-              sqlconnection_ = pg::connection(context, connection.c_str());
+              sqlconnection_ = backend::Postgres(context, connection);
               break;
           case MySql:
               sqlconnection_ = backend::MySQL(context, connection);
               break;
           case MSSql:
-              sqlconnection_ = backend::MSSQLServer(connection);
+              sqlconnection_ = backend::MSSQLServer(context, connection);
+              break;
+          case Firebird:
               break;
           default:
               break;
           }
           executor_ = context.get_executor();
       }
+
+      SqlConnection(connection conn): sqlconnection_(conn) {}
       /*! \brief Destructor.
    */
     ~SqlConnection()
@@ -164,13 +122,6 @@ class SqlStatement;
                       }, sqlconnection_);
     }
 
-    template<typename Executor>
-    std::unique_ptr<SqlConnection> clone(Executor& executor)
-    {
-
-          executor_ = executor.get_executor();
-          return std::unique_ptr<SqlConnection>(nullptr);
-    }
 
     asio::any_io_executor get_executor() const { return executor_; }
 
@@ -180,15 +131,25 @@ class SqlStatement;
    * object. This is used by connection pool implementations to create
    * its connections.
    */
+
+    std::unique_ptr<SqlConnection> clone(asio::io_context& ctx)
+    {
+
+          executor_ = ctx.get_executor();
+          return std::visit(overloaded
+                            {
+                             [&](auto &connection ) -> std::unique_ptr<SqlConnection> { return std::make_unique<SqlConnection>(connection.clone(ctx)); },
+                             [&](std::monostate) -> std::unique_ptr<SqlConnection> { return {}; },
+                             }, sqlconnection_);
+    }
+
     std::unique_ptr<SqlConnection> clone() const
     {
-//          std::visit(overloaded
-//                     {
-//                      [&](auto &connection ) -> std::unique_ptr<SqlConnection> { return connection.clone(); },
-//                      [&](std::monostate) -> awaitable<void> { co_return; },
-//                      }, sqlconnection_);
-
-          return nullptr;
+          return std::visit(overloaded
+                            {
+                             [&](auto &connection ) -> std::unique_ptr<SqlConnection> { return {}; },
+                             [&](std::monostate) -> std::unique_ptr<SqlConnection> { return {}; },
+                             }, sqlconnection_);
     }
 
     bool inTransaction(bool transaction) {

@@ -8,6 +8,7 @@
 #include "Wt/Dbo/Exception.h"
 #include "Wt/Dbo/Logger.h"
 #include "Wt/Dbo/StringStream.h"
+#include "Wt/Dbo/backend/MSSql/MSSQLStatement.h"
 
 #include "Wt/Date/date.h"
 
@@ -41,15 +42,6 @@ namespace Wt {
 LOGGER("Dbo.backend.MSSQLServer");
 
     namespace backend {
-
-class MSSQLServerException : public Exception
-{
-public:
-  MSSQLServerException(const std::string& msg,
-                       const std::string &sqlState = std::string())
-   : Exception(msg, sqlState)
-  { }
-};
 
 namespace {
 
@@ -885,11 +877,11 @@ private:
   }
 };
 
-MSSQLServer::MSSQLServer()
-  : impl_(0)
-{ }
+//MSSQLServer::MSSQLServer()
+//  : impl_(0)
+//{ }
 
-MSSQLServer::MSSQLServer(const std::string &connectionString)
+MSSQLServer::MSSQLServer(asio::io_context& ctx, const std::string &connectionString)
   : impl_(0)
 {
   connect(connectionString);
@@ -912,6 +904,11 @@ MSSQLServer::~MSSQLServer()
 std::unique_ptr<MSSQLServer> MSSQLServer::clone() const
 {
   return std::unique_ptr<MSSQLServer>(new MSSQLServer(*this));
+}
+
+MSSQLServer MSSQLServer::clone(asio::io_context &ctx) const
+{
+  return MSSQLServer(*this);
 }
 
 bool MSSQLServer::connect(const std::string &connectionString)

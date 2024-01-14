@@ -66,7 +66,7 @@ public:
         setFractionalSecondsPart(fractionalSecondsPart);
 
         try {
-            connect(ctx, db, dbuser, dbpasswd, dbhost, dbport, dbsocket);
+            connect(ctx.get_executor(), db, dbuser, dbpasswd, dbhost, dbport, dbsocket);
         } catch (...) {
             //delete impl_;
             throw;
@@ -80,7 +80,19 @@ public:
    *
    * \sa clone()
    */
-  MySQL(const MySQL& other);
+    MySQL(const MySQL& other)
+        : SqlConnectionBase(other)
+    {
+        setFractionalSecondsPart(other.fractionalSecondsPart_);
+
+        try {
+            if (!other.dbname_.empty())
+                connect(connection_->get_executor(), other.dbname_, other.dbuser_, other.dbpasswd_, other.dbhost_, other.dbport_, other.dbsocket_);
+        } catch (...) {
+            throw;
+        }
+    }
+
 
     MySQL& operator=(MySQL& other)
     {
@@ -109,11 +121,14 @@ public:
 
   /*! \brief Returns a copy of the connection.
    */
-  std::unique_ptr<MySQL> clone() const;
-
-  std::unique_ptr<MySQL> clone(io_context& ctx) const
+  std::unique_ptr<MySQL> clone() const
   {
-        return std::unique_ptr<MySQL>();
+        return std::make_unique<MySQL>(*this);
+  }
+
+  MySQL clone(io_context& ctx) const
+  {
+        return MySQL(ctx, dbname_, dbuser_, dbpasswd_, dbhost_, dbport_, dbsocket_, fractionalSecondsPart_);
   }
 
   /*! \brief Tries to connect.
@@ -129,7 +144,7 @@ public:
    *
    * Throws an exception if there was a problem, otherwise true.
    */
-  bool connect(io_context& ctx, const std::string &db, const std::string &dbuser="root",
+  bool connect(asio::any_io_executor ctx, const std::string &db, const std::string &dbuser="root",
                const std::string &dbpasswd="", const std::string &dbhost="localhost",
                unsigned int dbport = 0,
                const std::string &dbsocket ="/var/run/mysqld/mysqld.sock")
@@ -147,11 +162,11 @@ public:
         boost::asio::ssl::context ssl_ctx(boost::asio::ssl::context::tls_client);
 
         // Represents a connection to the MySQL server.
-        connection_ = std::make_unique<boost::mysql::tcp_ssl_connection>(ctx.get_executor(), ssl_ctx);
+        connection_ = std::make_unique<boost::mysql::tcp_ssl_connection>(ctx, ssl_ctx);
         //boost::mysql::tcp_ssl_connection conn(ctx.get_executor(), ssl_ctx);
 
         // Resolve the hostname to get a collection of endpoints
-        boost::asio::ip::tcp::resolver resolver(ctx.get_executor());
+        boost::asio::ip::tcp::resolver resolver(ctx);
         auto endpoints = resolver.resolve(dbhost, dbport ? std::to_string(dbport) : boost::mysql::default_port_string);
 
         // The username, password and database to use

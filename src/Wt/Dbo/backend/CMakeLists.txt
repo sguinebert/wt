@@ -130,7 +130,7 @@ IF(ENABLE_POSTGRES AND POSTGRES_FOUND)
     Postgres/connection.hpp Postgres/connection.cpp
     Postgres/field.hpp
     Postgres/field_type.hpp
-    Postgres/postgresStatement.h
+    Postgres/PostgresStatement.h Postgres/PostgresStatement.cpp
     Postgres/postgrespp.hpp
     Postgres/query.hpp
     Postgres/result.hpp
@@ -377,7 +377,7 @@ IF(ENABLE_MSSQLSERVER AND ODBC_FOUND)
 
   ADD_LIBRARY(wtdbomssqlserver
     MSSQLServer.h MSSQLServer.C
-    MSSql/MSSQLStatement.h
+    MSSql/MSSQLStatement.h MSSql/MSSQLStatement.C
     MSSql/nanodbc/nanodbc.h MSSql/nanodbc/nanodbc.cpp
     #MSSql/nanodbc/variant_row_cached_result.h MSSql/nanodbc/variant_row_cached_result.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc

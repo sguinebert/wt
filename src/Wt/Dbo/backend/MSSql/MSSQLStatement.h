@@ -18,6 +18,14 @@
 namespace Wt {
 namespace Dbo {
 namespace backend {
+class MSSQLServerException : public Exception
+{
+public:
+    MSSQLServerException(const std::string& msg,
+                         const std::string &sqlState = std::string())
+        : Exception(msg, sqlState)
+    { }
+};
 
 
 }

@@ -5,6 +5,7 @@
 #include "connection.hpp"
 #include "libpq-fe.h"
 #include "Wt/Dbo/SqlStatement.h"
+#include "Wt/Dbo/Exception.h"
 
 #include "Wt/Date/date.h"
 
@@ -21,7 +22,7 @@
 #include <cstring>
 #include <ctime>
 
-#define PG_SCOPE_BEGIN namespace Wt { namespace Dbo { namespace Backend {
+#define PG_SCOPE_BEGIN namespace Wt { namespace Dbo { namespace backend {
 #define PG_SCOPE_END }}}
 
 //PostgresException(const std::string &msg, const std::string &code)
@@ -111,10 +112,24 @@ static inline std::string float_to_s(const float f)
 
 PG_SCOPE_BEGIN
 
-class postgresStatement final : public SqlStatement
+class PostgresException : public Exception
 {
 public:
-    postgresStatement(postgrespp::connection &conn, const std::string &sql)
+PostgresException(const std::string &msg)
+    : Exception(msg)
+{
+}
+
+PostgresException(const std::string &msg, const std::string &code)
+    : Exception(msg, code)
+{
+}
+};
+
+class PostgresStatement final : public SqlStatement
+{
+public:
+    PostgresStatement(postgrespp::connection &conn, const std::string &sql)
         : conn_(conn),
         sql_(sql), res_{nullptr}
     {
@@ -135,7 +150,7 @@ public:
         state_ = Done;
     }
 
-    virtual ~postgresStatement()
+    virtual ~PostgresStatement()
     {
 //        if (result_)
 //            PQclear(result_);

@@ -1,11 +1,11 @@
-///*
-// * Copyright (C) 2008 Emweb bv, Herent, Belgium.
-// *
-// * See the LICENSE file for terms of use.
-// *
-// * Contributed by: Hilary Cheng
-// */
-//#include "Wt/WConfig.h"
+/*
+ * Copyright (C) 2024 Sylvain Guinebert, Paris, France.
+ *
+ * See the LICENSE file for terms of use.
+ *
+ * Contributed by: Hilary Cheng
+ */
+#include "Wt/WConfig.h"
 
 //#ifdef WT_WIN32
 //#define NOMINMAX
@@ -13,7 +13,8 @@
 //#include <WinSock2.h>
 //#endif // WT_WIN32
 
-//#include "Wt/Dbo/backend/Postgres.h"
+#include "Wt/Dbo/backend/Postgres.h"
+#include "Wt/Dbo/backend/Postgres/PostgresStatement.h"
 //#include "Wt/Dbo/Exception.h"
 //#include "Wt/Dbo/Logger.h"
 //#include "Wt/Dbo/StringStream.h"
@@ -121,16 +122,31 @@
 //  }
 //}
 
-//namespace Wt
-//{
-//  namespace Dbo
-//  {
+namespace Wt
+{
+namespace Dbo
+{
+namespace backend
+{
 
-//    LOGGER("Dbo.backend.Postgres");
+  Postgres::Postgres(asio::io_context &ctx, const std::string &db) : connection_(new postgrespp::connection(ctx, db))
+  {
+  }
 
-//    namespace backend
-//    {
+  std::unique_ptr<SqlStatement> Postgres::prepareStatement(const std::string &sql)
+  {
+      if (PQstatus(conn_) != CONNECTION_OK)
+      {
+          LOG_WARN("connection lost to server, trying to reconnect...");
+          fmtlog::poll();
+          if (!reconnect())
+          {
+              throw PostgresException("Could not reconnect to server...");
+          }
+      }
 
+      return std::unique_ptr<SqlStatement>(new PostgresStatement(*connection_, sql));
+  }
 //      // do not reconnect in a transaction unless we exceed the lifetime by 120s.
 //      const std::chrono::seconds TRANSACTION_LIFETIME_MARGIN = std::chrono::seconds(120);
 
@@ -949,44 +965,7 @@
 //          return false;
 //      }
 
-//      std::unique_ptr<SqlStatement> Postgres::prepareStatement(const std::string &sql)
-//      {
-//        if (PQstatus(conn_) != CONNECTION_OK)
-//        {
-//          LOG_WARN("connection lost to server, trying to reconnect...");
-//          fmtlog::poll();
-//          if (!reconnect())
-//          {
-//            throw PostgresException("Could not reconnect to server...");
-//          }
-//        }
 
-//        return std::unique_ptr<SqlStatement>(new PostgresStatement(*this, sql));
-//      }
-
-//      void Postgres::executeSql(const std::string &sql)
-//      {
-//        exec(sql, true);
-//      }
-
-//      /*
-// * margin: a grace period beyond the lifetime
-// */
-//      void Postgres::checkConnection(std::chrono::seconds margin)
-//      {
-//        if (maximumLifetime_ > std::chrono::seconds{0} && connectTime_ != std::chrono::steady_clock::time_point{})
-//        {
-//          auto t = std::chrono::steady_clock::now();
-//          if (t - connectTime_ > maximumLifetime_ + margin)
-//          {
-//            LOG_INFO("maximum connection lifetime passed, trying to reconnect...");
-//            if (!reconnect())
-//            {
-//              throw PostgresException("Could not reconnect to server...");
-//            }
-//          }
-//        }
-//      }
 
 //      void Postgres::exec(const std::string &sql, bool showQuery)
 //      {
@@ -1154,6 +1133,6 @@
 //        exec("rollback transaction", false);
 //      }
 
-//    }
-//  }
-//}
+    }
+  }
+}

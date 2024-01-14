@@ -1,6 +1,6 @@
 #include "connection.hpp"
 
-#include "Wt/Dbo/backend/Postgres/postgresStatement.h"
+#include "Wt/Dbo/backend/Postgres/PostgresStatement.h"
 
 
 std::unique_ptr<SqlStatement> postgrespp::connection::prepareStatement(const std::string &sql) {
@@ -13,6 +13,6 @@ std::unique_ptr<SqlStatement> postgrespp::connection::prepareStatement(const std
             throw std::runtime_error("Could not reconnect to server...");
         }
     }
-
-    return std::unique_ptr<Wt::Dbo::SqlStatement>(new Wt::Dbo::Backend::postgresStatement(*this, sql));
+    
+    return std::unique_ptr<Wt::Dbo::SqlStatement>(new Wt::Dbo::backend::PostgresStatement(*this, sql));
 }

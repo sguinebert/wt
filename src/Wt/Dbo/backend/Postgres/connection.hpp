@@ -19,17 +19,15 @@ namespace postgrespp {
 
 //using connection = basic_connection;
 
-
 class connection : public basic_connection, public Wt::Dbo::SqlConnectionBase
 {
     friend class SqlConnection;
 public:
     template <class ExecutorT>
-    connection(ExecutorT& exc, const char* pgconninfo) : basic_connection(exc, pgconninfo), connInfo_(pgconninfo) {}
+    connection(ExecutorT& exc, std::string_view pgconninfo) : basic_connection(exc, pgconninfo.data()), connInfo_(pgconninfo) {}
 
 //    ~connection()
 //    {
-//        assert(statementCache_.empty());
 //    }
 
     WTDBOPOSTGRES_API std::unique_ptr<Wt::Dbo::SqlStatement> prepareStatement(const std::string& sql);
@@ -75,7 +73,6 @@ public:
         }
         return nullptr;
     }
-
 
     /*
      * margin: a grace period beyond the lifetime
@@ -170,28 +167,6 @@ public:
    */
     std::chrono::microseconds timeout() const { return timeout_; }
 
-//    void saveStatement(const std::string& id,
-//                       std::unique_ptr<Wt::Dbo::SqlStatement> statement)
-//    {
-//        statementCache_.emplace(id, std::move(statement));
-//    }
-
-//    std::string property(const std::string& name) const
-//    {
-//        std::map<std::string, std::string>::const_iterator i = properties_.find(name);
-
-//        if (i != properties_.end())
-//            return i->second;
-//        else
-//            return std::string();
-//    }
-
-//    void setProperty(const std::string& name,
-//                                    const std::string& value)
-//    {
-//        properties_[name] = value;
-//    }
-
     bool usesRowsFromTo() const
     {
         return false;
@@ -259,38 +234,31 @@ public:
     void prepareForDropTables()
     { }
 
-//    std::vector<Wt::Dbo::SqlStatement *> getStatements() const
-//    {
-//        std::vector<Wt::Dbo::SqlStatement *> result;
-
-//        for (StatementMap::const_iterator i = statementCache_.begin();
-//             i != statementCache_.end(); ++i)
-//            result.push_back(i->second.get());
-
-//        return result;
-//    }
     //strict cloning with the same executor
     std::unique_ptr<connection> clone()  {
         //auto& engine = cue::http::detail::engines::default_engines();
         return std::make_unique<connection>(this->socket().get_executor(), connInfo_.data());
     }
-    connection clone(Wt::http::detail::engines& engine)  {
-        return connection(engine.get(), connInfo_.data());
+    connection clone(asio::io_context& ctx)  {
+        return connection(ctx, connInfo_.data());
     }
     using txn_t = basic_transaction<void, void>;
     awaitable<void> startTransaction() {
-        co_await async_transaction(use_awaitable);
+        //co_await async_transaction(use_awaitable);
+        co_await async_exec("BEGIN", use_nothrow_awaitable);
         co_return;
     }
     awaitable<void> commitTransaction() {
         //exec("commit transaction", false);
         //co_await tx_.commit(use_awaitable);
+        co_await async_exec("COMMIT", use_nothrow_awaitable);
         co_return;
     }
 
     awaitable<void> rollbackTransaction() {
         //exec("rollback transaction", false);
         //co_await tx_.rollback(use_awaitable);
+        co_await async_exec("ROLLBACK", use_nothrow_awaitable);
         co_return;
     }
 
@@ -337,16 +305,8 @@ public:
 
     void setCancelSignal(asio::cancellation_signal* cancel) { cancel_wait_ = cancel;  }
 
-//protected:
-//    const std::vector<std::string>& getStatefulSql() const { return statefulSql_; }
-
 private:
-//    typedef std::multimap<std::string, std::unique_ptr<Wt::Dbo::SqlStatement>> StatementMap;
-
     std::string connInfo_;
-//    StatementMap statementCache_;
-//    std::map<std::string, std::string> properties_;
-//    std::vector<std::string> statefulSql_;
 
     std::chrono::microseconds timeout_;
     std::chrono::seconds maximumLifetime_;

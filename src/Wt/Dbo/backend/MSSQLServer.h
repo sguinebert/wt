@@ -31,7 +31,7 @@ namespace Wt {
    * The connection is not yet open, and requires a connect() before it
    * can be used.
    */
-        MSSQLServer();
+        //MSSQLServer();
 
    /*! \brief Creates a new Microsoft SQL Server backend connection.
    *
@@ -39,7 +39,7 @@ namespace Wt {
    *
    * \sa connect()
    */
-        MSSQLServer(const std::string &connectionString);
+        MSSQLServer(asio::io_context& ctx, const std::string &connectionString);
 
         /*! \brief Copy constructor.
    *
@@ -66,6 +66,9 @@ namespace Wt {
         virtual ~MSSQLServer();
 
         std::unique_ptr<MSSQLServer> clone() const;
+
+        MSSQLServer clone(asio::io_context& ctx) const;
+
 
         /*! \brief Tries to connect.
    *

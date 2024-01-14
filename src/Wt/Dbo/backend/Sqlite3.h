@@ -89,6 +89,11 @@ public:
 
     std::unique_ptr<Sqlite3> clone() const;
 
+    Sqlite3 clone(asio::io_context& /*ctx*/) const
+    {
+        return Sqlite3(conn_);
+    }
+
     /*! \brief Returns the underlying connection.
    */
     sqlite3 *connection() { return db_; }

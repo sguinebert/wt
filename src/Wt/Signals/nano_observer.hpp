@@ -124,6 +124,13 @@ private:
         }
         return false;
     }
+    bool isConnected(Delegate_Key const& key)
+    {
+        [[maybe_unused]]
+        auto lock = MT_Policy::lock_guard();
+
+        return nolock_isConnected(key);
+    }
 
     Connection nolock_insert(Delegate_Key const& key, Observer* obs)
     {

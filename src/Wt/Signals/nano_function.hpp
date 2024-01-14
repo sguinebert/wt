@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <functional>
 #include <future>
-//#include <Wt/AsioWrapper/asio.hpp>
 
 namespace Nano
 {
@@ -154,11 +153,10 @@ class Function<RT(Args...)> final
                 {
                     nullptr, [](void* /*NULL*/, Args&&... args) -> RT
                     {
-                    if constexpr(std::is_invocable_v<f_type>)
+                    if constexpr(std::is_invocable_v<f_type>) //just want a callback without any args
                         co_return (*fun_ptr)();
                     else
                         co_return (*fun_ptr)(std::forward<Args>(args)...);
-                        //return [/*&args...*/](Args&&... args) -> RT { co_return (*fun_ptr)(std::forward<Args>(args)...); }(std::forward<Args>(args)...);
                     }
                 };
         }
