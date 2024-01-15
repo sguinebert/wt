@@ -1357,9 +1357,9 @@ void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
 std::unique_ptr<WResource> WClientGLWidget::rpdToMemResource(WRasterImage *rpd)
 {
   asio::streambuf ss;
-#warning "broken need rpd->write"
+#warning "broken need test rpd->write"
   rpd->write(ss);
-  std::unique_ptr<WMemoryResource> mr(new WMemoryResource("image/png", std::vector<unsigned char>(ss.data().begin(), ss.data().end())));
+  std::unique_ptr<WMemoryResource> mr(new WMemoryResource("image/png", std::vector<unsigned char>(asio::buffers_begin(ss.data()), asio::buffers_end(ss.data()))));
   //mr->setData(reinterpret_cast<const unsigned char*>(ss.str().c_str()), ss.str().size());
   return std::move(mr);
 }
