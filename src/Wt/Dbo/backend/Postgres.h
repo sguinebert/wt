@@ -283,6 +283,7 @@ public:
       std::stringstream ss;
       ss << __FILE__ << ":" << __LINE__ << ": implementation error";
       //throw PostgresException(ss.str());
+      return "";
   }
   const char *blobType() const {
       return "bytea not null";

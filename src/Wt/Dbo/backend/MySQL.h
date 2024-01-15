@@ -290,6 +290,7 @@ public:
     std::stringstream ss;
     ss << __FILE__ << ":" << __LINE__ << ": implementation error";
     //throw MySQLException(ss.str());
+    return "";
   }
 
   const char *blobType() const
