@@ -98,6 +98,8 @@
 #define NANODBC_HAS_STD_VARIANT
 #endif
 
+#include <Wt/AsioWrapper/asio.hpp>
+
 //#ifndef SQL_ATTR_ASYNC_STMT_EVENT
 //#define SQL_ATTR_ASYNC_STMT_EVENT
 //#define SQL_API_SQLCOMPLETEASYNC
@@ -825,6 +827,246 @@ public:
         long timeout = 0);
 
 #if !defined(NANODBC_DISABLE_ASYNC)
+
+    // To map our completion handler into a function pointer / void* callback, we
+    // need to allocate some state that will live for the duration of the
+    // operation. A pointer to this state will be passed to the C-based API.
+    template <typename Handler>
+    class async_prepare_state
+    {
+    public:
+        async_prepare_state(Handler&& handler)
+            : handler_(std::move(handler)),
+            work_(boost::asio::make_work_guard(handler_))
+        {
+        }
+
+        // Create the state using the handler's associated allocator.
+        static async_prepare_state* create(Handler&& handler)
+        {
+            // A unique_ptr deleter that is used to destroy uninitialised objects.
+            struct deleter
+            {
+                // Get the handler's associated allocator type. If the handler does not
+                // specify an associated allocator, we will use a recycling allocator as
+                // the default. As the associated allocator is a proto-allocator, we must
+                // rebind it to the correct type before we can use it to allocate objects.
+                typename std::allocator_traits<
+                    boost::asio::associated_allocator_t<Handler,
+                                                        boost::asio::recycling_allocator<void>>>::template
+                    rebind_alloc<async_prepare_state> alloc;
+
+                void operator()(async_prepare_state* ptr)
+                {
+                    std::allocator_traits<decltype(alloc)>::deallocate(alloc, ptr, 1);
+                }
+            } d{boost::asio::get_associated_allocator(handler,
+                                                      boost::asio::recycling_allocator<void>())};
+
+            // Allocate memory for the state.
+            std::unique_ptr<async_prepare_state, deleter> uninit_ptr(
+                std::allocator_traits<decltype(d.alloc)>::allocate(d.alloc, 1), d);
+
+            // Construct the state into the newly allocated memory. This might throw.
+            async_prepare_state* ptr =
+                new (uninit_ptr.get()) async_prepare_state(std::move(handler));
+
+            // Release ownership of the memory and return the newly allocated state.
+            uninit_ptr.release();
+            return ptr;
+        }
+
+        static void callback(void* arg)
+        {
+            async_prepare_state* self = static_cast<async_prepare_state*>(arg);
+
+            // A unique_ptr deleter that is used to destroy initialised objects.
+            struct deleter
+            {
+                // Get the handler's associated allocator type. If the handler does not
+                // specify an associated allocator, we will use a recycling allocator as
+                // the default. As the associated allocator is a proto-allocator, we must
+                // rebind it to the correct type before we can use it to allocate objects.
+                typename std::allocator_traits<
+                    boost::asio::associated_allocator_t<Handler,
+                                                        boost::asio::recycling_allocator<void>>>::template
+                    rebind_alloc<async_prepare_state> alloc;
+
+                void operator()(async_prepare_state* ptr)
+                {
+                    std::allocator_traits<decltype(alloc)>::destroy(alloc, ptr);
+                    std::allocator_traits<decltype(alloc)>::deallocate(alloc, ptr, 1);
+                }
+            } d{boost::asio::get_associated_allocator(self->handler_,
+                                                      boost::asio::recycling_allocator<void>())};
+
+            // To conform to the rules regarding asynchronous operations and memory
+            // allocation, we must make a copy of the state and deallocate the memory
+            // before dispatching the completion handler.
+            std::unique_ptr<async_prepare_state, deleter> state_ptr(self, d);
+            async_prepare_state state(std::move(*self));
+            state_ptr.reset();
+
+            // Dispatch the completion handler through the handler's associated
+            // executor, using the handler's associated allocator.
+            boost::asio::dispatch(state.work_.get_executor(),
+                                  boost::asio::bind_allocator(d.alloc,
+                                                              [
+                                                                  handler = std::move(state.handler_)
+            ]() mutable
+                                                              {
+                                                                  std::move(handler)();
+                                                              }));
+        }
+
+    private:
+        Handler handler_;
+
+        // According to the rules for asynchronous operations, we need to track
+        // outstanding work against the handler's associated executor until the
+        // asynchronous operation is complete.
+        boost::asio::executor_work_guard<
+            boost::asio::associated_executor_t<Handler>> work_;
+    };
+
+    // The initiating function for the asynchronous operation.
+    template <typename CompletionToken>
+    auto async_prepare_t(const std::string& query, CompletionToken&& token)
+    {
+        // Define a function object that contains the code to launch the asynchronous
+        // operation. This is passed the concrete completion handler, followed by any
+        // additional arguments that were passed through the call to async_initiate.
+        auto init = [this](auto handler, const std::string& query)
+        {
+            // According to the rules for asynchronous operations, we need to track
+            // outstanding work against the handler's associated executor until the
+            // asynchronous operation is complete.
+            auto work = boost::asio::make_work_guard(handler);
+
+            // The body of the initiation function object creates the long-lived state
+            // and passes it to the C-based API, along with the function pointer.
+            //using state_type = async_prepare_state<decltype(handler)>;
+            auto callback =  [handler = std::move(handler),
+                             work = std::move(work) ]() mutable
+            {
+                // Get the handler's associated allocator. If the handler does not
+                // specify an allocator, use the recycling allocator as the default.
+                auto alloc = boost::asio::get_associated_allocator(
+                    handler, boost::asio::recycling_allocator<void>());
+
+                // Dispatch the completion handler through the handler's associated
+                // executor, using the handler's associated allocator.
+                boost::asio::dispatch(work.get_executor(),
+                                      boost::asio::bind_allocator(alloc, [handler = std::move(handler)]() mutable
+                                                                  {
+                                                                      std::move(handler)();
+                                                                  }));
+            };
+            this->async_prepare(query, &callback);
+        };
+
+        // The async_initiate function is used to transform the supplied completion
+        // token to the completion handler. When calling this function we explicitly
+        // specify the completion signature of the operation. We must also return the
+        // result of the call since the completion token may produce a return value,
+        // such as a future.
+        return boost::asio::async_initiate<CompletionToken, void()>(
+            init, // First, pass the function object that launches the operation,
+            token, // then the completion token that will be transformed to a handler,
+            query); // and, finally, any additional arguments to the function object.
+    }
+
+    // The initiating function for the asynchronous operation.
+    template <typename CompletionToken>
+    auto async_execute(CompletionToken&& token)
+    {
+        // Define a function object that contains the code to launch the asynchronous
+        // operation. This is passed the concrete completion handler, followed by any
+        // additional arguments that were passed through the call to async_initiate.
+        auto init = [this](auto handler)
+        {
+            // According to the rules for asynchronous operations, we need to track
+            // outstanding work against the handler's associated executor until the
+            // asynchronous operation is complete.
+            auto work = boost::asio::make_work_guard(handler);
+
+            // The body of the initiation function object creates the long-lived state
+            // and passes it to the C-based API, along with the function pointer.
+            //using state_type = async_prepare_state<decltype(handler)>;
+            this->async_execute([handler = std::move(handler),
+                                        work = std::move(work) ]() mutable
+                                {
+                                    // Get the handler's associated allocator. If the handler does not
+                                    // specify an allocator, use the recycling allocator as the default.
+                                    auto alloc = boost::asio::get_associated_allocator(
+                                        handler, boost::asio::recycling_allocator<void>());
+
+                                    // Dispatch the completion handler through the handler's associated
+                                    // executor, using the handler's associated allocator.
+                                    boost::asio::dispatch(work.get_executor(),
+                                                          boost::asio::bind_allocator(alloc, [handler = std::move(handler)]() mutable
+                                                                                      {
+                                                                                          std::move(handler)();
+                                                                                      }));
+                                });
+        };
+        // The async_initiate function is used to transform the supplied completion
+        // token to the completion handler. When calling this function we explicitly
+        // specify the completion signature of the operation. We must also return the
+        // result of the call since the completion token may produce a return value,
+        // such as a future.
+        return boost::asio::async_initiate<CompletionToken, void()>(
+            init, // First, pass the function object that launches the operation,
+            token); // the completion token that will be transformed to a handler.
+    }
+
+    template <typename CompletionToken>
+    auto async_execute_direct(class connection& conn, CompletionToken&& token, string const& query,
+                              long batch_operations = 1,
+                              long timeout = 0)
+    {
+        // Define a function object that contains the code to launch the asynchronous
+        // operation. This is passed the concrete completion handler, followed by any
+        // additional arguments that were passed through the call to async_initiate.
+        auto init = [this](auto handler, class connection& conn, const std::string& query, long batch_operations, long timeout)
+        {
+            // According to the rules for asynchronous operations, we need to track
+            // outstanding work against the handler's associated executor until the
+            // asynchronous operation is complete.
+            auto work = boost::asio::make_work_guard(handler);
+
+            // The body of the initiation function object creates the long-lived state
+            // and passes it to the C-based API, along with the function pointer.
+            //using state_type = async_prepare_state<decltype(handler)>;
+            this->async_execute_direct(query, [handler = std::move(handler),
+                                        work = std::move(work) ]() mutable
+                                {
+                                    // Get the handler's associated allocator. If the handler does not
+                                    // specify an allocator, use the recycling allocator as the default.
+                                    auto alloc = boost::asio::get_associated_allocator(
+                                        handler, boost::asio::recycling_allocator<void>());
+
+                                    // Dispatch the completion handler through the handler's associated
+                                    // executor, using the handler's associated allocator.
+                                    boost::asio::dispatch(work.get_executor(),
+                                                          boost::asio::bind_allocator(alloc, [handler = std::move(handler)]() mutable
+                                                                                      {
+                                                                                          std::move(handler)();
+                                                                                      }));
+                                }, query, batch_operations, timeout);
+        };
+
+        // The async_initiate function is used to transform the supplied completion
+        // token to the completion handler. When calling this function we explicitly
+        // specify the completion signature of the operation. We must also return the
+        // result of the call since the completion token may produce a return value,
+        // such as a future.
+        return boost::asio::async_initiate<CompletionToken, void()>(
+            init, // First, pass the function object that launches the operation,
+            token, // then the completion token that will be transformed to a handler,
+            conn, query, batch_operations, timeout); // and, finally, any additional arguments to the function object.
+    }
+
     /// \brief Prepare the given statement, in asynchronous mode.
     /// \note If the statement is not open throws programming_error.
     ///

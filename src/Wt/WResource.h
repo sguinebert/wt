@@ -354,24 +354,20 @@ public:
 //	     const Http::ParameterMap& parameters = Http::ParameterMap(),
 //	     const Http::UploadedFileMap& files = Http::UploadedFileMap());
 
-//  void write(WT_BOSTREAM& out,
-//                        const Http::ParameterMap& parameters,
-//                        const Http::UploadedFileMap& files)
-//  {
-//      Http::Request  request(parameters, files);
-//      http::cookies coockies;
-//      http::response response(coockies, out);
+  void write(WT_BOSTREAM& out,
+                        const Http::ParameterMap& parameters,
+                        const Http::UploadedFileMap& files)
+  {
 
-//      handleRequest(request, response);
+      http::cookies cookies;
+      //std::streambuf test(out);
+      asio::streambuf test;
+      http::response response(cookies, test);
+      http::request  request(true, response, cookies);
 
-//      // While the resource indicates more data to be sent, get it too.
-//      while (response.continuation_ && response.continuation_->resource_) {
-//          response.continuation_->resource_ = nullptr;
-//          request.continuation_ = response.continuation_.get();
+      handleRequest(request, response);
 
-//          handleRequest(request, response);
-//      }
-//  }
+  }
 
   /*! \brief Handles a request.
    *

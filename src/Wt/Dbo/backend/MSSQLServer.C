@@ -12,6 +12,8 @@
 
 #include "Wt/Date/date.h"
 
+//#include "Wt/Dbo/backend/MSSql/nanodbc/nanodbc.h"
+
 #ifdef WT_WIN32
 #define NOMINMAX
 #include <windows.h>
@@ -891,6 +893,8 @@ MSSQLServer::MSSQLServer(const MSSQLServer &other)
   : SqlConnectionBase(other),
     impl_(other.impl_ ? new Impl(*other.impl_) : 0)
 {
+  //connection_ = new nanodbc::connection(NANODBC_TEXT("other.connectionString_"));
+
   if (impl_)
     impl_->connect();
 }
@@ -915,6 +919,8 @@ bool MSSQLServer::connect(const std::string &connectionString)
 {
   if (impl_)
     throw MSSQLServerException("Can't connect: already connected.");
+
+  //connection_ = new nanodbc::connection(NANODBC_TEXT(connectionString));
 
 #ifdef WT_WIN32
   ConnectionStringType connStr;
@@ -941,6 +947,10 @@ bool MSSQLServer::connect(const std::string &connectionString)
   return true;
 }
 
+// This is an asynchronous operation that wraps the C-based API.
+
+
+
 awaitable<void> MSSQLServer::executeSql(const std::string &sql)
 {
   co_await async_mutex_.scoped_lock_async(use_nothrow_awaitable);
@@ -949,6 +959,17 @@ awaitable<void> MSSQLServer::executeSql(const std::string &sql)
     LOG_INFO("{}", sql);
     fmtlog::poll();
   }
+
+//  nanodbc::statement statement(*connection_);
+////  auto lambda = [](){};
+////  statement.async_prepare(sql, &lambda);
+//  // Create an eventfd
+//  int efd = eventfd(0, 0);
+
+//  // Cast to void* and use with nanodbc
+//  statement.async_prepare("your SQL query", (void*)(efd));
+//  co_await statement.async_prepare_t(sql, use_awaitable);
+  //co_await statement.async_execute(use_nothrow_awaitable);
 
   SQLRETURN rc = SQL_SUCCESS;
   if (!impl_->stmt) {

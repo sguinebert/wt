@@ -12,6 +12,10 @@
 #include <Wt/Dbo/SqlStatement.h>
 #include <Wt/Dbo/backend/WDboMSSQLServerDllDefs.h>
 
+namespace nanodbc {
+    class connection;
+}
+
 namespace Wt {
   namespace Dbo {
     namespace backend {
@@ -52,6 +56,8 @@ namespace Wt {
 
         MSSQLServer& operator=(const MSSQLServer& other)
         {
+            //connection_ = other.connection_;
+            impl_ = other.impl_;
             properties_ = std::move(other.properties_);
             //statementCache_ = std::move(other.statementCache_);
             statefulSql_ = std::move(other.statefulSql_);
@@ -220,107 +226,11 @@ namespace Wt {
     private:
         struct Impl;
         Impl *impl_;
+        //nanodbc::connection* connection_;
         cpp20::async_mutex async_mutex_;
 
         friend class MSSQLServerStatement;
     };
-
-
-//class WTDBOMSSQLSERVER_API MSSQLServer : public SqlConnectionBase
-//{
-//public:
-//  /*! \brief Creates a new Microsoft SQL Server backend connection.
-//   *
-//   * The connection is not yet open, and requires a connect() before it
-//   * can be used.
-//   */
-//  MSSQLServer();
-
-//  /*! \brief Creates a new Microsoft SQL Server backend connection.
-//   *
-//   * For info about the connection string, see the connect() method.
-//   *
-//   * \sa connect()
-//   */
-//  MSSQLServer(const std::string &connectionString);
-
-//  /*! \brief Copy constructor.
-//   *
-//   * This creates a new backend connection with the same settings
-//   * as another connection.
-//   *
-//   * \sa clone()
-//   */
-//  MSSQLServer(const MSSQLServer& other);
-
-//  /*! \brief Destructor.
-//   *
-//   * Closes the connection.
-//   */
-//  virtual ~MSSQLServer();
-
-//  std::unique_ptr<MSSQLServer> clone() const;
-
-//  /*! \brief Tries to connect.
-//   *
-//   * Throws an exception if there was a problem, otherwise returns true.
-//   *
-//   * The connection string is the connection string that should be passed
-//   * to SQLDriverConnectW to connect to the Microsoft SQL Server database.
-//   *
-//   * The \p connectionString should be UTF-8 encoded.
-//   *
-//   * Example connection string:
-//   *
-//   * \code
-//   * Driver={ODBC Driver 13 for SQL Server};
-//   * Server=localhost;
-//   * UID=SA;
-//   * PWD={example password};
-//   * Database=example_db;
-//   * \endcode
-//   *
-//   * You could also specify a DSN (Data Source Name) if you have it configured.
-//   *
-//   * See the
-//   * <a href="https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqldriverconnect-function">SQLDriverConnect</a>
-//   * function documentation on MSDN for more info.
-//   */
-//  bool connect(const std::string &connectionString);
-
-//  void executeSql(const std::string &sql) override;
-
-//  void startTransaction();
-//  void commitTransaction();
-//  void rollbackTransaction();
-  
-//  virtual std::unique_ptr<SqlStatement> prepareStatement(const std::string &sql) override;
-
-//  /** @name Methods that return dialect information
-//   */
-//  //!@{
-//  std::string autoincrementSql() const;
-//  std::vector<std::string> autoincrementCreateSequenceSql(const std::string &table, const std::string &id) const;
-//  std::vector<std::string> autoincrementDropSequenceSql(const std::string &table, const std::string &id) const;
-//  std::string autoincrementType() const;
-//  std::string autoincrementInsertInfix(const std::string &id) const override;
-//  std::string autoincrementInsertSuffix(const std::string &id) const;
-//  const char *dateTimeType(SqlDateTimeType type) const;
-//  const char *blobType() const;
-//  bool requireSubqueryAlias() const override;
-//  const char *booleanType() const override;
-//  bool supportAlterTable() const override;
-//  std::string textType(int size) const override;
-//  LimitQuery limitQueryMethod() const override;
-//  //!@}
-
-//private:
-//  struct Impl;
-//  Impl *impl_;
-
-//  friend class MSSQLServerStatement;
-//};
-
     }
   }
 }

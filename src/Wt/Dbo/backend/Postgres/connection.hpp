@@ -10,7 +10,7 @@
 #include <Wt/Dbo/SqlConnectionBase.h>
 #include <Wt/Dbo/SqlStatement.h>
 #include <Wt/Dbo/backend/WDboPostgresDllDefs.h>
-#include <Wt/cuehttp/detail/engines.hpp>
+#include <Wt/cpp20/async_mutex.h>
 
 namespace pg = postgrespp;
 //class postgresStatement;
@@ -313,6 +313,7 @@ private:
     std::chrono::steady_clock::time_point connectTime_;
 
     asio::cancellation_signal* cancel_wait_;
+    Wt::cpp20::async_mutex async_mutex_;
 };
 
 

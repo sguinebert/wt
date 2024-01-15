@@ -1387,8 +1387,7 @@ awaitable<void> Session::flush()
 
 void Session::rereadAll(const char *tableName)
 {
-  for (ClassRegistry::iterator i = classRegistry_.begin();
-       i != classRegistry_.end(); ++i)
+  for (auto i = classRegistry_.begin(); i != classRegistry_.end(); ++i)
     if (!tableName || std::string(tableName) == i->second->tableName)
       i->second->rereadAll();
 }

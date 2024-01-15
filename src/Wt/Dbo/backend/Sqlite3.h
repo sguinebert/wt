@@ -11,6 +11,7 @@
 #include <Wt/Dbo/SqlConnectionBase.h>
 #include <Wt/Dbo/SqlStatement.h>
 #include <Wt/Dbo/backend/WDboSqlite3DllDefs.h>
+#include <Wt/cpp20/async_mutex.h>
 
 #include <map> //TODO move in a base class
 
@@ -81,6 +82,15 @@ public:
    */
     Sqlite3(const Sqlite3& other);
 
+    Sqlite3& operator=(const Sqlite3& other)
+    {
+        conn_ = other.conn_;
+        db_ = other.db_;
+        dateTimeStorage_[0] = other.dateTimeStorage_[0];
+        dateTimeStorage_[1] = other.dateTimeStorage_[1];
+        return *this;
+    }
+
     /*! \brief Destructor.
    *
    * Closes the connection.
@@ -138,6 +148,7 @@ public:
 
     awaitable<void> executeSql(const std::string& sql)
     {
+        co_await async_mutex_.scoped_lock_async(use_awaitable);
         std::unique_ptr<SqlStatement> s = prepareStatement(sql);
         co_await s->execute();
         co_return;
@@ -154,94 +165,10 @@ private:
 
     std::string conn_;
     sqlite3 *db_;
+    cpp20::async_mutex async_mutex_;
 
     void init();
 };
-
-//class WTDBOSQLITE3_API Sqlite3 final : public SqlConnection
-//{
-//public:
-//  /*! \brief Opens a new SQLite3 backend connection.
-//   *
-//   * The \p db may be any of the values supported by sqlite3_open().
-//   */
-//  Sqlite3(const std::string& db);
-
-//  /*! \brief Copies an SQLite3 connection.
-//   */
-//  Sqlite3(const Sqlite3& other);
-
-//  /*! \brief Destructor.
-//   *
-//   * Closes the connection.
-//   */
-//  ~Sqlite3();
-
-//  virtual std::unique_ptr<SqlConnection> clone() const override;
-
-//  /*! \brief Returns the underlying connection.
-//   */
-//  sqlite3 *connection() { return db_; }
-
-//  /*! \brief Returns the underlying connection string.
-//   */
-//  std::string connectionString() { return conn_; }
-
-//  /*! \brief Configures how to store date or date time.
-//   *
-//   * The default format is ISO8601AsText.
-//   */
-//  void setDateTimeStorage(SqlDateTimeType type, DateTimeStorage format);
-
-//  /*! \brief Returns the date time storage.
-//   */
-//  DateTimeStorage dateTimeStorage(SqlDateTimeType type) const;
-
-//  void startTransaction() override;
-//  void commitTransaction() override;
-//  void rollbackTransaction() override;
-
-//  std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql) override;
-  
-//  /** @name Methods that return dialect information
-//   */
-//  //@{
-//  std::string autoincrementSql() const override;
-//  std::vector<std::string>
-//    autoincrementCreateSequenceSql(const std::string &table,
-//                                   const std::string &id) const override;
-//  std::vector<std::string>
-//    autoincrementDropSequenceSql(const std::string &table,
-//                                 const std::string &id) const override;
-//  std::string autoincrementType() const override;
-//  std::string autoincrementInsertSuffix(const std::string& id) const override;
-//  const char *dateTimeType(SqlDateTimeType type) const override;
-//  const char *blobType() const override;
-//  bool supportDeferrableFKConstraint() const override;
-//  //@}
-
-//  awaitable<void> executeSql(const std::string& sql) override
-//    {
-//        std::unique_ptr<SqlStatement> s = prepareStatement(sql);
-//        co_await s->execute();
-//        co_return;
-//    }
-
-//    awaitable<void> executeSqlStateful(const std::string& sql) override
-//    {
-//        statefulSql_.push_back(sql);
-//        co_await executeSql(sql);
-//    }
-
-//    SqlStatement *getStatement(const std::string& id) override;
-//private:
-//  DateTimeStorage dateTimeStorage_[2];
-
-//  std::string conn_;
-//  sqlite3 *db_;
-
-//  void init();
-//};
 
     }
   }
