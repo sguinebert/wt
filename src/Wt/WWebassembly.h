@@ -32,17 +32,22 @@ public:
         WResource(),
         link_(this, "message")
     {
+        init_.setJavaScript("", 2);
 
         addStaticResource(path, internalpath);
 
         link_.connect<&WWebassembly::HandleMessage>(this);
+
+        init_.exec("null", "null", "test", "test");
+
+
     }
 
     static void addStaticResource(std::string_view path, const std::string& internalpath)
     {
         if(!resource_) {
             resource_ = std::make_unique<WMemoryResource>("application/wasm", path);
-            WServer::instance()->addResource(resource_.get(), "/app");
+            WServer::instance()->addResource(resource_.get(), internalpath);
         }
     }
 
@@ -58,6 +63,7 @@ private:
   static std::unique_ptr<WMemoryResource> resource_;
   std::string path_;
   JSignal<std::string_view> link_;
+  JSlot init_;
   bool sizeChanged_, versionChanged_;
 };
 
