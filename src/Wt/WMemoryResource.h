@@ -46,6 +46,7 @@ namespace Wt {
  */
 class WT_API WMemoryResource : public WResource
 {
+    typedef std::shared_ptr< const std::vector<unsigned char> > DataPtr;
 public:
   /*! \brief Creates a new resource.
    *
@@ -58,6 +59,11 @@ public:
    * You must call setData() before using the resource.
    */
   WMemoryResource(const std::string& mimeType);
+
+  WMemoryResource(std::string_view mimeType, std::string_view path);
+
+  WMemoryResource(std::string_view mimeType, DataPtr& data);
+
 
   /*! \brief Creates a new resource with given mime-type and data
    */
@@ -93,7 +99,6 @@ public:
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
 
 private:
-  typedef std::shared_ptr< const std::vector<unsigned char> > DataPtr;
 
   std::string mimeType_;
   DataPtr data_;
