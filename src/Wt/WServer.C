@@ -301,8 +301,8 @@ bool WServer::readConfigurationProperty(const std::string& name,
 }
 
 void WServer::post(const std::string& sessionId,
-		   const std::function<void ()>& function,
-		   const std::function<void ()>& fallbackFunction)
+                   const std::function<void ()>& function,
+                   const std::function<void ()>& fallbackFunction)
 {
   schedule(std::chrono::milliseconds{0}, sessionId, function, fallbackFunction);
 }

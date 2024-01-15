@@ -72,6 +72,7 @@ public:
        asio::any_io_executor& io_context)
     : /*ioService_(io_context),
       strand_(io_context),*/
+      executor_(io_context),
       resolver_(io_context),
       method_(Http::Method::Get),
       client_(client),
@@ -146,6 +147,7 @@ public:
     tcp::resolver::query query(server, std::to_string(port));
 
     //startTimer();
+    co_spawn(executor_, watchdog(deadline_), detached);
 
     auto [ec, endpoint_iterator] = co_await resolver_.async_resolve(query, use_nothrow_awaitable);
 
@@ -274,7 +276,7 @@ public:
 
   void asyncStop()
   {
-    //asio::post(executor_, std::bind(&Impl::stop, shared_from_this()));
+    asio::post(executor_, std::bind(&Impl::stop, shared_from_this()));
     //ioService_.post(std::bind(&Impl::stop, shared_from_this()));
   }
 
@@ -859,6 +861,7 @@ private:
 protected:
 //  asio::io_context& ioService_;
 //  AsioWrapper::strand strand_;
+  asio::any_io_executor executor_;
   tcp::resolver resolver_;
   asio::streambuf requestBuf_;
   asio::streambuf responseBuf_;
@@ -1221,8 +1224,6 @@ void Client::setSslVerifyFile(const std::string& file)
 awaitable<Message> Client::co_request(Http::Method method, const std::string &url, const Message &message)
 {
   auto executor = co_await asio::this_coro::executor;
-
-  //auto io_context = std::any_cast<asio::io_context>(&executor);
 
   WApplication *app = WApplication::instance();
 
