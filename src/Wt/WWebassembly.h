@@ -32,13 +32,13 @@ public:
         WResource(),
         link_(this, "message")
     {
-        init_.setJavaScript("", 2);
+        init_.setJavaScript("script to load the module on the client (Qt script)", 2);
 
         addStaticResource(path, internalpath);
 
         link_.connect<&WWebassembly::HandleMessage>(this);
 
-        init_.exec("null", "null", "test", "test");
+        init_.exec("null", "null", "url", "sessionid");
 
 
     }
