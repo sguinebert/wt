@@ -250,14 +250,14 @@ namespace Wt {
       return certificate;
     }
 
-    asio::ssl::context createSslContext(asio::io_service &io_service,
+    asio::ssl::context createSslContext(asio::any_io_executor io_context,
                                         bool addCACerts)
     {
 #if defined(WT_ASIO_IS_BOOST_ASIO) && BOOST_VERSION >= 106600
-      (void)io_service;
+      (void)io_context;
       asio::ssl::context context(asio::ssl::context::tls);
 #elif defined(WT_ASIO_IS_STANDALONE_ASIO) && ASIO_VERSION >= 101100
-      (void)io_service;
+      (void)io_context;
       asio::ssl::context context(asio::ssl::context::sslv23);
 #else
       asio::ssl::context context

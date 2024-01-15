@@ -69,10 +69,10 @@ public:
 
   Impl(Client *client,
        const std::shared_ptr<WebSession>& session,
-       asio::io_context& io_context)
-    : ioService_(io_context),
-      strand_(io_context),
-      resolver_(ioService_),
+       asio::any_io_executor& io_context)
+    : /*ioService_(io_context),
+      strand_(io_context),*/
+      resolver_(io_context),
       method_(Http::Method::Get),
       client_(client),
       session_(session),
@@ -274,7 +274,8 @@ public:
 
   void asyncStop()
   {
-    ioService_.post(std::bind(&Impl::stop, shared_from_this()));
+    //asio::post(executor_, std::bind(&Impl::stop, shared_from_this()));
+    //ioService_.post(std::bind(&Impl::stop, shared_from_this()));
   }
 
 //  tcp::socket& vsocket()
@@ -856,8 +857,8 @@ private:
   }
 
 protected:
-  asio::io_context& ioService_;
-  AsioWrapper::strand strand_;
+//  asio::io_context& ioService_;
+//  AsioWrapper::strand strand_;
   tcp::resolver resolver_;
   asio::streambuf requestBuf_;
   asio::streambuf responseBuf_;
@@ -890,9 +891,9 @@ class Client::TcpImpl final : public Client::Impl
 public:
   TcpImpl(Client *client,
           const std::shared_ptr<WebSession>& session,
-          asio::io_context& ioService)
+          asio::any_io_executor& ioService)
     : Impl(client, session, ioService),
-      socket_(ioService_)
+      socket_(ioService)
   { }
 
 protected:
@@ -941,12 +942,12 @@ class Client::SslImpl final : public Client::Impl
 public:
   SslImpl(Client *client,
           const std::shared_ptr<WebSession>& session,
-          asio::io_context& ioService,
+          asio::any_io_executor& executor,
           bool verifyEnabled,
 	  asio::ssl::context& context,
 	  const std::string& hostName)
-    : Impl(client, session, ioService),
-      socket_(ioService_, context),
+    : Impl(client, session, executor),
+      socket_(executor, context),
       verifyEnabled_(verifyEnabled),
       hostName_(hostName)
   {
@@ -1116,144 +1117,86 @@ void Client::setTimeout(std::chrono::steady_clock::duration timeout)
   timeout_ = timeout;
 }
 
-void Client::setMaximumResponseSize(std::size_t bytes)
-{
-  maximumResponseSize_ = bytes;
-}
+
 
 void Client::setSslVerifyFile(const std::string& file)
 {
   verifyFile_ = file;
 }
 
-void Client::setSslVerifyPath(const std::string& path)
-{
-  verifyPath_ = path;
-}
 
-bool Client::get(const std::string& url)
-{
-  return request(Http::Method::Get, url, Message());
-}
 
-bool Client::get(const std::string& url,
-                 const std::vector<Message::Header> headers)
-{
-  Message m(headers);
-  return request(Http::Method::Get, url, m);
-}
 
-bool Client::head(const std::string& url)
-{
-  return request(Http::Method::Head, url, Message());
-}
+//bool Client::request(Http::Method method, const std::string& url,
+//                     const Message& message)
+//{
+//  asio::io_context *io_context = io_context_;
 
-bool Client::head(const std::string& url,
-                  const std::vector<Message::Header> headers)
-{
-  Message m(headers);
-  return request(Http::Method::Head, url, m);
-}
+//  WApplication *app = WApplication::instance();
 
-bool Client::post(const std::string& url, const Message& message)
-{
-  return request(Http::Method::Post, url, message);
-}
+//  auto impl = impl_.lock();
+//  if (impl) {
+//    LOG_ERROR("another request is in progress");
+//    return false;
+//  }
 
-bool Client::put(const std::string& url, const Message& message)
-{
-  return request(Http::Method::Put, url, message);
-}
+//  WebSession *session = nullptr;
 
-bool Client::deleteRequest(const std::string& url, const Message& message)
-{
-  return request(Http::Method::Delete, url, message);
-}
+//  if (app && !io_context) {
+//    // Use WServer's IO service, and post events to WApplication
+//    session = app->session();
+//    auto server = session->controller()->server();
+//    io_context = &server->ioService().get();
+//  } else if (!io_context) {
+//    // Take IO service from server
+//    auto server = WServer::instance();
 
-bool Client::patch(const std::string& url, const Message& message)
-{
-  return request(Http::Method::Patch, url, message);
-}
+//    if (server)
+//      io_context = &server->ioService().get();
+//    else {
+//      LOG_ERROR("requires a WIOService for async I/O");
+//      return false;
+//    }
+//  }
 
-bool Client::request(Http::Method method, const std::string& url,
-                     const Message& message)
-{
-  asio::io_context *io_context = io_context_;
+//  URL parsedUrl;
 
-  WApplication *app = WApplication::instance();
+//  if (!parseUrl(url, parsedUrl))
+//    return false;
 
-  auto impl = impl_.lock();
-  if (impl) {
-    LOG_ERROR("another request is in progress");
-    return false;
-  }
+//  if (parsedUrl.protocol == "http") {
+//    impl = std::make_shared<TcpImpl>(this, session ? session->shared_from_this() : nullptr, *io_context);
+//    impl_ = impl;
 
-  WebSession *session = nullptr;
+//#ifdef WT_WITH_SSL
+//  } else if (parsedUrl.protocol == "https") {
+//    asio::ssl::context context = Ssl::createSslContext(*io_context, verifyEnabled_);
 
-  if (app && !io_context) {
-    // Use WServer's IO service, and post events to WApplication
-    session = app->session();
-    auto server = session->controller()->server();
-    io_context = &server->ioService().get();
-  } else if (!io_context) {
-    // Take IO service from server
-    auto server = WServer::instance();
+//    if (!verifyFile_.empty() || !verifyPath_.empty()) {
+//      if (!verifyFile_.empty())
+//	context.load_verify_file(verifyFile_);
+//      if (!verifyPath_.empty())
+//	context.add_verify_path(verifyPath_);
+//    }
 
-    if (server)
-      io_context = &server->ioService().get();
-    else {
-      LOG_ERROR("requires a WIOService for async I/O");
-      return false;
-    }
-  }
+//    impl = std::make_shared<SslImpl>(this,
+//                                     session ? session->shared_from_this() : nullptr,
+//                                     *io_context,
+//                                     verifyEnabled_,
+//                                     context,
+//                                     parsedUrl.host);
+//    impl_ = impl;
+//#endif // WT_WITH_SSL
 
-  URL parsedUrl;
+//  } else {
+//    LOG_ERROR("unsupported protocol: {}", parsedUrl.protocol);
+//    return false;
+//  }
 
-  if (!parseUrl(url, parsedUrl))
-    return false;
+//  impl->request_ = message;
 
-  if (parsedUrl.protocol == "http") {
-    impl = std::make_shared<TcpImpl>(this, session ? session->shared_from_this() : nullptr, *io_context);
-    impl_ = impl;
-
-#ifdef WT_WITH_SSL
-  } else if (parsedUrl.protocol == "https") {
-    asio::ssl::context context = Ssl::createSslContext(*io_context, verifyEnabled_);
-
-    if (!verifyFile_.empty() || !verifyPath_.empty()) {
-      if (!verifyFile_.empty())
-	context.load_verify_file(verifyFile_);
-      if (!verifyPath_.empty())
-	context.add_verify_path(verifyPath_);
-    }
-
-    impl = std::make_shared<SslImpl>(this,
-                                     session ? session->shared_from_this() : nullptr,
-                                     *io_context,
-                                     verifyEnabled_,
-                                     context,
-                                     parsedUrl.host);
-    impl_ = impl;
-#endif // WT_WITH_SSL
-
-  } else {
-    LOG_ERROR("unsupported protocol: {}", parsedUrl.protocol);
-    return false;
-  }
-
-  impl->request_ = message;
-
-  impl->setTimeout(timeout_);
-  impl->setMaximumResponseSize(maximumResponseSize_);
-
-  co_spawn(*io_context_, impl->request(method,
-                                       parsedUrl.protocol,
-                                       parsedUrl.auth,
-                                       parsedUrl.host,
-                                       parsedUrl.port,
-                                       parsedUrl.path,
-                                       impl->shared_from_this(), true) || impl->watchdog(impl->deadline_), detached);
-
+//  impl->setTimeout(timeout_);
+//  impl->setMaximumResponseSize(maximumResponseSize_);
 
 //  co_spawn(*io_context_, impl->request(method,
 //                                       parsedUrl.protocol,
@@ -1261,14 +1204,25 @@ bool Client::request(Http::Method method, const std::string& url,
 //                                       parsedUrl.host,
 //                                       parsedUrl.port,
 //                                       parsedUrl.path,
-//                                       message), detached);
+//                                       impl->shared_from_this(), true) || impl->watchdog(impl->deadline_), detached);
 
-  return true;
-}
+
+////  co_spawn(*io_context_, impl->request(method,
+////                                       parsedUrl.protocol,
+////                                       parsedUrl.auth,
+////                                       parsedUrl.host,
+////                                       parsedUrl.port,
+////                                       parsedUrl.path,
+////                                       message), detached);
+
+//  return true;
+//}
 
 awaitable<Message> Client::co_request(Http::Method method, const std::string &url, const Message &message)
 {
-  asio::io_context *io_context = io_context_;
+  auto executor = co_await asio::this_coro::executor;
+
+  //auto io_context = std::any_cast<asio::io_context>(&executor);
 
   WApplication *app = WApplication::instance();
 
@@ -1276,12 +1230,12 @@ awaitable<Message> Client::co_request(Http::Method method, const std::string &ur
 
   WebSession *session = nullptr;
 
-  if (app && !io_context) {
+  if (app /*&& !io_context*/) {
     // Use WServer's IO service, and post events to WApplication
     session = app->session();
-    auto server = session->controller()->server();
-    io_context = &server->ioService().get();// &server->ioService();
-  } else if (!io_context) {
+//    auto server = session->controller()->server();
+//    io_context = &server->ioService().get();// &server->ioService();
+  } /*else if (!io_context) {
     // Take IO service from server
     auto server = WServer::instance();
 
@@ -1291,7 +1245,7 @@ awaitable<Message> Client::co_request(Http::Method method, const std::string &ur
       LOG_ERROR("requires a WIOService for async I/O");
       co_return Message();
     }
-  }
+  }*/
 
   URL parsedUrl;
 
@@ -1299,7 +1253,7 @@ awaitable<Message> Client::co_request(Http::Method method, const std::string &ur
     co_return Message();
 
   if (parsedUrl.protocol == "http") {
-    auto tcpimpl_ = std::make_shared<TcpImpl>(this, session ? session->shared_from_this() : nullptr, *io_context);
+    auto tcpimpl_ = std::make_shared<TcpImpl>(this, session ? session->shared_from_this() : nullptr, executor);
 
     tcpimpl_->request_ = message;
 
@@ -1318,7 +1272,7 @@ awaitable<Message> Client::co_request(Http::Method method, const std::string &ur
 
 #ifdef WT_WITH_SSL
   } else if (parsedUrl.protocol == "https") {
-    asio::ssl::context context = Ssl::createSslContext(*io_context, verifyEnabled_);
+    asio::ssl::context context = Ssl::createSslContext(executor, verifyEnabled_);
 
     if (!verifyFile_.empty() || !verifyPath_.empty()) {
       if (!verifyFile_.empty())
@@ -1328,7 +1282,7 @@ awaitable<Message> Client::co_request(Http::Method method, const std::string &ur
     }
     auto sslimpl_ = std::make_shared<SslImpl>(this,
                                               session ? session->shared_from_this() : nullptr,
-                                              *io_context,
+                                              executor,
                                               verifyEnabled_,
                                               context,
                                               parsedUrl.host);
@@ -1394,7 +1348,7 @@ awaitable<void> Client::handleRedirect(Http::Method method,
     {
       if (redirectCount_ <= maxRedirects_)
       {
-        get(*newUrl, request.headers());
+        co_await get(*newUrl, request.headers(), use_awaitable);
         co_return;
       }
       else

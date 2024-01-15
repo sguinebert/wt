@@ -40,7 +40,7 @@ LOGGER("Auth.OidcService");
     headers.push_back(Http::Message::Header("Authorization",
 					    "Bearer " + token.value()));
 
-    httpClient_->get(service().userInfoEndpoint(), headers);
+    httpClient_->get(service().userInfoEndpoint(), headers, detached);
 
 #ifndef WT_TARGET_JAVA
     WApplication::instance()->deferRendering();

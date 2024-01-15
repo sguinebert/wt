@@ -11,6 +11,7 @@
 #include <Wt/WGlobal.h>
 #include <Wt/Http/ResponseContinuation.h>
 #include <ostream>
+//DEPRECATED
 
 namespace Wt {
 

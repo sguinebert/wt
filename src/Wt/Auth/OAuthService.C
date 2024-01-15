@@ -487,7 +487,7 @@ void OAuthProcess::requestToken(std::string_view authorizationCode)
     bool hasQuery = url.find('?') != std::string::npos;
     url += (hasQuery ? '&' : '?') + ss.str();
 
-    httpClient_->get(url, headers);
+    httpClient_->get(url, headers, detached);
   } else {
     Http::Message post;
     post.setHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -500,7 +500,7 @@ void OAuthProcess::requestToken(std::string_view authorizationCode)
 	<< "&client_secret=" << clientSecret;
     }
     post.addBodyText(ss.str());
-    httpClient_->post(url, post);
+    httpClient_->post(url, post, detached);
   }
 }
 

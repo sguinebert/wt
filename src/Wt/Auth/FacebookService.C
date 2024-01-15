@@ -42,7 +42,7 @@ public:
 
     httpClient_->done().connect<&FacebookProcess::handleMe>(this);
     httpClient_->get("https://graph.facebook.com/me?fields=name,id,email&access_token="
-		     + token.value());
+             + token.value(), detached);
 
 #ifndef WT_TARGET_JAVA
     WApplication::instance()->deferRendering();

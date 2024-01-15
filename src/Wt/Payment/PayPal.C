@@ -246,9 +246,9 @@ Signal<awaitable<void>(Result)>& PayPalExpressCheckout::setup()
   message.addBodyText(messageText);
 
   impl_->lastSentMessage_ = map;
-
-  if (!client->post(impl_->service_.apiServerUrl(), message))
-    LOG_ERROR("error submiting POST");
+  client->post(impl_->service_.apiServerUrl(), message, detached);
+//  if (!)
+//    LOG_ERROR("error submiting POST");
 
   return impl_->setupSignal_;
 }
@@ -483,9 +483,9 @@ Signal<awaitable<void>(Result)>& PayPalExpressCheckout::updateCustomerDetails()
   message.addBodyText(msg);
   impl_->lastSentMessage_ = map;
 
-
-  if (!client->post(impl_->service_.apiServerUrl(), message))
-    LOG_ERROR("error submiting POST");
+  client->post(impl_->service_.apiServerUrl(), message, detached);
+//  if (!)
+//    LOG_ERROR("error submiting POST");
 
   return impl_->updatedCustomerDetailsSignal_;
 }
@@ -573,8 +573,10 @@ Signal<awaitable<void>(Result)>& PayPalExpressCheckout::completePayment(const Mo
 
   impl_->lastSentMessage_ = map;
 
-  if (!client->post(impl_->service_.apiServerUrl(), message))
-    LOG_ERROR("error submiting POST");
+  client->post(impl_->service_.apiServerUrl(), message, detached);
+
+//  if (!)
+//    LOG_ERROR("error submiting POST");
 
   return impl_->completePaymentSignal_;
 }

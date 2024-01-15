@@ -191,7 +191,10 @@ public:
    * response message. Instead the data is made available only
    * to bodyDataReceived() to be processed incrementally.
    */
-  void setMaximumResponseSize(std::size_t bytes);
+  void setMaximumResponseSize(std::size_t bytes)
+  {
+      maximumResponseSize_ = bytes;
+  }
 
   /*! \brief Returns the maximum response size.
    *
@@ -233,7 +236,25 @@ public:
    * directory containing certificates to be used to verify the
    * identity of the server.
    */
-  void setSslVerifyPath(const std::string& verifyPath);
+  void setSslVerifyPath(const std::string& verifyPath)
+  {
+      verifyPath_ = verifyPath;
+  }
+
+  template<class Token>
+  auto request(Http::Method method, const std::string& url, const Message& message, Token&& token)
+  {
+      auto initiator = [this, method, url, message] (auto&& handler) {
+          auto executor = asio::get_associated_executor(handler);
+
+          co_spawn(executor, co_request(method, url, message), [handler = std::move(handler)](auto&& ec, Message&& msg) mutable {
+              handler(msg);
+          });
+      };
+
+      return asio::async_initiate<Token, void(Message)>(initiator, std::forward<Token>(token));
+  }
+
 
   /*! \brief Starts a GET request.
    *
@@ -249,7 +270,11 @@ public:
    *
    * \sa request(), done()
    */
-  bool get(const std::string& url);
+  template<class Token>
+  auto get(const std::string& url, Token&& token)
+  {
+      return request(Http::Method::Get, url, Message(), std::forward<Token>(token));
+  }
 
   /*! \brief Starts a GET request.
    *
@@ -267,7 +292,12 @@ public:
    *
    * \sa request(), done()
    */
-  bool get(const std::string& url, const std::vector<Message::Header> headers);
+  template<class Token>
+  auto get(const std::string& url, const std::vector<Message::Header> headers, Token&& token)
+  {
+      Message m(headers);
+      return request(Http::Method::Get, url, m, std::forward<Token>(token));
+  }
 
   /*! \brief Starts a HEAD request.
    *
@@ -283,7 +313,11 @@ public:
    *
    * \sa request(), done()
    */
-  bool head(const std::string &url);
+  template<class Token>
+  auto head(const std::string& url, Token&& token)
+  {
+      return request(Http::Method::Head, url, Message(), std::forward<Token>(token));
+  }
 
   /*! \brief Starts a HEAD request.
    *
@@ -301,7 +335,12 @@ public:
    *
    * \sa request(), done()
    */
-  bool head(const std::string &url, const std::vector<Message::Header> headers);
+  template<class Token>
+  auto head(const std::string& url, const std::vector<Message::Header> headers, Token&& token)
+  {
+      Message m(headers);
+      return request(Http::Method::Head, url, m, std::forward<Token>(token));
+  }
 
   /*! \brief Starts a POST request.
    *
@@ -317,7 +356,11 @@ public:
    *
    * \sa request(), done()
    */
-  bool post(const std::string& url, const Message& message);
+  template<class Token>
+  auto post(const std::string& url, const Message& message, Token&& token)
+  {
+      return request(Http::Method::Post, url, message, std::forward<Token>(token));
+  }
 
   /*! \brief Starts a PUT request.
    *
@@ -333,7 +376,11 @@ public:
    *
    * \sa request(), done()
    */
-  bool put(const std::string& url, const Message& message);
+  template<class Token>
+  auto put(const std::string& url, const Message& message, Token&& token)
+  {
+      return request(Http::Method::Put, url, message, std::forward<Token>(token));
+  }
   
   /*! \brief Starts a DELETE request.
    *
@@ -349,7 +396,11 @@ public:
    *
    * \sa request(), done()
    */
-  bool deleteRequest(const std::string& url, const Message& message);
+  template<class Token>
+  auto deleteRequest(const std::string& url, const Message& message, Token&& token)
+  {
+      return request(Http::Method::Delete, url, message, std::forward<Token>(token));
+  }
   
   /*! \brief Starts a PATCH request.
    *
@@ -365,7 +416,11 @@ public:
    *
    * \sa request(), done()
    */
-  bool patch(const std::string& url, const Message& message);
+  template<class Token>
+  auto patch(const std::string& url, const Message& message, Token&& token)
+  {
+      return request(Http::Method::Patch, url, message, std::forward<Token>(token));
+  }
   
   /*! \brief Starts a request.
    *
@@ -381,9 +436,10 @@ public:
    *
    * \sa request(), done()
    */
-  bool request(Http::Method method, const std::string& url, const Message& message);
+  //bool request(Http::Method method, const std::string& url, const Message& message);
 
   awaitable<Message> co_request(Http::Method method, const std::string& url, const Message& message);
+
 
   /*! \brief Aborts the curent request.
    *

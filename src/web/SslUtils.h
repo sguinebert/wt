@@ -38,7 +38,7 @@ namespace Wt {
 
         WT_API struct x509_st *readFromPem(const std::string &pem);
 
-        extern asio::ssl::context createSslContext(asio::io_service &io_service,
+        extern asio::ssl::context createSslContext(asio::any_io_executor io_service,
                                                    bool addCACerts);
 
         WT_API EVP_PKEY* readPrivateKeyFromFile(const std::string& path);
