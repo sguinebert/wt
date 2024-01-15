@@ -1356,10 +1356,10 @@ void WClientGLWidget::texImage2D(WGLWidget::GLenum target, int level,
 #ifndef WT_TARGET_JAVA
 std::unique_ptr<WResource> WClientGLWidget::rpdToMemResource(WRasterImage *rpd)
 {
-  std::stringstream ss;
-#warning "broken"
-  //rpd->write(ss);
-  std::unique_ptr<WMemoryResource> mr(new WMemoryResource("image/png", std::vector<unsigned char>(ss.view().begin(), ss.view().end())));
+  asio::streambuf ss;
+#warning "broken need rpd->write"
+  rpd->write(ss);
+  std::unique_ptr<WMemoryResource> mr(new WMemoryResource("image/png", std::vector<unsigned char>(ss.data().begin(), ss.data().end())));
   //mr->setData(reinterpret_cast<const unsigned char*>(ss.str().c_str()), ss.str().size());
   return std::move(mr);
 }

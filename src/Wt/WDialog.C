@@ -627,7 +627,7 @@ void WDialog::setHidden(bool hidden, const WAnimation& animation)
 
       if (escapeIsReject_) {
         if (isModal()) {
-#warning "connection pb"
+#warning "connection pb repaired but need test"
       //escapeConnection1_ ;
             escapePressed().connect<&WDialog::onEscapePressed>(this);
         } else {

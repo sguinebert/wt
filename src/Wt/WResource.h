@@ -354,19 +354,25 @@ public:
 //	     const Http::ParameterMap& parameters = Http::ParameterMap(),
 //	     const Http::UploadedFileMap& files = Http::UploadedFileMap());
 
-  void write(WT_BOSTREAM& out,
-                        const Http::ParameterMap& parameters,
-                        const Http::UploadedFileMap& files)
+  void write(asio::streambuf& out)
   {
 
       http::cookies cookies;
       //std::streambuf test(out);
-      asio::streambuf test;
-      http::response response(cookies, test);
+      http::response response(cookies, out);
       http::request  request(true, response, cookies);
 
-      handleRequest(request, response);
+      asio::io_context ctx;
 
+      auto fut = co_spawn(ctx, handleRequest(request, response), asio::use_future);
+
+      ctx.run();
+
+//      try {
+//          fut.get(); // rethrows exceptions from the coroutine
+//      } catch (const std::exception& e) {
+//          // Handle exceptions thrown by the coroutine
+//      }
   }
 
   /*! \brief Handles a request.

@@ -193,9 +193,8 @@ public:
     WApplication::UpdateLock lock(app);
 #endif
 
-#warning "connection signal"
     //process_->doneCallbackConnection_;
-        app->unsuspended().connect<&OAuthProcess::onOAuthDone>(process_);
+    app->unsuspended().connect<&OAuthProcess::onOAuthDone>(process_);
 
     std::string redirectTo = app->makeAbsoluteUrl(app->url(process_->startInternalPath_));
     o <<
