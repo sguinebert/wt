@@ -32,6 +32,17 @@ void unMarshal(const JavaScriptEvent &jse, int argi, std::string &s)
   s = v;
 }
 
+void unMarshal(const JavaScriptEvent &jse, int argi, std::string_view& s)
+{
+  if ((unsigned)argi >= jse.userEventArgs.size()) {
+    Wt::log("error") << "JSignal: missing JavaScript argument:" << argi;
+    return;
+  }
+
+  s = jse.userEventArgs[argi];
+  //WString::checkUTF8Encoding(s);
+}
+
 void unMarshal(const JavaScriptEvent& jse, int argi, WString& s) {
   if ((unsigned)argi >= jse.userEventArgs.size()) {
     Wt::log("error") << "JSignal: missing JavaScript argument:" << argi;

@@ -60,7 +60,7 @@ public:
    */
   WMemoryResource(const std::string& mimeType);
 
-  WMemoryResource(std::string_view mimeType, std::string_view path);
+  WMemoryResource(std::string_view mimeType, const std::string& path);
 
   WMemoryResource(std::string_view mimeType, DataPtr& data);
 

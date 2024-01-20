@@ -6,6 +6,7 @@
 
 #include "Wt/WMemoryResource.h"
 #include "Wt/Http/Response.h"
+#include <fstream>
 
 namespace Wt {
 
@@ -17,8 +18,18 @@ WMemoryResource::WMemoryResource()
 WMemoryResource::WMemoryResource(const std::string& mimeType)
   : mimeType_(mimeType),
     data_(new std::vector<unsigned char>())
-{ 
+{
   create();
+}
+
+WMemoryResource::WMemoryResource(std::string_view mimeType, const std::string& path) : mimeType_(mimeType)
+{
+  std::ifstream file(path, std::ios::binary);
+  if (!file) {
+      std::cerr << "Error: File not found or unable to open file." << std::endl;
+      return;
+  }
+  data_ = std::make_shared<std::vector<unsigned char>>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 }
 
 WMemoryResource::WMemoryResource(const std::string& mimeType,

@@ -452,6 +452,7 @@ void unMarshal(const JavaScriptEvent& jse, int argi, T& t) {
 }
 
 extern WT_API void unMarshal(const JavaScriptEvent &jse, int argi, std::string& s);
+extern WT_API void unMarshal(const JavaScriptEvent &jse, int argi, std::string_view& s);
 extern WT_API void unMarshal(const JavaScriptEvent& jse, int argi, WString& s);
 extern WT_API void unMarshal(const JavaScriptEvent& jse, int argi, NoClass& nc);
 extern WT_API void unMarshal(const JavaScriptEvent& jse, int, WMouseEvent& e);

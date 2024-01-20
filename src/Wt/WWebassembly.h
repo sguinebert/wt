@@ -6,11 +6,30 @@
 #pragma once
 
 #include <Wt/WServer.h>
+#include <Wt/WContainerWidget.h>
 #include <Wt/WMemoryResource.h>
 #include <Wt/Json/simdjson.h>
 #include <Wt/WJavaScript.h>
 
+
+
 namespace Wt {
+
+constexpr const char* qtloader = {
+#include "../js/qtloader.js"
+};
+
+constexpr std::string_view loaderconfig = R""(
+{{
+containerElements: [document.getElementById({})],
+}};
+)"";
+
+constexpr const char* initmodule = R""(
+function(o, e, url, session) {
+{}.init(url, session);
+}
+)"";
 
 /*! \class WWebassembly Wt/WWebassembly.h Wt/WWebassembly.h
  *  \brief A Webassembly widget.
@@ -22,32 +41,43 @@ namespace Wt {
  *
  * \sa WMediaPlayer
  */
-class WT_API WWebassembly : public WResource
+class WT_API WWebassembly : public WContainerWidget//, public WResource
 {
 public:
   /*! \brief Creates a Webassembly widget.
    *
    */
-    explicit WWebassembly(std::string_view path, const std::string& internalpath) :
-        WResource(),
+    explicit WWebassembly(std::string_view name, std::string_view path, std::string_view internalpath) :
+        WContainerWidget(), name_(name), path_(path), internalpath_(internalpath),
         link_(this, "message")
     {
-        init_.setJavaScript("script to load the module on the client (Qt script)", 2);
+        this->addStyleClass("wasm-module");
+        this->doJavaScript(qtloader);
 
-        addStaticResource(path, internalpath);
+        addStaticResource(path_, internalpath_);
 
         link_.connect<&WWebassembly::HandleMessage>(this);
+        init_.setJavaScript(initmodule, 2);
 
-        init_.exec("null", "null", "url", "sessionid");
-
-
+        auto config = fmt::format(loaderconfig, this->jsRef());
+        //setJavaScriptMember(name_, fmt::format("new QtLoader({});", config));
+        this->doJavaScript(fmt::format("window.{} = QtLoader({}); qtLoader.loadEmscriptenModule(\"{}\");", name, config, internalpath));
     }
 
-    static void addStaticResource(std::string_view path, const std::string& internalpath)
+    void setResource(WResource* client) {
+        client_ = client;
+        init_.exec("null", "null", client_->url(), wApp->sessionId());
+    }
+
+    static void addStaticResource(const std::string& path, const std::string& internalpath)
     {
-        if(!resource_) {
-            resource_ = std::make_unique<WMemoryResource>("application/wasm", path);
-            WServer::instance()->addResource(resource_.get(), internalpath);
+        if(!wasmresource_) {
+            wasmresource_ = std::make_unique<WMemoryResource>("application/wasm", path + ".wasm");
+            WServer::instance()->addResource(wasmresource_.get(), internalpath + ".wasm");
+        }
+        if(!jsresource_) {
+            jsresource_ = std::make_unique<WMemoryResource>("application/javascript", path + ".js");
+            WServer::instance()->addResource(jsresource_.get(), internalpath + ".js");
         }
     }
 
@@ -60,11 +90,11 @@ public:
   
 
 private:
-  static std::unique_ptr<WMemoryResource> resource_;
-  std::string path_;
+  static std::unique_ptr<WMemoryResource> wasmresource_, jsresource_;
+  WResource *client_ = nullptr;
+  std::string name_, path_, internalpath_;
   JSignal<std::string_view> link_;
   JSlot init_;
-  bool sizeChanged_, versionChanged_;
 };
 
 }
