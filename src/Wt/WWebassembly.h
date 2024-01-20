@@ -49,15 +49,15 @@ public:
    */
     explicit WWebassembly(std::string_view name, std::string_view path, std::string_view internalpath) :
         WContainerWidget(), name_(name), path_(path), internalpath_(internalpath),
-        link_(this, "message")
+        linkup_(this, "message")
     {
         this->addStyleClass("wasm-module");
         this->doJavaScript(qtloader);
 
         addStaticResource(path_, internalpath_);
 
-        link_.connect<&WWebassembly::HandleMessage>(this);
-        init_.setJavaScript(initmodule, 2);
+        //link_.connect<&WWebassembly::HandleMessage>(this);
+        linkdown_.setJavaScript(initmodule, 2);
 
         auto config = fmt::format(loaderconfig, this->jsRef());
         //setJavaScriptMember(name_, fmt::format("new QtLoader({});", config));
@@ -66,7 +66,7 @@ public:
 
     void setResource(WResource* client) {
         client_ = client;
-        init_.exec("null", "null", client_->url(), wApp->sessionId());
+        linkdown_.exec("null", "null", client_->url(), wApp->sessionId());
     }
 
     static void addStaticResource(const std::string& path, const std::string& internalpath)
@@ -81,20 +81,26 @@ public:
         }
     }
 
+    void sendData(std::string_view data) {
+        linkdown_.exec("null", "null", data);
+    }
+
     awaitable<void> HandleMessage(std::string_view message)
     {
         //parse json
         //simdjson::json_parse(message)
         co_return;
     }
+
+    JSignal<std::string_view>& link() {return linkup_; }
   
 
 private:
   static std::unique_ptr<WMemoryResource> wasmresource_, jsresource_;
   WResource *client_ = nullptr;
   std::string name_, path_, internalpath_;
-  JSignal<std::string_view> link_;
-  JSlot init_;
+  JSignal<std::string_view> linkup_;
+  JSlot linkdown_;
 };
 
 }
