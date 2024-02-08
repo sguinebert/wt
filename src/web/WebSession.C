@@ -1979,6 +1979,9 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
                     bootStyleResponse_ = handler.context();
                     handler.setRequest(nullptr, nullptr);
                     handler.setRequest(nullptr);
+
+                    /* Is it really necessary to force flush of bootStyleResponse_ after 2s (IE9 is deprecated since a while now...) */
+
                     //handler.unlock();
                     // co_await handler.destroy();
                     // auto executor = co_await asio::this_coro::executor;
@@ -1999,10 +2002,10 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
                     //     });
                     // });
 
-                    auto timer = new asio::steady_timer(controller_->server()->ioService().get(), std::chrono::milliseconds{2000});
-                    timer->async_wait([timer](auto&&ec) {
-                        //flushBootStyleResponse();
-                    });
+                    // auto timer = new asio::steady_timer(controller_->server()->ioService().get(), std::chrono::milliseconds{2000});
+                    // timer->async_wait([timer](auto&&ec) {
+                    //     //flushBootStyleResponse();
+                    // });
 
 //                    controller_->server()
 //                        ->schedule(std::chrono::milliseconds{2000}, sessionId_,
