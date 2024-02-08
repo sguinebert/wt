@@ -3,7 +3,7 @@
 #include <memory>
 #include <boost/asio/associated_allocator.hpp>
 #include <boost/asio/associated_executor.hpp>
-#include <cuehttp/nexus/error_code.hpp>
+#include "../../error_code.hpp"
 
 namespace nexus::quic::detail {
 

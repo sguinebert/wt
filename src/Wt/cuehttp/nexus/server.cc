@@ -1,7 +1,7 @@
-#include <cuehttp/nexus/h3/server.hpp>
-#include <cuehttp/nexus/h3/stream.hpp>
-#include <cuehttp/nexus/quic/connection.hpp>
-#include <cuehttp/nexus/udp.hpp>
+#include "h3/server.hpp"
+#include "h3/stream.hpp"
+#include "quic/connection.hpp"
+#include "udp.hpp"
 #include <lsquic.h>
 
 namespace nexus {

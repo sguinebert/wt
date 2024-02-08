@@ -91,15 +91,22 @@ class engines final : safe_noncopyable {
         auto executor = asio::get_associated_executor(handler);
         if (millis.count() == 0) {
             auto executor = asio::get_associated_executor(handler);
-            asio::post(executor, [handler = std::move(handler)] () { handler(); }); // guarantees execution order
+            asio::post(executor, [executor, handler = std::move(handler)] () { handler(executor); }); // guarantees execution order
         }
         else {
-            std::shared_ptr<asio::steady_timer> timer = std::make_shared<asio::steady_timer>(executor);
-            timer->expires_from_now(millis);
-            timer->async_wait([timer, handler = std::move(handler)] (auto /*ec*/) { handler(); });
+            asio::post(executor, [millis, executor, handler = std::move(handler)] () { //why do i need to post this lambda ??
+                std::shared_ptr<asio::steady_timer> timer = std::make_shared<asio::steady_timer>(executor, millis);
+                timer->async_wait([executor, timer, handler = std::move(handler)] (const std::error_code& ec) {
+                    if (!ec) {
+                        handler(executor);
+                    } else {
+                        // Handle error or cancellation
+                    }
+                });
+            }); // guarantees execution order
         }
     };
-    return asio::async_initiate<Token, void()>(initiator, handler);
+    return asio::async_initiate<Token, void(asio::any_io_executor)>(initiator, handler);
   }
 
   template <class Token>

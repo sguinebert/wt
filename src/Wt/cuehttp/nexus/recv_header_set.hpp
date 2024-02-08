@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <cuehttp/nexus/h3/fields.hpp>
+#include "h3/fields.hpp"
 #include <lsxpack_header.h>
 
 namespace nexus::quic::detail {

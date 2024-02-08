@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cuehttp/nexus/error_code.hpp>
+#include "../error_code.hpp"
 
 namespace nexus::global {
 

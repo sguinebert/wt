@@ -13,6 +13,8 @@
 #include "WebSession.h"
 #include "WebUtils.h"
 
+#include "Wt/cuehttp/context.hpp"
+
 #include "3rdparty/rapidxml/rapidxml.hpp"
 
 namespace Wt

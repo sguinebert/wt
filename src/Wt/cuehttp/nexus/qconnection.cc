@@ -1,7 +1,7 @@
-#include <cuehttp/nexus/quic/connection.hpp>
-#include <cuehttp/nexus/quic/client.hpp>
-#include <cuehttp/nexus/quic/server.hpp>
-#include <cuehttp/nexus/quic/stream.hpp>
+#include "quic/connection.hpp"
+#include "quic/client.hpp"
+#include "quic/server.hpp"
+#include "quic/stream.hpp"
 #include <lsquic.h>
 
 namespace nexus::quic {

@@ -30,6 +30,9 @@
 #include "TimeUtil.h"
 #include "WebUtils.h"
 
+#include "web/SocketNotifier.h"
+#include "web/EntryPoint.h"
+
 #ifdef HAVE_GRAPHICSMAGICK
 #include <magick/api.h>
 #endif
@@ -71,7 +74,7 @@ WebController::WebController(WServer& server,
     ajaxSessions_(0),
     zombieSessions_(0),
 #ifdef WT_THREADED
-    socketNotifier_(this),
+    socketNotifier_(new SocketNotifier(this)),
 #endif // WT_THREADED
     server_(server)
 {
@@ -180,13 +183,14 @@ std::vector<std::string> WebController::sessions(bool onlyRendered)
   std::unique_lock<std::recursive_mutex> lock(mutex_);
 #endif
   std::vector<std::string> sessionIds;
-  for (SessionMap::const_iterator i = sessions_.begin(); i != sessions_.end(); ++i) {
+  for (auto i = sessions_.begin(); i != sessions_.end(); ++i) {
     if (!onlyRendered || i->second->app() != nullptr)
       sessionIds.push_back(i->first);
   }
   return sessionIds;
 }
-
+//TODO : first WHY this is called each time a client is requesting to server ? create a coroutine with a steady_timer (wake up every 30min) ?
+//SECOND : BUG with async_mutex segfault with asio
 awaitable<bool> WebController::expireSessions()
 {
   std::vector<std::shared_ptr<WebSession>> toExpire;
@@ -199,7 +203,7 @@ awaitable<bool> WebController::expireSessions()
     std::unique_lock<std::recursive_mutex> lock(mutex_);
 #endif // WT_THREADED
 
-    for (SessionMap::iterator i = sessions_.begin(); i != sessions_.end(); ++i) {
+    for (auto i = sessions_.begin(); i != sessions_.end(); ++i) {
       std::shared_ptr<WebSession> session = i->second;
 
       int diff = session->expireTime() - now;
@@ -224,7 +228,7 @@ awaitable<bool> WebController::expireSessions()
     //WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock);
 
     WebSession::Handler handler(session, WebSession::Handler::LockOption::NoLock);
-    co_await session->takeLock();
+    co_await session->takeLock(); //SEGFAULT in asio
 
 #ifdef WT_THREADED
     std::unique_lock<std::recursive_mutex> lock(mutex_);
@@ -454,13 +458,13 @@ void WebController::addSocketNotifier(WSocketNotifier *notifier)
 
   switch (notifier->type()) {
   case WSocketNotifier::Type::Read:
-    socketNotifier_.addReadSocket(notifier->socket());
+    socketNotifier_->addReadSocket(notifier->socket());
     break;
   case WSocketNotifier::Type::Write:
-    socketNotifier_.addWriteSocket(notifier->socket());
+    socketNotifier_->addWriteSocket(notifier->socket());
     break;
   case WSocketNotifier::Type::Exception:
-    socketNotifier_.addExceptSocket(notifier->socket());
+    socketNotifier_->addExceptSocket(notifier->socket());
     break;
   }
 #endif // WT_THREADED
@@ -471,13 +475,13 @@ void WebController::removeSocketNotifier(WSocketNotifier *notifier)
 #ifdef WT_THREADED
   switch (notifier->type()) {
   case WSocketNotifier::Type::Read:
-    socketNotifier_.removeReadSocket(notifier->socket());
+    socketNotifier_->removeReadSocket(notifier->socket());
     break;
   case WSocketNotifier::Type::Write:
-    socketNotifier_.removeWriteSocket(notifier->socket());
+    socketNotifier_->removeWriteSocket(notifier->socket());
     break;
   case WSocketNotifier::Type::Exception:
-    socketNotifier_.removeExceptSocket(notifier->socket());
+    socketNotifier_->removeExceptSocket(notifier->socket());
     break;
   }
 
@@ -899,6 +903,7 @@ void WebController::handleRequest(WebRequest *request)
 awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPoint *entryPoint)
 {
   if (!running_) {
+        std::cerr << "!! NOT RUNNING !!" <<std::endl;
     context->status(500);
     context->flush();
     //request->flush();
@@ -938,6 +943,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
     //request->flush(WebResponse::ResponseState::ResponseDone);
     co_return;
   }
+
 
   if (entryPoint->type() == EntryPointType::StaticResource) {
     co_await entryPoint->resource()->handle(context);
@@ -985,7 +991,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
   if (sessionId.empty() && !wtdE.empty())
     sessionId = wtdE;
 
-//  std::cerr << "sessionId : " << sessionId << std::endl;
+  //std::cerr << "sessionId : " << sessionId << std::endl;
 
   std::shared_ptr<WebSession> session = context->websession();
   //if(!session || sessionId.empty())
@@ -1127,6 +1133,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
 
   bool handled = false;
   {
+
     //WebSession::Handler handler(session, *request, *(WebResponse *)request);
     WebSession::Handler handler(session, context);
 
@@ -1142,14 +1149,15 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
 
   session.reset();
 
-  if (autoExpire_)
-    co_await expireSessions();
+  // if (autoExpire_)
+  //   co_await expireSessions();
 
   if (!handled)
     co_await handleRequest(context, entryPoint);
   co_return;
 }
 
+#warning "Message event distribution is broken"
 awaitable<void> WebController::handleWebSocketMessage(http::context *context, EntryPoint *entryPoint, std::string &message)
 {
 
@@ -1219,14 +1227,22 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
         context->out() << "{}";
         context->flush();
 //      }
-
+      co_await handler.destroy();
       co_return;
     }
 
     auto pageIdE = context->getParameter("pageId");
-    if (!pageIdE.empty() && pageIdE != std::to_string(lock->renderer_.pageId()))
+    if (!pageIdE.empty() && pageIdE != std::to_string(lock->renderer_.pageId())) {
       closing = true;
+    }
   }
+
+
+  //auto s = lock->decodeSignal(signalE, true);
+
+
+  //std::string signalE { getSignal(context, se) };
+
 
   if (!closing) {
     //handler.setRequest(message, message);

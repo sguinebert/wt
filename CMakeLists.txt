@@ -48,7 +48,8 @@ OPTION(WT_NO_STD_LOCALE "Build Wt to run on a system without std::locale support
 OPTION(WT_NO_STD_WSTRING "Build Wt to run on a system without std::wstring support" OFF)
 OPTION(ENABLE_OPENGL "Build Wt with support for server-side opengl rendering" ON)
 OPTION(ENABLE_UNWIND "Build Wt with stacktrace support using libunwind" OFF)
-OPTION(ENABLE_URING "Build Wt with IO_URING for asio reactor using liburing" OFF)
+OPTION(ENABLE_URING "Build Wt with IO_URING for asio reactor using liburing" ON)
+OPTION(ENABLE_HTTP3 "Build Wt with LSQUIC for asio nexus using liblsquic.a" ON)
 
 IF(NOT CMAKE_CXX_STANDARD)
   SET(CMAKE_CXX_STANDARD 20)
@@ -250,6 +251,7 @@ INCLUDE(cmake/WtFindAsciidoc.txt)
 INCLUDE(cmake/WtFindHaru.txt)
 INCLUDE(cmake/WtFindGm.txt)
 INCLUDE(cmake/WtFindUring.txt)
+INCLUDE(cmake/WtFindLsQuic.txt)
 #INCLUDE(cmake/WtFindGL.txt)
 #INCLUDE(cmake/WtFindSkia.txt)
 
@@ -283,8 +285,6 @@ IF(ENABLE_QT4)
     INCLUDE(${QT_USE_FILE})
   ENDIF(QT_FOUND)
 ENDIF(ENABLE_QT4)
-
-
 
 IF(ENABLE_URING)
   SET(HAVE_URING TRUE)
@@ -566,6 +566,10 @@ IF(ENABLE_UNWIND AND UNWIND_FOUND)
   SET(HAVE_UNWIND ON)
 ENDIF(ENABLE_UNWIND AND UNWIND_FOUND)
 
+IF(ENABLE_HTTP3 AND LSQUIC_FOUND)
+  SET(HAVE_LSQUIC ON)
+ENDIF(ENABLE_HTTP3 AND LSQUIC_FOUND)
+
 # Compile time constants & make sure our build finds it
 FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Wt)
 SET(WCONFIG_H_PATH ${CMAKE_CURRENT_BINARY_DIR}/Wt/WConfig.h)
@@ -575,6 +579,7 @@ CONFIGURE_FILE(
 )
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 INSTALL_FILES(/include/Wt FILES ${WCONFIG_H_PATH})
+
 
 # Generate wt_config.xml from wt_config.xml.in
 CONFIGURE_FILE(

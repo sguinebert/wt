@@ -1,8 +1,8 @@
 #pragma once
 
 #include <variant>
-#include <cuehttp/nexus/error_code.hpp>
-#include <cuehttp/nexus/quic/stream_id.hpp>
+#include "../../error_code.hpp"
+#include "../stream_id.hpp"
 
 struct lsquic_stream;
 

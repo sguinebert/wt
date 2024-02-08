@@ -88,7 +88,9 @@ public:
   cpp20::async_mutex asyncmutex_;
   awaitable<void> takeLock() {
       //async_mutex aquire lock or suspend coroutine
-      co_await asyncmutex_.scoped_lock_async(use_awaitable);
+      std::cerr << ":: try take async_lock ::" << std::endl;
+      auto lock = co_await asyncmutex_.scoped_lock_async(use_awaitable); // SEGFAULT bad implementation
+      std::cerr << ":: try take async_lock OK ::" << std::endl;
       co_return;
   }
 

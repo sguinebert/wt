@@ -10,8 +10,8 @@ add_definitions(-DFMT_HEADER_ONLY)
 #add_definitions(-DFMT_EXPORT)
 #add_definitions(-DBUILD_SHARED_LIBS)
 add_definitions(-DBOOST_JSON_STANDALONE)
-add_definitions(-DBOOST_ASIO_HAS_IO_URING)
-add_definitions(-DBOOST_ASIO_DISABLE_EPOLL)
+# add_definitions(-DBOOST_ASIO_HAS_IO_URING -DASIO_HAS_IO_URING)
+# add_definitions(-DBOOST_ASIO_DISABLE_EPOLL -DASIO_DISABLE_EPOLL)
 
 #define ASIO_HAS_IO_URING
 #define BOOST_ASIO_HAS_IO_URING
@@ -355,7 +355,8 @@ Wt/Configuration.h Wt/Configuration.C
 Wt/Core/observable.hpp Wt/Core/observable.cpp
 Wt/Core/observing_ptr.hpp Wt/Core/observing_ptr.cpp
 Wt/cpp17/any.hpp Wt/cpp17/any/any.hpp
-Wt/cpp20/date.hpp Wt/cpp20/tz.hpp
+Wt/cpp20/date.hpp Wt/cpp20/tz.hpp Wt/cpp20/async_mutex.cpp Wt/cpp20/async_mutex.h
+Wt/cpp23/MoveOnlyFunction.hpp
 Wt/Form/WAbstractFormDelegate.h Wt/Form/WAbstractFormDelegate.C
 Wt/Form/WFormDelegate.h Wt/Form/WFormDelegate.C
 Wt/Json/json.hpp 
@@ -372,6 +373,8 @@ Wt/cuehttp/deps/json.hpp Wt/cuehttp/deps/picohttpparser.h
 Wt/cuehttp/detail/body_stream.hpp Wt/cuehttp/detail/buffered_streambuf.hpp Wt/cuehttp/detail/common.hpp Wt/cuehttp/detail/connection.hpp Wt/cuehttp/detail/endian.hpp Wt/cuehttp/detail/MoveOnlyFunction.hpp
 Wt/cuehttp/detail/engines.hpp Wt/cuehttp/detail/gzip.hpp Wt/cuehttp/detail/middlewares.hpp Wt/cuehttp/detail/mime.hpp Wt/cuehttp/detail/noncopyable.hpp Wt/cuehttp/detail/send.hpp Wt/cuehttp/detail/sha1.hpp Wt/cuehttp/detail/static.hpp
 Wt/cuehttp/request.hpp Wt/cuehttp/response.hpp Wt/cuehttp/router.hpp Wt/cuehttp/send.hpp Wt/cuehttp/server.hpp Wt/cuehttp/session.hpp Wt/cuehttp/static.hpp Wt/cuehttp/use_session.hpp Wt/cuehttp/websocket.hpp Wt/cuehttp/ws_server.hpp
+
+
 
 Wt/Http/Configuration.h Wt/Http/Configuration.C
 Wt/Http/HttpUtils.h Wt/Http/HttpUtils.C
@@ -448,6 +451,27 @@ AuthCssTheme_xml.C
 #JQuery_js.C
 )
 
+IF(HAVE_LSQUIC)
+SET(libsources ${libsources}
+Wt/cuehttp/nexus/global/context.hpp Wt/cuehttp/nexus/global/error.hpp
+Wt/cuehttp/nexus/h3/client.hpp Wt/cuehttp/nexus/h3/error.hpp Wt/cuehttp/nexus/h3/fields.hpp
+Wt/cuehttp/nexus/h3/server.hpp Wt/cuehttp/nexus/h3/stream.hpp
+Wt/cuehttp/nexus/quic/detail/connection_impl.hpp Wt/cuehttp/nexus/quic/detail/connection_state.hpp
+Wt/cuehttp/nexus/quic/detail/engine_impl.hpp Wt/cuehttp/nexus/quic/detail/handler_ptr.hpp
+Wt/cuehttp/nexus/quic/detail/operation.hpp Wt/cuehttp/nexus/quic/detail/service.hpp
+Wt/cuehttp/nexus/quic/detail/socket_impl.hpp Wt/cuehttp/nexus/quic/detail/stream_impl.hpp
+Wt/cuehttp/nexus/quic/detail/stream_open_handler.hpp Wt/cuehttp/nexus/quic/detail/stream_state.hpp
+Wt/cuehttp/nexus/quic/client.hpp Wt/cuehttp/nexus/quic/connection.hpp Wt/cuehttp/nexus/quic/connection_id.hpp
+Wt/cuehttp/nexus/quic/error.hpp Wt/cuehttp/nexus/quic/server.hpp Wt/cuehttp/nexus/quic/settings.hpp
+Wt/cuehttp/nexus/quic/socket.hpp Wt/cuehttp/nexus/quic/stream.hpp Wt/cuehttp/nexus/quic/stream_id.hpp
+Wt/cuehttp/nexus/client.cc Wt/cuehttp/nexus/connection_state.cc Wt/cuehttp/nexus/engine.cc
+Wt/cuehttp/nexus/error.cc Wt/cuehttp/nexus/error_code.hpp
+Wt/cuehttp/nexus/global.cc Wt/cuehttp/nexus/global_init.hpp Wt/cuehttp/nexus/h3.hpp
+Wt/cuehttp/nexus/nexus.hpp Wt/cuehttp/nexus/qconnection.cc Wt/cuehttp/nexus/quic.hpp
+Wt/cuehttp/nexus/recv_header_set.hpp Wt/cuehttp/nexus/server.cc Wt/cuehttp/nexus/settings.cc
+Wt/cuehttp/nexus/socket.cc Wt/cuehttp/nexus/ssl.hpp Wt/cuehttp/nexus/stream.cc Wt/cuehttp/nexus/stream_state.cc Wt/cuehttp/nexus/udp.hpp)
+ENDIF(HAVE_LSQUIC)
+
 IF (WT_CPP20_DATE_TZ_IMPLEMENTATION STREQUAL "date")
   list(APPEND libsources
     Wt/Date/date.h Wt/Date/include/date/date.h
@@ -488,11 +512,6 @@ IF(WT_HAS_SAML)
   )
   list(APPEND libsources ${samlsources})
 ENDIF(WT_HAS_SAML)
-
-
-#IF(HAVE_URING)
-#target_link_libraries (wt PRIVATE liburing)
-#ENDIF(HAVE_URING)
 
 ADD_DEFINITIONS(-DWT_BUILDING)
 
@@ -579,8 +598,9 @@ IF(WIN32)
   ENDIF(SHARED_LIBS)
 ENDIF(WIN32)
 
-ADD_LIBRARY(wt ${libsources}
-    Wt/cpp20/async_mutex.cpp Wt/cpp20/async_mutex.h)
+ADD_LIBRARY(wt ${libsources})
+
+
 
 SET_PROPERTY(TARGET wt PROPERTY C_VISIBILITY_PRESET hidden)
 SET_PROPERTY(TARGET wt PROPERTY CXX_VISIBILITY_PRESET hidden)
@@ -597,11 +617,44 @@ endif (WT_ASIO_IS_STANDALONE_ASIO)
 TARGET_LINK_LIBRARIES(wt
   PUBLIC
     ${WT_SOCKET_LIBRARY}
+    Boost::url
+    Boost::program_options
   PRIVATE
     ${WT_SAML_LIBS}
     ${WT_MATH_LIBRARY}
     ${RT_LIBRARY}
     )
+
+
+IF(HAVE_URING)
+IF(WIN32)
+ELSE(WIN32)
+message("HAVE FOUND LIBURING")
+TARGET_LINK_LIBRARIES (wt PUBLIC liburing.a)
+target_compile_definitions(wt
+  PUBLIC
+    BOOST_ASIO_HAS_IO_URING
+    ASIO_HAS_IO_URING
+    BOOST_ASIO_DISABLE_EPOLL
+    ASIO_DISABLE_EPOLL
+)
+# add_definitions(-DBOOST_ASIO_HAS_IO_URING -DASIO_HAS_IO_URING)
+# add_definitions(-DBOOST_ASIO_DISABLE_EPOLL -DASIO_DISABLE_EPOLL)
+ENDIF(WIN32)
+ENDIF(HAVE_URING)
+
+
+TARGET_INCLUDE_DIRECTORIES(wt PRIVATE Wt/AsioWrapper)
+
+
+#IF(${ZLIB_FOUND})
+#SET(MY_ZLIB_LIBS ${ZLIB_LIBRARIES})
+#INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIRS})
+#ADD_DEFINITIONS(-DWTHTTP_WITH_ZLIB ${ZLIB_DEFINITIONS})
+target_compile_definitions(wt PUBLIC ${ZLIB_DEFINITIONS})
+TARGET_INCLUDE_DIRECTORIES(wt PUBLIC ${ZLIB_INCLUDE_DIRS})
+TARGET_LINK_LIBRARIES(wt PUBLIC ${ZLIB_LIBRARIES})
+#ENDIF(${ZLIB_FOUND})
 
 IF(WT_HAS_SAML)
   TARGET_LINK_LIBRARIES(wt PRIVATE Shibboleth::OpenSAML)
@@ -657,7 +710,7 @@ ELSE(ENABLE_LIBWTTEST)
 ENDIF(ENABLE_LIBWTTEST)
 
 IF(HAVE_SSL)
-  TARGET_LINK_LIBRARIES(wt PRIVATE ${OPENSSL_LIBRARIES})
+  TARGET_LINK_LIBRARIES(wt PUBLIC ${OPENSSL_LIBRARIES})
   INCLUDE_DIRECTORIES(${OPENSSL_INCLUDE_DIR})
   IF(WIN32)
     TARGET_LINK_LIBRARIES(wt PRIVATE Crypt32.lib)
@@ -737,6 +790,16 @@ IF(MULTI_THREADED_BUILD)
   TARGET_LINK_LIBRARIES(wt PRIVATE ${WT_THREAD_LIB})
 ENDIF(MULTI_THREADED_BUILD)
 
+IF(HAVE_LSQUIC)
+    message("activate http3 (lsquic found), ${LSQUIC_INCLUDE_DIR}, ${LSQUIC_LIBRARY}")
+    # For lsquic include directories
+    TARGET_INCLUDE_DIRECTORIES(wt PUBLIC ${LSQUIC_INCLUDE_DIR})
+    # Assuming you also need to link against lsquic directly
+    TARGET_LINK_LIBRARIES(wt PRIVATE ${LSQUIC_LIBRARY})
+ELSE(HAVE_LSQUIC)
+    message("LSQUIC not found, ${LSQUIC_INCLUDE_DIR}, ${LSQUIC_LIBRARY}")
+ENDIF(HAVE_LSQUIC)
+
 TARGET_INCLUDE_DIRECTORIES(wt INTERFACE
   $<INSTALL_INTERFACE:include>)
 
@@ -749,6 +812,12 @@ INSTALL(TARGETS wt
 INSTALL(EXPORT wt-target-wt
         DESTINATION ${CMAKE_INSTALL_DIR}/wt
         NAMESPACE Wt::)
+
+INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Wt/cuehttp DESTINATION  ${CMAKE_INSTALL_PREFIX}/include/Wt)
+INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Wt/cuehttp.hpp DESTINATION  ${CMAKE_INSTALL_PREFIX}/include/Wt)
+INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Wt/Configuration.h DESTINATION  ${CMAKE_INSTALL_PREFIX}/include/Wt)
+INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Wt/EntryPoint.h DESTINATION  ${CMAKE_INSTALL_PREFIX}/include/Wt)
+
 
 CONFIGURE_FILE(
   ${WT_SOURCE_DIR}/WtInstall.cmake

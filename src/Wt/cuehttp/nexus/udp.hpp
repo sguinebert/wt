@@ -2,7 +2,7 @@
 
 #include <boost/asio/ip/udp.hpp>
 
-#include <cuehttp/nexus/error_code.hpp>
+#include "error_code.hpp"
 
 namespace nexus {
 

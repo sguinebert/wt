@@ -1,10 +1,10 @@
 #pragma once
 
 #include <boost/intrusive/list.hpp>
-#include <cuehttp/nexus/quic/detail/connection_state.hpp>
-#include <cuehttp/nexus/quic/detail/service.hpp>
-#include <cuehttp/nexus/quic/detail/stream_impl.hpp>
-#include <cuehttp/nexus/udp.hpp>
+#include "connection_state.hpp"
+#include "service.hpp"
+#include "stream_impl.hpp"
+#include "../../udp.hpp"
 
 struct lsquic_conn;
 struct lsquic_stream;

@@ -22,6 +22,7 @@
 
 #include "Configuration.h"
 #include "Wt/WebController.h"
+#include "web/EntryPoint.h"
 
 namespace Wt {
 

@@ -51,6 +51,10 @@ using std::strtol;
 namespace
 {
 void parseStringView(std::string_view input, std::vector<std::pair<std::string_view, std::string_view>>& parsed) {
+    if(input[0] == '&') {
+        input = input.substr(1);
+    }
+
     char* data = (char *)input.data();
     size_t size = input.size();
     unsigned tail = size - size % 32;
@@ -624,6 +628,10 @@ namespace Wt
         request.parseFormUrlEncoded(views);
         //request.parseFormUrlEncoded(message);
       }
+
+      // for(auto &[key, val]: parameters) {
+      //     std::cout << "param [k, v]: " << key << " - "<< val << std::endl;
+      // }
 
       if (auto [begin, end] = parameters.equal_range("Wt-params"); begin != parameters.end() && std::distance(begin, end) == 1)
       {

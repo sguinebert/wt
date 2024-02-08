@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cuehttp/nexus/udp.hpp>
-#include <cuehttp/nexus/ssl.hpp>
-#include <cuehttp/nexus/quic/detail/engine_impl.hpp>
-#include <cuehttp/nexus/quic/detail/socket_impl.hpp>
+#include "../udp.hpp"
+#include "../ssl.hpp"
+#include "detail/engine_impl.hpp"
+#include "detail/socket_impl.hpp"
 
 namespace nexus::quic {
 

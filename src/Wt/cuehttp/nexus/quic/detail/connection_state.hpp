@@ -3,9 +3,9 @@
 #include <variant>
 #include <boost/circular_buffer.hpp>
 #include <boost/intrusive/list.hpp>
-#include <cuehttp/nexus/quic/connection_id.hpp>
-#include <cuehttp/nexus/quic/detail/stream_impl.hpp>
-#include <cuehttp/nexus/udp.hpp>
+#include "../connection_id.hpp"
+#include "stream_impl.hpp"
+#include "../../udp.hpp"
 
 struct lsquic_conn;
 

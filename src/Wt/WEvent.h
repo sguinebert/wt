@@ -1,6 +1,7 @@
 // This may look like C code, but it's really -*- C++ -*-
 /*
  * Copyright (C) 2008 Emweb bv, Herent, Belgium.
+ * Copyright (C) 2023 Sylvain Guinebert, Paris, France.
  *
  * See the LICENSE file for terms of use.
  */
@@ -10,9 +11,12 @@
 #include <Wt/WGlobal.h>
 #include <string>
 #include <vector>
-#include <Wt/cuehttp/context.hpp>
 
 namespace Wt {
+
+namespace http {
+class context;
+};
 
   /*! \brief A coordinate.
    */

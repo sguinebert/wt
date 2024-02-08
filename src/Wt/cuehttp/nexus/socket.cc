@@ -1,6 +1,6 @@
-#include <cuehttp/nexus/quic/socket.hpp>
-#include <cuehttp/nexus/quic/detail/engine_impl.hpp>
-#include <cuehttp/nexus/quic/detail/socket_impl.hpp>
+#include "quic/socket.hpp"
+#include "quic/detail/engine_impl.hpp"
+#include "quic/detail/socket_impl.hpp"
 #include <array>
 #include <cstring>
 

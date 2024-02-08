@@ -1382,7 +1382,7 @@ WebSession::Handler::~Handler()
 
 awaitable<void> WebSession::Handler::destroy()
 {
-  if (haveLock()) {
+  if (!destroyed && haveLock()) {
     /* We should check that the session state is not dead ? */
     co_await session_->processQueuedEvents(*this);
     if (session_->triggerUpdate_)
@@ -1751,6 +1751,8 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
         || request.method() == "POST"
         || request.method() == "GET" || webSocketConnected_))
   {
+      std::cerr << "------ reject webSocketConnected_------" << webSocketConnected_ << std::endl;
+
     handler.context()->status(400);
     handler.flushResponse();
 //    handler.response()->setStatus(400); // Bad Request
@@ -1774,7 +1776,6 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
     serveError(403, handler, "Forbidden");
     co_return;
   }
-
   /*
    * Under what circumstances do we allow a request which does not have
    * a session ID (i.e. who as it only through a cookie?)
@@ -1791,7 +1792,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
   }
   else
     try {
-      /*
+     /*
        * If we have just created a new session, we need to take care:
        * - requests from a dead session -> reload
        * - otherwise: serve Boot.html, Hybrid.html or Plain.html
@@ -1978,10 +1979,34 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
                     bootStyleResponse_ = handler.context();
                     handler.setRequest(nullptr, nullptr);
                     handler.setRequest(nullptr);
+                    //handler.unlock();
+                    // co_await handler.destroy();
+                    // auto executor = co_await asio::this_coro::executor;
+                    // asio::steady_timer timer(executor, std::chrono::milliseconds{2000});
+                    // auto [ec] = co_await timer.async_wait(use_nothrow_awaitable);
 
-                    controller_->server()
-                        ->schedule(std::chrono::milliseconds{2000}, sessionId_,
-                                   std::bind(&WebSession::flushBootStyleResponse, this));
+                    // auto timer = std::make_shared<asio::steady_timer>(controller_->server()->ioService().get(), std::chrono::milliseconds{2000});
+                    // timer->async_wait([timer](auto&&ec) {
+                    //     //flushBootStyleResponse();
+                    // });
+                    //auto& io_ctx = controller_->server()->ioService().get();
+
+                    // asio::post(io_ctx, [&io_ctx](){
+                    //     std::cout << "ok this work " << std::endl;
+                    //     auto timer = new asio::steady_timer(io_ctx, std::chrono::milliseconds{2000});
+                    //     timer->async_wait([timer](auto&&ec) {
+                    //         std::cerr << "ok timer " << std::endl;
+                    //     });
+                    // });
+
+                    auto timer = new asio::steady_timer(controller_->server()->ioService().get(), std::chrono::milliseconds{2000});
+                    timer->async_wait([timer](auto&&ec) {
+                        //flushBootStyleResponse();
+                    });
+
+//                    controller_->server()
+//                        ->schedule(std::chrono::milliseconds{2000}, sessionId_,
+//                                   std::bind(&WebSession::flushBootStyleResponse, this));
                 } else {
                     renderer_.serveLinkedCss(context);
                     handler.flushResponse();
@@ -2198,7 +2223,7 @@ void WebSession::handleWebSocketRequest(Handler& handler)
 
   //webSocket_ = handler.context();
   canWriteWebSocket_ = false;
-  webSocketConnected_ = false;
+  webSocketConnected_ = true;
 
   //websocket_->send("");
 
@@ -2738,7 +2763,7 @@ awaitable<void> WebSession::externalNotify(const WEvent::Impl& event)
 
 awaitable<void> WebSession::notify(const WEvent& event)
 {
-  if (event.impl_.response)
+ if (event.impl_.response)
   {
     try
     {

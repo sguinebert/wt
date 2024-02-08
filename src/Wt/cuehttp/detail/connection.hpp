@@ -122,9 +122,11 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 
  protected:
   awaitable<void> close() {
+    //auto self = this->shared_from_this(); // Keep a shared_ptr to this object
     if (ws_handshake_) {
       co_await ws_helper_->websocket_->emit(detail::ws_event::close);
       ws_handshake_ = false;
+      cancel_signal_.emit(asio::cancellation_type::total);
     }
     boost::system::error_code code;
     socket().shutdown(asio::ip::tcp::socket::shutdown_both, code);
@@ -177,7 +179,8 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 //    std::cout << "second test async_wait" << std::endl;
 //    co_await timer.async_wait(asio::bind_cancellation_slot(cancel_signal_.slot(), use_nothrow_awaitable));
 //    std::cout << "test async_wait" << std::endl;
-    bool continuing = false;
+
+    //bool continuing = false;
     for(;;) {
       //setDeadline();
       auto buffer = context_.req().buffer();
@@ -234,7 +237,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
           break;
       case -2:
           finished = false;
-          continuing = true;
+          //continuing = true;
           //std::cerr << "not finished : continue reading..." << std::endl;
           continue;
           break;
@@ -259,6 +262,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
           if (code) {
               //continue;
               std::cerr << "error async_write: " << code.what() << std::endl;
+              //co_await close();
               co_return;
           }
 
@@ -269,6 +273,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
               co_spawn(socket_.get_executor(), coro_ws(this->shared_from_this()), detached);
               co_await ws_helper_->websocket_->emit(detail::ws_event::open);
               //do_read_ws_header();
+
               co_return; //end this http coro
           } else {
               if (finished) {
@@ -277,7 +282,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
               //do_read(); --> go to start
           }
       }
-      continuing = false;
+      //continuing = false;
     }
     co_return;
   }
@@ -304,7 +309,8 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
       detail::unused(bytes_transferred2);
       if (code2) {
           //continue;
-          std::cerr << "error async_write: " << code2.what() << std::endl;
+          std::cerr << "error async_write2: " << code2.what() << std::endl;
+          //co_await close();
           co_return;
       }
 
@@ -365,13 +371,11 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
   }
 
   awaitable<void> coro_ws(auto /*sft*/) {
-
     //std::cerr << "start websocket coro_ws" << std::endl;
     //co_await coro_do_read_ws_header();
     co_await(coro_do_read_ws_header() || coro_do_send_ws_frame()); // todo watchdog
 
-
-    std::cerr << "close coro_ws" << std::endl;
+    std::cerr << "---------!!!!! CLOSE coro_ws ----------- " << std::endl;
   }
 
   awaitable<void> coro_do_read_ws_header() {
@@ -449,8 +453,8 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
     detail::unused(bytes_transferred);
     if (code) {
         std::cerr << "close : " << code.what() << std::endl;
-      co_await close();
-      co_return;
+        co_await close();
+        co_return;
     } else {
         auto& reader = ws_helper_->ws_reader_;
         auto& payload_buffer = reader.payload_buffer;
@@ -568,6 +572,12 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 #endif
 
     for(;;){ //do_send_ws_frame
+
+        if(!ws_handshake_) {
+            //std::cerr << "---->---> coro_do_send_ws_frame <----<----" <<std::endl;
+            co_return;
+        }
+
         auto& frame = get_frame();
         std::ostream os{&ws_helper_->buffer_};
         // opcode
@@ -616,7 +626,10 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
             else {
                 lock.unlock();// DO NOT keep lock
 #ifndef WS_WSPAWN
+                //while (!count) {
                 co_await timer.async_wait(asio::bind_cancellation_slot(cancel_signal_.slot(), use_nothrow_awaitable));
+                // //std::cerr << "UNLOCK WS--------" << std::endl;
+                // }
 #else
             //co_return;
 #endif
@@ -903,7 +916,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 
   detail::ws_frame& get_frame() {
     std::unique_lock<std::mutex> lock{ws_helper_->write_queue_mutex_};
-    //assert(!ws_helper_->write_queue_.empty());
+    assert(!ws_helper_->write_queue_.empty());
     return ws_helper_->write_queue_.front();
   }
 

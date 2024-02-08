@@ -30,6 +30,7 @@ WMemoryResource::WMemoryResource(std::string_view mimeType, const std::string& p
       return;
   }
   data_ = std::make_shared<std::vector<unsigned char>>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  create();
 }
 
 WMemoryResource::WMemoryResource(const std::string& mimeType,
@@ -125,21 +126,24 @@ void WMemoryResource::handleRequest(const Http::Request& request,
 #warning "change the logic whith suspend if atomic_bool modifying data_"
 awaitable<void> WMemoryResource::handleRequest(http::request &request, http::response &response)
 {
-  DataPtr data;
-  {
-#ifdef WT_THREADED
-    std::unique_lock<std::mutex> l(*dataMutex_);
-#endif
-    data = data_;
-  }
+//  DataPtr data;
+//  {
+//#ifdef WT_THREADED
+//    std::unique_lock<std::mutex> l(*dataMutex_);
+//#endif
+//    auto data = data_;
+//  }
 
-  if (!data)
+  if (!data_)
     co_return;
 
   response.setContentType(mimeType_);
 
-  for (unsigned int i = 0; i < (*data).size(); ++i)
-    response.out().put((*data)[i]);
+//  for (unsigned int i = 0; i < data->size(); ++i)
+//    response.out().put((*data)[i]);
+  if (!data_->empty()) {
+    response.out().write(reinterpret_cast<const char*>(data_->data()), data_->size());
+  }
 }
 
 }

@@ -10,14 +10,14 @@
 
 #ifdef WT_ASIO_IS_BOOST_ASIO
 
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/stream_file.hpp>
 #define ASIO_HAS_IO_URING 1
 #define BOOST_ASIO_HAS_IO_URING 1
 #define ASIO_DISABLE_EPOLL 1
 #define BOOST_ASIO_DISABLE_EPOLL 1
 #define BOOST_ASIO_HAS_FILE 1
+#include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
+#include <boost/asio/stream_file.hpp>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/as_tuple.hpp>
@@ -41,7 +41,7 @@ using std::chrono::steady_clock;
 using executor_t = boost::asio::io_context::executor_type;
 extern thread_local boost::asio::io_context* thread_context;
 using boost::asio::io_context;
-
+using namespace boost;
 #else
 #  error Sorry, this code is only compilable with coroutine support and asio 1.21+
 #endif

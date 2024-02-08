@@ -3,11 +3,11 @@
 #include <boost/asio/any_io_executor.hpp>
 #include <boost/asio/buffers_iterator.hpp>
 
-#include <cuehttp/nexus/quic/detail/operation.hpp>
-#include <cuehttp/nexus/quic/detail/service.hpp>
-#include <cuehttp/nexus/quic/detail/stream_state.hpp>
-#include <cuehttp/nexus/quic/error.hpp>
-#include <cuehttp/nexus/h3/fields.hpp>
+#include "operation.hpp"
+#include "service.hpp"
+#include "stream_state.hpp"
+#include "../error.hpp"
+#include "../../h3/fields.hpp"
 
 struct lsquic_stream;
 

@@ -13,6 +13,7 @@
 #include <Wt/WLogger.h>
 #include <Wt/WIOService.h>
 #include <Wt/cuehttp.hpp>
+#include <Wt/EntryPoint.h>
 
 #include <Wt/Http/Configuration.h>
 #include <Wt/Configuration.h>
@@ -450,7 +451,7 @@ public:
 
         for (auto &ep : entrypoints)
         {
-            //std::cerr << "entry point :" << ep.path().data() << std::endl;
+            std::cerr << "entry point :" << ep.path().data() << std::endl;
             router_.get(ep.path(), [this, config, &ep] (http::context& ctx) -> awaitable<void>
                        {
                            // std::cerr << "entry get :" << req->getMethod() << std::endl;
@@ -479,7 +480,6 @@ public:
 
                            co_await this->webController_->handleRequest(&ctx, &ep);
                            //std::cerr << "dump_body : " << ctx.res().dump_body() << std::endl;
-
 
                            //streply->send(res, http::server::Reply::status_type::not_found);
                            co_return;

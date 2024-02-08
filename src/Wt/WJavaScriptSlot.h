@@ -166,14 +166,14 @@ public:
    *
    * \sa setJavaScript()
    */
-//  void exec(const std::string& object = "null",
-//	    const std::string& event = "null",
-//	    const std::string& arg1 = "null",
-//	    const std::string& arg2 = "null",
-//	    const std::string& arg3 = "null",
-//	    const std::string& arg4 = "null",
-//	    const std::string& arg5 = "null",
-//	    const std::string& arg6 = "null");
+ // void exec(const std::string& object = "null",
+ //        const std::string& event = "null",
+ //        const std::string& arg1 = "null",
+ //        const std::string& arg2 = "null",
+ //        const std::string& arg3 = "null",
+ //        const std::string& arg4 = "null",
+ //        const std::string& arg5 = "null",
+ //        const std::string& arg6 = "null");
 
   void exec(std::string_view object = "null",
             std::string_view event = "null",
@@ -193,14 +193,14 @@ public:
    *
    * \sa exec()
    */
-//   std::string execJs(const std::string& object = "null",
-//		      const std::string& event = "null",
-//		      const std::string& arg1 = "null",
-//		      const std::string& arg2 = "null",
-//		      const std::string& arg3 = "null",
-//		      const std::string& arg4 = "null",
-//		      const std::string& arg5 = "null",
-//              const std::string& arg6 = "null");
+  // std::string execJs(const std::string& object = "null",
+  //             const std::string& event = "null",
+  //             const std::string& arg1 = "null",
+  //             const std::string& arg2 = "null",
+  //             const std::string& arg3 = "null",
+  //             const std::string& arg4 = "null",
+  //             const std::string& arg5 = "null",
+  //            const std::string& arg6 = "null");
 
   std::string execJs(std::string_view object = "null",
                      std::string_view event = "null",
@@ -220,8 +220,8 @@ public:
 #endif
 
 private:
-  WWidget *widget_;
-  WStatelessSlot* imp_;
+  WWidget *widget_ = nullptr;
+  WStatelessSlot* imp_ = nullptr;
 
   std::string jsFunctionName() const;
   WStatelessSlot* slotimp();

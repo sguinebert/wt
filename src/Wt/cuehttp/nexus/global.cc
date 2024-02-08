@@ -1,4 +1,4 @@
-#include <cuehttp/nexus/global_init.hpp>
+#include "global_init.hpp"
 
 #include <stdio.h>
 #include <lsquic.h>

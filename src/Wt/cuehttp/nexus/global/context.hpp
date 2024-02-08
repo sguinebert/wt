@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include <cuehttp/nexus/global/error.hpp>
+#include "../global/error.hpp"
 
 namespace nexus::global {
 

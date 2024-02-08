@@ -21,6 +21,8 @@
 #include <process.h> // for getpid()
 #include <winsock2.h> // for gethostname()
 #endif
+
+#include <boost/program_options.hpp>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -87,7 +89,7 @@ void Configuration::setOptions(const std::string &applicationPath,
   options_.insert(options_.end(), args.begin(), args.end());
 }
 
-void Configuration::createOptions(boost::program_options::options_description &options, boost::program_options::options_description &visible_options)
+void Configuration::createOptions(po::options_description &options, po::options_description &visible_options)
 {
   po::options_description general("General options");
   general.add_options()
@@ -262,7 +264,7 @@ void Configuration::createOptions(boost::program_options::options_description &o
   visible_options.add(general).add(http).add(https);
 }
 
-void Configuration::readOptions(const boost::program_options::variables_map &vm)
+void Configuration::readOptions(const po::variables_map &vm)
 {
   if (!pidPath_.empty() && parentPort_ == -1) {
     std::ofstream pidFile(pidPath_.c_str());

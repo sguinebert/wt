@@ -15,12 +15,15 @@
 #endif // !_WIN32
 
 #include <boost/algorithm/string.hpp>
+#include <boost/url/src.hpp>
 
 #include "Wt/WIOService.h"
 #include "Wt/WResource.h"
 #include "Wt/WServer.h"
 
 #include "Configuration.h"
+#include "WServer.h"
+#include "WServer.h"
 #include "Wt/WebController.h"
 #include "../web/WebUtils.h"
 
@@ -324,8 +327,10 @@ void WServer::schedule(std::chrono::steady_clock::duration duration,
 {
   auto event = std::make_shared<ApplicationEvent>(sessionId, function, fallbackFunction);
 
-  ioService().schedule(duration, [this, event = std::move(event)] () {
-      co_spawn(ioService().get(), [this, event = std::move(event)] () ->awaitable<void> { co_await webController_->handleApplicationEvent(event); }, detached);
+  ioService().schedule(duration, [this, event = std::move(event)] (auto executor) {
+      co_spawn(executor, [this, event = std::move(event)] () -> awaitable<void> {
+              co_await webController_->handleApplicationEvent(event);
+          }, detached);
   });
 }
 
@@ -360,6 +365,22 @@ void WServer::addResource(WResource *resource, const std::string& path)
     //WString error(Wt::utf8("WServer::addResource() error: a static resource was already deployed on path '{0}'"));
     throw WServer::Exception(fmt::format("WServer::addResource() error: a static resource was already deployed on path '{}'", path));
   }
+
+//  router_.get(path, [this, resource] (http::context& ctx) -> awaitable<void>
+//              {
+
+//                  ctx.status(200);
+
+//                  co_await resource->handle(&ctx);;
+//                  co_return;
+//              });
+//  router_.post(path, [this, resource] (Wt::http::context& ctx) -> awaitable<void>
+//               {
+//                   ctx.status(200);
+//                   //auto expect = ctx.getHeader("expect");
+//                   co_await resource->handle(&ctx);;
+//                   co_return;
+//               });
 }
 
 void WServer::removeEntryPoint(const std::string& path){

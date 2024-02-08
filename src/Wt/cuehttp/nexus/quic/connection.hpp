@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cuehttp/nexus/quic/connection_id.hpp>
-#include <cuehttp/nexus/quic/detail/connection_impl.hpp>
+#include "connection_id.hpp"
+#include "detail/connection_impl.hpp"
 
 namespace nexus::quic {
 

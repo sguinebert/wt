@@ -6,9 +6,9 @@
 #include <optional>
 #include <sys/uio.h>
 #include <boost/asio/associated_executor.hpp>
-#include <cuehttp/nexus/error_code.hpp>
-#include <cuehttp/nexus/h3/fields.hpp>
-#include <cuehttp/nexus/quic/detail/handler_ptr.hpp>
+#include "../../error_code.hpp"
+#include "../../h3/fields.hpp"
+#include "handler_ptr.hpp"
 
 namespace nexus::quic::detail {
 

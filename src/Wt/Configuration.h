@@ -47,7 +47,7 @@
 #endif // WT_TARGET_JAVA
 
 #ifndef WT_TARGET_JAVA
-#include "../web/EntryPoint.h"
+//#include "../web/EntryPoint.h"
 #endif // WT_TARGET_JAVA
 
 namespace boost {
@@ -63,6 +63,10 @@ namespace Wt {
 
   class WLogger;
   class WServer;
+  class EntryPoint;
+  struct EntryPointMatch;
+
+  typedef std::deque<EntryPoint> EntryPointList;
 
 #ifndef WT_TARGET_JAVA
 

@@ -2,11 +2,11 @@
 #include <lsxpack_header.h>
 #include <string_view>
 
-#include <cuehttp/nexus/quic/detail/connection_impl.hpp>
-#include <cuehttp/nexus/quic/detail/engine_impl.hpp>
-#include <cuehttp/nexus/quic/detail/socket_impl.hpp>
-#include <cuehttp/nexus/quic/detail/stream_impl.hpp>
-#include <cuehttp/nexus/quic/socket.hpp>
+#include "quic/detail/connection_impl.hpp"
+#include "quic/detail/engine_impl.hpp"
+#include "quic/detail/socket_impl.hpp"
+#include "quic/detail/stream_impl.hpp"
+#include "quic/socket.hpp"
 
 #include "recv_header_set.hpp"
 

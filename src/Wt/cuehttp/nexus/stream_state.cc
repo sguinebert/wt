@@ -1,7 +1,7 @@
-#include <cuehttp/nexus/quic/detail/stream_state.hpp>
-#include <cuehttp/nexus/quic/detail/connection_impl.hpp>
-#include <cuehttp/nexus/quic/detail/socket_impl.hpp>
-#include <cuehttp/nexus/quic/detail/engine_impl.hpp>
+#include "quic/detail/stream_state.hpp"
+#include "quic/detail/connection_impl.hpp"
+#include "quic/detail/socket_impl.hpp"
+#include "quic/detail/engine_impl.hpp"
 #include <lsquic.h>
 
 #include "recv_header_set.hpp"

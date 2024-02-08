@@ -97,9 +97,9 @@ IF(CONNECTOR_HTTP)
   TARGET_LINK_LIBRARIES(wthttp
     PUBLIC
       wt
+      ${MY_SSL_LIBS}
     PRIVATE
       ${MY_ZLIB_LIBS}
-      ${MY_SSL_LIBS}
       ${BOOST_WTHTTP_LIBRARIES}
       ${WT_SOCKET_LIBRARY}
       ${WIN32_STRSTRI_LIB}
@@ -110,7 +110,7 @@ IF(CONNECTOR_HTTP)
   ENDIF(BOOST_WT_MT_FOUND)
 
   IF(HAVE_URING)
-  target_link_libraries (wthttp PRIVATE uring)
+  target_link_libraries (wthttp PUBLIC uring)
   ENDIF(HAVE_URING)
 
   INSTALL(TARGETS wthttp

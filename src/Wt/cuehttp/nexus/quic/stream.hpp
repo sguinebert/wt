@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cuehttp/nexus/error_code.hpp>
-#include <cuehttp/nexus/quic/stream_id.hpp>
-#include <cuehttp/nexus/quic/detail/stream_impl.hpp>
+#include "../error_code.hpp"
+#include "stream_id.hpp"
+#include "detail/stream_impl.hpp"
 
 namespace nexus::quic {
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cuehttp/nexus/udp.hpp>
-#include <cuehttp/nexus/ssl.hpp>
-#include <cuehttp/nexus/quic/server.hpp>
+#include "../udp.hpp"
+#include "../ssl.hpp"
+#include "../quic/server.hpp"
 
 namespace nexus::h3 {
 

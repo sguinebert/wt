@@ -5,7 +5,7 @@
 
 #include <boost/asio/steady_timer.hpp>
 
-#include <cuehttp/nexus/quic/settings.hpp>
+#include "../settings.hpp"
 
 struct lsquic_engine;
 struct lsquic_conn;

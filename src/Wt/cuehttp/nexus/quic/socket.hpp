@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cuehttp/nexus/error_code.hpp>
-#include <cuehttp/nexus/udp.hpp>
+#include "../error_code.hpp"
+#include "../udp.hpp"
 
 namespace nexus::quic {
 

@@ -1,6 +1,6 @@
-#include <cuehttp/nexus/h3/client.hpp>
-#include <cuehttp/nexus/h3/stream.hpp>
-#include <cuehttp/nexus/quic/connection.hpp>
+#include "h3/client.hpp"
+#include "h3/stream.hpp"
+#include "quic/connection.hpp"
 #include <lsquic.h>
 
 namespace nexus {

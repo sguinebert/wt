@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cuehttp/nexus/global/context.hpp>
+#include "global/context.hpp"
 
 /// global initialization
 namespace nexus::global {

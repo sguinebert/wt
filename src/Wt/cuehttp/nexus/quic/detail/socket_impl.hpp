@@ -2,8 +2,8 @@
 
 #include <boost/intrusive/list.hpp>
 #include <boost/circular_buffer.hpp>
-#include <cuehttp/nexus/ssl.hpp>
-#include <cuehttp/nexus/quic/detail/connection_impl.hpp>
+#include "../../ssl.hpp"
+#include "connection_impl.hpp"
 
 struct lsquic_conn;
 struct lsquic_out_spec;

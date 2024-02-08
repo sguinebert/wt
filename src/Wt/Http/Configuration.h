@@ -10,19 +10,23 @@
 
 #include <exception>
 #include <string>
-#include <boost/program_options.hpp>
+#include <functional>
+#include <vector>
 #include <boost/cstdint.hpp>
 
 // For ::int64_t and ::uint64_t on Windows only
 #include "Wt/WDllDefs.h"
 
-namespace po = boost::program_options;
+
 
 namespace boost {
   namespace program_options {
     class variables_map;
+  class options_description;
   }
 }
+
+namespace po = boost::program_options;
 
 namespace Wt {
   class WLogger;
@@ -180,7 +184,7 @@ private:
                      po::options_description& visible_options);
   void readOptions(const po::variables_map& vm);
 
-  void checkPath(const boost::program_options::variables_map& vm,
+  void checkPath(const po::variables_map& vm,
                  std::string varName, std::string varDescription,
                  std::string& result, int options);
 

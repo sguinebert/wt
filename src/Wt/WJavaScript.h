@@ -252,18 +252,18 @@ public:
   }
 
   template<class F>
-  Wt::Signals::Connection connect(F function)
+  Wt::Signals::Connection connect(F&& function)
   {
       exposeSignal();
 
-      impl_.connect(function);
+      impl_.connect(std::forward<F>(function));
 
       return Wt::Signals::Connection();
       //return Signals::Impl::connectFunction<F, A...>(impl_, std::move(function), nullptr);
   }
 
   template<class F>
-  Wt::Signals::Connection connect(const WObject *target, F function)
+  Wt::Signals::Connection connect(const WObject *target, F&& function)
   {
       exposeSignal();
 
@@ -271,7 +271,7 @@ public:
           impl_. template connect<&function>(target);
       }
       else {
-          impl_.connect(function);//TODO : need the observer
+          impl_.connect(std::forward<F>(function));//TODO : need the observer
       }
 
       return Wt::Signals::Connection();
@@ -314,6 +314,16 @@ public:
    * connection cannot be removed. If you need automatic connection
    * management, you should use connect(JSlot&) instead.
    */
+  void connect(std::string&& function)
+  {
+      if (!canAutoLearn()) {
+          Wt::log("error") << "JSignal: connect(const std::string&): signal does "
+                              "not collect JavaScript from slots";
+          return;
+      }
+
+      EventSignalBase::connect(function);
+  }
   void connect(const std::string& function)
   {
       if (!canAutoLearn()) {

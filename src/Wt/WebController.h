@@ -18,8 +18,9 @@
 #include <Wt/AsioWrapper/asio.hpp>
 #include <Wt/cuehttp/context.hpp>
 
-#include "web/EntryPoint.h"
-#include "web/SocketNotifier.h"
+//#include "web/EntryPoint.h"
+//#include "web/SocketNotifier.h"
+//#include <Wt/WSocketNotifier.h>
 
 #if defined(WT_THREADED) && !defined(WT_TARGET_JAVA)
 #include <thread>
@@ -38,8 +39,10 @@ namespace Http {
 
 namespace Wt {
 
+class SocketNotifier;
 class Configuration;
 class EntryPoint;
+struct EntryPointMatch;
 
 class WebRequest;
 class WebSession;
@@ -186,7 +189,7 @@ private:
   // counts
   mutable std::recursive_mutex mutex_;
 
-  SocketNotifier socketNotifier_;
+  std::unique_ptr<SocketNotifier> socketNotifier_;
   // mutex to protect access to notifier maps. This cannot be protected
   // by mutex_ as this lock is grabbed while the application lock is
   // being held, which would potentially deadlock if we took mutex_.

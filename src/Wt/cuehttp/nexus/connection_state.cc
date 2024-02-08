@@ -1,4 +1,4 @@
-#include <cuehttp/nexus/quic/detail/connection_state.hpp>
+#include "quic/detail/connection_state.hpp"
 #include <lsquic.h>
 
 namespace nexus::quic::detail {

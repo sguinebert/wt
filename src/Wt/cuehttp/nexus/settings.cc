@@ -1,4 +1,4 @@
-#include <cuehttp/nexus/quic/settings.hpp>
+#include "quic/settings.hpp"
 #include <lsquic.h>
 
 namespace nexus::quic {

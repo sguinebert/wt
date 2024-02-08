@@ -3,10 +3,10 @@
 /// Generic QUIC library
 namespace nexus::quic {}
 
-#include <cuehttp/nexus/quic/client.hpp>
-#include <cuehttp/nexus/quic/server.hpp>
-#include <cuehttp/nexus/quic/socket.hpp>
-#include <cuehttp/nexus/quic/connection.hpp>
-#include <cuehttp/nexus/quic/error.hpp>
-#include <cuehttp/nexus/quic/settings.hpp>
-#include <cuehttp/nexus/quic/stream.hpp>
+#include "quic/client.hpp"
+#include "quic/server.hpp"
+#include "quic/socket.hpp"
+#include "quic/connection.hpp"
+#include "quic/error.hpp"
+#include "quic/settings.hpp"
+#include "quic/stream.hpp"

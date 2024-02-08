@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cuehttp/nexus/udp.hpp>
-#include <cuehttp/nexus/quic/client.hpp>
+#include "../udp.hpp"
+#include "../quic/client.hpp"
 
 namespace nexus::h3 {
 

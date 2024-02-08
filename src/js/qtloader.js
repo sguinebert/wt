@@ -1,14 +1,22 @@
 R"""(
 function QtLoader(config)
 {
+    return new _QtLoader(config);
+}
+
+function _QtLoader(config)
+{
+    const self = this;
+    console.log('config', config);
+
     // The Emscripten module and module configuration object. The module
     // object is created in completeLoadEmscriptenModule().
     self.module = undefined;
-    self.moduleConfig = {};
+    self.moduleConfig = config.moduleConfig || {};
 
     // Qt properties. These are propagated to the Emscripten module after
     // it has been created.
-    self.qtCanvasElements = undefined;
+    self.qtContainerElements = undefined;
     self.qtFontDpi = 96;
 
     function webAssemblySupported() {
@@ -20,7 +28,7 @@ function QtLoader(config)
         // the GPU may be blacklisted.
         try {
             var canvas = document.createElement("canvas");
-            return !!(  (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")));
+            return !!(window.WebGLRenderingContext && (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")));
         } catch (e) {
             return false;
         }
@@ -110,6 +118,7 @@ function QtLoader(config)
 
     var publicAPI = {};
     publicAPI.webAssemblySupported = webAssemblySupported();
+    publicAPI.webGLSupported = webGLSupported();
     publicAPI.canLoadQt = canLoadQt();
     publicAPI.canLoadApplication = canLoadQt();
     publicAPI.status = undefined;
@@ -123,13 +132,19 @@ function QtLoader(config)
 
     self.restartCount = 0;
 
+    function handleError(error) {
+        self.error = error;
+        setStatus("Error");
+        console.error(error);
+    }
+
     function fetchResource(filePath) {
         var fullPath = config.path + filePath;
         return fetch(fullPath).then(function(response) {
             if (!response.ok) {
-                self.error = response.status + " " + response.statusText + " " + response.url;
-                setStatus("Error");
-                return Promise.reject(self.error)
+                let err = response.status + " " + response.statusText + " " + response.url;
+                handleError(err);
+                return Promise.reject(err)
             } else {
                 return response;
             }
@@ -169,6 +184,7 @@ function QtLoader(config)
     }
 
     function loadEmscriptenModule(applicationName) {
+
         // Loading in qtloader.js goes through four steps:
         // 1) Check prerequisites
         // 2) Download resources
@@ -177,13 +193,16 @@ function QtLoader(config)
 
         // Check for Wasm & WebGL support; set error and return before downloading resources if missing
         if (!webAssemblySupported()) {
-            self.error = "Error: WebAssembly is not supported"
-            setStatus("Error");
+            handleError("Error: WebAssembly is not supported");
+            return;
+        }
+        if (!webGLSupported()) {
+            handleError("Error: WebGL is not supported");
             return;
         }
 
         // Continue waiting if loadEmscriptenModule() is called again
-        if (publicAPI.status === "Loading")
+        if (publicAPI.status == "Loading")
             return;
         self.loaderSubState = "Downloading";
         setStatus("Loading");
@@ -199,13 +218,14 @@ function QtLoader(config)
         var wasmModulePromise = fetchCompileWasm(applicationName + ".wasm").then(function (module) {
             wasmModule = module;
         });
-        
+
         // Wait for all resources ready
         Promise.all([emscriptenModuleSourcePromise, wasmModulePromise]).then(function(){
             completeLoadEmscriptenModule(applicationName, emscriptenModuleSource, wasmModule);
         }).catch(function(error) {
-            self.error = error;
-            setStatus("Error");
+            handleError(error);
+            // An error here is fatal, abort
+            self.moduleConfig.onAbort(error)
         });
     }
 
@@ -215,11 +235,10 @@ function QtLoader(config)
         // and is ready to be instantiated. Define the instantiateWasm callback which
         // emscripten will call to create the instance.
         self.moduleConfig.instantiateWasm = function(imports, successCallback) {
-            WebAssembly.instantiate(wasmModule, imports).then(function(instance) {            	
+            WebAssembly.instantiate(wasmModule, imports).then(function(instance) {
                 successCallback(instance, wasmModule);
             }, function(error) {
-                self.error = error;
-                setStatus("Error");
+                handleError(error)
             });
             return {};
         };
@@ -245,14 +264,8 @@ function QtLoader(config)
                 console.log(text)
         };
         self.moduleConfig.printErr = self.moduleConfig.printErr || function(text) {
-            // Filter out OpenGL getProcAddress warnings. Qt tries to resolve
-            // all possible function/extension names at startup which causes
-            // emscripten to spam the console log with warnings.
-            if (text.startsWith !== undefined && text.startsWith("bad name in getProcAddress:"))
-                return;
-
             if (config.stderrEnabled)
-                console.log(text)
+                console.warn(text)
         };
 
         // Error handling: set status to "Exited", update crashed and
@@ -269,16 +282,18 @@ function QtLoader(config)
 
             // Emscripten (and Qt) supports exiting from main() while keeping the app
             // running. Don't transition into the "Exited" state for clean exits.
-            if (code === 0)
+            if (code == 0)
                 return;
 
-            if (exception.name === "ExitStatus") {
+            if (exception.name == "ExitStatus") {
                 // Clean exit with code
                 publicAPI.exitText = undefined
                 publicAPI.exitCode = code;
             } else {
                 publicAPI.exitText = exception.toString();
                 publicAPI.crashed = true;
+                // Print stack trace to console
+                console.log(exception);
             }
             setStatus("Exited");
         };
@@ -290,27 +305,26 @@ function QtLoader(config)
                 module.ENV[key.toUpperCase()] = value;
             }
             // Propagate Qt module properties
-            module.qtCanvasElements = self.qtCanvasElements;
+            module.qtContainerElements = self.qtContainerElements;
             module.qtFontDpi = self.qtFontDpi;
         });
 
         self.moduleConfig.mainScriptUrlOrBlob = new Blob([emscriptenModuleSource], {type: 'text/javascript'});
 
-        self.qtCanvasElements = config.canvasElements;
+        self.qtContainerElements = config.canvasElements;
 
         config.restart = function() {
 
             // Restart by reloading the page. This will wipe all state which means
             // reload loops can't be prevented.
-            if (config.restartType === "ReloadPage") {
+            if (config.restartType == "ReloadPage") {
                 location.reload();
             }
 
             // Restart by readling the emscripten app module.
             ++self.restartCount;
             if (self.restartCount > config.restartLimit) {
-                self.error = "Error: This application has crashed too many times and has been disabled. Reload the page to try again."
-                setStatus("Error");
+                handleError("Error: This application has crashed too many times and has been disabled. Reload the page to try again.");
                 return;
             }
             loadEmscriptenModule(applicationName);
@@ -326,8 +340,6 @@ function QtLoader(config)
         eval(emscriptenModuleSource);
         createQtAppInstance(self.moduleConfig).then(function(module) {
             self.module = module;
-            console.log('module compiled', module);
-            module.hello();
         });
     }
 
@@ -376,7 +388,7 @@ function QtLoader(config)
 
         // publicAPI.crashed = true;
 
-        if (publicAPI.status !== "Exited")
+        if (publicAPI.status != "Exited")
             return;
 
         if (config.containerElements === undefined) {
@@ -397,19 +409,19 @@ function QtLoader(config)
 
     var committedStatus = undefined;
     function handleStatusChange() {
-        if (publicAPI.status !== "Loading" && committedStatus === publicAPI.status)
+        if (publicAPI.status != "Loading" && committedStatus == publicAPI.status)
             return;
         committedStatus = publicAPI.status;
 
-        if (publicAPI.status === "Error") {
+        if (publicAPI.status == "Error") {
             setErrorContent();
-        } else if (publicAPI.status === "Loading") {
+        } else if (publicAPI.status == "Loading") {
             setLoaderContent();
-        } else if (publicAPI.status === "Running") {
+        } else if (publicAPI.status == "Running") {
             setCanvasContent();
-        } else if (publicAPI.status === "Exited") {
-            if (config.restartMode === "RestartOnExit" ||
-                config.restartMode === "RestartOnCrash" && publicAPI.crashed) {
+        } else if (publicAPI.status == "Exited") {
+            if (config.restartMode == "RestartOnExit" ||
+                config.restartMode == "RestartOnCrash" && publicAPI.crashed) {
                     committedStatus = undefined;
                     config.restart();
             } else {
@@ -423,35 +435,36 @@ function QtLoader(config)
     }
 
     function setStatus(status) {
-        if (status !== "Loading" && publicAPI.status === status)
+        if (status != "Loading" && publicAPI.status == status)
             return;
         publicAPI.status = status;
 
+        window.setTimeout(function() { handleStatusChange(); }, 0);
     }
 
     function addCanvasElement(element) {
-        if (publicAPI.status === "Running")
-            self.module.qtAddCanvasElement(element);
+        if (publicAPI.status == "Running")
+            self.module.qtAddContainerElement(element);
         else
             console.log("Error: addCanvasElement can only be called in the Running state");
     }
 
     function removeCanvasElement(element) {
-        if (publicAPI.status === "Running")
-            self.module.qtRemoveCanvasElement(element);
+        if (publicAPI.status == "Running")
+            self.module.qtRemoveContainerElement(element);
         else
             console.log("Error: removeCanvasElement can only be called in the Running state");
     }
 
     function resizeCanvasElement(element) {
-        if (publicAPI.status === "Running")
-            self.module.qtResizeCanvasElement(element);
+        if (publicAPI.status == "Running")
+            self.module.qtResizeContainerElement(element);
     }
 
     function setFontDpi(dpi) {
         self.qtFontDpi = dpi;
-        if (publicAPI.status === "Running")
-            self.qtSetFontDpi(dpi);
+        if (publicAPI.status == "Running")
+            self.module.qtUpdateDpi();
     }
 
     function fontDpi() {

@@ -21,6 +21,8 @@
 #include <process.h> // for getpid()
 #include <winsock2.h> // for gethostname()
 #endif
+
+#include <boost/program_options.hpp>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -35,11 +37,6 @@ namespace Wt {
 
 namespace Http {
 namespace server {
-
-
-
-
-
 
 
 void Configuration::setOptions(const std::string &applicationPath,

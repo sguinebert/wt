@@ -1,5 +1,5 @@
-#include <cuehttp/nexus/quic/error.hpp>
-#include <cuehttp/nexus/h3/error.hpp>
+#include "quic/error.hpp"
+#include "h3/error.hpp"
 #include <openssl/ssl.h>
 
 namespace nexus {

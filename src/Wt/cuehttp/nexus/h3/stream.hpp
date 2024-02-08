@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cuehttp/nexus/quic/stream.hpp>
-#include <cuehttp/nexus/h3/fields.hpp>
+#include "../quic/stream.hpp"
+#include "fields.hpp"
 
 namespace nexus::h3 {
 

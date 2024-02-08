@@ -91,7 +91,7 @@ namespace Wt
       struct SocketData<true>
       {
         SocketData(asio::io_service &io_service, bool verifyCerts)
-            : ssl_ctx_(Ssl::createSslContext(io_service, verifyCerts)),
+            : ssl_ctx_(Ssl::createSslContext(io_service.get_executor(), verifyCerts)),
               stream_(io_service, ssl_ctx_),
               encrypted_(false)
         {

@@ -118,57 +118,94 @@ WStatelessSlot* JSlot::slotimp()
   return imp_;
 }
 
-std::string JSlot::execJs(std::string_view object,
-              std::string_view event,
-              std::string_view arg1,
-              std::string_view arg2,
-              std::string_view arg3,
-              std::string_view arg4,
-              std::string_view arg5,
-              std::string_view arg6)
-{
-  std::stringstream result;
-  result << "{var o=" << object;
-  result << ",e=" << event;
-  for (int i = 0; i < nbArgs_; ++i) {
-    result << ",a" << (i+1) << "=";
-    switch (i) {
-      case 0:
-	result << arg1;
-	break;
-      case 1:
-	result << arg2;
-	break;
-      case 2:
-	result << arg3;
-	break;
-      case 3:
-	result << arg4;
-	break;
-      case 4:
-	result << arg5;
-	break;
-      case 5:
-	result << arg6;
-	break;
-    }
-  }
-  result << ";" << imp_->javaScript() + "}";
-  return result.str();
-}
+// std::string JSlot::execJs(const std::string& object,
+//               const std::string& event,
+//               const std::string& arg1,
+//               const std::string& arg2,
+//               const std::string& arg3,
+//               const std::string& arg4,
+//               const std::string& arg5,
+//               const std::string& arg6)
+// {
+//   std::stringstream result;
+//   result << "{var o=" << object;
+//   result << ",e=" << event;
+//   for (int i = 0; i < nbArgs_; ++i) {
+//     result << ",a" << (i+1) << "=";
+//     switch (i) {
+//       case 0:
+// 	result << arg1;
+// 	break;
+//       case 1:
+// 	result << arg2;
+// 	break;
+//       case 2:
+// 	result << arg3;
+// 	break;
+//       case 3:
+// 	result << arg4;
+// 	break;
+//       case 4:
+// 	result << arg5;
+// 	break;
+//       case 5:
+// 	result << arg6;
+// 	break;
+//     }
+//   }
+//   result << ";" << imp_->javaScript() + "}";
+//   return result.str();
+// }
 
-//void JSlot::exec(const std::string& object,
-//		 const std::string& event,
-//		 const std::string& arg1,
-//		 const std::string& arg2,
-//		 const std::string& arg3,
-//		 const std::string& arg4,
-//		 const std::string& arg5,
-//		 const std::string& arg6)
-//{
+// void JSlot::exec(const std::string& object,
+//          const std::string& event,
+//          const std::string& arg1,
+//          const std::string& arg2,
+//          const std::string& arg3,
+//          const std::string& arg4,
+//          const std::string& arg5,
+//          const std::string& arg6)
+// {
 //  WApplication::instance()->doJavaScript(execJs(object, event, arg1, arg2, arg3, arg4, arg5, arg6));
-//}
-
+// }
+std::string JSlot::execJs(std::string_view object,
+                          std::string_view event,
+                          std::string_view arg1,
+                          std::string_view arg2,
+                          std::string_view arg3,
+                          std::string_view arg4,
+                          std::string_view arg5,
+                          std::string_view arg6)
+{
+    std::stringstream result;
+    result << "{var o=" << object;
+    result << ",e=" << event;
+    for (int i = 0; i < nbArgs_; ++i) {
+        result << ",a" << (i+1) << "=";
+        switch (i) {
+        case 0:
+            result << arg1;
+            break;
+        case 1:
+            result << arg2;
+            break;
+        case 2:
+            result << arg3;
+            break;
+        case 3:
+            result << arg4;
+            break;
+        case 4:
+            result << arg5;
+            break;
+        case 5:
+            result << arg6;
+            break;
+        }
+    }
+    result << ";" << imp_->javaScript() + "}";
+    return result.str();
+}
 void JSlot::exec(std::string_view object,
                  std::string_view event,
                  std::string_view arg1,

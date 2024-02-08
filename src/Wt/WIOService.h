@@ -12,7 +12,7 @@
 #include <Wt/AsioWrapper/strand.hpp>
 #include <Wt/AsioWrapper/system_error.hpp>
 
-#include "cuehttp/detail/engines.hpp"
+#include <Wt/cuehttp/detail/engines.hpp>
 
 #include <Wt/WDllDefs.h>
 

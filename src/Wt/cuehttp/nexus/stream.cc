@@ -1,8 +1,8 @@
-#include <cuehttp/nexus/quic/connection.hpp>
-#include <cuehttp/nexus/h3/stream.hpp>
-#include <cuehttp/nexus/h3/client.hpp>
-#include <cuehttp/nexus/h3/server.hpp>
-#include <cuehttp/nexus/quic/detail/engine_impl.hpp>
+#include "quic/connection.hpp"
+#include "h3/stream.hpp"
+#include "h3/client.hpp"
+#include "h3/server.hpp"
+#include "quic/detail/engine_impl.hpp"
 
 #include <lsquic.h>
 #include <lsxpack_header.h>

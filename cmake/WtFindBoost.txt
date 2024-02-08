@@ -52,6 +52,7 @@ SET(Boost_DEBUG ON)
 
 SET(Boost_COMPONENTS
     program_options
+    url
     filesystem
     thread
 )
