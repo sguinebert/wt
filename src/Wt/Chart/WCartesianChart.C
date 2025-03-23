@@ -39,7 +39,11 @@
 
 #ifndef WT_TARGET_JAVA
 namespace skeletons {
-    extern const char* WCartesianChart_js;
+static constexpr char WCartesianChart_js[] = {
+#embed "../../js/WCartesianChart.min.js"
+};
+static constexpr std::string_view WCartesianChart_js_sv(WCartesianChart_js, sizeof(WCartesianChart_js) - 1);
+//    extern const char* WCartesianChart_js;
 }
 
 namespace {
@@ -2106,9 +2110,10 @@ void WCartesianChart::defineJavaScript()
 
   if (app && (isInteractive() || hasDeferredToolTips_)) {
     LOAD_JAVASCRIPT(app, "js/ChartCommon.js", "ChartCommon", wtjs2);
-    app->doJavaScript(std::string("if (!" WT_CLASS ".chartCommon) {"
-				  WT_CLASS ".chartCommon = new ") +
-		      WT_CLASS ".ChartCommon(" + app->javaScriptClass() + "); }", false);
+    // app->doJavaScript(std::string("if (!" WT_CLASS ".chartCommon) {"
+                //   WT_CLASS ".chartCommon = new ") +
+          //     WT_CLASS ".ChartCommon(" + app->javaScriptClass() + "); }", false);
+    app->doJavaScript<false>("if (!" WT_CLASS ".chartCommon) {{" WT_CLASS ".chartCommon = new " WT_CLASS ".ChartCommon({}); }}", app->javaScriptClass());
 
     LOAD_JAVASCRIPT(app, "js/WCartesianChart.js", "WCartesianChart", wtjs1);
     jsDefined_ = true;
@@ -3098,7 +3103,7 @@ void WCartesianChart::paintEvent(WPaintDevice *paintDevice)
   }
 }
 
-void WCartesianChart::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WCartesianChart::getDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
   WAbstractChart::getDomChanges(result, app);
   for (std::size_t i = 0; i < axisSliderWidgets_.size(); ++i) {

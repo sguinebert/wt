@@ -20,6 +20,79 @@
 
 namespace Wt {
 
+constexpr const char* CALENDAR_HTML = R"HTML(
+<table class="days {table-class}" cellspacing="0" cellpadding="0">
+  <tr>
+    <th class="caption">{nav-prev}</th>
+    <th class="caption" colspan="5">{month} {year}</th>
+    <th class="caption">{nav-next}</th>
+  </tr>
+  <tr>
+    <th title="{t0}" scope="col">{d0}</th>
+    <th title="{t1}" scope="col">{d1}</th>
+    <th title="{t2}" scope="col">{d2}</th>
+    <th title="{t3}" scope="col">{d3}</th>
+    <th title="{t4}" scope="col">{d4}</th>
+    <th title="{t5}" scope="col">{d5}</th>
+    <th title="{t6}" scope="col">{d6}</th>
+  </tr>
+  <tr>
+    <td>{c0}</td>
+    <td>{c1}</td>
+    <td>{c2}</td>
+    <td>{c3}</td>
+    <td>{c4}</td>
+    <td>{c5}</td>
+    <td>{c6}</td>
+  </tr>
+  <tr>
+    <td>{c7}</td>
+    <td>{c8}</td>
+    <td>{c9}</td>
+    <td>{c10}</td>
+    <td>{c11}</td>
+    <td>{c12}</td>
+    <td>{c13}</td>
+  </tr>
+  <tr>
+    <td>{c14}</td>
+    <td>{c15}</td>
+    <td>{c16}</td>
+    <td>{c17}</td>
+    <td>{c18}</td>
+    <td>{c19}</td>
+    <td>{c20}</td>
+  </tr>
+  <tr>
+    <td>{c21}</td>
+    <td>{c22}</td>
+    <td>{c23}</td>
+    <td>{c24}</td>
+    <td>{c25}</td>
+    <td>{c26}</td>
+    <td>{c27}</td>
+  </tr>
+  <tr>
+    <td>{c28}</td>
+    <td>{c29}</td>
+    <td>{c30}</td>
+    <td>{c31}</td>
+    <td>{c32}</td>
+    <td>{c33}</td>
+    <td>{c34}</td>
+  </tr>
+  <tr>
+    <td>{c35}</td>
+    <td>{c36}</td>
+    <td>{c37}</td>
+    <td>{c38}</td>
+    <td>{c39}</td>
+    <td>{c40}</td>
+    <td>{c41}</td>
+  </tr>
+</table>
+)HTML";
+
 LOGGER("WCalendar");
 
 // Because WDate returns days and weeks as WT_USTRING, we need this:
@@ -63,36 +136,36 @@ void WCalendar::create()
   currentYear_ = currentDay.year();
   currentMonth_ = currentDay.month();
 
-  WStringStream text;
+  // WStringStream text;
 
-  text <<
-    "<table class=\"days ${table-class}\" cellspacing=\"0\" cellpadding=\"0\">"
-    """<tr>"
-    ""  "<th class=\"caption\">${nav-prev}</th>"
-    ""  "<th class=\"caption\"colspan=\"5\">${month} ${year}</th>"
-    ""  "<th class=\"caption\">${nav-next}</th>"
-    """</tr>"
-    """<tr>";
+  // text <<
+  //   "<table class=\"days ${table-class}\" cellspacing=\"0\" cellpadding=\"0\">"
+  //   """<tr>"
+  //   ""  "<th class=\"caption\">${nav-prev}</th>"
+  //   ""  "<th class=\"caption\"colspan=\"5\">${month} ${year}</th>"
+  //   ""  "<th class=\"caption\">${nav-next}</th>"
+  //   """</tr>"
+  //   """<tr>";
 
-  for (int j = 0; j < 7; ++j)
-    text <<
-      "<th title=\"${t" << j << "}\" scope=\"col\">${d" << j << "}</th>";
+  // for (int j = 0; j < 7; ++j)
+  //   text <<
+  //     "<th title=\"${t" << j << "}\" scope=\"col\">${d" << j << "}</th>";
 
-  text << "</tr>";
+  // text << "</tr>";
 
-  for (int i = 0; i < 6; ++i) {
-    text << "<tr>";
-    for (int j = 0; j < 7; ++j)
-      text << "<td>${c" << (i * 7 + j) << "}</td>";
-    text << "</tr>";
-  }
+  // for (int i = 0; i < 6; ++i) {
+  //   text << "<tr>";
+  //   for (int j = 0; j < 7; ++j)
+  //     text << "<td>${c" << (i * 7 + j) << "}</td>";
+  //   text << "</tr>";
+  // }
 
-  text << "</table>";
+  // text << "</table>";
 
   std::unique_ptr<WTemplate> t(new WTemplate());
   impl_ = t.get();
   setImplementation(std::move(t));
-  impl_->setTemplateText(WString::fromUTF8(text.str()), TextFormat::UnsafeXHTML);
+  impl_->setTemplateText(WString::fromUTF8(CALENDAR_HTML), TextFormat::UnsafeXHTML);
   impl_->setStyleClass("Wt-cal");
 
   setSelectable(false);

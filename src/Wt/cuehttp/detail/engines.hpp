@@ -52,9 +52,10 @@ class engines final : safe_noncopyable {
       auto io_context = std::make_shared<asio::io_context>(1);
       asio::post(*io_context, [ctx = io_context.get()] { thread_context = ctx; });
 
-      auto worker = std::make_shared<asio::io_context::work>(*io_context);
+      /*auto& guard =*/ workers_.emplace_back(asio::make_work_guard(*io_context));
+      //auto worker = std::make_shared<asio::io_context::work>();
       io_contexts_.emplace_back(std::move(io_context));
-      workers_.emplace_back(std::move(worker));
+      //workers_.emplace_back(std::move(guard));
     }
   }
 
@@ -118,7 +119,7 @@ class engines final : safe_noncopyable {
 
  private:
   std::vector<std::shared_ptr<asio::io_context>> io_contexts_;
-  std::vector<std::shared_ptr<asio::io_context::work>> workers_;
+  std::vector<asio::executor_work_guard<asio::io_context::executor_type>> workers_;
   std::vector<std::thread> run_threads_;
   std::size_t index_{0};
 };

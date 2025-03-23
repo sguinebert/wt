@@ -193,12 +193,13 @@ std::unique_ptr<WAbstractArea> WImage::removeArea(WAbstractArea *area)
 
 void WImage::updateDom(DomElement& element, bool all)
 {
+   auto img_ = DomElement::createNew(DomElementType::IMG);
   DomElement *img = &element;
   if (all && element.type() == DomElementType::SPAN) {
-    DomElement *map = map_->createSDomElement(WApplication::instance());
+    DomElement map = map_->createSDomElement(WApplication::instance());
     element.addChild(map);
 
-    img = DomElement::createNew(DomElementType::IMG);
+    img = &img_; //DomElement::createNew(DomElementType::IMG);
     img->setId("i" + id());
   }
 
@@ -230,18 +231,19 @@ void WImage::updateDom(DomElement& element, bool all)
   WInteractWidget::updateDom(*img, all);
 
   if (&element != img)
-    element.addChild(img);
+    element.addChild(img_);
 }
 
-void WImage::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WImage::getDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
   if (map_) {
     // TODO: check if BIT_MAP_CREATED: then need to replace the whole
     // element with a <span><img /><map /></span>. Currently we document
     // this as a limitation.
-    DomElement *e = DomElement::getForUpdate("i" + id(), DomElementType::IMG);
-    updateDom(*e, false);
-    result.push_back(e);
+    DomElement& e = result.emplace_back(DomElement::Mode::Update, DomElementType::IMG, "i" + id());
+    //DomElement e = DomElement::getForUpdate("i" + id(), DomElementType::IMG);
+    updateDom(e, false);
+    //result.push_back(std::move(e));
   } else
     WInteractWidget::getDomChanges(result, app);
 }
@@ -288,25 +290,27 @@ void WImage::setTargetJS(std::string targetJS)
 
 std::string WImage::updateAreasJS()
 {
-  WStringStream ss;
+  //WStringStream ss;
   if (!targetJS_.empty()) {
-    ss <<
-      "(function(){"
-      """var w = " << jsRef() << ";"
-      """if (w && w.wtObj) { w.wtObj.updateAreas(); }"
-      "})();";
+    // ss <<
+    //   "(function(){"
+    //   """var w = " << jsRef() << ";"
+    //   """if (w && w.wtObj) { w.wtObj.updateAreas(); }"
+    //   "})();";
+      return fmt::format(FMT_COMPILE("(function(){{var w={};if(w&&w.wtObj){{w.wtObj.updateAreas();}}}})();"), jsRef());
   }
-  return ss.str();
+  return std::string();
 }
 
 std::string WImage::setAreaCoordsJS()
 {
-  WStringStream ss;
+  //WStringStream ss;
   if (!targetJS_.empty()) {
-    ss << jsRef() << ".wtObj.setAreaCoordsJSON("
-       << updateAreaCoordsJSON() << ");";
+    // ss << jsRef() << ".wtObj.setAreaCoordsJSON("
+    //    << updateAreaCoordsJSON() << ");";
+      return fmt::format(FMT_COMPILE("{}.wtObj.setAreaCoordsJSON({});"), jsRef(), updateAreaCoordsJSON());
   }
-  return ss.str();
+  return std::string();
 }
 
 std::string WImage::updateAreaCoordsJSON() const

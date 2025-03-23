@@ -15,7 +15,8 @@
 // For ::int64_t and ::uint64_t on Windows only
 #include "Wt/WDllDefs.h"
 
-
+#include <vector>
+#include <functional>
 
 namespace boost {
   namespace program_options {

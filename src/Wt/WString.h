@@ -21,6 +21,30 @@
 #include "fmt/args.h"
 #include <chrono>
 
+namespace fmt {
+
+template <>
+struct formatter<memory_buffer> {
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const memory_buffer& p, FormatContext& ctx) const {
+      return format_to(ctx.out(), FMT_STRING("{}"), std::string_view(p.begin(), p.end()));
+  }
+};
+
+template <>
+struct formatter<const memory_buffer> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const memory_buffer& p, FormatContext& ctx) const {
+        return format_to(ctx.out(), FMT_STRING("{}"), std::string_view(p.begin(), p.end()));
+    }
+};
+
+
+}
 
 namespace Wt {
 
@@ -216,6 +240,16 @@ public:
    * string is interpreted within the character set of the given locale.
    */
   WString(const std::string& value, const std::locale &loc);
+
+  operator std::string_view() const{
+      if(impl_ && !fmt_args_.empty()) {
+          if(formatedUtf8_.empty()) {
+              formatedUtf8_ = fmt::vformat(utf8_, fmt_args_);
+          }
+          return std::string_view(formatedUtf8_.data(), formatedUtf8_.size());
+      }
+      return std::string_view(utf8_.data(), utf8_.size());
+  }
 
   /*! \brief Destructor
    */

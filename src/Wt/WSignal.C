@@ -13,6 +13,7 @@
 
 #include "WebUtils.h"
 #include "WebSession.h"
+#include <ranges>
 
 namespace Wt {
 
@@ -164,13 +165,15 @@ const std::string EventSignalBase::javaScript() const
   }
 
   if (defaultActionPrevented() || propagationPrevented()) {
-    result += WT_CLASS ".cancelEvent(e";
-    if (defaultActionPrevented() && propagationPrevented())
-      result += ");";
-    else if (defaultActionPrevented())
-      result += ",0x2);";
-    else
-      result += ",0x1);";
+      fmt::format_to(std::back_inserter(result), WT_CLASS ".cancelEvent(e{});",
+                     defaultActionPrevented() && propagationPrevented() ? "" : defaultActionPrevented() ? ",0x2" : ",0x1");
+    // result += WT_CLASS ".cancelEvent(e";
+    // if (defaultActionPrevented() && propagationPrevented())
+    //   result += ");";
+    // else if (defaultActionPrevented())
+    //   result += ",0x2);";
+    // else
+    //   result += ",0x1);";
   }
 
   return result;
@@ -258,7 +261,7 @@ EventSignalBase::~EventSignalBase()
   for (unsigned i = 0; i < connections_.size(); ++i) {
     if (connections_[i].ok())
       if (!connections_[i].slot->removeConnection(this))
-	delete connections_[i].slot;
+        delete connections_[i].slot;
   }
 }
 
@@ -298,14 +301,18 @@ void EventSignalBase::connect(const std::string& javaScript)
 
   int argc = argumentCount(); // user arguments, excluding 'e'
 
-  WStringStream ss;
-  ss << "(" << javaScript << ")(o,e";
-  for (int i = 0; i < argc; ++i)
-    ss << ",a" << (i+1);
-  ss << ");";
+  // WStringStream ss;
+  // ss << "(" << javaScript << ")(o,e";
+  // for (int i = 0; i < argc; ++i)
+  //   ss << ",a" << (i+1);
+  // ss << ");";
+  auto jslot = fmt::format(FMT_COMPILE("({})(o,e{}{});"),
+                           javaScript,
+                           argc ? ",a" : "",
+                           fmt::join(std::views::iota(1, argc + 1), ",a"));
 
   connections_.push_back
-    (StatelessConnection(c, nullptr, new WStatelessSlot(ss.str())));
+    (StatelessConnection(c, nullptr, new WStatelessSlot(jslot)));
 
   ownerRepaint();
 }

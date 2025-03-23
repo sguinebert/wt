@@ -38,47 +38,47 @@ class WCssTemplateWidget;
 class WT_API WCssRule : public WObject
 {
 public:
-  /*! \brief Destructor.
+    /*! \brief Destructor.
    */
-  virtual ~WCssRule();
+    virtual ~WCssRule();
 
-  /*! \brief Sets the selector.
+    /*! \brief Sets the selector.
    *
    * \note The selector can only be changed as long as the rule hasn't
    *       been rendered.
    */
-  void setSelector(const std::string& selector) { selector_ = selector; }
+    void setSelector(const std::string& selector) { selector_ = selector; }
 
-  /*! \brief Returns the selector.
+    /*! \brief Returns the selector.
    */
-  virtual std::string selector() const { return selector_; }
+    virtual std::string selector() const { return selector_; }
 
-  /*! \brief Returns the style sheet to which this rule belongs.
+    /*! \brief Returns the style sheet to which this rule belongs.
    */
-  WCssStyleSheet *sheet() const { return sheet_; }
+    WCssStyleSheet *sheet() const { return sheet_; }
 
-  /*! \brief Indicates that the rule has changed and needs updating
+    /*! \brief Indicates that the rule has changed and needs updating
    */
-  void modified();
+    void modified();
 
-  /*! \brief Returns the declarations.
+    /*! \brief Returns the declarations.
    *
    * This is a semi-colon separated list of CSS declarations.
    */
-  virtual std::string declarations() = 0;
+    virtual std::string declarations() = 0;
 
-  virtual bool updateDomElement(DomElement& cssRuleElement, bool all);
+    virtual bool updateDomElement(DomElement& cssRuleElement, bool all);
 
 protected:
-  /*! \brief Creates a new CSS rule with given selector.
+    /*! \brief Creates a new CSS rule with given selector.
    */
-  WCssRule(const std::string& selector);
+    WCssRule(const std::string& selector);
 
 private:
-  std::string selector_;
-  WCssStyleSheet *sheet_;
+    std::string selector_;
+    WCssStyleSheet *sheet_;
 
-  friend class WCssStyleSheet;
+    friend class WCssStyleSheet;
 };
 
 /*! \class WCssTemplateRule Wt/WCssStyleSheet.h Wt/WCssStyleSheet.h
@@ -108,7 +108,7 @@ private:
 class WT_API WCssTemplateRule : public WCssRule
 {
 public:
-  /*! \brief Creates a CSS rule with a given selector.
+    /*! \brief Creates a CSS rule with a given selector.
    *
    * The selector should be a valid CSS selector.
    *
@@ -116,11 +116,11 @@ public:
    * unique and not contain commas, since this is not supported by
    * Microsoft Internet Explorer.
    */
-  WCssTemplateRule(const std::string& selector);
+    WCssTemplateRule(const std::string& selector);
 
-  ~WCssTemplateRule();
+    ~WCssTemplateRule();
 
-  /*! \brief Returns the widget that is used as a template.
+    /*! \brief Returns the widget that is used as a template.
    *
    * Various properties of the widget are reflected in the CSS style:
    * - size and dimensions: WWidget::resize(), WWidget::setMinimumSize(),
@@ -135,14 +135,14 @@ public:
    * When modifying one of these properties of the returned widget, the
    * rule will be updated accordingly.
    */
-  WWidget *templateWidget();
+    WWidget *templateWidget();
 
-  virtual std::string declarations() override;
+    virtual std::string declarations() override;
 
-  virtual bool updateDomElement(DomElement& cssRuleElement, bool all) override;
+    virtual bool updateDomElement(DomElement& cssRuleElement, bool all) override;
 
 private:
-  std::unique_ptr<WCssTemplateWidget> widget_;
+    std::unique_ptr<WCssTemplateWidget> widget_;
 };
 
 /*! \class WCssTextRule Wt/WCssStyleSheet.h Wt/WCssStyleSheet.h
@@ -163,14 +163,14 @@ private:
 class WT_API WCssTextRule : public WCssRule
 {
 public:
-  /*! \brief Creates a CSS rule with a given selector and declarations.
+    /*! \brief Creates a CSS rule with a given selector and declarations.
    */
-  WCssTextRule(const std::string& selector, const WT_USTRING& declarations);
+    WCssTextRule(const std::string& selector, const WT_USTRING& declarations);
 
     virtual std::string declarations() override;
 
 private:
-  WT_USTRING declarations_;
+    WT_USTRING declarations_;
 };
 
 /*! \class WCssStyleSheet Wt/WCssStyleSheet.h Wt/WCssStyleSheet.h
@@ -190,19 +190,19 @@ private:
 class WT_API WCssStyleSheet
 {
 public:
-  /*! \brief Creates a new (internal) style sheet.
+    /*! \brief Creates a new (internal) style sheet.
    */
-  WCssStyleSheet();
+    WCssStyleSheet();
 
-  WCssStyleSheet(const WCssStyleSheet &) = delete;
-  WCssStyleSheet& operator=(const WCssStyleSheet &) = delete;
+    WCssStyleSheet(const WCssStyleSheet &) = delete;
+    WCssStyleSheet& operator=(const WCssStyleSheet &) = delete;
 
-  /*! \brief Destroys a style sheet, and all rules in it.
+    /*! \brief Destroys a style sheet, and all rules in it.
    */
-  ~WCssStyleSheet();
+    ~WCssStyleSheet();
 
 
-  /*! \brief Adds a CSS rule.
+    /*! \brief Adds a CSS rule.
    *
    * Add a rule using the CSS selector \p selector, with CSS
    * declarations in \p declarations. These declarations must be a
@@ -213,23 +213,23 @@ public:
    *
    * \sa isDefined()
    */
-  WCssTextRule *addRule(const std::string& selector,
-			const WT_USTRING& declarations,
-			const std::string& ruleName = std::string());
+    WCssTextRule *addRule(const std::string& selector,
+                          const WT_USTRING& declarations,
+                          const std::string& ruleName = std::string());
 
 #ifndef WT_TARGET_JAVA
-  /* Interprets as UTF-8 */
-  WCssTextRule *addRule(const std::string& selector,
-			const std::string& declarations,
-			const std::string& ruleName = std::string());
+    /* Interprets as UTF-8 */
+    WCssTextRule *addRule(const std::string& selector,
+                          const std::string& declarations,
+                          const std::string& ruleName = std::string());
 
-  /* Interprets as UTF-8 */
-  WCssTextRule *addRule(const std::string& selector,
-			const char *declarations,
-			const std::string& ruleName = std::string());
+    /* Interprets as UTF-8 */
+    WCssTextRule *addRule(const std::string& selector,
+                          const char *declarations,
+                          const std::string& ruleName = std::string());
 #endif
 
-  /*! \brief Adds a CSS rule.
+    /*! \brief Adds a CSS rule.
    *
    * Add a rule using the CSS selector \p selector, with styles specified
    * in \p style.
@@ -239,11 +239,11 @@ public:
    *
    * \sa isDefined()
    */
-  WCssTemplateRule *addRule(const std::string& selector,
-			    const WCssDecorationStyle& style,
-			    const std::string& ruleName = std::string());
+    WCssTemplateRule *addRule(const std::string& selector,
+                              const WCssDecorationStyle& style,
+                              const std::string& ruleName = std::string());
 
-  /*! \brief Adds a CSS rule.
+    /*! \brief Adds a CSS rule.
    *
    * Optionally, you may give a \p ruleName, which may later be
    * used to check if the rule was already defined.
@@ -251,54 +251,57 @@ public:
    *
    * \sa isDefined()
    */
-  WCssRule *addRule(std::unique_ptr<WCssRule> rule,
-		    const std::string& ruleName = std::string());
+    WCssRule *addRule(std::unique_ptr<WCssRule> rule,
+                      const std::string& ruleName = std::string());
 
-  template <typename Rule>
-  Rule *addRule(std::unique_ptr<Rule> rule)
+    template <typename Rule>
+    Rule *addRule(std::unique_ptr<Rule> rule)
 #ifndef WT_TARGET_JAVA
-  {
-    Rule *result = rule.get();
-    addRule(std::unique_ptr<WCssRule>(std::move(rule)));
-    return result;
-  }
+    {
+        Rule *result = rule.get();
+        addRule(std::unique_ptr<WCssRule>(std::move(rule)));
+        return result;
+    }
 #else // WT_TARGET_JAVA
-  ;
+        ;
 #endif // WT_TARGET_JAVA
 
-  /*! \brief Returns if a rule was already defined in this style sheet.
+    /*! \brief Returns if a rule was already defined in this style sheet.
    *
    * Returns whether a rule was added with the given \p ruleName.
    *
    * \sa addRule()
    */
-  bool isDefined(const std::string& ruleName) const;
+    bool isDefined(const std::string& ruleName) const;
 
-  /*! \brief Removes a rule.
+    /*! \brief Removes a rule.
    */
-  std::unique_ptr<WCssRule> removeRule(WCssRule *rule);
+    std::unique_ptr<WCssRule> removeRule(WCssRule *rule);
 
-  void ruleModified(WCssRule *rule);
+    void ruleModified(WCssRule *rule);
 
-  void cssText(WStringStream& out, bool all);
+    void cssText(WStringStream& out, bool all);
+    void cssText(fmt::memory_buffer& out, bool all);
 
-  void javaScriptUpdate(WApplication *app, WStringStream& js, bool all);
+    void javaScriptUpdate(WApplication *app, WStringStream& js, bool all);
+
+    void javaScriptUpdate(WApplication *app, fmt::memory_buffer& js, bool all);
 
 private:
-  typedef std::vector<std::unique_ptr<WCssRule> > RuleList;
-  typedef std::set<WCssRule *> RuleSet;
+    typedef std::vector<std::unique_ptr<WCssRule> > RuleList;
+    typedef std::set<WCssRule *> RuleSet;
 
-  RuleList rules_;
-  std::vector<WCssRule *> rulesAdded_;
+    RuleList rules_;
+    std::vector<WCssRule*> rulesAdded_;
 
-  RuleSet rulesModified_;
-  std::vector<std::string> rulesRemoved_;
+    RuleSet rulesModified_;
+    std::vector<std::string> rulesRemoved_;
 
-  std::set<std::string> defined_;
+    std::set<std::string> defined_;
 
-  bool isDirty();
+    bool isDirty();
 
-  friend class WebRenderer;
+    friend class WebRenderer;
 };
 
 }

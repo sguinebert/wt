@@ -65,8 +65,7 @@ WServer::Exception::Exception(const std::string& what)
   : WException(what)
 { }
 
-void WServer::init(const std::string& wtApplicationPath,
-		   const std::string& configurationFile)
+void WServer::init(const std::string& wtApplicationPath, const std::string& configurationFile)
 {
   customLogger_ = nullptr;
 
@@ -144,7 +143,7 @@ void WServer::setAppRoot(const std::string& path)
     configuration_->setAppRoot(path);
 }
 
-std::string WServer::appRoot() const
+std::string_view WServer::appRoot() const
 {
   // FIXME we should const-correct Configuration too
   return const_cast<WServer *>(this)->configuration().appRoot();
@@ -167,8 +166,8 @@ void WServer::setConfiguration(const std::string& file,
 }
 
 void WServer::setServerConfiguration(const std::string &applicationPath,
-                            const std::vector<std::string> &args,
-                            const std::string &serverConfigurationFile)
+                                     const std::vector<std::string> &args,
+                                     const std::string &serverConfigurationFile)
 {
   auto result = parseArgsPartially(applicationPath, args, serverConfigurationFile);
 

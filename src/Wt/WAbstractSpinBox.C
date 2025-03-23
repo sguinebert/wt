@@ -199,7 +199,7 @@ void WAbstractSpinBox::updateDom(DomElement& element, bool all)
   WLineEdit::updateDom(element, all);
 
   if (all && nativeControl())
-    element.setAttribute("type", "number");
+    element.setAttribute("type", "number", true);
 }
 
 void WAbstractSpinBox::propagateRenderOk(bool deep)

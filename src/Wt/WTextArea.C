@@ -75,8 +75,8 @@ void WTextArea::updateDom(DomElement& element, bool all)
     }
 
   if (attributesChanged_ || all) {
-    element.setAttribute("cols", std::to_string(cols_));
-    element.setAttribute("rows", std::to_string(rows_));
+    element.setAttribute("cols", cols_);
+    element.setAttribute("rows", rows_);
 
     attributesChanged_ = false;
   }

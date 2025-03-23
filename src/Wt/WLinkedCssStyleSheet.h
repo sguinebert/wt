@@ -13,6 +13,14 @@
 
 #include <Wt/WGlobal.h>
 #include <Wt/WLink.h>
+#include "Wt/fmt/core.h"
+
+// namespace fmt {
+//     template <typename T, size_t SIZE = 500, typename Allocator = std::allocator<T>>
+//     class basic_memory_buffer;
+//     using memory_buffer = basic_memory_buffer<char>;
+
+// }
 
 namespace Wt {
 
@@ -36,6 +44,7 @@ public:
   const std::string& media() const { return media_; }
 
   void cssText(WStringStream& out) const;
+  void cssText(fmt::memory_buffer& out) const;
 
 private:
   WLink link_;

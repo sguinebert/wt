@@ -121,13 +121,13 @@ public:
    *
    * \sa direction()
    */
-  void setDirection(LayoutDirection direction);
+  //void setDirection(LayoutDirection direction);
 
   /*! \brief Returns the layout direction.
    *
    * \sa setDirection()
    */
-  LayoutDirection direction() const { return direction_; }
+  constexpr LayoutDirection direction() const { return direction_; }
 
   /*! \brief Sets spacing between each item.
    *
@@ -392,7 +392,7 @@ protected:
   virtual void updateImplementation() override;
 
 private:
-  LayoutDirection direction_;
+  const LayoutDirection direction_;
   Impl::Grid grid_;
 
   void setStretchFactor(int index, int stretch);

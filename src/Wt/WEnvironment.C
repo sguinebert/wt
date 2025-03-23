@@ -866,12 +866,12 @@ const std::string *WEnvironment::getCookie(const std::string& cookieName)
     return &i->second;
 }
 
-const std::string WEnvironment::headerValue(const std::string& name) const
+std::string_view WEnvironment::headerValue(const std::string& name) const
 {
   return session_->getCgiHeader(name);
 }
 
-std::string WEnvironment::getCgiValue(const std::string& varName) const
+std::string_view WEnvironment::getCgiValue(const std::string& varName) const
 {
   if (varName == "QUERY_STRING")
     return queryString_;

@@ -31,7 +31,12 @@
 #endif
 
 namespace skeletons {
-  extern const char * AuthCssTheme_xml;
+static constexpr char AuthCssTheme_xml[] = {
+#embed "../xml/auth_css_theme.xml"
+    , '\0'
+};
+static constexpr std::string_view AuthCssTheme_xml_sv(AuthCssTheme_xml, sizeof(AuthCssTheme_xml) - 1);
+//  extern const char * AuthCssTheme_xml;
 }
 
 namespace Wt {
@@ -102,16 +107,21 @@ void WCssTheme::apply(WWidget *widget, WWidget *child, int widgetRole) const
     {
       WAbstractItemView *view = dynamic_cast<WAbstractItemView *>(widget);
 
-      std::string backgroundImage;
+ //      std::string backgroundImage;
 
-      if (view->alternatingRowColors())
-	backgroundImage = "stripes/stripe-";
-      else
-	backgroundImage = "no-stripes/no-stripe-";
+ //      if (view->alternatingRowColors())
+ //        backgroundImage = "stripes/stripe-";
+ //      else
+ //        backgroundImage = "no-stripes/no-stripe-";
 
-      backgroundImage = resourcesUrl() + backgroundImage
-	+ std::to_string(static_cast<int>(view->rowHeight().toPixels()))
-	+ "px.gif";
+ //      backgroundImage = resourcesUrl() + backgroundImage
+    // + std::to_string(static_cast<int>(view->rowHeight().toPixels()))
+    // + "px.gif";
+
+      auto backgroundImage = fmt::format("{}{}{}px.gif",
+                                         resourcesUrl(),
+                                         view->alternatingRowColors() ? "stripes/stripe-" : "no-stripes/no-stripe-",
+                                         view->rowHeight().toPixels());
 
       child->decorationStyle().setBackgroundImage(WLink(backgroundImage));
 

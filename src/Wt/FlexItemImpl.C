@@ -20,7 +20,7 @@ namespace Wt {
 LOGGER("WWidgetItem");
 
 FlexItemImpl::FlexItemImpl(WWidgetItem *item)
-  : item_(item)
+    : StdLayoutItemImpl(Type::FlexLayout), item_(item)
 { }
 
 FlexItemImpl::~FlexItemImpl()
@@ -42,13 +42,13 @@ int FlexItemImpl::minimumHeight() const
     return static_cast<int>(item_->widget()->minimumHeight().toPixels());
 }
 
-DomElement *FlexItemImpl::createDomElement(DomElement *parent,
+DomElement FlexItemImpl::createDomElement(DomElement *parent,
 					   bool fitWidth, bool fitHeight,
 					   WApplication *app)
 {
   WWidget *w = item_->widget();
 
-  DomElement *result = w->createSDomElement(app);
+  DomElement result = w->createSDomElement(app);
   ResizeSensor::applyIfNeeded(w);
   return result;
 }

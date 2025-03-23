@@ -273,10 +273,10 @@ void WLeafletMap::WidgetMarker::setMap(WLeafletMap *map)
     container_->setParentWidget(map);
   }
 }
-
+#warning "broken"
 void WLeafletMap::WidgetMarker::createMarkerJS(WStringStream &ss, WStringStream &postJS) const
 {
-  std::unique_ptr<DomElement> element(container_->createSDomElement(WApplication::instance()));
+  DomElement element = container_->createSDomElement(WApplication::instance());
 
   DomElement::TimeoutList timeouts;
 
@@ -296,7 +296,7 @@ void WLeafletMap::WidgetMarker::createMarkerJS(WStringStream &ss, WStringStream 
         "iconAnchor:null,";
   es << "html:'";
   es.pushEscape(EscapeOStream::JsStringLiteralSQuote);
-  element->asHTML(es, js, timeouts);
+  element.asHTML(es, js, timeouts);
   es.popEscape();
   es << "'});";
   es << "return L.marker([";

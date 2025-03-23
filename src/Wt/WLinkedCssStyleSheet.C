@@ -26,4 +26,10 @@ void WLinkedCssStyleSheet::cssText(WStringStream& out) const
   out << ";\n";
 }
 
+void WLinkedCssStyleSheet::cssText(fmt::memory_buffer &out) const
+{
+    WApplication *app = WApplication::instance();
+    fmt::format_to(std::back_inserter(out), "@import url(\"{}\"){};\n", link_.resolveUrl(app), !media_.empty() && media_ != "all" ? " " : "");
+}
+
 } // namespace Wt

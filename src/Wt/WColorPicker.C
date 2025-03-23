@@ -60,11 +60,11 @@ EventSignal<>& WColorPicker::colorInput()
 void WColorPicker::updateDom(DomElement& element, bool all)
 {
   if (all) {
-    element.setAttribute("type", "color");
+    element.setAttribute("type", "color", true);
   }
 
   if (colorChanged_ || all) {
-    element.setProperty(Property::Value, Color::colorToHex(color_));
+    element.setProperty(Property::Value, Color::colorToHex(color_), true);
     colorChanged_ = false;
   }
 

@@ -437,18 +437,18 @@ void WVmlImage::drawText(const WRectF& rect,
   AlignmentFlag verticalAlign = flags & AlignVerticalMask;
 
 #ifdef TEXT_DIVS
-  DomElement *e = DomElement::createNew(DomElement::DIV);
+  DomElement e = DomElement::createNew(DomElement::DIV);
 
   WPointF pos = painter()->combinedTransform().map(rect.topLeft());
 
   /*
    * HTML tricks to center things vertically in IE
    */
-  e->setProperty(Property::StylePosition, "absolute");
-  e->setProperty(Property::StyleTop, std::to_string(pos.y()) + "px");
-  e->setProperty(Property::StyleLeft, std::to_string(pos.x()) + "px");
-  e->setProperty(Property::StyleWidth, std::to_string(rect.width()) + "px");
-  e->setProperty(Property::StyleHeight, std::to_string(rect.height()) + "px");
+  e.setProperty(Property::StylePosition, "absolute");
+  e.setProperty(Property::StyleTop, std::to_string(pos.y()) + "px");
+  e.setProperty(Property::StyleLeft, std::to_string(pos.x()) + "px");
+  e.setProperty(Property::StyleWidth, std::to_string(rect.width()) + "px");
+  e.setProperty(Property::StyleHeight, std::to_string(rect.height()) + "px");
 
   DomElement *t = e;
   DomElement *i = 0;

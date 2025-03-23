@@ -14,44 +14,45 @@
 
 namespace Wt {
 
-  namespace Impl {
+namespace Impl {
 
 struct Grid {
-  int horizontalSpacing_, verticalSpacing_;
+    int horizontalSpacing_, verticalSpacing_;
 
-  struct Section {
-    int stretch_;
-    bool resizable_;
-    WLength initialSize_;
+    struct Section {
+        //Grid* parent_;
+        int stretch_;
+        bool resizable_;
+        WLength initialSize_;
 
-    Section(int stretch = 0);
-  };
+        Section(int stretch = 0);
+    };
 
-  struct Item {
-    std::unique_ptr<WLayoutItem> item_;
-    int rowSpan_;
-    int colSpan_;
-    bool update_;
-    WFlags<AlignmentFlag> alignment_;
+    struct Item {
+        std::unique_ptr<WLayoutItem> item_;
+        int rowSpan_;
+        int colSpan_;
+        bool update_;
+        WFlags<AlignmentFlag> alignment_;
 
-    Item(std::unique_ptr<WLayoutItem> item = nullptr,
-	 WFlags<AlignmentFlag> alignment = None);
-    Item(Item&& other) = default;
-    Item& operator=(Item&& other) = default;
-    ~Item();
-  };
+        Item(std::unique_ptr<WLayoutItem> item = nullptr,
+             WFlags<AlignmentFlag> alignment = None);
+        Item(Item&& other) = default;
+        Item& operator=(Item&& other) = default;
+        ~Item();
+    };
 
-  std::vector<Section> rows_;
-  std::vector<Section> columns_;
-  std::vector<std::vector<Item> > items_; // [row][column]
+    std::vector<Section> rows_;
+    std::vector<Section> columns_;
+    std::vector<std::vector<Item> > items_; // [row][column]
 
-  Grid();
-  ~Grid();
+    Grid();
+    ~Grid();
 
-  void clear();
+    void clear();
 };
 
-  }
+}
 
 /*! \class WGridLayout Wt/WGridLayout.h Wt/WGridLayout.h
  *  \brief A layout manager which arranges widgets in a grid

@@ -6,6 +6,7 @@
 #include "Wt/WApplication.h"
 #include "Wt/WEnvironment.h"
 #include "Wt/WStackedWidget.h"
+#include "web/DomElement.h"
 
 #include "StdWidgetItemImpl.h"
 
@@ -106,8 +107,7 @@ void WStackedWidget::setCurrentIndex(int index, const WAnimation& animation,
     WWidget *previous = currentWidget();
 
     if (previous)
-      doJavaScript(jsRef() + ".wtObj.adjustScroll("
-		   + previous->jsRef() + ");");
+      doJavaScript(jsRef() + ".wtObj.adjustScroll(" + previous->jsRef() + ");");
 
     setJavaScriptMember("wtAutoReverse", autoReverse ? "true" : "false");
 
@@ -192,12 +192,12 @@ void WStackedWidget::setCurrentWidget(WWidget *widget)
   setCurrentIndex(indexOf(widget));
 }
 
-DomElement * WStackedWidget::createDomElement(WApplication *app)
+DomElement WStackedWidget::createDomElement(WApplication *app)
 {
   return WContainerWidget::createDomElement(app);
 }
 
-void WStackedWidget::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WStackedWidget::getDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
   WContainerWidget::getDomChanges(result, app);
 }

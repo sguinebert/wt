@@ -152,21 +152,21 @@ std::string WGLWidget::glObjJsRef() const
     "})()";
 }
 
-DomElement * WGLWidget::createDomElement(WApplication *app)
+DomElement WGLWidget::createDomElement(WApplication *app)
 {
-  DomElement *result = nullptr;
+  DomElement result = DomElement::createNew(!pImpl_ ? DomElementType::DIV : domElementType());
 
   if (!pImpl_) { // no GL support whatsoever
-    result = DomElement::createNew(DomElementType::DIV);
-    result->addChild(alternative_->createSDomElement(app));
+    //result = DomElement::createNew(DomElementType::DIV);
+    result.addChild(alternative_->createSDomElement(app));
     webGlNotAvailable_ = true;
   } else {
-    result = DomElement::createNew(domElementType());
+    //result = DomElement::createNew(domElementType());
     repaintGL(GLClientSideRenderer::PAINT_GL | GLClientSideRenderer::RESIZE_GL);
   }
-  setId(result, app);
+  setId(&result, app);
 
-  updateDom(*result, true);
+  updateDom(result, true);
 
   return result;
 }
@@ -196,7 +196,7 @@ void WGLWidget::updateDom(DomElement &element, bool all)
   WInteractWidget::updateDom(element, all);
 }
 
-void WGLWidget::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WGLWidget::getDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
   WWebWidget::getDomChanges(result, app);
 }

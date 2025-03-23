@@ -22,7 +22,7 @@ public:
   virtual int minimumHeight() const override;
   virtual int minimumWidth() const override;
 
-  DomElement *createDomElement(DomElement *parent,
+  DomElement createDomElement(DomElement *parent,
 			       bool fitWidth, bool fitHeight,
 			       WApplication *app) override;
 

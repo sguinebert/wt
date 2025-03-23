@@ -79,7 +79,7 @@ public:
   std::string jsAudioRef() const;
 
 protected:
-  virtual DomElement *createMediaDomElement() override;
+  virtual DomElement createMediaDomElement() override;
   DomElementType domElementType() const override;
 
 };

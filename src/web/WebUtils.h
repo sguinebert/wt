@@ -11,7 +11,9 @@
 #include <cstring>
 #include <map>
 #include <memory>
+#include <unordered_map>
 #include <set>
+#include <unordered_set>
 #include <string>
 #include <sstream>
 #include <unordered_set>

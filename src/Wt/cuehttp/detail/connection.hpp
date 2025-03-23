@@ -98,7 +98,7 @@ template <typename _Socket, typename _Ty>
 class base_connection : public std::enable_shared_from_this<base_connection<_Socket, _Ty>>, safe_noncopyable {
  public:
   template <typename Socket = _Socket, typename = std::enable_if_t<std::is_same_v<std::decay_t<Socket>, http_socket>>>
-  base_connection(std::function<awaitable<void>(context&)> handler, asio::io_service& io_service) noexcept
+  base_connection(std::function<awaitable<void>(context&)> handler, asio::io_context& io_service) noexcept
       : socket_{io_service},
         context_{std::bind(&base_connection::coro_reply_chunk, this, std::placeholders::_1), std::bind(&base_connection::coro_reply_chunk_sg, this, std::placeholders::_1), false,
                  std::bind(&base_connection::spawn_coro_ws_send, this, std::placeholders::_1)},
@@ -108,7 +108,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
 
 #ifdef WT_WITH_SSL
   template <typename Socket = _Socket, typename = std::enable_if_t<!std::is_same_v<std::decay_t<Socket>, http_socket>>>
-  base_connection(std::function<awaitable<void>(context&)> handler, asio::io_service& io_service,
+  base_connection(std::function<awaitable<void>(context&)> handler, asio::io_context& io_service,
                   asio::ssl::context& ssl_context) noexcept
       : socket_{io_service, ssl_context},
         context_{std::bind(&base_connection::coro_reply_chunk, this, std::placeholders::_1), std::bind(&base_connection::coro_reply_chunk_sg, this, std::placeholders::_1), true,
@@ -968,11 +968,11 @@ class connection<https_socket> final : public base_connection<https_socket, conn
   asio::ip::tcp::socket& socket() noexcept { return socket_.next_layer(); }
 
   void do_read_real() {
-      co_spawn(this->socket_.get_executor(), do_handshake() /*this->coro_http(this->shared_from_this())*/, detached);
+      co_spawn(this->socket_.get_executor(), do_handshake(this->shared_from_this()), detached);
   }
 
  private:
-  awaitable<void> do_handshake() {
+  awaitable<void> do_handshake(auto /*sft*/) {
 //      socket_.async_handshake(asio::ssl::stream_base::server,
 //                              [this, self = this->shared_from_this()](const boost::system::error_code& code) {
 //                                  if (code) {

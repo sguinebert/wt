@@ -593,7 +593,7 @@ namespace Wt
     return WString::fromUTF8(result.str());
   }
 
-  WT_USTRING WDateTime::format() const //ddd MMM d HH:mm:ss yyyy
+  WT_USTRING WDateTime::format() const //ddd MMM d HH:mm:ss VS yyyy ddd, dd-MMM-yyyy hh:mm:ss 'GMT' (%F
   {
     return fmt::format(FMT_COMPILE("{:%c}"), fmt::localtime(datetime_));
   }

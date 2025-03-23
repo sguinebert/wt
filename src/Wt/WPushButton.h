@@ -282,7 +282,7 @@ protected:
   virtual void updateDom(DomElement& element, bool all) override;
   virtual DomElementType domElementType() const override;
   virtual void propagateRenderOk(bool deep) override;
-  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
+  virtual void getDomChanges(std::vector<DomElement>& result, WApplication *app) override;
   virtual void propagateSetEnabled(bool enabled) override;
 
   virtual void enableAjax() override;

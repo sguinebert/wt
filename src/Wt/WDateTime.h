@@ -220,8 +220,7 @@ public:
    * 
    * This is the reverse of WLocalDateTime::toUTC()
    */
-  WLocalDateTime toLocalTime(const WLocale& locale = WLocale::currentLocale())
-    const;
+  WLocalDateTime toLocalTime(const WLocale& locale = WLocale::currentLocale()) const;
 
   /*! \brief Returns the difference between two datetime values (in seconds).
    *
@@ -299,6 +298,8 @@ public:
   WT_USTRING toString(const WT_USTRING& format, bool localized = true) const;
 
   WT_USTRING format() const;
+
+  std::string cookieformat() const {return fmt::format(FMT_COMPILE("{:%d-%b-%Y %H:%M:%S 'GMT'}"), datetime_); }
 
   WT_USTRING format(std::string_view format, bool localized = true) const;
 

@@ -103,12 +103,12 @@ int WBoxLayout::count() const
   return grid_.rows_.size() * grid_.columns_.size();
 }
 
-void WBoxLayout::setDirection(LayoutDirection direction)
-{
-  if (direction_ != direction) {
-    direction_ = direction;
-  }
-}
+// void WBoxLayout::setDirection(LayoutDirection direction)
+// {
+//   if (direction_ != direction) {
+//     direction_ = direction;
+//   }
+// }
 
 void WBoxLayout::setSpacing(int size)
 {
@@ -219,42 +219,42 @@ void WBoxLayout::setStretchFactor(int i, int stretch)
 }
 
 void WBoxLayout::insertItem(int index, std::unique_ptr<WLayoutItem> item,
-			    int stretch, WFlags<AlignmentFlag> alignment)
+                            int stretch, WFlags<AlignmentFlag> alignment)
 {
-  WLayoutItem *it = item.get();
+    WLayoutItem *it = item.get();
 
-  switch (direction_) {
-  case LayoutDirection::RightToLeft:
-    if ((impl() && implementation() != LayoutImplementation::Flex) || !implementationIsFlexLayout())
-      index = grid_.columns_.size() - index;
-  case LayoutDirection::LeftToRight:
-    grid_.columns_.insert(grid_.columns_.begin() + index,
-			  Impl::Grid::Section(stretch));
-    if (grid_.items_.empty()) {
-      grid_.items_.push_back(std::vector<Impl::Grid::Item>());
-      grid_.rows_.push_back(Impl::Grid::Section());
-      grid_.rows_[0].stretch_ = -1; // make height managed
+    switch (direction_) {
+    case LayoutDirection::RightToLeft:
+        if ((impl() && implementation() != LayoutImplementation::Flex) || !implementationIsFlexLayout())
+            index = grid_.columns_.size() - index;
+    case LayoutDirection::LeftToRight:
+        grid_.columns_.insert(grid_.columns_.begin() + index,
+                              Impl::Grid::Section(stretch));
+        if (grid_.items_.empty()) {
+            grid_.items_.push_back(std::vector<Impl::Grid::Item>());
+            grid_.rows_.push_back(Impl::Grid::Section());
+            grid_.rows_[0].stretch_ = -1; // make height managed
+        }
+        grid_.items_[0].insert(grid_.items_[0].begin() + index,
+                               Impl::Grid::Item(std::move(item), alignment));
+        break;
+    case LayoutDirection::BottomToTop:
+        if ((impl() && implementation() != LayoutImplementation::Flex) || !implementationIsFlexLayout())
+            index = grid_.rows_.size() - index;
+    case LayoutDirection::TopToBottom:
+        if (grid_.columns_.empty()) {
+            grid_.columns_.push_back(Impl::Grid::Section());
+            grid_.columns_[0].stretch_ = -1; // make width managed
+        }
+        grid_.rows_.insert(grid_.rows_.begin() + index,
+                           Impl::Grid::Section(stretch));
+        grid_.items_.insert(grid_.items_.begin() + index,
+                            std::vector<Impl::Grid::Item>());
+        grid_.items_[index].push_back(Impl::Grid::Item(std::move(item), alignment));
+        break;
     }
-    grid_.items_[0].insert(grid_.items_[0].begin() + index,
-			   Impl::Grid::Item(std::move(item), alignment));
-    break;
-  case LayoutDirection::BottomToTop:
-    if ((impl() && implementation() != LayoutImplementation::Flex) || !implementationIsFlexLayout())
-      index = grid_.rows_.size() - index;
-  case LayoutDirection::TopToBottom:
-    if (grid_.columns_.empty()) {
-      grid_.columns_.push_back(Impl::Grid::Section());
-      grid_.columns_[0].stretch_ = -1; // make width managed
-    }
-    grid_.rows_.insert(grid_.rows_.begin() + index,
-		       Impl::Grid::Section(stretch));
-    grid_.items_.insert(grid_.items_.begin() + index,
-			std::vector<Impl::Grid::Item>());
-    grid_.items_[index].push_back(Impl::Grid::Item(std::move(item), alignment));
-    break;
-  }
 
-  itemAdded(it);
+    itemAdded(it);
 }
 
 std::unique_ptr<WWidget> WBoxLayout::createSpacer(const WLength& size)

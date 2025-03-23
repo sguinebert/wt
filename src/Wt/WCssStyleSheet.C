@@ -11,108 +11,217 @@
 #include "DomElement.h"
 #include "EscapeOStream.h"
 #include "WebUtils.h"
+#include "Wt/fmt/core.h"
+#include "Wt/fmt/ranges.h"
+#include "Wt/fmt/ostream.h"
+#include <ranges>
 
+namespace fmt {
+template <>
+struct fmt::formatter<std::vector<Wt::WCssRule*>> {    // format specification storage
+    // parse format specification and store it:
+    constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin()) {
+        return ctx.begin(); // No custom format specifiers needed
+    }
+    // format a value using stored specification:
+    template <typename FormatContext>
+    auto format(const std::vector<Wt::WCssRule*> rule, FormatContext& ctx) const {
+        auto out = ctx.out();
+        for(auto& r : rule) {
+            out = fmt::format_to(ctx.out(), "{} {{ {} }}\n", r->selector(), r->declarations());
+        }
+        return out;
+    }
+};
+template <>
+struct fmt::formatter<Wt::WCssRule*> {    // format specification storage
+    // parse format specification and store it:
+    constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin()) {
+        return ctx.begin(); // No custom format specifiers needed
+    }
+    // format a value using stored specification:
+    template <typename FormatContext>
+    auto format(Wt::WCssRule* rule, FormatContext& ctx) const {
+        return fmt::format_to(ctx.out(), "{} {{ {} }}\n", rule->selector(), ((Wt::WCssRule*)rule)->declarations());
+    }
+    template <typename FormatContext>
+    auto format(Wt::WCssRule* rule, FormatContext& ctx) {
+        return fmt::format_to(ctx.out(), "{} {{ {} }}\n", rule->selector(), ((Wt::WCssRule*)rule)->declarations());
+    }
+};
+
+template <>
+struct fmt::formatter<const Wt::WCssRule*> {    // format specification storage
+    // parse format specification and store it:
+    constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin()) {
+        return ctx.begin(); // No custom format specifiers needed
+    }
+    // format a value using stored specification:
+    template <typename FormatContext>
+    auto format(const Wt::WCssRule* rule, FormatContext& ctx) const {
+        return fmt::format_to(ctx.out(), "{} {{ {} }}\n", rule->selector(), ((Wt::WCssRule*)rule)->declarations());
+    }
+    template <typename FormatContext>
+    auto format(const Wt::WCssRule* rule, FormatContext& ctx) {
+        return fmt::format_to(ctx.out(), "{} {{ {} }}\n", rule->selector(), ((Wt::WCssRule*)rule)->declarations());
+    }
+};
+} // namespace fmt
+// template <>
+// struct fmt::formatter<Wt::WCssRule**> {
+//     // Parse format specification (none needed here)
+//     constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+
+//     // Format the double pointer
+//     template <typename FormatContext>
+//     auto format(Wt::WCssRule** rulePtr, FormatContext& ctx) const {
+//         if (rulePtr && *rulePtr) {
+//             // Dereference once and use the Wt::WCssRule* formatter
+//             return fmt::format_to(ctx.out(), "{}", *rulePtr);
+//         } else {
+//             return fmt::format_to(ctx.out(), "null");
+//         }
+//     }
+// };
+// template <>
+// struct fmt::formatter<Wt::WCssRule> {    // format specification storage
+//     char presentation_ = 's';
+// public:
+//     // parse format specification and store it:
+//     constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin()) {
+//         return ctx.begin(); // No custom format specifiers needed
+//     }
+//     // format a value using stored specification:
+//     template <typename FormatContext>
+//     auto format(const Wt::WCssRule& rule, FormatContext& ctx) const {
+//         return fmt::format_to(ctx.out(), "{} {{ {} }}\n", rule.selector(), ((Wt::WCssRule&)rule).declarations());
+//     }
+// };
+// template <>
+// struct fmt::formatter<const Wt::WCssRule*> {
+//     // Parse the format specification (if any)
+//     constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+//     // Format the pointer
+//     template <typename FormatContext>
+//     auto format(const Wt::WCssRule* rule, FormatContext& ctx) const {
+//         // Example: format the pointer as a hex address
+//         return fmt::format_to(ctx.out(), "{}", fmt::ptr(rule));
+//         // Or dereference and format specific fields, e.g.:
+//         // return fmt::format_to(ctx.out(), "{}", rule->someField());
+//     }
+// };
+template <>
+struct fmt::formatter<std::unique_ptr<Wt::WCssRule>> {
+    constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin()) {
+        return ctx.begin(); // No custom format specifiers needed
+    }
+    template <typename FormatContext>
+    auto format(const std::unique_ptr<Wt::WCssRule>& rule, FormatContext& ctx) const -> decltype(ctx.out()) {
+        return fmt::format_to(ctx.out(), "{} {{ {} }}\n", rule->selector(), ((Wt::WCssRule*)rule.get())->declarations());
+    }
+};
 namespace Wt {
 
 class WCssTemplateWidget : public WWebWidget
 {
 public:
-  WCssTemplateWidget(WCssTemplateRule *rule)
-    : rule_(rule)
-  { }
+    WCssTemplateWidget(WCssTemplateRule *rule)
+        : rule_(rule)
+    { }
 
-  virtual void setPositionScheme(PositionScheme scheme) override {
-    WWebWidget::setPositionScheme(scheme);
-    rule_->modified();
-  }
+    virtual void setPositionScheme(PositionScheme scheme) override {
+        WWebWidget::setPositionScheme(scheme);
+        rule_->modified();
+    }
 
-  virtual void setOffsets(const WLength& offset,
-			  WFlags<Side> sides = AllSides) override {
-    WWebWidget::setOffsets(offset, sides);
-    rule_->modified();
-  }
+    virtual void setOffsets(const WLength& offset,
+                            WFlags<Side> sides = AllSides) override {
+        WWebWidget::setOffsets(offset, sides);
+        rule_->modified();
+    }
 
-  virtual void resize(const WLength& width, const WLength& height) override {
-    WWebWidget::resize(width, height);
-    rule_->modified();
-  }
+    virtual void resize(const WLength& width, const WLength& height) override {
+        WWebWidget::resize(width, height);
+        rule_->modified();
+    }
 
-  virtual void setMinimumSize(const WLength& width, const WLength& height) 
-    override
-  {
-    WWebWidget::setMinimumSize(width, height);
-    rule_->modified();
-  }
+    virtual void setMinimumSize(const WLength& width, const WLength& height)
+        override
+    {
+        WWebWidget::setMinimumSize(width, height);
+        rule_->modified();
+    }
 
-  virtual void setMaximumSize(const WLength& width, const WLength& height) 
-    override
-  {
-    WWebWidget::setMaximumSize(width, height);
-    rule_->modified();
-  }
+    virtual void setMaximumSize(const WLength& width, const WLength& height)
+        override
+    {
+        WWebWidget::setMaximumSize(width, height);
+        rule_->modified();
+    }
 
-  virtual void setLineHeight(const WLength& height) override
-  {
-    WWebWidget::setLineHeight(height);
-    rule_->modified();
-  }
+    virtual void setLineHeight(const WLength& height) override
+    {
+        WWebWidget::setLineHeight(height);
+        rule_->modified();
+    }
 
-  virtual void setFloatSide(Side s) override {
-    WWebWidget::setFloatSide(s);
-    rule_->modified();
-  }
+    virtual void setFloatSide(Side s) override {
+        WWebWidget::setFloatSide(s);
+        rule_->modified();
+    }
 
-  virtual void setClearSides(WFlags<Side> sides) override {
-    WWebWidget::setClearSides(sides);
-    rule_->modified();
-  }
+    virtual void setClearSides(WFlags<Side> sides) override {
+        WWebWidget::setClearSides(sides);
+        rule_->modified();
+    }
 
-  virtual void setMargin(const WLength& margin,
-			 WFlags<Side> sides = AllSides) override {
-    WWebWidget::setMargin(margin, sides);
-    rule_->modified();
-  }
+    virtual void setMargin(const WLength& margin,
+                           WFlags<Side> sides = AllSides) override {
+        WWebWidget::setMargin(margin, sides);
+        rule_->modified();
+    }
 
-  virtual void setHidden(bool hidden, 
-			 const WAnimation& animation = WAnimation()) override {
-    WWebWidget::setHidden(hidden, animation);
-    rule_->modified();
-  }
+    virtual void setHidden(bool hidden,
+                           const WAnimation& animation = WAnimation()) override {
+        WWebWidget::setHidden(hidden, animation);
+        rule_->modified();
+    }
 
-  virtual void setPopup(bool popup) override {
-    WWebWidget::setPopup(popup);
-    rule_->modified();
-  }
+    virtual void setPopup(bool popup) override {
+        WWebWidget::setPopup(popup);
+        rule_->modified();
+    }
 
-  virtual void setInline(bool isinline) override {
-    WWebWidget::setInline(isinline);
-    rule_->modified();
-  }
+    virtual void setInline(bool isinline) override {
+        WWebWidget::setInline(isinline);
+        rule_->modified();
+    }
 
-  virtual WCssDecorationStyle& decorationStyle() override {
-    // Assumption here! We should really catch modifications to the
-    // stylesheet...
-    rule_->modified();
+    virtual WCssDecorationStyle& decorationStyle() override {
+        // Assumption here! We should really catch modifications to the
+        // stylesheet...
+        rule_->modified();
 
-    return WWebWidget::decorationStyle();
-  }
+        return WWebWidget::decorationStyle();
+    }
 
-  virtual void setVerticalAlignment(AlignmentFlag alignment,
-				    const WLength& length) override {
-    WWebWidget::setVerticalAlignment(alignment, length);
-    rule_->modified();
-  }
+    virtual void setVerticalAlignment(AlignmentFlag alignment,
+                                      const WLength& length) override {
+        WWebWidget::setVerticalAlignment(alignment, length);
+        rule_->modified();
+    }
 
-  virtual DomElementType domElementType() const override { 
-    return DomElementType::SPAN; 
-  }
+    virtual DomElementType domElementType() const override {
+        return DomElementType::SPAN;
+    }
 
 private:
-  WCssTemplateRule *rule_;
+    WCssTemplateRule *rule_;
 };
 
 WCssRule::WCssRule(const std::string& selector)
-  : selector_(selector),
+    : selector_(selector),
     sheet_(nullptr)
 { }
 
@@ -121,19 +230,19 @@ WCssRule::~WCssRule()
 
 void WCssRule::modified()
 {
-  if (sheet_)
-    sheet_->ruleModified(this);
+    if (sheet_)
+        sheet_->ruleModified(this);
 }
 
 bool WCssRule::updateDomElement(DomElement& cssRuleElement, bool all)
 {
-  return false;
+    return false;
 }
 
 WCssTemplateRule::WCssTemplateRule(const std::string& selector)
-  : WCssRule(selector)
+    : WCssRule(selector)
 {
-  widget_.reset(new WCssTemplateWidget(this));
+    widget_.reset(new WCssTemplateWidget(this));
 }
 
 WCssTemplateRule::~WCssTemplateRule()
@@ -141,30 +250,30 @@ WCssTemplateRule::~WCssTemplateRule()
 
 WWidget *WCssTemplateRule::templateWidget()
 {
-  return widget_.get();
+    return widget_.get();
 }
 
 std::string WCssTemplateRule::declarations()
 {
-  DomElement e(DomElement::Mode::Update, widget_->domElementType());
-  updateDomElement(e, true);
-  return e.cssStyle();
+    DomElement e(DomElement::Mode::Update, widget_->domElementType());
+    updateDomElement(e, true);
+    return e.cssStyle();
 }
 
 bool WCssTemplateRule::updateDomElement(DomElement& element, bool all)
 {
-  widget_->updateDom(element, all);
-  return true;
+    widget_->updateDom(element, all);
+    return true;
 }
 
 WCssTextRule::WCssTextRule(const std::string& selector, const WT_USTRING& declarations)
-  : WCssRule(selector),
+    : WCssRule(selector),
     declarations_(declarations)
 { }
 
 std::string WCssTextRule::declarations()
 {
-  return declarations_.toUTF8();
+    return declarations_.toUTF8();
 }
 
 WCssStyleSheet::WCssStyleSheet()
@@ -174,177 +283,253 @@ WCssStyleSheet::~WCssStyleSheet()
 { }
 
 WCssRule *WCssStyleSheet::addRule(std::unique_ptr<WCssRule> rule,
-				  const std::string& ruleName)
+                                  const std::string& ruleName)
 {
-  rule->sheet_ = this;
+    rule->sheet_ = this;
 
-  rulesAdded_.push_back(rule.get());
-  rules_.push_back(std::move(rule));
+    rulesAdded_.push_back(rule.get());
+    rules_.push_back(std::move(rule));
 
-  if (!ruleName.empty())
-    defined_.insert(ruleName);
+    if (!ruleName.empty())
+        defined_.insert(ruleName);
 
-  return rules_.back().get();
+    return rules_.back().get();
 }
 
 WCssTemplateRule *WCssStyleSheet::addRule(const std::string& selector,
-					  const WCssDecorationStyle& style,
-					  const std::string& ruleName)
+                                          const WCssDecorationStyle& style,
+                                          const std::string& ruleName)
 {
-  std::unique_ptr<WCssTemplateRule> r(new WCssTemplateRule(selector));
-  r->templateWidget()->setDecorationStyle(style);
-  WCssTemplateRule *result = r.get();
-  addRule(std::move(r), ruleName);
-  return result;
+    std::unique_ptr<WCssTemplateRule> r(new WCssTemplateRule(selector));
+    r->templateWidget()->setDecorationStyle(style);
+    WCssTemplateRule *result = r.get();
+    addRule(std::move(r), ruleName);
+    return result;
 }
 
 WCssTextRule *WCssStyleSheet::addRule(const std::string& selector,
-				      const WT_USTRING& declarations,
-				      const std::string& ruleName)
+                                      const WT_USTRING& declarations,
+                                      const std::string& ruleName)
 {
-  std::unique_ptr<WCssTextRule> r(new WCssTextRule(selector, declarations));
-  WCssTextRule *result = r.get();
-  addRule(std::move(r), ruleName);
-  return result;
+    std::unique_ptr<WCssTextRule> r(new WCssTextRule(selector, declarations));
+    WCssTextRule *result = r.get();
+    addRule(std::move(r), ruleName);
+    return result;
 }
 
 #ifndef WT_TARGET_JAVA
 WCssTextRule *WCssStyleSheet::addRule(const std::string& selector,
-				      const char *declarations,
-				      const std::string& ruleName)
+                                      const char *declarations,
+                                      const std::string& ruleName)
 {
-  return addRule(selector, WT_USTRING::fromUTF8(declarations), ruleName);
+    return addRule(selector, WT_USTRING::fromUTF8(declarations), ruleName);
 }
 
 WCssTextRule *WCssStyleSheet::addRule(const std::string& selector,
-				      const std::string& declarations,
-				      const std::string& ruleName)
+                                      const std::string& declarations,
+                                      const std::string& ruleName)
 {
-  return addRule(selector, WT_USTRING::fromUTF8(declarations), ruleName);
+    return addRule(selector, WT_USTRING::fromUTF8(declarations), ruleName);
 }
 #endif
 
 bool WCssStyleSheet::isDefined(const std::string& ruleName) const
 {
-  std::set<std::string>::const_iterator i = defined_.find(ruleName);
-  return i != defined_.end();
+    std::set<std::string>::const_iterator i = defined_.find(ruleName);
+    return i != defined_.end();
 }
 
 std::unique_ptr<WCssRule> WCssStyleSheet::removeRule(WCssRule *rule)
 {
-  auto r = Utils::take(rules_, rule);
+    auto r = Utils::take(rules_, rule);
 
-  if (r) {
-    if (!Utils::erase(rulesAdded_, rule))
-      rulesRemoved_.push_back(rule->selector());
+    if (r) {
+        if (!Utils::erase(rulesAdded_, rule))
+            rulesRemoved_.push_back(rule->selector());
 
-    rulesModified_.erase(rule);
-  }
+        rulesModified_.erase(rule);
+    }
 
-  return r;
+    return r;
 }
 
 void WCssStyleSheet::ruleModified(WCssRule *rule)
 {
-  if (Utils::indexOf(rulesAdded_, rule) == -1)
-    rulesModified_.insert(rule);
+    if (Utils::indexOf(rulesAdded_, rule) == -1)
+        rulesModified_.insert(rule);
 }
 
 void WCssStyleSheet::cssText(WStringStream& out, bool all)
 {
-  if (all) {
-    const auto& toProcess = rules_;
+    if (all) {
+        const auto& toProcess = rules_;
 
-    for (unsigned i = 0; i < toProcess.size(); ++i) {
-      auto rule = toProcess[i].get();
-      out << rule->selector() << " { " << rule->declarations() << " }\n";
+        for (unsigned i = 0; i < toProcess.size(); ++i) {
+            auto rule = toProcess[i].get();
+            out << rule->selector() << " { " << rule->declarations() << " }\n";
+        }
+    } else {
+        const auto& toProcess = rulesAdded_;
+
+        for (unsigned i = 0; i < toProcess.size(); ++i) {
+            auto rule = toProcess[i];
+            out << rule->selector() << " { " << rule->declarations() << " }\n";
+        }
     }
-  } else {
-    const auto& toProcess = rulesAdded_;
 
-    for (unsigned i = 0; i < toProcess.size(); ++i) {
-      auto rule = toProcess[i];
-      out << rule->selector() << " { " << rule->declarations() << " }\n";
+    rulesAdded_.clear();
+
+    if (all)
+        rulesModified_.clear();
+}
+
+void WCssStyleSheet::cssText(fmt::memory_buffer &out, bool all)
+{
+    if (all) {
+        const auto& toProcess = rules_;
+        fmt::format_to(std::back_inserter(out), "{}", fmt::join(toProcess, ""));
+
+        // for (unsigned i = 0; i < toProcess.size(); ++i) {
+        //     auto rule = toProcess[i].get();
+        //     fmt::format_to(std::back_inserter(out), "{} {{ {} }}\n", rule->selector(), rule->declarations());
+        //     //out << rule->selector() << " { " << rule->declarations() << " }\n";
+        // }
+    } else {
+        //auto dereferencedRules = rulesAdded_ | std::views::transform([](Wt::WCssRule* rule) { return *rule; });
+        fmt::format_to(std::back_inserter(out), "{}", rulesAdded_);
+
+        // for (unsigned i = 0; i < toProcess.size(); ++i) {
+        //     auto rule = toProcess[i];
+        //     fmt::format_to(std::back_inserter(out), "{} {{ {} }}\n", rule->selector(), rule->declarations());
+        //     //out << rule->selector() << " { " << rule->declarations() << " }\n";
+        // }
     }
-  }
 
-  rulesAdded_.clear();
+    rulesAdded_.clear();
 
-  if (all)
-    rulesModified_.clear();
+    if (all)
+        rulesModified_.clear();
 }
 
 void WCssStyleSheet::javaScriptUpdate(WApplication *app, WStringStream& js, bool all)
 {
-  if (!all) {
-    for (unsigned i = 0; i < rulesRemoved_.size(); ++i) {
-      js << WT_CLASS ".removeCssRule(";
-      DomElement::jsStringLiteral(js, rulesRemoved_[i], '\'');
-      js << ");";
+    if (!all) {
+        for (unsigned i = 0; i < rulesRemoved_.size(); ++i) {
+            js << WT_CLASS ".removeCssRule(";
+            DomElement::jsStringLiteral(js, rulesRemoved_[i], '\'');
+            js << ");";
+        }
+        rulesRemoved_.clear();
+
+        for (RuleSet::const_iterator i = rulesModified_.begin();
+             i != rulesModified_.end(); ++i) {
+            js << "{ var d= " WT_CLASS ".getCssRule(";
+            DomElement::jsStringLiteral(js, (*i)->selector(), '\'');
+            js << ");if(d){";
+
+            DomElement d = DomElement::updateGiven("d", DomElementType::SPAN);
+            if ((*i)->updateDomElement(d, false)) {
+                EscapeOStream sout(js);
+                d.asJavaScript(sout, DomElement::Priority::Update);
+            }
+
+            //delete d;
+
+            js << "}}";
+        }
+        rulesModified_.clear();
     }
-    rulesRemoved_.clear();
 
-    for (RuleSet::const_iterator i = rulesModified_.begin();
-	 i != rulesModified_.end(); ++i) {
-      js << "{ var d= " WT_CLASS ".getCssRule(";
-      DomElement::jsStringLiteral(js, (*i)->selector(), '\'');
-      js << ");if(d){";
+    if (!app->environment().agentIsIElt(9)
+        && app->environment().agent() != UserAgent::Konqueror) {
+        if (all) {
+            const auto& toProcess = rules_;
 
-      DomElement *d = DomElement::updateGiven("d", DomElementType::SPAN);
-      if ((*i)->updateDomElement(*d, false)) {
-          EscapeOStream sout(js);
-          d->asJavaScript(sout, DomElement::Priority::Update);
-      }
+            for (unsigned i = 0; i < toProcess.size(); ++i) {
+                auto rule = toProcess[i].get();
+                js << WT_CLASS ".addCss('"
+                   << rule->selector() << "',";
+                DomElement::jsStringLiteral(js, rule->declarations(), '\'');
+                js << ");\n";
+            }
+        } else {
+            const auto& toProcess = rulesAdded_;
 
-      delete d;
+            for (unsigned i = 0; i < toProcess.size(); ++i) {
+                auto rule = toProcess[i];
+                js << WT_CLASS ".addCss('"
+                   << rule->selector() << "',";
+                DomElement::jsStringLiteral(js, rule->declarations(), '\'');
+                js << ");\n";
+            }
+        }
 
-      js << "}}";
-    }
-    rulesModified_.clear();
-  }
-
-  if (!app->environment().agentIsIElt(9)
-      && app->environment().agent() != UserAgent::Konqueror) {
-    if (all) {
-      const auto& toProcess = rules_;
-
-      for (unsigned i = 0; i < toProcess.size(); ++i) {
-	auto rule = toProcess[i].get();
-	js << WT_CLASS ".addCss('"
-	   << rule->selector() << "',";
-    DomElement::jsStringLiteral(js, rule->declarations(), '\'');
-	js << ");\n";
-      }
+        rulesAdded_.clear();
+        if (all)
+            rulesModified_.clear();
     } else {
-      const auto& toProcess = rulesAdded_;
+        WStringStream css;
+        cssText(css, all);
+        if (!css.empty()) {
+            js << WT_CLASS ".addCssText(";
+            DomElement::jsStringLiteral(js, css.str(), '\'');
+            js << ");\n";
+        }
+    }
+}
 
-      for (unsigned i = 0; i < toProcess.size(); ++i) {
-	auto rule = toProcess[i];
-	js << WT_CLASS ".addCss('"
-	   << rule->selector() << "',";
-    DomElement::jsStringLiteral(js, rule->declarations(), '\'');
-	js << ");\n";
-      }
+void WCssStyleSheet::javaScriptUpdate(WApplication *app, fmt::memory_buffer &js, bool all)
+{
+    //using JsEscaper = DomElement::JsEscaper;
+    if (!all) {
+        for (const auto& rule : rulesRemoved_) {
+            //std::string escaped = DomElement::escapeJsString(rule);
+            fmt::format_to(std::back_inserter(js), "{}.removeCssRule('{:s}');", WT_CLASS, JsString(rule));
+        }
+        rulesRemoved_.clear();
+
+        for (const auto& rule : rulesModified_) {
+            //std::string selectorEscaped = DomElement::escapeJsString(rule->selector());
+            fmt::format_to(std::back_inserter(js), "{{ var d = {}.getCssRule('{}'); if (d) {{", WT_CLASS, JsString(rule->selector()));
+
+            DomElement d = DomElement::updateGiven("d", DomElementType::SPAN);
+            if (rule->updateDomElement(d, false)) {
+                std::ostringstream temp;
+                EscapeOStream sout(temp);
+                d.asJavaScript(sout, DomElement::Priority::Update);
+                fmt::format_to(std::back_inserter(js), "{}", temp.str());
+            }
+
+            fmt::format_to(std::back_inserter(js), "}}}}");
+        }
+        rulesModified_.clear();
     }
 
-    rulesAdded_.clear();
-    if (all)
-      rulesModified_.clear();
-  } else {
-    WStringStream css;
-    cssText(css, all);
-    if (!css.empty()) {
-      js << WT_CLASS ".addCssText(";
-      DomElement::jsStringLiteral(js, css.str(), '\'');
-      js << ");\n";
+    if (!app->environment().agentIsIElt(9) && app->environment().agent() != UserAgent::Konqueror) {
+        const auto size = all ? rules_.size() : rulesAdded_.size();
+        for (std::size_t i = 0; i < size; ++i) {
+            auto rule = all ? rules_[i].get() : rulesAdded_[i];
+            std::string selector = all ? rule->selector() : rule->selector();
+            //std::string declarationsEscaped = DomElement::escapeJsString(rule->declarations());
+            fmt::format_to(std::back_inserter(js), "{}.addCss('{}', '{}');\n", WT_CLASS, selector, JsString(rule->declarations()));
+        }
+        rulesAdded_.clear();
+        if (all) {
+            rulesModified_.clear();
+        }
+    } else {
+        WStringStream css;
+        cssText(css, all);
+        if (!css.empty()) {
+            //std::string cssEscaped = DomElement::escapeJsString(css.str());
+            fmt::format_to(std::back_inserter(js), "{}.addCssText('{}');\n", WT_CLASS, JsString(css.str()));
+        }
     }
-  }
 }
 
 bool WCssStyleSheet::isDirty()
 {
-  return !rulesAdded_.empty() || !rulesModified_.empty() ||
-      !rulesRemoved_.empty();
+    return !rulesAdded_.empty() || !rulesModified_.empty() || !rulesRemoved_.empty();
 }
 
 } // namespace Wt

@@ -165,6 +165,11 @@ public:
 
   virtual WLayoutImpl *impl() const override { return impl_.get(); }
 
+  virtual bool checkParent(DomElement* parent, WApplication* app)
+  {
+      return false;
+  }
+
   /*! \brief Set contents margins (in pixels).
    *
    * The default contents margins are 9 pixels in all directions.

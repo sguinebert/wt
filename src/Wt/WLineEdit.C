@@ -141,27 +141,25 @@ void WLineEdit::updateDom(DomElement& element, bool all)
   }
 
   if (all || flags_.test(BIT_ECHO_MODE_CHANGED)) {
-    element.setAttribute("type", echoMode_ == EchoMode::Normal 
-			 ? "text" : "password");
+    element.setAttribute("type", echoMode_ == EchoMode::Normal ? "text" : "password", true);
     flags_.reset(BIT_ECHO_MODE_CHANGED);
   }
 
   if (all || flags_.test(BIT_AUTOCOMPLETE_CHANGED)) {
     if (!all || !autoComplete_) {
-      element.setAttribute("autocomplete",
-			   autoComplete_ == true ? "on" : "off");
+      element.setAttribute("autocomplete", autoComplete_ ? "on" : "off", true);
     }
     flags_.reset(BIT_AUTOCOMPLETE_CHANGED);
   }
 
   if (all || flags_.test(BIT_TEXT_SIZE_CHANGED)) {
-    element.setAttribute("size", std::to_string(textSize_));
+    element.setAttribute("size", std::to_string(textSize_), true);
     flags_.reset(BIT_TEXT_SIZE_CHANGED);
   }
 
   if (all || flags_.test(BIT_MAX_LENGTH_CHANGED)) {
     if (!all || maxLength_ > 0)
-      element.setAttribute("maxLength", std::to_string(maxLength_));
+      element.setAttribute("maxLength", std::to_string(maxLength_), true);
 
     flags_.reset(BIT_MAX_LENGTH_CHANGED);
   }
@@ -169,16 +167,17 @@ void WLineEdit::updateDom(DomElement& element, bool all)
   WFormWidget::updateDom(element, all);
 }
 
-void WLineEdit::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WLineEdit::getDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
   if (app->environment().agentIsIE() && flags_.test(BIT_ECHO_MODE_CHANGED)) {
-    DomElement *e = DomElement::getForUpdate(this, domElementType());
-    DomElement *d = createDomElement(app);
+    //DomElement e = DomElement::getForUpdate(this, domElementType());
+    DomElement& e = result.emplace_back(DomElement::Mode::Update, domElementType(), id());
+    DomElement d = createDomElement(app);
 
-    app->theme()->apply(selfWidget(), *d, MainElement);
+    app->theme()->apply(selfWidget(), d, MainElement);
 
-    e->replaceWith(d);
-    result.push_back(e);
+    e.replaceWith(std::move(d));
+    //result.push_back(std::move(e));
   } else
     WFormWidget::getDomChanges(result, app);
 }

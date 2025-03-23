@@ -1,5 +1,6 @@
 /**
  * @preserve Copyright (C) 2010 Emweb bv, Herent, Belgium.
+ * @preserve Copyright (C) 2025 Sylvain Guinebert, France.
  *
  * For terms of use, see LICENSE.
  */
@@ -20,14 +21,11 @@
   _$_WS_ID_$_
   _$_WS_PATH_$_
   _$_WT_CLASS_$_
-  _$_$if_CATCH_ERROR_$_
-  _$_$if_DYNAMIC_JS_$_
-  _$_$ifnot_DYNAMIC_JS_$_
-  _$_$if_SHOW_ERROR_$_
-  _$_$if_STRICTLY_SERIALIZED_EVENTS_$_
-  _$_$if_UGLY_INTERNAL_PATHS_$_
-  _$_$ifnot_UGLY_INTERNAL_PATHS_$_
-  _$_$if_WEB_SOCKETS_$_
+  _$_CATCH_ERROR_$_
+  _$_SHOW_ERROR_$_
+  _$_STRICTLY_SERIALIZED_EVENTS_$_
+  _$_UGLY_INTERNAL_PATHS_$_
+  _$_WEB_SOCKETS_$_
   _$_$endif_$_
   delayClick
   delayedClicks
@@ -35,49 +33,11 @@
   hideLoadingIndicator
   showLoadingIndicator
 */
-_$_$if_DYNAMIC_JS_$_();
-window.JavaScriptFunction = 1;
-window.JavaScriptConstructor = 2;
-window.JavaScriptObject = 3;
-window.JavaScriptPrototype = 4;
-window.WT_DECLARE_WT_MEMBER = function(i, type, name, fn) {
-  if (type === JavaScriptPrototype) {
-    const proto = name.indexOf(".prototype");
-    _$_WT_CLASS_$_[name.substring(0, proto)]
-      .prototype[name.substring(proto + ".prototype.".length)] = fn;
-  } else if (type === JavaScriptFunction) {
-    _$_WT_CLASS_$_[name] = function() {
-      return fn.apply(_$_WT_CLASS_$_, arguments);
-    };
-  } else {
-    _$_WT_CLASS_$_[name] = fn;
-  }
-};
-window.WT_DECLARE_WT_MEMBER_BIG = window.WT_DECLARE_WT_MEMBER;
 
-window.WT_DECLARE_APP_MEMBER = function(i, type, name, fn) {
-  const app = window.currentApp;
-  if (type === JavaScriptPrototype) {
-    const proto = name.indexOf(".prototype");
-    app[name.substring(0, proto)]
-      .prototype[name.substring(proto + ".prototype.".length)] = fn;
-  } else if (type === JavaScriptFunction) {
-    app[name] = function() {
-      return fn.apply(app, arguments);
-    };
-  } else {
-    app[name] = fn;
-  }
-};
-
-_$_$endif_$_();
-
-_$_$ifnot_DYNAMIC_JS_$_();
 window.JavaScriptConstructor = 2;
 window.WT_DECLARE_WT_MEMBER_BIG = function(i, type, name, fn) {
   return fn;
 };
-_$_$endif_$_();
 
 if (!window._$_WT_CLASS_$_) {
   window._$_WT_CLASS_$_ = new (function() {
@@ -2153,12 +2113,10 @@ if (!window._$_WT_CLASS_$_) {
 
           baseUrl = deployUrl;
           if (baseUrl.length >= 1 && baseUrl[baseUrl.length - 1] === "/") {
-            _$_$if_UGLY_INTERNAL_PATHS_$_();
-            ugly = true;
-            _$_$endif_$_();
-            _$_$ifnot_UGLY_INTERNAL_PATHS_$_();
-            baseUrl = baseUrl.substring(0, baseUrl.length - 1);
-            _$_$endif_$_();
+
+            ugly = _$_UGLY_INTERNAL_PATHS_$_;
+            if(!ugly)
+                baseUrl = baseUrl.substring(0, baseUrl.length - 1);
           }
         },
 
@@ -3104,26 +3062,23 @@ window._$_APP_CLASS_$_ = new (function() {
     }
 
     if (status === WT.ResponseStatus.OK) {
-      WT.resolveRelativeAnchors();
-      _$_$if_CATCH_ERROR_$_();
-      try {
-        _$_$endif_$_();
-        doJavaScript(msg);
-        _$_$if_CATCH_ERROR_$_();
-      } catch (e) {
-        const stack = e.stack || e.stacktrace;
-        const description = e.description || e.message;
-        const err = { "exception_code": e.code, "exception_description": description, "exception_js": msg };
-        err.stack = stack;
-        sendError(
-          err,
-          "Wt internal error; code: " + e.code +
-            ", description: " + description
-        );
-        throw e;
-      }
-      _$_$endif_$_();
-
+        WT.resolveRelativeAnchors();
+        if (_$_CATCH_ERROR_$_) {
+            doJavaScript(msg);
+        } else {
+            try {
+                doJavaScript(msg);
+            } catch (e) {
+                const err = {
+                    exception_code: e.code || "unknown",
+                    exception_description: e.message || "No description",
+                    exception_js: msg,
+                    stack: e.stack || "No stack trace"
+                };
+                sendError(err, `Wt internal error; code: ${e.code || "unknown"}, description: ${e.message || "No description"}`);
+                throw e;
+            }
+        }
       if (timer) {
         cancelFeedback(timer);
       }
@@ -3219,10 +3174,8 @@ window._$_APP_CLASS_$_ = new (function() {
 
     WT.checkReleaseCapture(el, e);
 
-    _$_$if_STRICTLY_SERIALIZED_EVENTS_$_();
-    if (!responsePending) {
-      _$_$endif_$_();
 
+    if (!_$_STRICTLY_SERIALIZED_EVENTS_$_ || !responsePending) {
       const pendingEvent = {}, i = pendingEvents.length;
       pendingEvent.object = el;
       pendingEvent.signal = signalName;
@@ -3235,10 +3188,7 @@ window._$_APP_CLASS_$_ = new (function() {
       scheduleUpdate();
 
       doJavaScript();
-
-      _$_$if_STRICTLY_SERIALIZED_EVENTS_$_();
     }
-    _$_$endif_$_();
 
     updating = false;
   }
@@ -3277,8 +3227,8 @@ window._$_APP_CLASS_$_ = new (function() {
       }
     }
 
-    _$_$if_WEB_SOCKETS_$_();
-    if (websocket.state !== WebSocketUnavailable) {
+
+    if (_$_WEB_SOCKETS_$_ && websocket.state !== WebSocketUnavailable) {
       if (typeof window.WebSocket === UNDEFINED) {
         websocket.state = WebSocketUnavailable;
       } else {
@@ -3431,7 +3381,6 @@ window._$_APP_CLASS_$_ = new (function() {
         }
       }
     }
-    _$_$endif_$_();
 
     if (responsePending !== null && pollTimer !== null) {
       clearTimeout(pollTimer);
@@ -3491,9 +3440,8 @@ window._$_APP_CLASS_$_ = new (function() {
       ackUpdateId,
       -1
     );
-    _$_$if_SHOW_ERROR_$_();
-    alert(errMsg);
-    _$_$endif_$_();
+    if(_$_SHOW_ERROR_$_)
+        alert(errMsg);
   }
 
   function sendUpdate() {

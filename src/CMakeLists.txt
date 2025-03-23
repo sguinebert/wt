@@ -1,9 +1,12 @@
 SUBDIRS(web Wt)
 
-set(CMAKE_CXX_STANDARD 20)
-#set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") # -fconstexpr-steps=100000000 -ftemplate-depth=40960
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mssse3")
+
+#BE CAREFULL with flags and asio : if the flags are not exported correctly you will face kind of 2 differents versions of asio (undefind behavior, segfault etc...)
 
 #add_definitions(-DFMTLOG_HEADER_ONLY) 
 add_definitions(-DFMT_HEADER_ONLY)
@@ -44,40 +47,70 @@ function(file_to_string infile outfile var)
   )
 endfunction()
 
-FILE_TO_STRING(web/skeleton/Plain.html    Plain_html.C      Plain_html)
-FILE_TO_STRING(web/skeleton/Hybrid.html   Hybrid_html.C     Hybrid_html)
-FILE_TO_STRING(web/skeleton/Boot.html     Boot_html.C       Boot_html)
+# FILE_TO_STRING(web/skeleton/Plain.html    Plain_html.C      Plain_html)
+# FILE_TO_STRING(web/skeleton/Hybrid.html   Hybrid_html.C     Hybrid_html)
+# FILE_TO_STRING(web/skeleton/Boot.html     Boot_html.C       Boot_html)
 
-IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  FILE_TO_STRING(web/skeleton/Wt.js     Wt_js.C Wt_js)
-ELSE(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  FILE_TO_STRING(web/skeleton/Wt.min.js Wt_js.C Wt_js)
-ENDIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+# IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+#   FILE_TO_STRING(web/skeleton/Wt.js     Wt_js.C Wt_js)
+# ELSE(CMAKE_BUILD_TYPE STREQUAL "Debug")
+#   FILE_TO_STRING(web/skeleton/Wt.min.js Wt_js.C Wt_js)
+# ENDIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
-IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  FILE_TO_STRING(web/skeleton/Boot.js     Boot_js.C Boot_js)
-ELSE(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  FILE_TO_STRING(web/skeleton/Boot.min.js Boot_js.C Boot_js)
-ENDIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+# IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+#   FILE_TO_STRING(web/skeleton/Boot.js     Boot_js.C Boot_js)
+# ELSE(CMAKE_BUILD_TYPE STREQUAL "Debug")
+#   FILE_TO_STRING(web/skeleton/Boot.min.js Boot_js.C Boot_js)
+# ENDIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
-IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  FILE_TO_STRING(js/WCartesianChart.js WCartesianChart_js.C WCartesianChart_js)
-ELSE(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  FILE_TO_STRING(js/WCartesianChart.min.js WCartesianChart_js.C WCartesianChart_js)
-ENDIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+# IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+#   FILE_TO_STRING(js/WCartesianChart.js WCartesianChart_js.C WCartesianChart_js)
+# ELSE(CMAKE_BUILD_TYPE STREQUAL "Debug")
+#   FILE_TO_STRING(js/WCartesianChart.min.js WCartesianChart_js.C WCartesianChart_js)
+# ENDIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 #FILE_TO_STRING(web/skeleton/jquery.min.js JQuery_js.C JQuery_js)
 
-FILE_TO_STRING(xml/wt.xml Wt_xml.C Wt_xml)
-FILE_TO_STRING(xml/auth_strings.xml AuthStrings_xml.C AuthStrings_xml)
-FILE_TO_STRING(xml/bootstrap_theme.xml
-    BootstrapTheme_xml.C BootstrapTheme_xml)
-FILE_TO_STRING(xml/bootstrap3_theme.xml
-    Bootstrap3Theme_xml.C Bootstrap3Theme_xml)
-FILE_TO_STRING(xml/bootstrap5_theme.xml
-    Bootstrap5Theme_xml.C Bootstrap5Theme_xml)
-FILE_TO_STRING(xml/auth_css_theme.xml
-    AuthCssTheme_xml.C AuthCssTheme_xml)
+#FILE_TO_STRING(xml/wt.xml Wt_xml.C Wt_xml)
+#FILE_TO_STRING(xml/auth_strings.xml AuthStrings_xml.C AuthStrings_xml)
+# FILE_TO_STRING(xml/bootstrap_theme.xml
+#     BootstrapTheme_xml.C BootstrapTheme_xml)
+# FILE_TO_STRING(xml/bootstrap3_theme.xml
+#     Bootstrap3Theme_xml.C Bootstrap3Theme_xml)
+# FILE_TO_STRING(xml/bootstrap5_theme.xml
+#     Bootstrap5Theme_xml.C Bootstrap5Theme_xml)
+# FILE_TO_STRING(xml/auth_css_theme.xml
+#     AuthCssTheme_xml.C AuthCssTheme_xml)
+add_custom_target(embed_files
+    SOURCES
+    web/skeleton/Plain.html
+    web/skeleton/Hybrid.html
+    web/skeleton/Boot.html
+
+    web/skeleton/Wt.js
+    web/skeleton/Wt.min.js
+    web/skeleton/Boot.js
+    web/skeleton/Boot.min.js
+
+    js/WCartesianChart.js
+    js/WCartesianChart.min.js
+
+    xml/wt.xml
+    xml/auth_strings.xml
+    xml/bootstrap_theme.xml
+    xml/bootstrap3_theme.xml
+    xml/bootstrap5_theme.xml
+    xml/auth_css_theme.xml
+)
+set(DIR_TO_INCLUDE "/web/skeleton")
+
+# Collect all files recursively from the directory
+file(GLOB_RECURSE DIR_FILES "${DIR_TO_INCLUDE}/*")
+
+# Create a custom target to display the directory's files in the IDE
+add_custom_target(directory_display
+    SOURCES ${DIR_FILES}
+)
 
 SET(libsources
 Wt/FlexLayoutImpl.h Wt/FlexLayoutImpl.C
@@ -436,18 +469,18 @@ web/XSSUtils.h web/XSSUtils.C
 web/SslUtils.h web/SslUtils.C
 web/UriUtils.h web/UriUtils.C
 web/base64.h web/base64.cpp
-Plain_html.C
-Boot_html.C
-Hybrid_html.C
-Boot_js.C
-Wt_js.C
-WCartesianChart_js.C
-Wt_xml.C
-AuthStrings_xml.C
-BootstrapTheme_xml.C
-Bootstrap3Theme_xml.C
-Bootstrap5Theme_xml.C
-AuthCssTheme_xml.C
+# Plain_html.C
+# Boot_html.C
+# Hybrid_html.C
+# Boot_js.C
+# Wt_js.C
+# WCartesianChart_js.C
+# Wt_xml.C
+# AuthStrings_xml.C
+# BootstrapTheme_xml.C
+# Bootstrap3Theme_xml.C
+# Bootstrap5Theme_xml.C
+# AuthCssTheme_xml.C
 #JQuery_js.C
 )
 
@@ -598,7 +631,10 @@ IF(WIN32)
   ENDIF(SHARED_LIBS)
 ENDIF(WIN32)
 
-ADD_LIBRARY(wt ${libsources})
+ADD_LIBRARY(wt ${libsources}
+    Wt/cuehttp/deps/ada.cpp Wt/cuehttp/deps/ada.h
+    Wt/WTemplate_.C Wt/WTemplate_.h
+    Wt/cpp20/async_mutex.hpp)
 
 
 

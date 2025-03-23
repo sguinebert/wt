@@ -33,7 +33,9 @@ public:
 
   virtual void update() override;
 
-  virtual DomElement *createDomElement(DomElement *parent,
+  virtual bool checkParent(DomElement* parent, WApplication* app) override;
+
+  virtual DomElement createDomElement(DomElement *parent,
 				       bool fitWidth, bool fitHeight,
 				       WApplication *app) override;
 
@@ -48,19 +50,21 @@ private:
 
   int minimumHeightForRow(int row) const;
   int minimumWidthForColumn(int column) const;
-  DomElement *createElement(Orientation orientation, unsigned index,
-			    int totalStretch, WApplication *app);
-  Orientation getOrientation() const;
-  LayoutDirection getDirection() const;
-  std::string styleDisplay() const;
-  std::string styleFlex() const;
+  constexpr DomElement createElement(Orientation orientation, unsigned index, int totalStretch, WApplication *app);
+  constexpr Orientation getOrientation() const;
+  constexpr LayoutDirection getDirection() const;
+  constexpr std::string_view styleDisplay() const;
+  constexpr std::string_view styleFlex() const;
+
+  constexpr std::string marginProperty(Orientation orientation, unsigned index) const;
 
   int count(Orientation orientation) const;
   int indexOf(WLayoutItem *item, Orientation orientation);
   int getTotalStretch(Orientation orientation);
 
-  Impl::Grid::Item& item(Orientation orientation, int i);
-  Impl::Grid::Section& section(Orientation orientation, int i);
+  Impl::Grid::Item& item(Orientation orientation, int i) const;
+  constexpr Impl::Grid::Section& section(Orientation orientation, int i);
+
 };
 
 }

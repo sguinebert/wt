@@ -94,9 +94,9 @@ void WLength::parseCssString(const char *s)
 
 WLength::WLength(double value, LengthUnit unit)
   : auto_(false),
+    unit_(unit),
     value_(value)
-{ 
-  setUnit(unit);
+{
 }
 
 void WLength::setUnit(LengthUnit unit)
@@ -117,33 +117,59 @@ bool WLength::operator!= (const WLength& other) const
   return !(*this == other);
 }
 
-const std::string WLength::cssText() const
-{
-  static const char *unitText[]
-    = { "em", "ex", "px", "in", "cm", "mm", "pt", "pc", "%", "vw", "vh", "vmin", "vmax" };
+// const std::string WLength::cssText() const
+// {
+//   static const char *unitText[]
+//     = { "em", "ex", "px", "in", "cm", "mm", "pt", "pc", "%", "vw", "vh", "vmin", "vmax" };
 
-  if (auto_)
-    return "auto";
-  else {
-#ifndef WT_TARGET_JAVA
-    char buf[30];
-    Utils::round_css_str(value_, 1, buf);
-    if (unit_ == LengthUnit::ViewportMin) {
-      WApplication *app = WApplication::instance();
-      if (app && app->environment().agentIsIElt(10)) {
-        std::strcat(buf, "vm");
-      } else {
-        std::strcat(buf, "vmin");
-      }
+//   if (auto_)
+//     return "auto";
+//   else {
+// #ifndef WT_TARGET_JAVA
+//     char buf[30];
+//     Utils::round_css_str(value_, 1, buf);
+//     if (unit_ == LengthUnit::ViewportMin) {
+//       WApplication *app = WApplication::instance();
+//       if (app && app->environment().agentIsIElt(10)) {
+//         std::strcat(buf, "vm");
+//       } else {
+//         std::strcat(buf, "vmin");
+//       }
+//     } else {
+//       std::strcat(buf, unitText[static_cast<unsigned int>(unit_)]);
+//     }
+//     return buf;
+// #else
+//     return std::to_string(value_) + unitText[static_cast<unsigned int>(unit_)];
+// #endif
+//   }
+// }
+
+std::string WLength::cssText() const {
+    if (auto_) {
+        return "auto";
     } else {
-      std::strcat(buf, unitText[static_cast<unsigned int>(unit_)]);
+        // Simplified: always use "vmin" for ViewportMin (no browser check)
+        switch (unit_) {
+        case LengthUnit::FontEm: return fmt::format("{:.2}em", value_);
+        case LengthUnit::FontEx: return fmt::format("{:.2}ex", value_);
+        case LengthUnit::Pixel: return fmt::format("{:.2}px", value_);// result = std::string(std::to_string(value_)) + "px"; break;
+        case LengthUnit::Inch: return fmt::format("{:.2}in", value_);//result = std::string(std::to_string(value_)) + "in"; break;
+        case LengthUnit::Centimeter: return fmt::format("{:.2}cm", value_);//result = std::string(std::to_string(value_)) + "cm"; break;
+        case LengthUnit::Millimeter: return fmt::format("{:.2}mm", value_);//result = std::string(std::to_string(value_)) + "mm"; break;
+        case LengthUnit::Point: return fmt::format("{:.2}pt", value_);//result = std::string(std::to_string(value_)) + "pt"; break;
+        case LengthUnit::Pica: return fmt::format("{:.2}pc", value_);//result = std::string(std::to_string(value_)) + "pc"; break;
+        case LengthUnit::Percentage: return fmt::format("{:.2}%", value_);//result = std::string(std::to_string(value_)) + "%"; break;
+        case LengthUnit::ViewportWidth: return fmt::format("{:.2}vw", value_);//result = std::string(std::to_string(value_)) + "vw"; break;
+        case LengthUnit::ViewportHeight: return fmt::format("{:.2}vh", value_);//result = std::string(std::to_string(value_)) + "vh"; break;
+        case LengthUnit::ViewportMin: return fmt::format("{:.2}vmin", value_);//result = std::string(std::to_string(value_)) + "vmin"; break;
+        case LengthUnit::ViewportMax: return fmt::format("{:.2}vmax", value_);//result = std::string(std::to_string(value_)) + "vmax"; break;
+        default: break;
+        }
+        return "auto";
     }
-    return buf;
-#else
-    return std::to_string(value_) + unitText[static_cast<unsigned int>(unit_)];
-#endif
-  }
 }
+
 
 double WLength::toPixels(double fontSize) const
 {

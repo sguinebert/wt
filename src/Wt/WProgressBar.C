@@ -126,13 +126,15 @@ void WProgressBar::updateBar(DomElement& bar)
 
 void WProgressBar::updateDom(DomElement& element, bool all)
 {
+  DomElement bar_ = changed_ ? DomElement::getForUpdate("bar" + id(), DomElementType::DIV) :DomElement::createNew(DomElementType::DIV);
+  DomElement label_ = changed_ ? DomElement::getForUpdate("lbl" + id(), DomElementType::DIV) : DomElement::createNew(DomElementType::DIV);
   DomElement *bar = nullptr, *label = nullptr;
 
   auto app = WApplication::instance();
   auto bs5Theme = std::dynamic_pointer_cast<Wt::WBootstrap5Theme>(app->theme());
 
   if (all) {
-    bar = DomElement::createNew(DomElementType::DIV);
+      bar = &bar_;// DomElement::createNew(DomElementType::DIV);
     bar->setId("bar" + id());
     bar->setProperty(Property::Class, valueStyleClass_);
     app->theme()->apply(this, *bar, ProgressBarBar);
@@ -140,7 +142,7 @@ void WProgressBar::updateDom(DomElement& element, bool all)
     if (bs5Theme) {
       label = bar;
     } else {
-      label = DomElement::createNew(DomElementType::DIV);
+      label = &label_;DomElement::createNew(DomElementType::DIV);
       label->setId("lbl" + id());
       app->theme()->apply(this, *label, ProgressBarLabel);
     }
@@ -148,16 +150,16 @@ void WProgressBar::updateDom(DomElement& element, bool all)
 
   if (changed_ || all) {
     if (!bar)
-      bar = DomElement::getForUpdate("bar" + id(), DomElementType::DIV);
+      bar = &bar_;//DomElement::getForUpdate("bar" + id(), DomElementType::DIV);
     if (!label) {
       if (bs5Theme) {
         label = bar;
       } else {
-        label = DomElement::getForUpdate("lbl" + id(), DomElementType::DIV);
+        label = &label_;//DomElement::getForUpdate("lbl" + id(), DomElementType::DIV);
       }
     }
 
-    updateBar(*bar);
+    updateBar(bar_);
 
     WString s = text();
     removeScript(s);
@@ -168,10 +170,10 @@ void WProgressBar::updateDom(DomElement& element, bool all)
   }
 
   if (bar)
-    element.addChild(bar);
+    element.addChild(bar_);
 
   if (label && !bs5Theme)
-    element.addChild(label);
+    element.addChild(label_);
 
   WInteractWidget::updateDom(element, all);
 }

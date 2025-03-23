@@ -12,11 +12,123 @@
 #endif
 
 #include <map>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <string>
 
+#include <boost/unordered/unordered_flat_map.hpp>
+#include <boost/unordered/unordered_flat_set.hpp>
+
 #include "Wt/WWebWidget.h"
 #include "EscapeOStream.h"
+
+
+template <typename T>
+concept StringLiteral = requires {
+    requires std::is_array_v<std::remove_reference_t<T>>;
+    requires std::is_same_v<std::remove_extent_t<std::remove_reference_t<T>>, const char>;
+};
+
+// Concept for std::string
+template <typename T>
+concept StdString = requires {
+    requires std::is_same_v<std::decay_t<T>, std::string> ||
+                 std::is_same_v<std::decay_t<T>, const char*>;
+};
+
+template <size_t N>
+consteval size_t compute_escaped_size(const char (&s)[N]) {
+    size_t size = 0;
+    for (size_t i = 0; i < N; ++i) {
+        char c = s[i];
+        if (c == '\0') break;
+        switch (c) {
+        case '\\': case '\n': case '\r': case '\t': case '\'':
+            size += 2; // Escaped characters take 2 chars (e.g., "\n")
+            break;
+        default:
+            size += 1; // Regular chars take 1 char
+            break;
+        }
+    }
+    return size + 1; // Add space for null terminator
+}
+template <size_t M ,size_t N>
+consteval auto escape_js_literal(const char (&s)[N]) {
+    //constexpr auto size = compute_escaped_size(s);
+
+    std::array<char, M> result{};
+    // Reserve some space if desired (optional)
+    // result.reserve(256);
+    unsigned it = 0;
+    for (std::size_t i = 0; s[i] != '\0'; ++i) {
+        char c = s[i];
+        switch (c) {
+        case '\\': result[++it] = '\\'; result[++it] = '\\'; break;
+        case '\n': result[++it] = '\\'; result[++it] = '\n'; break;
+        case '\r': result[++it] = '\\'; result[++it] = '\r';  break;
+        case '\t': result[++it] = '\\'; result[++it] = '\t';  break;
+        case '\'': result[++it] = '\\'; result[++it] = '\'';  break;
+        default:   result[++it] =  c; break;
+        }
+    }
+    result[it] = '\0'; // Null-terminate the result
+    return result;
+}
+
+template <size_t M, size_t N>
+consteval auto EscapedAttrib(const char (&literal)[N]) {
+    static_assert(std::is_same_v<decltype(literal), const char (&)[N]>,
+                  "literal should be a reference to a const char array");
+
+    //constexpr std::string_view sv(literal, N - 1); // Exclude null terminator
+    //constexpr size_t Mc = compute_escaped_size(literal);
+    //constexpr auto vv = std::string_view(literal);
+    //constexpr auto size = compute_escaped_size(literal);
+
+    return escape_js_literal<M>(literal);;
+}
+#define CONSTEXPR_JS_ESCAPED(str) EscapedAttrib<compute_escaped_size(str)>(str)
+
+/* this class is made for attributes and property to ensure that literals are processed at compile time */
+struct EscapedString {
+    using Escaper = MixedRules<RuleSet::HtmlAttribute>;
+    using JsEscaper = MixedRules<RuleSet::JsStringLiteralSQuote>;
+    using MixEscaper = MixedRules<RuleSet::HtmlAttribute, RuleSet::JsStringLiteralSQuote>;
+    std::string value;
+    bool isescaped_;
+
+    // Constructor with std::string& as per your query
+    EscapedString(const std::string& val, bool isescaped = false):
+        isescaped_(isescaped)
+    {
+        value = val;
+    }
+
+    const std::string& escaped() {
+        std::string result;
+        if(isescaped_)
+            return value;
+        else
+            MixEscaper::escape(value, result);
+        value.swap(result);
+        isescaped_ = true;
+        return value;
+    }
+
+    // Constructor with constexpr CONSTEXPR_JS_ESCAPED
+    template<std::size_t N>
+    EscapedString(const std::array<char, N> val) : // value = CONSTEXPR_JS_ESCAPED(val);
+        value(val.begin(), val.end()),
+        isescaped_(true)
+    {
+    }
+
+    bool operator==(std::string_view compare) {
+        return value == compare;
+    }
+};
 
 namespace Wt {
 
@@ -91,6 +203,9 @@ enum class Property { InnerHTML, AddedInnerHTML,
 
 		/* Keep as last, e.g. for bitset sizing. Otherwise, unused. */
 		LastPlusOne };
+using PropPair = std::pair<Property, std::string>;
+using propList = std::initializer_list<std::pair<const Wt::Property, std::string>>;
+using attribList = std::initializer_list<std::pair<const std::string, std::string>>;
 
 /*! \class DomElement web/DomElement web/DomElement
  *  \brief Class to represent a client-side DOM element (proxy).
@@ -113,11 +228,11 @@ public:
 
 #ifndef WT_TARGET_JAVA
   /*! \brief A map for property values */
-  typedef std::map<Wt::Property, std::string> PropertyMap;
+  //typedef std::unordered_map<Wt::Property, std::string> PropertyMap;
+  typedef boost::unordered::unordered_flat_map<Wt::Property, std::string> PropertyMap;
 #else
   typedef std::treemap<Wt::Property, std::string> PropertyMap;
 #endif
-
   /*! \brief Constructor.
    *
    * This constructs a DomElement reference, with a given mode and
@@ -132,6 +247,18 @@ public:
    */
   DomElement(Mode mode, DomElementType type);
 
+
+  DomElement(Mode mode, DomElementType type, std::string id, bool isId = true) : DomElement(mode, type)
+  { if(isId) id_ = id; else var_ = id; }
+
+  DomElement(Mode mode, DomElementType type, const std::span<const PropPair> prop, const attribList& attrib = {}, const std::string& id = "");
+
+  DomElement(Mode mode, DomElementType type, DomElement&& child, const std::span<const PropPair> prop = {}, const attribList& attrib = {}, const std::string& id = "") : DomElement(mode, type, prop, attrib, id)
+  { addChild(std::forward<DomElement>(child)); }
+
+  DomElement(DomElement&&) noexcept = default;  // Move constructor
+
+  DomElement& operator=(DomElement&&) noexcept = default;  // Move assignment operator
   /*! \brief Destructor.
    */
   ~DomElement();
@@ -174,23 +301,23 @@ public:
 
   /*! \brief Creates a reference to a new element.
    */
-  static DomElement *createNew(DomElementType type);
+  static DomElement createNew(DomElementType type);
 
   /*! \brief Creates a reference to an existing element, using its ID.
    */
-  static DomElement *getForUpdate(const std::string& id, DomElementType type);
+  static DomElement getForUpdate(const std::string& id, DomElementType type);
 
   /*! \brief Creates a reference to an existing element, deriving the ID from
    *         an object.
    *
    * This uses object->id() as the id.
    */
-  static DomElement *getForUpdate(const WObject *object, DomElementType type);
+  static DomElement getForUpdate(const WObject *object, DomElementType type);
 
   /*! \brief Creates a reference to an existing element, using an expression
    *         to access the element.
    */
-  static DomElement *updateGiven(const std::string& el, DomElementType type);
+  static DomElement updateGiven(const std::string& el, DomElementType type);
 
   /*! \brief Returns the JavaScript variable name.
    *
@@ -212,14 +339,18 @@ public:
    * child should not be manipulated after the call, since it could be
    * that it gets directly converted into HTML and deleted.
    */
-  void addChild(DomElement *child);
+  void addChild(DomElement &&child);
 
+  //template <typename DomElement>
+  void addChild(DomElement& child) {
+      addChild(std::move(child));
+  }
   /*! \brief Inserts a child.
    *
    * Ownership of the child is transferred to this element, and the child
    * should not be manipulated after the call.
    */
-  void insertChildAt(DomElement *child, int pos);
+  void insertChildAt(DomElement &child, int pos);
 
   /*! \brief Saves an existing child.
    *
@@ -232,7 +363,44 @@ public:
 
   /*! \brief Sets an attribute value.
    */
-  void setAttribute(const std::string& attribute, const std::string& value);
+  // void setAttribute(const std::string& attribute, const std::string& value, bool isEscaped = false)
+  // {
+  //     ++numManipulations_;
+  //     attributes_[attribute] = EscapedString(value, isEscaped);
+  //     removedAttributes_.erase(attribute);
+  // }
+
+  template <typename T>
+  requires (StringLiteral<T> || StdString<T>)
+  void setAttribute(const std::string& attribute, T&& value, bool isEscaped = false) {
+      if constexpr (StringLiteral<T>) { //literal char[]
+          ++numManipulations_;
+          attributes_.emplace(attribute, EscapedString(CONSTEXPR_JS_ESCAPED(value)));
+          removedAttributes_.erase(attribute);
+      } else {
+          ++numManipulations_;
+          attributes_.emplace(attribute, EscapedString(value, isEscaped));
+          removedAttributes_.erase(attribute);
+      }
+  }
+
+  // void setAttribute(const std::string& attribute, EscapedString&& value)
+  // {
+  //     ++numManipulations_;
+  //     attributes_.emplace(attribute, std::move(value));
+  //     removedAttributes_.erase(attribute);
+  // }
+
+  template<typename T>
+  requires std::is_arithmetic_v<T>
+  void setAttribute(const std::string& attribute, T value) {
+      // if constexpr (std::integral<T>) {
+      // }
+      // else {
+      //     setAttribute(attribute, fmt::format("{:.2}", value), true);
+      // }
+      setAttribute(attribute, fmt::format("{}", std::forward<T>(value)), true);
+  }
 
   /*! \brief Returns an attribute value set.
    *
@@ -246,7 +414,30 @@ public:
 
   /*! \brief Sets a property.
    */
-  void setProperty(Wt::Property property, const std::string& value);
+  void setProperty(Wt::Property property, std::string_view value)
+  {
+      ++numManipulations_;
+      properties_[property] = value;
+
+      if (property >= Property::StyleMinWidth && property <= Property::StyleMaxHeight)
+          minMaxSizeProperties_ = true;
+
+
+      switch (property) {
+      case Property::Style:
+
+          break;
+      default:
+          break;
+      }
+
+      if(property >= Property::Style)
+          hasCssRules_ = true;
+
+      // if (static_cast<unsigned int>(property) >= static_cast<unsigned int>(Property::Style))
+      //       hasCssRules_ = true;
+
+  }
 
   /*! \brief Adds a 'word' to a property.
    *
@@ -335,12 +526,47 @@ public:
 
   /*! \brief Calls a JavaScript method on the DOM element.
    */
-  void callMethod(const std::string& method);
+  //void callMethod(const std::string& method);
+
+  void callMethod(std::string_view method);
+
+  template <typename... Args>
+  FMT_INLINE void callMethod(fmt::format_string<Args...> method, Args&&... args) {
+      ++numManipulations_;
+
+      if (var_.empty())
+          fmt::format_to(std::back_inserter(javaScript_), "{}.$('{}').", WT_CLASS, id_, method);
+      else
+          fmt::format_to(std::back_inserter(javaScript_), "{}.", var_, method);
+
+      fmt::format_to(std::back_inserter(javaScript_), method, std::forward<Args...>(args...));
+      fmt::format_to(std::back_inserter(javaScript_), ";\n");
+  }
 
   /*! \brief Calls JavaScript (related to the DOM element).
    */
-  void callJavaScript(const std::string& javascript,
-		      bool evenWhenDeleted = false);
+  void callJavaScript(const std::string& javascript, bool evenWhenDeleted = false);
+
+  template<bool evenWhenDeleted = false, typename... Args>
+  void callJavaScript(fmt::format_string<Args...> javascript, Args&&... args) {
+      ++numManipulations_;
+      if constexpr (!evenWhenDeleted) {
+          fmt::format_to(std::back_inserter(javaScript_), javascript, fmt::make_format_args(args...));
+          fmt::format_to(std::back_inserter(javaScript_), "\n");
+      }
+      else
+          fmt::format_to(std::back_inserter(javaScriptEvenWhenDeleted_), javascript, fmt::make_format_args(args...));
+  }
+  template<bool evenWhenDeleted = false, typename... Args>
+  void callJavaScript(const char* javascript, Args&&... args) {
+      ++numManipulations_;
+      if constexpr (!evenWhenDeleted) {
+          fmt::format_to(std::back_inserter(javaScript_), FMT_COMPILE(javascript), std::forward<Args...>(args...));
+          fmt::format_to(std::back_inserter(javaScript_), "\n");
+      }
+      else
+          fmt::format_to(std::back_inserter(javaScriptEvenWhenDeleted_), javascript, std::forward<Args...>(args...));
+  }
 
   /*! \brief Returns the id.
    */
@@ -359,7 +585,10 @@ public:
 
   /*! \brief Replaces the element by another element.
    */
-  void replaceWith(DomElement *newElement);
+  //template<typename DomElement>
+  void replaceWith(DomElement&& newElement);
+
+  //void replaceWith(std::unique_ptr<DomElement> newElement);
 
   /*! \brief Unstubs an element by another element.
    *
@@ -368,7 +597,7 @@ public:
    * except that some style properties are copied over (most
    * importantly its visibility).
    */
-  void unstubWith(DomElement *newElement, bool hideWithDisplay);
+  void unstubWith(DomElement&& newElement, bool hideWithDisplay);
 
   /*! \brief Inserts the element in the DOM as a new sibling.
    */
@@ -405,6 +634,8 @@ public:
   /*! \brief Renders the element as JavaScript.
    */
   void asJavaScript(WStringStream& out);
+  void asJavaScript(fmt::memory_buffer& out);
+
 
   /*! \brief Renders the element as JavaScript, by phase.
    *
@@ -414,19 +645,22 @@ public:
    * finally updates to existing elements.
    */
   std::string asJavaScript(EStream& out, Priority priority) const;
+  std::string asJavaScript(fmt::memory_buffer& out, Priority priority) const;
+
 
   /*! \brief Renders the element as HTML.
    *
    * Anything that cannot be rendered as HTML is rendered as
    * javaScript as a by-product.
    */
-  void asHTML(EStream& out, EStream& javaScript,
-	      TimeoutList& timeouts, bool openingTagOnly = false) const;
+  void asHTML(EStream& out, EStream& javaScript, TimeoutList& timeouts, bool openingTagOnly = false) const;
 
-  /*! \brief Creates the JavaScript statements for timer rendering.
+  void asHTML(fmt::memory_buffer& out, fmt::memory_buffer& javaScript, TimeoutList& timeouts, bool openingTagOnly = false) const;
+
+   /*! \brief Creates the JavaScript statements for timer rendering.
    */
-  static void createTimeoutJs(WStringStream& out, const TimeoutList& timeouts,
-			      WApplication *app);
+  static void createTimeoutJs(WStringStream& out, const TimeoutList& timeouts, WApplication *app);
+  static void createTimeoutJs(fmt::memory_buffer& out, const TimeoutList& timeouts, WApplication *app);
 
   /*! \brief Returns the default display property for this element.
    *
@@ -442,9 +676,13 @@ public:
    */
   void declare(EStream& out) const;
 
+  void declare(fmt::memory_buffer& out) const;
+
   /*! \brief Renders properties and attributes into CSS.
    */
   std::string cssStyle() const;
+
+  void cssStyle(fmt::memory_buffer& out) const;
 
   /*! \brief Utility for rapid rendering of JavaScript strings.
    *
@@ -470,8 +708,8 @@ public:
    * value.
    */
   static void fastHtmlAttributeValue(EStream& outRaw,
-				     const EStream& outEscaped,
-				     const std::string& s);
+                                     const EStream& outEscaped,
+                                     const std::string& s);
 
   /*! \brief Utility that renders a string as HTML attribute.
    */
@@ -503,7 +741,7 @@ public:
 
   /*! \brief Returns all custom JavaScript collected in this element.
    */
-  std::string javaScript() const { return javaScript_.str(); }
+  std::string_view javaScript() const { return std::string_view(javaScript_); }
 
   /*! \brief Something to do with broken IE Mobile 5 browsers...
    */
@@ -515,13 +753,13 @@ public:
    * particular for table cells, some browsers require dedicated API
    * instead of generic insertAt() or appendChild() functions.
    */
-  std::string addToParent(WStringStream& out, const std::string& parentVar,
-			  int pos, WApplication *app);
+  std::string addToParent(WStringStream& out, const std::string& parentVar, int pos, WApplication *app);
+  std::string addToParent(fmt::memory_buffer& out, const std::string& parentVar, int pos, WApplication *app);
+
 
   /*! \brief Renders the element as JavaScript, and inserts it in the DOM.
    */
-  void createElement(WStringStream& out, WApplication *app,
-		     const std::string& domInsertJS);
+  void createElement(WStringStream& out, WApplication *app, const std::string& domInsertJS);
 
   /*! \brief Allocates a JavaScript variable.
    */
@@ -539,9 +777,13 @@ private:
       : jsCode(j), signalName(sn) { }
   };
 
-  typedef std::map<std::string, std::string> AttributeMap;
-  typedef std::set<std::string> AttributeSet;
-  typedef std::map<const char *, EventHandler> EventHandlerMap;
+  typedef boost::unordered_flat_map<std::string, EscapedString> AttributeMap;
+  typedef boost::unordered_flat_set<std::string> AttributeSet;
+  typedef boost::unordered_flat_map<const char *, EventHandler> EventHandlerMap;
+
+  // typedef std::unordered_map<std::string, std::string> AttributeMap;
+  // typedef std::unordered_set<std::string> AttributeSet;
+  // typedef std::unordered_map<const char *, EventHandler> EventHandlerMap;
 
   bool willRenderInnerHtmlJS(WApplication *app) const;
   bool canWriteInnerHTML(WApplication *app) const;
@@ -549,34 +791,46 @@ private:
   void processEvents(WApplication *app) const;
   void processProperties(WApplication *app) const;
   void setJavaScriptProperties(EStream& out, WApplication *app) const;
+  void setJavaScriptProperties(fmt::memory_buffer& out, WApplication *app) const;
+
   void setJavaScriptAttributes(EStream& out) const;
+  void setJavaScriptAttributes(fmt::memory_buffer& out) const;
   void setJavaScriptEvent(EStream& out, const char *eventName,
 			  const EventHandler& handler, WApplication *app) const;
-  void createElement(EStream& out, WApplication *app,
-		     const std::string& domInsertJS);
-  std::string addToParent(EStream& out, const std::string& parentVar,
-			  int pos, WApplication *app);
+  void setJavaScriptEvent(fmt::memory_buffer& out, const char *eventName,
+                          const EventHandler& handler, WApplication *app) const;
+  void createElement(EStream& out, WApplication *app, const std::string& domInsertJS);
+  void createElement(fmt::memory_buffer& out, WApplication *app, std::string_view domInsertJS);
+
+  std::string addToParent(EStream& out, const std::string& parentVar, int pos, WApplication *app);
   std::string createAsJavaScript(EStream& out,
-				 const std::string& parentVar, int pos,
-				 WApplication *app);
+                                 const std::string& parentVar, int pos,
+                                 WApplication *app);
   void renderInnerHtmlJS(EStream& out, WApplication *app) const;
   void renderDeferredJavaScript(EStream& out) const;
 
+  void renderInnerHtmlJS(fmt::memory_buffer& out, WApplication *app) const;
+  void renderDeferredJavaScript(fmt::memory_buffer& out) const;
+
   Mode         mode_;
   bool         wasEmpty_;
+  bool	       hasCssRules_ = false;
+  mutable bool	       needButtonWrap_;
   int	       removeAllChildren_;
   bool         hideWithDisplay_;
   bool         minMaxSizeProperties_;
   bool         unstubbed_;
   bool         unwrapped_;
-  DomElement  *replaced_;        // when replaceWith() is called
+  std::unique_ptr<DomElement> replaced_;        // when replaceWith() is called
   DomElement  *insertBefore_;
   DomElementType type_;
   std::string  id_;
+  mutable std::string innerHTML_; //for fmt
   int          numManipulations_;
   int          timeOut_;
   int          timeOutJSRepeat_;
-  EStream      javaScript_;
+  fmt::memory_buffer    javaScript_;
+  EStream      javaScript3_;
   std::string  javaScriptEvenWhenDeleted_;
   mutable std::string var_;
   mutable bool declared_;
@@ -587,18 +841,20 @@ private:
   PropertyMap     properties_;
   EventHandlerMap eventHandlers_;
 
-  struct ChildInsertion {
-    int pos;
-    DomElement *child;
+  // struct ChildInsertion {
+  //   int pos;
+  //   DomElement child;
 
-    ChildInsertion() : pos(0), child(nullptr) { }
-    ChildInsertion(int p, DomElement *c) : pos(p), child(c) { }
-  };
+  //   ChildInsertion() : pos(0), child(nullptr) { }
+  //   ChildInsertion(int p, DomElement &&c) : pos(p), child(std::move(c)) { }
+  // };
+  struct ChildInsertion;  // Forward declaration
 
   std::vector<ChildInsertion> childrenToAdd_;
   std::vector<std::string> childrenToSave_;
-  std::vector<DomElement *> updatedChildren_;
-  EStream childrenHtml_;
+  std::vector<DomElement> updatedChildren_;
+  fmt::memory_buffer childrenHtml_;
+  EStream childrenHtml2_;
   TimeoutList timeouts_;
   std::string elementTagName_;
 
@@ -609,8 +865,131 @@ private:
 #endif
 
   friend class WCssDecorationStyle;
+  friend struct fmt::formatter<const Wt::DomElement*>;
+  friend struct fmt::formatter<std::tuple<const std::vector<Wt::DomElement::ChildInsertion>&, fmt::memory_buffer&, fmt::memory_buffer&, std::vector<Wt::DomElement::TimeoutEvent>&>>;
+  friend struct fmt::formatter<std::tuple<const Wt::DomElement&, fmt::memory_buffer&, fmt::memory_buffer&, std::vector<Wt::DomElement::TimeoutEvent>&>>;
+};
+struct DomElement::ChildInsertion {
+    int pos = 0;
+    DomElement child;
+
+    //ChildInsertion() : pos(0), child() { }
+    ChildInsertion(int p, DomElement &&c) : pos(p), child(std::move(c)) { }
 };
 
 }
 
+struct JsString {
+    std::string_view value;
+    explicit JsString(std::string_view sv) : value(sv) {}
+};
+
+// Formatter specialization for JsStringView with special tags
+template <>
+struct fmt::formatter<JsString> {
+    char jstype = 0; // Default to double quote escaping
+    char htmltype = 0;
+    RuleSet jsrule, htmlrule;
+    // Parse format specifiers (e.g., {d} for double quote, {s} for single quote)
+    constexpr auto parse(format_parse_context& ctx) {
+        auto it = ctx.begin(), end = ctx.end();
+        if (it != end && (*it == 'd' || *it == 's')) {
+            if(*it == 'd')
+                jsrule = RuleSet::JsStringLiteralDQuote;
+            else if(*it == 's')
+                jsrule = RuleSet::JsStringLiteralSQuote;
+            jstype = *it++;
+        }
+        if(it != end && (*it == 'h' || *it == 'p' || *it == 'n')) {
+            if(*it == 'h')
+                htmlrule = RuleSet::HtmlAttribute;
+            else if(*it == 'p')
+                htmlrule = RuleSet::PlainText;
+            else if(*it == 'n')
+                htmlrule = RuleSet::PlainTextNewLines;
+            htmltype = *it++;
+        }
+        if (it != end && *it != '}') {
+            throw format_error("invalid format specifier");
+        }
+        return it;
+    }
+
+    // Format based on specifier
+    template <typename FormatContext>
+    auto format(const JsString& jsv, FormatContext& ctx) const {
+        std::string escaped;
+        auto out = ctx.out();
+
+        if(jstype && !htmltype) {
+            if(jstype == 's') {
+                using Escaper = MixedRules<RuleSet::JsStringLiteralSQuote>;
+                Escaper::escape(jsv.value, escaped);
+                return fmt::format_to(out, "\'{}\'", escaped);
+            }
+            else {
+                using Escaper = MixedRules<RuleSet::JsStringLiteralDQuote>;
+                Escaper::escape(jsv.value, escaped);
+                return fmt::format_to(out, "\'{}\'", escaped);
+            }
+        }
+        else if(htmltype && !jstype) {
+            if(htmltype == 'h') {
+                using Escaper = MixedRules<RuleSet::HtmlAttribute>;
+                Escaper::escape(jsv.value, escaped);
+                return fmt::format_to(out, "{}", escaped);
+            }
+            else if(htmltype == 'p') {
+                using Escaper = MixedRules<RuleSet::PlainText>;
+                Escaper::escape(jsv.value, escaped);
+                return fmt::format_to(out, "{}", escaped);
+            }
+            else {
+                using Escaper = MixedRules<RuleSet::PlainTextNewLines>;
+                Escaper::escape(jsv.value, escaped);
+                return fmt::format_to(out, "{}", escaped);
+            }
+        }
+        else if(htmltype && jstype) {
+            if(htmltype == 'h') {
+                if(jstype == 's') {
+                    using Escaper = MixedRules<RuleSet::HtmlAttribute, RuleSet::JsStringLiteralSQuote>;
+                    Escaper::escape(jsv.value, escaped);
+                    return fmt::format_to(out, "{}", escaped);
+                }
+                else {
+                    using Escaper = MixedRules<RuleSet::HtmlAttribute, RuleSet::JsStringLiteralDQuote>;
+                    Escaper::escape(jsv.value, escaped);
+                    return fmt::format_to(out, "{}", escaped);
+                }
+            }
+            else if(htmltype == 'p') {
+                if(jstype == 's') {
+                    using Escaper = MixedRules<RuleSet::PlainText, RuleSet::JsStringLiteralSQuote>;
+                    Escaper::escape(jsv.value, escaped);
+                    return fmt::format_to(out, "{}", escaped);
+                }
+                else {
+                    using Escaper = MixedRules<RuleSet::PlainText, RuleSet::JsStringLiteralDQuote>;
+                    Escaper::escape(jsv.value, escaped);
+                    return fmt::format_to(out, "{}", escaped);
+                }
+            }
+            else {
+                if(jstype == 's') {
+                    using Escaper = MixedRules<RuleSet::PlainTextNewLines, RuleSet::JsStringLiteralSQuote>;
+                    Escaper::escape(jsv.value, escaped);
+                    return fmt::format_to(out, "{}", escaped);
+                }
+                else {
+                    using Escaper = MixedRules<RuleSet::PlainTextNewLines, RuleSet::JsStringLiteralDQuote>;
+                    Escaper::escape(jsv.value, escaped);
+                    return fmt::format_to(out, "{}", escaped);
+                }
+            }
+        }
+        //if no parameter
+        return fmt::format_to(out, "{}", jsv.value);
+    }
+};
 #endif // DOMELEMENT_H_

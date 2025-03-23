@@ -32,4 +32,12 @@ void WTheme::serveCss(WStringStream& out) const
     sheets[i].cssText(out);
 }
 
+void WTheme::serveCss(fmt::memory_buffer& out) const
+{
+    std::vector<WLinkedCssStyleSheet> sheets = styleSheets();
+
+    for (unsigned i = 0; i < sheets.size(); ++i)
+        sheets[i].cssText(out);
+}
+
 }

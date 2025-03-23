@@ -55,7 +55,7 @@ WContainerWidget::~WContainerWidget()
 #ifndef WT_NO_LAYOUT
 StdLayoutImpl *WContainerWidget::layoutImpl() const
 {
-  return dynamic_cast<StdLayoutImpl *>(layout_->impl());
+  return static_cast<StdLayoutImpl *>(layout_->impl());
 }
 #endif // WT_NO_LAYOUT
 
@@ -570,15 +570,15 @@ DomElementType WContainerWidget::domElementType() const
   return type;
 }
 
-void WContainerWidget::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WContainerWidget::getDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
-  DomElement *e = DomElement::getForUpdate(this, domElementType());
+  DomElement e = DomElement::getForUpdate(this, domElementType());
 
 #ifndef WT_NO_LAYOUT
   if (!app->session()->renderer().preLearning()) {
     if (flags_.test(BIT_LAYOUT_NEEDS_RERENDER)) {
-      e->removeAllChildren(firstChildIndex());
-      createDomChildren(*e, app);
+      e.removeAllChildren(firstChildIndex());
+      createDomChildren(e, app);
 
       flags_.reset(BIT_LAYOUT_NEEDS_RERENDER);
       flags_.reset(BIT_LAYOUT_NEEDS_UPDATE);
@@ -586,26 +586,26 @@ void WContainerWidget::getDomChanges(std::vector<DomElement *>& result, WApplica
   }
 #endif // WT_NO_LAYOUT
 
-  updateDomChildren(*e, app);
+  updateDomChildren(e, app);
 
-  updateDom(*e, false);
+  updateDom(e, false);
 
-  result.push_back(e);
+  result.push_back(std::move(e));
 }
 
-DomElement * WContainerWidget::createDomElement(WApplication *app)
+DomElement WContainerWidget::createDomElement(WApplication *app)
 {
   return createDomElement(app, true);
 }
 
-DomElement * WContainerWidget::createDomElement(WApplication *app, bool addChildren)
+DomElement WContainerWidget::createDomElement(WApplication *app, bool addChildren)
 {
   addedChildren_.reset();
 
-  DomElement *result = WWebWidget::createDomElement(app);
+  DomElement result = WWebWidget::createDomElement(app);
 
   if (addChildren)
-    createDomChildren(*result, app);
+    createDomChildren(result, app);
 
   return result;
 }
@@ -618,11 +618,10 @@ void WContainerWidget::createDomChildren(DomElement& parent, WApplication *app)
     bool fitWidth = true;
     bool fitHeight = true;
 
-    DomElement *c = layoutImpl()->createDomElement(&parent,
-						   fitWidth, fitHeight, app);
-
-    if (c != &parent)
-      parent.addChild(c);
+    if(!layoutImpl()->checkParent(&parent, app)) {
+        DomElement c = layoutImpl()->createDomElement(&parent, fitWidth, fitHeight, app);
+        parent.addChild(c);
+    }
 
     flags_.reset(BIT_LAYOUT_NEEDS_RERENDER);
     flags_.reset(BIT_LAYOUT_NEEDS_UPDATE);
@@ -660,7 +659,7 @@ void WContainerWidget::updateDomChildren(DomElement& parent, WApplication *app)
 	for (unsigned i = 0; i < orderedInserts.size(); ++i) {
 	  int pos = orderedInserts[i];
 	
-	  DomElement *c = (children_)[pos]->createSDomElement(app);
+      DomElement c = (children_)[pos]->createSDomElement(app);
 
 	  if (pos + (addedCount - insertCount) == totalCount)
 	    parent.addChild(c);
@@ -700,29 +699,26 @@ void WContainerWidget::layoutChanged(bool rerender)
 #endif // WT_NO_LAYOUT
 }
 
-void WContainerWidget::rootAsJavaScript(WApplication *app, WStringStream& out,
-					bool all)
+void WContainerWidget::rootAsJavaScript(WApplication *app, WStringStream& out, bool all)
 {
   std::vector<WWidget *> *toAdd = all ? &children_ : addedChildren_.get();
 
-  if (toAdd)
-    for (unsigned i = 0; i < toAdd->size(); ++i) {
-      DomElement *c = (*toAdd)[i]->createSDomElement(app);
+    if (toAdd)
+        for (unsigned i = 0; i < toAdd->size(); ++i) {
+            DomElement c = (*toAdd)[i]->createSDomElement(app);
 
-      app->streamBeforeLoadJavaScript(out, false);
+            app->streamBeforeLoadJavaScript(out, false);
 
-      c->callMethod("omousemove=function(e) {"
-		    "if (!e) e = window.event;"
-		    "return " + app->javaScriptClass()
-		    + "._p_.dragDrag(event); }");
-      c->callMethod("mouseup=function(e) {"
-		    "if (!e) e = window.event;"
-		    "return " + app->javaScriptClass()
-		  + "._p_.dragEnd(event);}");
-      c->callMethod("dragstart=function(){return false;}");
-      c->asJavaScript(out);
-      delete c;
-    }
+            c.callMethod("omousemove=function(e) {{"
+                         "if (!e) e = window.event;"
+                         "return {}._p_.dragDrag(event); }}", app->javaScriptClass());
+            c.callMethod("mouseup=function(e) {{"
+                         "if (!e) e = window.event;"
+                         "return {}._p_.dragEnd(event);}}", app->javaScriptClass());
+            c.callMethod("dragstart=function(){return false;}");
+            c.asJavaScript(out);
+            //delete c;
+        }
 
   addedChildren_.reset();
 
@@ -732,6 +728,37 @@ void WContainerWidget::rootAsJavaScript(WApplication *app, WStringStream& out,
 
   // FIXME
   propagateRenderOk(false);
+}
+
+void WContainerWidget::rootAsJavaScript(WApplication *app, fmt::memory_buffer &out, bool all)
+{
+    std::vector<WWidget *> *toAdd = all ? &children_ : addedChildren_.get();
+
+    if (toAdd)
+        for (unsigned i = 0; i < toAdd->size(); ++i) {
+            DomElement c = (*toAdd)[i]->createSDomElement(app);
+
+            app->streamBeforeLoadJavaScript(out, false);
+
+            c.callMethod("omousemove=function(e) {{"
+                         "if (!e) e = window.event;"
+                         "return {}._p_.dragDrag(event); }}", app->javaScriptClass());
+            c.callMethod("mouseup=function(e) {{"
+                         "if (!e) e = window.event;"
+                         "return {}._p_.dragEnd(event);}}", app->javaScriptClass());
+            c.callMethod("dragstart=function(){return false;}");
+            c.asJavaScript(out);
+            //delete c;
+        }
+
+    addedChildren_.reset();
+
+    if (!all) {
+        /* Note: we ignore rendering of deletion of a bound widget... */
+    }
+
+    // FIXME
+    propagateRenderOk(false);
 }
 
 void WContainerWidget::setGlobalUnfocused(bool b)

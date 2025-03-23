@@ -49,6 +49,137 @@
 #define RETHROW(e) throw
 #endif
 
+namespace fmt {
+
+struct HtmlAttribute {
+    std::string_view name;
+    std::string_view value;
+
+    HtmlAttribute(std::string_view n, std::string_view v) : name(n), value(v) {}
+};
+struct Favicon {
+    std::string_view url;
+
+    Favicon(std::string_view u) : url(u){}
+};
+struct Baseurl {
+    std::string_view url;
+
+    Baseurl(std::string_view u) : url(u){}
+};
+template <>
+struct formatter<Favicon> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const Favicon& f, FormatContext& ctx) {
+        auto out = ctx.out();
+        if(f.url.empty())
+            return out;
+
+        return fmt::format_to(out, FMT_COMPILE("<link rel=\"shortcut icon\" href=\"{}\">\n"), f.url);
+    }
+};
+template <>
+struct formatter<Baseurl> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const Baseurl& f, FormatContext& ctx) {
+        auto out = ctx.out();
+        if(f.url.empty())
+            return out;
+
+        return fmt::format_to(out, FMT_COMPILE("<base href=\"{}\">\n"), f.url);
+    }
+};
+
+template <>
+struct formatter<HtmlAttribute> {
+    using Parser = MixedRules<RuleSet::HtmlAttribute>;
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const HtmlAttribute& a, FormatContext& ctx) {
+        auto out = ctx.out();
+        if(a.value.empty())
+            return out;
+
+        std::string escapedvalue;
+        Parser::escape(a.value, escapedvalue);
+        return fmt::format_to(out, FMT_COMPILE(" {}=\"{}\""), a.name, escapedvalue);
+    }
+
+};
+
+template <>
+struct formatter<Wt::MetaHeader> {
+    using Parser = MixedRules<RuleSet::HtmlAttribute>;
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const Wt::MetaHeader& m, FormatContext& ctx) {
+        auto out = ctx.out();
+
+        std::string_view attribute;
+        switch (m.type) {
+        case Wt::MetaHeaderType::Meta: attribute = "name"; break;
+        case Wt::MetaHeaderType::Property: attribute = "property"; break;
+        case Wt::MetaHeaderType::HttpHeader: attribute = "http-equiv"; break;
+        }
+
+        return fmt::format_to(out, FMT_COMPILE("<meta{}{}{}>\n"),
+                              HtmlAttribute(attribute, m.name),
+                              HtmlAttribute("lang", m.lang),
+                              HtmlAttribute("content", m.content));
+
+
+        // std::string escapedattribute;
+        // Parser::escape(m.name, escapedattribute);
+
+        // std::string escapedlang;
+        // Parser::escape(m.lang, escapedlang);
+
+        // std::string escapedcontent;
+        // Parser::escape(m.content, escapedcontent);
+
+        // if (!m.name.empty()&&!m.lang.empty())
+        // {
+        //     return fmt::format_to(out, FMT_COMPILE("<meta {}=\"{}\" lang=\"{}\" content=\"{}\">"), escapedattribute, escapedlang, escapedcontent);
+        // }
+        // else if (!m.name.empty())
+        // {
+        //     return fmt::format_to(out, FMT_COMPILE("<meta {}=\"{}\" content=\"{}\">"), escapedattribute, escapedcontent);
+        // }
+        // else if (!m.lang.empty())
+        // {
+        //     return fmt::format_to(out, FMT_COMPILE("<meta lang=\"{}\" content=\"{}\">"), escapedlang, escapedcontent);
+        // }
+        // return fmt::format_to(out, FMT_COMPILE("<meta content=\"{}\">"), escapedcontent);
+    }
+};
+
+template <>
+struct formatter<Wt::WApplication::MetaLink> {
+    using Parser = MixedRules<RuleSet::HtmlAttribute>;
+
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const Wt::WApplication::MetaLink& ml, FormatContext& ctx) {
+        auto out = ctx.out();
+        return fmt::format_to(out, FMT_COMPILE("<link{}{}{}{}{}{}{}>\n"),
+                              HtmlAttribute("href", ml.href),
+                              HtmlAttribute("rel", ml.rel),
+                              HtmlAttribute("media", ml.media),
+                              HtmlAttribute("hreflang", ml.hreflang),
+                              HtmlAttribute("type", ml.type),
+                              HtmlAttribute("sizes", ml.sizes),
+                              ml.disabled ? "disabled=\"\"" : "");
+    }
+};
+}
+
 namespace {
 
   bool isAbsoluteUrl(const std::string& url) {
@@ -73,14 +204,326 @@ namespace {
     s << ">\n";
   }
 }
+  template<std::size_t size = 0>
+  struct ParsedTemplate {
+      std::array<char, size> format_str;              // The format string with placeholders
+      std::array<std::string_view, 10> blocks;  // Array for up to 10 conditional blocks
+      size_t num_blocks;                        // Number of blocks actually found
+  };
+  constexpr std::string_view if_delim = "_$_$if_";  // Start delimiter
+  constexpr std::string_view ifend_delim = "_$_()";  // Start delimiter
+  constexpr std::string_view endif_delim = "_$_$endif_$_()"; // End delimiter
 
+  // Helper to find the next delimiter position
+  consteval size_t find_next_delimiter(std::string_view sv, size_t start, const auto& delimiters) {
+      size_t min_pos = sv.size();
+      for (const auto& delim : delimiters) {
+          size_t pos = sv.find(delim, start);
+          if (pos != std::string_view::npos && pos < min_pos) {
+              min_pos = pos;
+          }
+      }
+      return min_pos == sv.size() ? sv.size() : min_pos;
+  }
+
+  // Helper to count the number of splits
+  consteval size_t count_splits(std::string_view sv, const auto& delimiters) {
+      size_t count = 1; // At least one part
+      size_t pos = 0;
+      while (pos < sv.size()) {
+          size_t next = find_next_delimiter(sv, pos, delimiters);
+          if (next == sv.size()) break;
+          count++;
+          pos = next + delimiters[0].size(); // Move past the delimiter (assuming uniform size)
+      }
+      return count;
+  }
+
+  // Main function to split the string into std::array<std::string_view, N>
+  template <size_t N>
+  consteval auto split_template(std::string_view sv, const auto& delimiters) {
+      std::array<std::string_view, N> result{};
+      size_t index = 0;
+      size_t start = 0;
+      while (start < sv.size() && index < N) {
+          size_t next = find_next_delimiter(sv, start, delimiters);
+          result[index++] = sv.substr(start, next - start);
+          if (next == sv.size()) break;
+          start = next + delimiters[0].size(); // Move past the delimiter
+      }
+      return result;
+  }
+  // Compute the size of the resulting array at compile time
+  template<std::size_t balise = 2>
+  consteval auto compute_size(std::string_view sv) -> std::tuple<std::size_t, std::size_t, std::size_t>
+  {
+      size_t total_size = 0;
+      size_t without_size = 0;
+      size_t balise_size = 0;
+
+      size_t pos = 0;
+
+      while (pos < sv.size()) {
+          size_t if_pos = sv.find(if_delim, pos);
+          if (if_pos == std::string_view::npos) {
+              // No more if blocks, add remaining length
+              total_size += sv.size() - pos;
+              without_size += sv.size() - pos;
+              balise_size += sv.size() - pos;
+              break;
+          }
+          // Add length of static content before the if block
+          total_size += if_pos - pos;
+          without_size += if_pos - pos;
+          balise_size += if_pos - pos + balise; // Add length of the placeholder
+
+          // Find the matching endif
+          size_t endif_pos = sv.find(endif_delim, if_pos + if_delim.size());
+          if (endif_pos == std::string_view::npos) {
+              // No matching endif, treat rest as static content
+              without_size += sv.size() - if_pos;
+              total_size += sv.size() - if_pos;
+              balise_size += sv.size() - if_pos;
+              break;
+          }
+
+          if(auto block_pos = sv.find(ifend_delim, if_pos + if_delim.size()); block_pos != std::string_view::npos) {
+              // Add length of the block
+              total_size += endif_pos - block_pos;
+              //total_size -= endif_delim.size(); // Remove the placeholder size
+          }
+
+
+          // Move position past the endif delimiter
+          pos = endif_pos + endif_delim.size();
+      }
+      return {without_size+1, total_size+1, balise_size+1};
+  }
+  // Build the constexpr array by copying static parts
+  template <size_t without, size_t with>
+  consteval auto build_array(std::string_view sv) -> std::pair<std::array<char, without>, std::array<char, with>>
+  {
+      std::array<char, without> arr0{'\0'};
+      std::array<char, with> arr1{'\0'};
+      size_t dest_pos = 0;
+      size_t dest_pos1 = 0;
+      size_t pos = 0;
+
+      while (pos < sv.size()) {
+          size_t if_pos = sv.find(if_delim, pos);
+          if (if_pos == std::string_view::npos) {
+              // Copy remaining content
+              for (size_t i = pos; i < sv.size(); ++i) {
+                  arr0[dest_pos++] = sv[i];
+                  arr1[dest_pos1++] = sv[i];
+              }
+              break;
+          }
+          // Copy content before the if block
+          for (size_t i = pos; i < if_pos; ++i) {
+              arr0[dest_pos++] = sv[i];
+              arr1[dest_pos1++] = sv[i];
+          }
+          // Find the matching endif
+          size_t endif_pos = sv.find(endif_delim, if_pos + if_delim.size());
+          if (endif_pos == std::string_view::npos) {
+              // Copy rest if no endif found
+              for (size_t i = if_pos; i < sv.size(); ++i) {
+                  arr0[dest_pos++] = sv[i];
+                  arr1[dest_pos1++] = sv[i];
+              }
+              break;
+          }
+          if(size_t block_pos = sv.find(ifend_delim, if_pos + if_delim.size()); block_pos != std::string_view::npos) {
+              // Add length of the block
+              size_t vp = block_pos + ifend_delim.size();
+              for(size_t i = vp; i < endif_pos; ++i) {
+                  //arr1[dest_pos1++] = sv[i];
+              }
+          }
+          // Skip the conditional block
+          pos = endif_pos + endif_delim.size();
+      }
+      return {std::array<char, without>{arr0}, std::array<char, with>{arr1}};
+  }
+
+  consteval size_t find_next_placeholder(std::string_view sv, size_t start) {
+      for (size_t i = start; i < sv.size() - 2; ++i) {
+          if (sv[i] == '_' && sv[i + 1] == '$' && sv[i + 2] == '_') {
+              return i;
+          }
+      }
+      return sv.size();
+  }
+
+  consteval size_t compute_output_size(std::string_view sv) {
+      size_t size = 0;
+      size_t pos = 0;
+      while (pos < sv.size()) {
+          size_t start = find_next_placeholder(sv, pos);
+          if (start == sv.size()) {
+              for (size_t i = pos; i < sv.size(); ++i) {
+                  size += (sv[i] == '{' || sv[i] == '}') ? 2 : 1;
+              }
+              break;
+          }
+          for (size_t i = pos; i < start; ++i) {
+              size += (sv[i] == '{' || sv[i] == '}') ? 2 : 1;
+          }
+          size_t end = find_next_placeholder(sv, start + 3);
+          if (end == sv.size()) {
+              for (size_t i = start; i < sv.size(); ++i) {
+                  size += (sv[i] == '{' || sv[i] == '}') ? 2 : 1;
+              }
+              break;
+          }
+          size_t id_len = end - (start + 3);
+          size += 2 + id_len;
+          pos = end + 3;
+      }
+      return size;
+  }
+
+  template <size_t N>
+  consteval auto build_output_array(std::string_view sv) {
+      std::array<char, N> arr{};
+      size_t index = 0;
+      size_t pos = 0;
+      while (pos < sv.size()) {
+          size_t start = find_next_placeholder(sv, pos);
+          if (start == sv.size()) {
+              for (size_t i = pos; i < sv.size(); ++i) {
+                  if (sv[i] == '{') {
+                      arr[index++] = '{';
+                      arr[index++] = '{';
+                  } else if (sv[i] == '}') {
+                      arr[index++] = '}';
+                      arr[index++] = '}';
+                  } else {
+                      arr[index++] = sv[i];
+                  }
+              }
+              break;
+          }
+          for (size_t i = pos; i < start; ++i) {
+              if (sv[i] == '{') {
+                  arr[index++] = '{';
+                  arr[index++] = '{';
+              } else if (sv[i] == '}') {
+                  arr[index++] = '}';
+                  arr[index++] = '}';
+              } else {
+                  arr[index++] = sv[i];
+              }
+          }
+          size_t end = find_next_placeholder(sv, start + 3);
+          if (end == sv.size()) {
+              for (size_t i = start; i < sv.size(); ++i) {
+                  if (sv[i] == '{') {
+                      arr[index++] = '{';
+                      arr[index++] = '{';
+                  } else if (sv[i] == '}') {
+                      arr[index++] = '}';
+                      arr[index++] = '}';
+                  } else {
+                      arr[index++] = sv[i];
+                  }
+              }
+              break;
+          }
+          arr[index++] = '{';
+          for (size_t i = start + 3; i < end; ++i) {
+              arr[index++] = sv[i];
+          }
+          arr[index++] = '}';
+          pos = end + 3;
+      }
+      return arr;
+  }
 namespace skeletons {
-  extern const char *Boot_html;
-  extern const char *Plain_html;
-  extern const char *Hybrid_html;
-  extern const char *Wt_js;
-  extern const char *Boot_js;
-  extern const char *JQuery_js;
+// Embed the file contents into a constexpr array
+static constexpr char Boot_html[] = {
+#embed "skeleton/Boot.html"
+};
+static constexpr char Plain_html[] = {
+#embed "skeleton/Plain.html"
+};
+static constexpr char Hybrid_html[] = {
+#embed "skeleton/Hybrid.html"
+};
+static constexpr char Wt_js[] = {
+#embed "skeleton/Wt.min.js"
+};
+static constexpr char Boot_js[] = {
+#embed "skeleton/Boot.min.js"
+};
+static constexpr char JQuery_js[] = {
+#embed "skeleton/Hybrid.html"
+};
+#define TO_LITERAL(str) build_output_array<compute_output_size(str)>(str)
+
+  static inline constexpr std::string_view Boot_template(Boot_html, sizeof(Boot_html) - 1);
+  static inline constexpr std::string_view Plain_html_sv(Plain_html, sizeof(Plain_html) - 1);
+  static inline constexpr std::string_view Hybrid_html_sv(Hybrid_html, sizeof(Hybrid_html) - 1);
+  static inline constexpr std::string_view Wt_js_sv(Wt_js, sizeof(Wt_js) - 1);
+  static inline constexpr std::string_view Boot_js_sv(Boot_js, sizeof(Boot_js) - 1);
+
+  // constexpr size_t Boot_size = compute_size(Boot_html_sv);
+  // static inline constexpr auto Boot_template = build_format_array<Boot_size>(Boot_html_sv);
+
+  constexpr auto plain_sizes = compute_size(Plain_html_sv);
+  static inline constexpr auto Plain_templates = build_array<std::get<0>(plain_sizes), std::get<1>(plain_sizes)>(Plain_html_sv);
+  static inline constexpr std::string_view Plain_templates0(Plain_templates.first.begin(), Plain_templates.first.end());
+  static inline constexpr std::string_view Plain_templates1(Plain_templates.second.begin(), Plain_templates.second.end());
+
+  constexpr auto Hybrid_size = compute_size(Hybrid_html_sv);
+  static inline constexpr auto Hybrid_template = build_array<std::get<0>(Hybrid_size), std::get<1>(Hybrid_size)>(Hybrid_html_sv);
+  static inline constexpr std::string_view Hybrid_template0(Hybrid_template.first.begin(), Hybrid_template.first.end());
+  static inline constexpr std::string_view Hybrid_template1(Hybrid_template.second.begin(), Hybrid_template.second.end());
+
+
+  //constexpr size_t N = compute_output_size(Wt_js_sv);
+  constexpr auto Wt_js_t = TO_LITERAL(Wt_js_sv);
+  static inline constexpr std::string_view Wt_js_template(Wt_js_t.begin(), Wt_js_t.end());
+
+  constexpr size_t cc = compute_output_size(Boot_js_sv);
+  constexpr auto Boot_js_t = build_output_array<cc>(Boot_js_sv);
+  static inline constexpr std::string_view Boot_js_template(Boot_js_t.begin(), Boot_js_t.end());
+
+
+  constexpr std::array<std::string_view, 2> delimiters = {"{BOOT_JS}", "{HTML}"};
+
+  constexpr auto bootparts = split_template<count_splits(Boot_template, delimiters)>(Boot_template, delimiters);
+
+  constexpr auto hibridparts0 = split_template<count_splits(Hybrid_template0, delimiters)>(Hybrid_template0, delimiters);
+  constexpr auto hibridparts1 = split_template<count_splits(Hybrid_template1, delimiters)>(Hybrid_template1, delimiters);
+
+  constexpr auto plainparts0 = split_template<count_splits(Plain_templates0, delimiters)>(Plain_templates0, delimiters);
+  constexpr auto plainparts1 = split_template<count_splits(Plain_templates1, delimiters)>(Plain_templates1, delimiters);
+
+  FMT_INLINE auto getTemplate(bool hybrid, bool ajax, unsigned part) {
+    if(hybrid) {
+      if(ajax) {
+        return FMT_COMPILE(hibridparts0[part]);
+      }
+      return FMT_COMPILE(hibridparts1[part]);
+    }
+    if(ajax) {
+      return FMT_COMPILE(plainparts0[part]);
+    }
+    return FMT_COMPILE(plainparts1[part]);
+  }
+  // static inline constexpr auto Wt_js_template = build_format_array<compute_size(Wt_js_sv)>(Wt_js_sv);
+  // static inline constexpr auto Boot_js_template = build_format_array<compute_size(Boot_js_sv)>(Boot_js_sv);
+
+  //static constexpr char *Plain_html = Boot_htmldata;
+  //static constexpr char *Hybrid_html = Boot_htmldata;
+  //extern const char *Boot_html;
+  // extern const char *Plain_html;
+  // extern const char *Hybrid_html;
+  // extern const char *Wt_js;
+  // extern const char *Boot_js;
+  //extern const char *JQuery_js; //DEPRECATED
 }
 
 namespace Wt {
@@ -200,7 +643,7 @@ void WebRenderer::saveChanges()
 
 void WebRenderer::discardChanges()
 {
-  collectJS(nullptr);
+  collectJS((fmt::memory_buffer*)nullptr);
 }
 
 WebRenderer::AckState WebRenderer::ackUpdate(unsigned int updateId)
@@ -244,7 +687,7 @@ void WebRenderer::letReloadJS(WebResponse& response, bool newSession, bool embed
       "if (window.Wt) window.Wt._p_.quit(null); window.location.reload(true);";
 }
 
-void WebRenderer::letReloadJS(http::context *context, bool newSession, bool embedded)
+void WebRenderer::letReloadJS(http::context *context, bool /*newSession*/, bool embedded)
 {
   if (!embedded) {
     setCaching(context->res(), false);
@@ -252,7 +695,8 @@ void WebRenderer::letReloadJS(http::context *context, bool newSession, bool embe
   }
 
   // FIXME: we should foresee something independent of app->javaScriptClass()
-  context->out() << "if (window.Wt) window.Wt._p_.quit(null); window.location.reload(true);";
+  //context->out() << "if (window.Wt) window.Wt._p_.quit(null); window.location.reload(true);";
+  fmt::format_to(context->out(), "if (window.Wt) window.Wt._p_.quit(null); window.location.reload(true);");
 }
 
 void WebRenderer::letReloadHTML(WebResponse& response, bool newSession)
@@ -270,13 +714,14 @@ void WebRenderer::letReloadHTML(http::context *context, bool newSession)
   setCaching(context->res(), false);
   setHeaders(context->res(), "text/html; charset=UTF-8");
 
-  context->out() << "<html><script type=\"text/javascript\">";
+  fmt::format_to(context->out(), "<html><script type=\"text/javascript\">");
+  //context->out() << "<html><script type=\"text/javascript\">";
   letReloadJS(context, newSession, true);
-  context->out() << "</script><body></body></html>";
+  //context->out() << "</script><body></body></html>";
+  fmt::format_to(context->out(), "</script><body></body></html>");
 }
 
-void WebRenderer::streamRedirectJS(WStringStream& out,
-				   const std::string& redirect)
+void WebRenderer::streamRedirectJS(WStringStream& out, const std::string& redirect)
 {
   if (session_.app() && session_.app()->internalPathIsChanged_)
     out << "if (window." << session_.app()->javaScriptClass() << ") "
@@ -289,6 +734,19 @@ void WebRenderer::streamRedirectJS(WStringStream& out,
     " window.location.replace(" << WWebWidget::jsStringLiteral(redirect) << ");"
     "else"
     " window.location.href=" << WWebWidget::jsStringLiteral(redirect) << ";\n";
+}
+
+void WebRenderer::streamRedirectJS(fmt::memory_buffer &out, const std::string &redirect)
+{
+    if (session_.app() && session_.app()->internalPathIsChanged_)
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("if (window.{}) {}._p_.setHash({}, false);\n"),
+                       session_.app()->javaScriptClass(),
+                       session_.app()->javaScriptClass(),
+                       WWebWidget::jsStringLiteral(session_.app()->newInternalPath_));
+
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("if (window.location.replace) window.location.replace('{:s}'); else window.location.href='{:s}';\n"),
+                   JsString(redirect),
+                   JsString(redirect));
 }
 
 void WebRenderer::serveResponse(WebResponse& /*response*/)
@@ -318,38 +776,38 @@ void WebRenderer::serveResponse(WebResponse& /*response*/)
 
 void WebRenderer::setPageVars(FileServe& page)
 {
-  WApplication *app = session_.app();
+    WApplication *app = session_.app();
 
-  page.setVar("DOCTYPE", session_.docType());
+    page.setVar("DOCTYPE", session_.docType());
 
-  std::string htmlAttr;
-  if (app && !app->htmlClass_.empty()) {
-    htmlAttr = " class=\"" + app->htmlClass_ + "\"";
-  }
+    std::string htmlAttr;
+    if (app && !app->htmlClass_.empty()) {
+        htmlAttr = " class=\"" + app->htmlClass_ + "\"";
+    }
 
-  if (session_.env().agentIsIE())
-    page.setVar("HTMLATTRIBUTES",
-		"xmlns:v=\"urn:schemas-microsoft-com:vml\""
-		" lang=\"en\" dir=\"ltr\"" + htmlAttr);
-  else
-    page.setVar("HTMLATTRIBUTES", "lang=\"en\" dir=\"ltr\"" + htmlAttr);
-  page.setVar("METACLOSE", ">");
+    if (session_.env().agentIsIE())
+        page.setVar("HTMLATTRIBUTES",
+                    "xmlns:v=\"urn:schemas-microsoft-com:vml\""
+                    " lang=\"en\" dir=\"ltr\"" + htmlAttr);
+    else
+        page.setVar("HTMLATTRIBUTES", "lang=\"en\" dir=\"ltr\"" + htmlAttr);
+    page.setVar("METACLOSE", ">");
 
-  std::string attr = bodyClassRtl();
+    std::string attr = bodyClassRtl();
 
-  if (!attr.empty())
-    attr = " class=\"" + attr + "\"";
+    if (!attr.empty())
+        attr = " class=\"" + attr + "\"";
 
-  if (app && app->layoutDirection() == LayoutDirection::RightToLeft)
-    attr += " dir=\"RTL\"";
+    if (app && app->layoutDirection() == LayoutDirection::RightToLeft)
+        attr += " dir=\"RTL\"";
 
-  page.setVar("BODYATTRIBUTES", attr);
+    page.setVar("BODYATTRIBUTES", attr);
 
-  page.setVar("HEADDECLARATIONS", headDeclarations());
+    page.setVar("HEADDECLARATIONS", headDeclarations());
 
-  page.setCondition("FORM", !session_.env().agentIsSpiderBot()
-		    && !session_.env().ajax());
-  page.setCondition("BOOT_STYLE", true);
+    page.setCondition("FORM", !session_.env().agentIsSpiderBot()
+                                  && !session_.env().ajax());
+    page.setCondition("BOOT_STYLE", true);
 }
 
 void WebRenderer::streamBootContent(WebResponse& response,  FileServe& boot, bool hybrid)
@@ -408,61 +866,80 @@ void WebRenderer::streamBootContent(WebResponse& response,  FileServe& boot, boo
   out.spool(response.out());
 }
 
-void WebRenderer::streamBootContent(http::context *context, FileServe &boot, bool hybrid)
+void WebRenderer::streamBootContent(http::context *context, bool hybrid)
 {
   auto& response = context->res();
   Configuration& conf = session_.controller()->configuration();
 
-  WStringStream out(response.out());
+  //WStringStream out(response.out());
+  auto out = context->out();
 
-  boot.setVar("BLANK_HTML",
-              session_.bootstrapUrl(context,
-                                    WebSession::BootstrapOption::ClearInternalPath)
-                  + "&amp;request=resource&amp;resource=blank");
-  boot.setVar("SESSION_ID", session_.sessionId());
-  //TODO remove APP_CLASS, will later only be used in the javascript
-  boot.setVar("APP_CLASS", "Wt");
+  // boot.setVar("BLANK_HTML",
+  //             session_.bootstrapUrl(context,
+  //                                   WebSession::BootstrapOption::ClearInternalPath)
+  //                 + "&amp;request=resource&amp;resource=blank");
+  // boot.setVar("SESSION_ID", session_.sessionId());
+  // //TODO remove APP_CLASS, will later only be used in the javascript
+  // boot.setVar("APP_CLASS", "Wt");
 
-  boot.streamUntil(out, "BOOT_JS");
+  //boot.streamUntil(out, "BOOT_JS");
 
   if (!(hybrid && session_.app()->hasQuit())) {
-    FileServe bootJs(skeletons::Boot_js);
+    // FileServe bootJs(skeletons::Boot_js);
 
-    bootJs.setVar("SELF_URL",
-                  safeJsStringLiteral
-                  (session_.bootstrapUrl
-                   (context, WebSession::BootstrapOption::ClearInternalPath)));
-    bootJs.setVar("SESSION_ID", session_.sessionId());
+    // bootJs.setVar("SELF_URL",
+    //               safeJsStringLiteral
+    //               (session_.bootstrapUrl
+    //                (context, WebSession::BootstrapOption::ClearInternalPath)));
+    // bootJs.setVar("SESSION_ID", session_.sessionId());
 
-    expectedAckId_ = scriptId_ = WRandom::get();
-    ackErrs_ = 0;
+    // expectedAckId_ = scriptId_ = WRandom::get();
+    // ackErrs_ = 0;
 
-    bootJs.setVar("SCRIPT_ID", scriptId_);
-    bootJs.setVar("RANDOMSEED", WRandom::get());
-    bootJs.setVar("RELOAD_IS_NEWSESSION", conf.reloadIsNewSession());
-    bootJs.setVar("USE_COOKIES",
-                  conf.sessionTracking() == Configuration::CookiesURL);
-    bootJs.setVar("AJAX_CANONICAL_URL",
-                  safeJsStringLiteral(session_.ajaxCanonicalUrl(context)));
-    bootJs.setVar("APP_CLASS", "Wt");
-    bootJs.setVar("PATH_INFO", safeJsStringLiteral
-                  (session_.pagePathInfo_));
+    // bootJs.setVar("SCRIPT_ID", scriptId_);
+    // bootJs.setVar("RANDOMSEED", WRandom::get());
+    // bootJs.setVar("RELOAD_IS_NEWSESSION", conf.reloadIsNewSession());
+    // bootJs.setVar("USE_COOKIES",
+    //               conf.sessionTracking() == Configuration::CookiesURL);
+    // bootJs.setVar("AJAX_CANONICAL_URL",
+    //               safeJsStringLiteral(session_.ajaxCanonicalUrl(context)));
+    // bootJs.setVar("APP_CLASS", "Wt");
+    // bootJs.setVar("PATH_INFO", safeJsStringLiteral
+    //               (session_.pagePathInfo_));
 
-    bootJs.setCondition("COOKIE_CHECKS", conf.cookieChecks());
-    bootJs.setCondition("SPLIT_SCRIPT", conf.splitScript());
-    bootJs.setCondition("HYBRID", hybrid);
-    bootJs.setCondition("PROGRESS", hybrid && !session_.env().ajax());
-    bootJs.setCondition("DEFER_SCRIPT", true);
-    bootJs.setCondition("WEBGL_DETECT", conf.webglDetect());
+    // bootJs.setCondition("COOKIE_CHECKS", conf.cookieChecks());
+    // bootJs.setCondition("SPLIT_SCRIPT", conf.splitScript());
+    // bootJs.setCondition("HYBRID", hybrid);
+    // bootJs.setCondition("PROGRESS", hybrid && !session_.env().ajax());
+    // bootJs.setCondition("DEFER_SCRIPT", true);
+    // bootJs.setCondition("WEBGL_DETECT", conf.webglDetect());
 
     std::string internalPath
         = hybrid ? session_.app()->internalPath() : session_.env().internalPath();
-    bootJs.setVar("INTERNAL_PATH", safeJsStringLiteral(internalPath));
+    //bootJs.setVar("INTERNAL_PATH", safeJsStringLiteral(internalPath));
 
-    bootJs.stream(out);
+    fmt::format_to(response.out(), FMT_COMPILE(skeletons::Boot_js_template),
+                   fmt::arg("SELF_URL", safeJsStringLiteral(session_.bootstrapUrl(context, WebSession::BootstrapOption::ClearInternalPath))),
+                   fmt::arg("SESSION_ID", session_.sessionId()),
+                   fmt::arg("SCRIPT_ID", scriptId_),
+                   fmt::arg("RANDOMSEED", WRandom::get()),
+                   fmt::arg("RELOAD_IS_NEWSESSION", conf.reloadIsNewSession()),
+                   fmt::arg("USE_COOKIES", conf.sessionTracking() == Configuration::CookiesURL),
+                   fmt::arg("AJAX_CANONICAL_URL", safeJsStringLiteral(session_.ajaxCanonicalUrl(context))),
+                   fmt::arg("APP_CLASS", "Wt"),
+                   fmt::arg("PATH_INFO", safeJsStringLiteral(session_.pagePathInfo_)),
+                   fmt::arg("COOKIE_CHECKS", conf.cookieChecks()),
+                   fmt::arg("SPLIT_SCRIPT", conf.splitScript()),
+                   fmt::arg("HYBRID", hybrid),
+                   fmt::arg("PROGRESS", hybrid && !session_.env().ajax()),
+                   fmt::arg("DEFER_SCRIPT", true),
+                   fmt::arg("WEBGL_DETECT", conf.webglDetect()),
+                   fmt::arg("INTERNAL_PATH", safeJsStringLiteral(internalPath)));
+
+    //bootJs.stream(out);
   }
 
-  out.spool(response.out());
+  //out.spool(response.outstd());
 }
 
 void WebRenderer::serveLinkedCss(WebResponse& response)
@@ -550,7 +1027,7 @@ void WebRenderer::serveBootstrap(WebResponse& response)
   boot.setVar("AUTO_REDIRECT",
 	      "<noscript><meta http-equiv=\"refresh\" content=\"0; url="
 	      + noJsRedirectUrl.str() + "\"></noscript>");
-  boot.setVar("NOSCRIPT_TEXT", conf.redirectMessage());
+  //boot.setVar("NOSCRIPT_TEXT", conf.redirectMessage());
 
   WStringStream bootStyleUrl;
   DomElement::htmlAttributeValue
@@ -595,8 +1072,8 @@ void WebRenderer::serveMainpage(http::context *context)
    * and have unintended side effects ?
    */
   if (!app->environment().ajax()
-      && (/*response.requestMethod() == "POST"
-      || */(app->internalPathIsChanged_
+      && (/*response.requestMethod() == "POST"|| */
+          (app->internalPathIsChanged_
            && app->renderedInternalPath_ != app->newInternalPath_)))
   {
     app->renderedInternalPath_ = app->newInternalPath_;
@@ -629,11 +1106,11 @@ void WebRenderer::serveMainpage(http::context *context)
    * for invisible widgets, which is also what we want for
    * non-JavaScript versions.
    */
-  DomElement *mainElement = mainWebWidget->createSDomElement(app);
+  DomElement mainElement = mainWebWidget->createSDomElement(app);
   setRendered(true);
   setJSSynced(true);
 
-  WStringStream styleSheets;
+  fmt::memory_buffer styleSheets;
 
   if (app->theme()) {
     std::vector<WLinkedCssStyleSheet> sheets = app->theme()->styleSheets();
@@ -650,22 +1127,28 @@ void WebRenderer::serveMainpage(http::context *context)
 
   beforeLoadJS_.clear();
   for (unsigned i = 0; i < app->scriptLibraries_.size(); ++i) {
-    std::string url = app->scriptLibraries_[i].uri;
-    styleSheets << "<script src=";
-    DomElement::htmlAttributeValue(styleSheets, session_.fixRelativeUrl(url));
-    styleSheets << "></script>\n";
+      std::string url = app->scriptLibraries_[i].uri;
+      fmt::format_to(std::back_inserter(styleSheets), FMT_COMPILE("<script src=\"{:h}\"></script>\n"), JsString(session_.fixRelativeUrl(url)));
+      // styleSheets << "<script src=";
+      // DomElement::htmlAttributeValue(styleSheets, session_.fixRelativeUrl(url));
+      // styleSheets << "></script>\n";
 
-    beforeLoadJS_ << app->scriptLibraries_[i].beforeLoadJS;
+      beforeLoadJS_ << app->scriptLibraries_[i].beforeLoadJS;
   }
   app->scriptLibrariesAdded_ = 0;
 
   app->newBeforeLoadJavaScript_ = app->beforeLoadJavaScript_.length();
 
   bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
-  FileServe page(hybridPage ? skeletons::Hybrid_html : skeletons::Plain_html);
 
-  setPageVars(page);
-  page.setVar("SESSION_ID", session_.sessionId());
+  auto blankUrl = session_.bootstrapUrl(context, WebSession::BootstrapOption::ClearInternalPath) + "&amp;request=resource&amp;resource=blank";
+
+
+
+  // FileServe page(hybridPage ? skeletons::Hybrid_html : skeletons::Plain_html);
+
+  // setPageVars(page);
+  // page.setVar("SESSION_ID", session_.sessionId());
 
   std::string url
       = (app->environment().agentIsSpiderBot() || !session_.useUrlRewriting())
@@ -675,18 +1158,19 @@ void WebRenderer::serveMainpage(http::context *context)
   url = session_.fixRelativeUrl(url);
 
   url = Wt::Utils::replace(url, '&', "&amp;");
-  page.setVar("RELATIVE_URL", url);
+  // page.setVar("RELATIVE_URL", url);
 
+
+  fmt::memory_buffer css;
   if (conf.inlineCss()) {
-    WStringStream css;
     app->styleSheet().cssText(css, true);
-    page.setVar("STYLESHEET", css.str());
-  } else
-    page.setVar("STYLESHEET", "");
+    // page.setVar("STYLESHEET", css.str());
+  } /*else
+    page.setVar("STYLESHEET", "");*/
 
-  page.setVar("STYLESHEETS", styleSheets.str());
+  // page.setVar("STYLESHEETS", styleSheets.str());
 
-  page.setVar("TITLE", WWebWidget::escapeText(app->title()).toUTF8());
+  // page.setVar("TITLE", WWebWidget::escapeText(app->title()).toUTF8());
 
   app->titleChanged_ = false;
 
@@ -698,17 +1182,35 @@ void WebRenderer::serveMainpage(http::context *context)
 
   currentFormObjectsList_ = createFormObjectsList(app);
 
-  if (hybridPage)
-    streamBootContent(context, page, true);
+  std::string htmlAttr = app && !app->htmlClass_.empty() ?
+                             fmt::format(FMT_COMPILE("{}lang=\"en\" dir=\"ltr\" class=\"{}\""), session_.env().agentIsIE() ? "xmlns:v=\"urn:schemas-microsoft-com:vml\"" : "", app->htmlClass_) :
+                             "xmlns:v=\"urn:schemas-microsoft-com:vml\" lang=\"en\" dir=\"ltr\"";
+  std::string attr = fmt::format(" class=\"{}\"{}", bodyClassRtl(), (app->layoutDirection() == LayoutDirection::RightToLeft) ? " dir=\"RTL\"" : "");
 
-  WStringStream out(response.out());
-  page.streamUntil(out, "HTML");
+  fmt::format_to(response.out(), skeletons::getTemplate(hybridPage, session_.env().ajax(), 0),
+                 fmt::arg("DOCTYPE", session_.docType()),
+                 fmt::arg("HTMLATTRIBUTES", htmlAttr),
+                 fmt::arg("HEADDECLARATIONS", headDeclarations()),
+                 fmt::arg("TITLE", WWebWidget::escapeText(app->title()).toUTF8()),
+                 fmt::arg("STYLESHEET", css),
+                 fmt::arg("STYLESHEETS", std::string_view(styleSheets.data(), styleSheets.size())),
+                 fmt::arg("BODYATTRIBUTES", attr));
+
+  if (hybridPage)
+    streamBootContent(context, true);
+
+  // WStringStream out(response.outstd());
+  // page.streamUntil(out, "HTML");
+
+  fmt::format_to(response.out(), skeletons::getTemplate(hybridPage, session_.env().ajax(), 1),
+                 fmt::arg("BLANK_HTML", blankUrl),
+                 fmt::arg("RELATIVE_URL", url),
+                 fmt::arg("SESSION_ID", session_.sessionId()));
 
   DomElement::TimeoutList timeouts;
   {
-    EscapeOStream js;
-    EscapeOStream eout(out);
-    mainElement->asHTML(eout, js, timeouts);
+    // fmt::memory_buffer js;
+    mainElement.asHTML(context->buffer(), finvisibleJS_, timeouts);
 
     /*
      * invisibleJS_ is being streamed as the first JavaScript inside
@@ -716,17 +1218,17 @@ void WebRenderer::serveMainpage(http::context *context)
      * the HTML and the script there may already be changes (because
      * of server push) that delete elements that were rendered.
      */
-    invisibleJS_ << js.str();
-    delete mainElement;
+    // fmt::format_to(std::back_inserter(finvisibleJS_), "{}", std::string_view(js.begin(), js.end()));
+    //delete mainElement;
 
     app->domRoot_->doneRerender();
   }
 
   int refresh;
   if (app->environment().ajax()) {
-    WStringStream str;
+    fmt::memory_buffer str;
     DomElement::createTimeoutJs(str, timeouts, app);
-    app->doJavaScript(str.str());
+    app->doJavaScript(std::string_view(str.begin(), str.end()));
 
     refresh = 1000000;
   } else {
@@ -738,13 +1240,58 @@ void WebRenderer::serveMainpage(http::context *context)
           refresh = std::min(refresh, 1 + timeouts[i].msec/1000);
     }
   }
-  page.setVar("REFRESH", std::to_string(refresh));
+  // page.setVar("REFRESH", std::to_string(refresh));
 
-  page.stream(out);
+  // page.stream(out);
+
+  fmt::format_to(response.out(), skeletons::getTemplate(hybridPage, session_.env().ajax(), 2));
+
+  // std::string htmlAttr = app && !app->htmlClass_.empty() ?
+  //                            fmt::format("{}lang=\"en\" dir=\"ltr\" class=\"{}\"", session_.env().agentIsIE() ? "xmlns:v=\"urn:schemas-microsoft-com:vml\"" : "", app->htmlClass_) :
+  //                            "xmlns:v=\"urn:schemas-microsoft-com:vml\" lang=\"en\" dir=\"ltr\"";
+
+
+  // bool hybrid = true;
+  // std::string internalPath
+  //     = hybrid ? session_.app()->internalPath() : session_.env().internalPath();
+
+  // auto jsboot = fmt::format(skeletons::Boot_js_template,
+  //                           fmt::arg("SELF_URL", safeJsStringLiteral(session_.bootstrapUrl(context, WebSession::BootstrapOption::ClearInternalPath))),
+  //                           fmt::arg("SESSION_ID", session_.sessionId()),
+  //                           fmt::arg("SCRIPT_ID", scriptId_),
+  //                           fmt::arg("RANDOMSEED", WRandom::get()),
+  //                           fmt::arg("RELOAD_IS_NEWSESSION", conf.reloadIsNewSession()),
+  //                           fmt::arg("USE_COOKIES", conf.sessionTracking() == Configuration::CookiesURL),
+  //                           fmt::arg("AJAX_CANONICAL_URL", safeJsStringLiteral(session_.ajaxCanonicalUrl(context))),
+  //                           fmt::arg("APP_CLASS", "Wt"),
+  //                           fmt::arg("PATH_INFO", safeJsStringLiteral(session_.pagePathInfo_)),
+  //                           fmt::arg("COOKIE_CHECKS", conf.cookieChecks()),
+  //                           fmt::arg("SPLIT_SCRIPT", conf.splitScript()),
+  //                           fmt::arg("HYBRID", hybrid),
+  //                           fmt::arg("PROGRESS", hybrid && !session_.env().ajax()),
+  //                           fmt::arg("DEFER_SCRIPT", true),
+  //                           fmt::arg("WEBGL_DETECT", conf.webglDetect()),
+  //                           fmt::arg("INTERNAL_PATH", safeJsStringLiteral(internalPath)));
+
+  // fmt::memory_buffer pagev;
+  // //std::string_view vv { skeletons::Hybrid_template.first };
+  // fmt::format_to(std::back_inserter(pagev), skeletons::Hybrid_template0,
+  //                fmt::arg("DOCTYPE", session_.docType()),
+  //                fmt::arg("HTMLATTRIBUTES", "lang=\"en\" dir=\"ltr\""),
+  //                fmt::arg("HEADDECLARATIONS", headDeclarations()),
+  //                fmt::arg("TITLE", WWebWidget::escapeText(app->title()).toUTF8()),
+  //                fmt::arg("STYLESHEET", css.str()),
+  //                fmt::arg("STYLESHEETS", styleSheets.str()),
+  //                fmt::arg("BODYATTRIBUTES", attr),
+  //                fmt::arg("BOOT_JS", jsboot),
+  //                fmt::arg("BLANK_HTML", blankUrl),
+  //                fmt::arg("RELATIVE_URL", url),
+  //                fmt::arg("SESSION_ID", session_.sessionId()),
+  //                fmt::arg("HTML", true));
 
   app->internalPathIsChanged_ = false;
 
-  out.spool(response.out());
+  // out.spool(response.buffer());
 }
 
 void WebRenderer::serveError(int status, WebResponse& response, const std::string& message)
@@ -778,18 +1325,10 @@ void WebRenderer::serveError(int status, Wt::http::context *context, const std::
   if (!js || !app) {
     context->status(status);
     context->type("text/html");
-    context->body()
-        << "<title>Error occurred.</title>"
-        << "<h2>Error occurred.</h2>"
-        << WWebWidget::escapeText(WString(message), true).toUTF8()
-        << '\n';
+    fmt::format_to(context->out(), FMT_COMPILE("<title>Error occurred.</title><h2>Error occurred.</h2>{:h}\n"), JsString(message));
   } else {
-    context->body() << app->javaScriptClass()
-                   << "._p_.quit(null);"
-                   << "document.title = 'Error occurred.';"
-                   << "document.body.innerHtml='<h2>Error occurred.</h2>' +"
-                   <<  WWebWidget::jsStringLiteral(message)
-                   << ';';
+    fmt::format_to(context->out(), FMT_COMPILE("{}._p_.quit(null);document.title = 'Error occurred.';document.body.innerHtml='<h2>Error occurred.</h2>' + {:h};"),
+                   app->javaScriptClass(), JsString(message));
   }
 }
 
@@ -802,7 +1341,8 @@ void WebRenderer::serveLinkedCss(http::context *context)
   {
     WApplication *app = session_.app();
 
-    WStringStream out(response.out());
+    //WStringStream out(response.out());
+    auto& out = context->buffer();
 
     if (app->theme())
       app->theme()->serveCss(out);
@@ -815,7 +1355,7 @@ void WebRenderer::serveLinkedCss(http::context *context)
     initialStyleRendered_ = true;
     linkedCssCount_ = app->styleSheets_.size();
 
-    out.spool(response.out());
+    //out.spool(response.out());
   } else if (linkedCssCount_ > -1) {
     /*
      * Make sure we serve the same response again, since a 'GET' must be
@@ -823,7 +1363,8 @@ void WebRenderer::serveLinkedCss(http::context *context)
      */
     WApplication *app = session_.app();
 
-    WStringStream out(response.out());
+    //WStringStream out(response.out());
+    auto& out = context->buffer();
 
     if (app->theme())
       app->theme()->serveCss(out);
@@ -833,7 +1374,7 @@ void WebRenderer::serveLinkedCss(http::context *context)
     for (unsigned i = 0; i < count; ++i)
       app->styleSheets_[i].cssText(out);
 
-    out.spool(response.out());
+    ///out.spool(response.out());
   }
 }
 
@@ -859,8 +1400,7 @@ void WebRenderer::setCaching(WebResponse& response, bool allowCache)
 
 void WebRenderer::setHeaders(WebResponse& response, const std::string mimeType)
 {
-  for (std::map<std::string, CookieValue>::const_iterator
-	 i = cookiesToSet_.begin(); i != cookiesToSet_.end(); ++i) {
+  for (auto i = cookiesToSet_.begin(); i != cookiesToSet_.end(); ++i) {
     const CookieValue& cookie = i->second;
 
     WStringStream header;
@@ -879,23 +1419,22 @@ void WebRenderer::setHeaders(WebResponse& response, const std::string mimeType)
       std::string formatString = "EEE, dd-MMM-yyyy HH:mm:ss 'GMT'";
 #endif
 
-      std::string d
-	= cookie.expires.toString
+      std::string d = cookie.expires.toString
 	(WString::fromUTF8(formatString), false).toUTF8();
 
       header << "Expires=" << d << ';';
     }
 
     if (!cookie.domain.empty())
-      header << " Domain=" << cookie.domain << ';';
+        header << " Domain=" << cookie.domain << ';';
 
     if (cookie.path.empty())
-      if (!session_.env().publicDeploymentPath_.empty())
-	header << " Path=" << session_.env().publicDeploymentPath_ << ';';
-      else
-        header << " Path=" << session_.env().deploymentPath() << ';';
+        if (!session_.env().publicDeploymentPath_.empty())
+            header << " Path=" << session_.env().publicDeploymentPath_ << ';';
+        else
+            header << " Path=" << session_.env().deploymentPath() << ';';
     else
-      header << " Path=" << cookie.path << ';';
+        header << " Path=" << cookie.path << ';';
 
     header << " httponly;";
 
@@ -920,6 +1459,14 @@ void WebRenderer::renderSetServerPush(WStringStream& out)
 
     session_.app()->serverPushChanged_ = false;
   }
+}
+
+void WebRenderer::renderSetServerPush(fmt::memory_buffer &out)
+{
+    if (session_.app()->serverPushChanged_) {
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.setServerPush({});"), session_.app()->javaScriptClass(), session_.app()->updatesEnabled());
+        session_.app()->serverPushChanged_ = false;
+    }
 }
 
 std::string WebRenderer::sessionUrl() const
@@ -989,6 +1536,16 @@ void WebRenderer::renderWsRequestsDone(WStringStream &out)
 
 }
 
+void WebRenderer::renderWsRequestsDone(fmt::memory_buffer &out)
+{
+    if (!wsRequestsToHandle_.empty()) {
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.wsRqsDone({});"),
+                       session_.app()->javaScriptClass(),
+                       fmt::join(wsRequestsToHandle_, ","));
+        wsRequestsToHandle_.clear();
+    }
+}
+
 void WebRenderer::updateMultiSessionCookie(const WebRequest &request)
 {
   Configuration &conf = session_.controller()->configuration();
@@ -1016,6 +1573,14 @@ void WebRenderer::renderCookieUpdate(WStringStream &out)
         << "._p_.refreshCookie();";
     cookieUpdateNeeded_ = false;
   }
+}
+
+void WebRenderer::renderCookieUpdate(fmt::memory_buffer &out)
+{
+    if (cookieUpdateNeeded_) {
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.refreshCookie();"), session_.app()->javaScriptClass());
+        cookieUpdateNeeded_ = false;
+    }
 }
 
 void WebRenderer::addContainerWidgets(WWebWidget *w,
@@ -1100,6 +1665,69 @@ void WebRenderer::addResponseAckPuzzle(WStringStream& out)
   out << ");";
 }
 
+void WebRenderer::addResponseAckPuzzle(fmt::memory_buffer &out)
+{
+    std::string puzzle;
+
+    Configuration& conf = session_.controller()->configuration();
+    if (conf.ajaxPuzzle() && expectedAckId_ == scriptId_) {
+        /*
+     * We need to pick a random WContainerWidget. Let's be dumb for now.
+     */
+        std::vector<WContainerWidget *> widgets;
+
+        WApplication *app = session_.app();
+        addContainerWidgets(app->domRoot_.get(), widgets);
+        if (app->domRoot2_)
+            addContainerWidgets(app->domRoot2_.get(), widgets);
+
+        unsigned r = WRandom::get() % widgets.size();
+
+        WContainerWidget *wc = widgets[r];
+
+        puzzle = '"' + wc->id() + '"';
+
+        std::string l;
+        for (WWidget *w = wc->parent(); w; w = w->parent()) {
+            if (w->id().empty())
+                continue;
+            if (w->id() == l)
+                continue;
+
+            l = w->id();
+
+            if (!solution_.empty())
+                solution_ += ',';
+
+            solution_ += l;
+        }
+    }
+
+    /*
+   * Passing the expectedAckId_ within the collectedJS1_ +
+   * collectedJS2_ risks of inflating responses when a script loading
+   * is blocked. The purpose of the ackId is to detect what has been
+   * succesfully transmitted (mostly in the presence of server push
+   * which can cancel ajax requests. Therefore we chose here to use
+   * the ackIds_ only to signal proper ajax transfers, and thus at the
+   * end of the request transfer.
+   *
+   * It does present us with another probem: what if e.g. an ExtJS
+   * library is still loading and we already update one of its widgets
+   * assuming it has been rendered ? This should be handled
+   * client-side: only when libraries have been loaded, the application can
+   * continue. TO BE DONE.
+   */
+
+    ++expectedAckId_;
+    LOG_DEBUG("addResponseAckPuzzle: incremented expectedAckId to {}", expectedAckId_);
+
+    if(puzzle.empty())
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.response({});"), session_.app()->javaScriptClass(), expectedAckId_);
+    else
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.response({}, {});"), session_.app()->javaScriptClass(), expectedAckId_, puzzle);
+}
+
 bool WebRenderer::checkResponsePuzzle(const WebRequest& request)
 {
   if (!solution_.empty()) {
@@ -1155,55 +1783,55 @@ bool WebRenderer::checkResponsePuzzle(const WebRequest& request)
 
 bool WebRenderer::checkResponsePuzzle(http::context *context)
 {
-  if (!solution_.empty()) {
-    auto ackPuzzleE = context->getParameter("ackPuzzle");
+    if (!solution_.empty()) {
+        auto ackPuzzleE = context->getParameter("ackPuzzle");
 
-    if (ackPuzzleE.empty()) {
-      LOG_SECURE("Ajax puzzle fail: solution missing");
-      return false;
-    }
+        if (ackPuzzleE.empty()) {
+            LOG_SECURE("Ajax puzzle fail: solution missing");
+            return false;
+        }
 
-    std::string ackPuzzle { ackPuzzleE };
+        std::string ackPuzzle { ackPuzzleE };
 
-    Utils::SplitVector answer, solution;
+        Utils::SplitVector answer, solution;
 
-    boost::split(solution, solution_, boost::is_any_of(","));
-    boost::split(answer, ackPuzzle, boost::is_any_of(","));
+        boost::split(solution, solution_, boost::is_any_of(","));
+        boost::split(answer, ackPuzzle, boost::is_any_of(","));
 
-    unsigned j = 0;
-    bool fail = false;
+        unsigned j = 0;
+        bool fail = false;
 
-    for (unsigned i = 0; i < solution.size(); ++i) {
-      for (; j < answer.size(); ++j) {
-    if (solution[i] == answer[j])
+        for (unsigned i = 0; i < solution.size(); ++i) {
+            for (; j < answer.size(); ++j) {
+                if (solution[i] == answer[j])
 
-    break;
-    else {
-      /* Verify that answer[j] is not a valid widget id */
-    }
-      }
+                break;
+                else {
+                    /* Verify that answer[j] is not a valid widget id */
+                }
+            }
 
-      if (j == answer.size()) {
-    fail = true;
-    break;
-      }
-    }
+            if (j == answer.size()) {
+                fail = true;
+                break;
+            }
+        }
 
-    if (j < answer.size() - 1)
-      fail = true;
+        if (j < answer.size() - 1)
+            fail = true;
 
-    if (fail) {
-      LOG_SECURE("Ajax puzzle fail: '{}' vs '{}'", ackPuzzle, solution_);
+        if (fail) {
+            LOG_SECURE("Ajax puzzle fail: '{}' vs '{}'", ackPuzzle, solution_);
 
-      solution_.clear();
+            solution_.clear();
 
-      return false;
-    } else {
-      solution_.clear();
-      return true;
-    }
-  } else
-    return true;
+            return false;
+        } else {
+            solution_.clear();
+            return true;
+        }
+    } else
+        return true;
 }
 
 void WebRenderer::collectJavaScript()
@@ -1292,6 +1920,95 @@ void WebRenderer::collectJavaScript()
     streamRedirectJS(collectedJS1_, redirect);
 }
 
+void WebRenderer::collectJavaScript(fmt::memory_buffer &out /*fcollectedJS1_*/)
+{
+    WApplication *app = session_.app();
+    Configuration& conf = session_.controller()->configuration();
+
+    /*
+   * Pending invisible changes are also collected into JS1. This is
+   * also done in ackUpdate(), but just in case an update was not
+   * acknowledged.
+   *
+   * This is also used to render JavaScript that was rendered in asHtml()
+   * in a hybrid page.
+   */
+    LOG_DEBUG("Rendering invisible: {}", invisibleJS_.str());
+
+    fmt::format_to(std::back_inserter(out), "{}", std::string_view(finvisibleJS_));
+    finvisibleJS_.clear();
+
+    /*
+   * This opens scopes, waiting for new libraries to be loaded.
+   */
+    int librariesLoaded = loadScriptLibraries(fcollectedJS1_, app);
+
+    /*
+   * This closes the same scopes.
+   */
+    loadScriptLibraries(out, app, librariesLoaded);
+
+    /*
+   * Everything else happens inside JS1: after libraries have been loaded.
+   */
+    app->streamBeforeLoadJavaScript(out, false);
+
+    if (app->domRoot2_)
+        app->domRoot2_->rootAsJavaScript(app, out, false);
+
+    collectJavaScriptUpdate(out);
+
+    if (app->bodyHtmlClassChanged_) {
+        bool widgetset = session_.type() == EntryPointType::WidgetSet;
+        std::string_view op = widgetset ? "+=" : "=";
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("document.body.parentNode.className{}'{}';document.body.className{}'{}';document.body.setAttribute('dir', '{}');"),
+                       op,
+                       app->htmlClass_,
+                       op,
+                       bodyClassRtl(),
+                       (app->layoutDirection() == LayoutDirection::LeftToRight) ? "LTR" : "RTL");
+        // collectedJS1_ << "document.body.parentNode.className" << op << '\''
+        //               << app->htmlClass_ << "';"
+        //               << "document.body.className" << op << '\'' << bodyClassRtl() << "';"
+        //               << "document.body.setAttribute('dir', '";
+        // if (app->layoutDirection() == LayoutDirection::LeftToRight)
+        //     collectedJS1_ << "LTR";
+        // else
+        //     collectedJS1_ << "RTL";
+        // collectedJS1_ << "');";
+    }
+
+    if (visibleOnly_) {
+        preCollectInvisibleChanges();
+        if (twoPhaseThreshold_ > 0 && finvisibleJS_.size() < static_cast<unsigned>(twoPhaseThreshold_)) {
+            fmt::format_to(std::back_inserter(out), "{}", finvisibleJS_);
+            finvisibleJS_.clear();
+        } else {
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.update(null, 'none', null, false);"), session_.app()->javaScriptClass());
+        }
+    }
+
+    if (conf.inlineCss())
+        app->styleSheet().javaScriptUpdate(app, out, false);
+
+    loadStyleSheets(out, app);
+
+    if (app->autoJavaScriptChanged_) {
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.autoJavaScript=function(){{ {}; }};"), app->javaScriptClass(), app->autoJavaScript_);
+        app->autoJavaScriptChanged_ = false;
+    }
+
+    visibleOnly_ = true;
+
+    app->domRoot_->doneRerender();
+    if (app->domRoot2_)
+        app->domRoot2_->doneRerender();
+
+    std::string redirect = session_.getRedirect();
+    if (!redirect.empty())
+        streamRedirectJS(out, redirect);
+}
+
 void WebRenderer::serveMainscript(WebResponse& response)
 {
   /*
@@ -1348,7 +2065,7 @@ void WebRenderer::serveMainscript(WebResponse& response)
 #endif // WT_DEBUG_JS
 
   script.setVar("WT_CLASS", WT_CLASS);
-  script.setVar("APP_CLASS", app->javaScriptClass());
+  script.setVar("APP_CLASS", std::string{app->javaScriptClass()});
   script.setCondition("STRICTLY_SERIALIZED_EVENTS", conf.serializedEvents());
   script.setCondition("WEB_SOCKETS", conf.webSockets());
   script.setVar("INNER_HTML", innerHtml);
@@ -1534,7 +2251,7 @@ void WebRenderer::serveMainAjax(WStringStream& out)
    * invisible widgets.
    */
   app->loadingIndicator_->show();
-  DomElement *mainElement = mainWebWidget->createSDomElement(app);
+  DomElement mainElement = mainWebWidget->createSDomElement(app);
   app->loadingIndicator_->hide();
 
   app->scriptLibrariesAdded_ = app->scriptLibraries_.size();
@@ -1591,8 +2308,8 @@ void WebRenderer::serveMainAjax(WStringStream& out)
   WStringStream& s = out;
 #endif // WT_DEBUG_ENABLED
 
-  mainElement->addToParent(s, "document.body", widgetset ? 0 : -1, app);
-  delete mainElement;
+  mainElement.addToParent(s, "document.body", widgetset ? 0 : -1, app);
+  //delete mainElement;
 
   addResponseAckPuzzle(s);
 
@@ -1669,73 +2386,198 @@ void WebRenderer::serveMainAjax(WStringStream& out)
   loadScriptLibraries(out, app, librariesLoaded);
 }
 
+void WebRenderer::serveMainAjax(fmt::memory_buffer &out)
+{
+    Configuration& conf = session_.controller()->configuration();
+    bool widgetset = session_.type() == EntryPointType::WidgetSet;
+    WApplication* app = session_.app();
+
+    WWebWidget* mainWebWidget = app->domRoot_.get();
+
+    visibleOnly_ = true;
+
+    /*
+     * Render root widgets (domRoot_, and for widget set, also children of
+     * domRoot2_). This automatically creates loading stubs for
+     * invisible widgets.
+     */
+    app->loadingIndicator_->show();
+    DomElement mainElement = mainWebWidget->createSDomElement(app);
+    app->loadingIndicator_->hide();
+
+    app->scriptLibrariesAdded_ = app->scriptLibraries_.size();
+    int librariesLoaded = loadScriptLibraries(out, app);
+
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}. _p_.autoJavaScript = function(){{{}}};\n"),
+                   app->javaScriptClass(), app->autoJavaScript_);
+    app->autoJavaScriptChanged_ = false;
+
+    app->streamBeforeLoadJavaScript(out, true);
+
+    if (!widgetset) {
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("window.{}_LoadWidgetTree = function() {{\n"),
+                       app->javaScriptClass());
+    }
+
+    if (!initialStyleRendered_) {
+        /*
+         * In case we have not yet served the bootstyle for this page:
+         */
+        if (app->theme()) {
+            auto styleSheets = app->theme()->styleSheets();
+            for (unsigned i = 0; i < styleSheets.size(); ++i) {
+                loadStyleSheet(out, app, styleSheets[i]);
+            }
+        }
+
+        app->styleSheetsAdded_ = app->styleSheets_.size();
+        loadStyleSheets(out, app);
+
+        initialStyleRendered_ = true;
+    }
+
+    /*
+     * Need to do this after createSDomElement, since additional CSS/JS
+     * may be made during rendering, e.g. from WViewWidget::render()
+     */
+    if (conf.inlineCss()) {
+        app->styleSheet().javaScriptUpdate(app, out, true);
+    }
+
+    if (app->bodyHtmlClassChanged_) {
+        std::string op = widgetset ? "+=" : "=";
+        fmt::format_to(std::back_inserter(out),
+                       FMT_COMPILE("document.body.parentNode.className {} '{}';\n"
+                       "document.body.className {} '{}';\n"
+                       "document.body.setAttribute('dir', '{}');\n"),
+                       op, app->htmlClass_,
+                       op, bodyClassRtl(),
+                       (app->layoutDirection() == LayoutDirection::LeftToRight) ? "LTR" : "RTL");
+    }
+
+#ifdef WT_DEBUG_ENABLED
+    fmt::memory_buffer s;
+#else
+    fmt::memory_buffer& s = out;
+#endif // WT_DEBUG_ENABLED
+
+    mainElement.addToParent(s, "document.body", widgetset ? 0 : -1, app);
+    addResponseAckPuzzle(s);
+
+    if (app->hasQuit()) {
+        fmt::format_to(std::back_inserter(s), FMT_COMPILE("{}. _p_.quit({});\n"),
+                       app->javaScriptClass(),
+                       (app->quittedMessage_.empty() ? "null" : app->quittedMessage_.jsStringLiteral()));
+    }
+
+    if (widgetset) {
+        app->domRoot2_->rootAsJavaScript(app, s, true);
+    }
+
+#ifdef WT_DEBUG_ENABLED
+    LOG_DEBUG("js: {}", fmt::to_string(s));
+    fmt::format_to(std::back_inserter(out), "{}", fmt::to_string(s));
+#endif // WT_DEBUG_ENABLED
+
+    currentFormObjectsList_ = createFormObjectsList(app);
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}. _p_.setFormObjects([{}];\n"),
+                   app->javaScriptClass(), currentFormObjectsList_);
+    formObjectsChanged_ = false;
+
+    setRendered(true);
+    setJSSynced(true);
+
+    preLearnStateless(app, fcollectedJS1_);
+
+    if (visibleOnly_) {
+        preCollectInvisibleChanges();
+        if (twoPhaseThreshold_ > 0 && invisibleJS_.length() < static_cast<unsigned>(twoPhaseThreshold_)) {
+            fmt::format_to(std::back_inserter(fcollectedJS1_), "{}", finvisibleJS_);
+            finvisibleJS_.clear();
+        } else if (widgetset) {
+            fmt::format_to(std::back_inserter(fcollectedJS1_), FMT_COMPILE("{}. _p_.update(null, 'none', null, false);"),
+                           session_.app()->javaScriptClass());
+        }
+    }
+
+    LOG_DEBUG("js: {}", fcollectedJS1_);
+    fmt::format_to(std::back_inserter(out), "{}", fcollectedJS1_);
+    fcollectedJS1_.clear();
+
+    updateLoadIndicator(out, app, true);
+
+    if (widgetset) {
+        const std::string* historyE = app->environment().getParameter("Wt-history");
+        if (historyE) {
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.history.initialize('{}', '{}', '');\n"),
+                           WT_CLASS, (*historyE)[0] + "-field", (*historyE)[0] + "-iframe");
+        }
+    }
+
+    app->streamAfterLoadJavaScript(out);
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{{var o=null,e=null;{}}}"), app->hideLoadingIndicator_.javaScript());
+
+    if (!widgetset) {
+        if (!app->hasQuit()) {
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}. _p_.update(null, 'load', null, false);\n"),
+                           session_.app()->javaScriptClass());
+        }
+        fmt::format_to(std::back_inserter(out), "{}", "};\n");
+    }
+
+    renderSetServerPush(out);
+
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.ready(function() {{ {}. _p_.load({}); }});\n"),
+                   WT_CLASS, app->javaScriptClass(), !widgetset);
+
+    loadScriptLibraries(out, app, librariesLoaded);
+}
+
 bool WebRenderer::jsSynced() const
 {
-  return collectedJS1_.empty() &&
-         collectedJS2_.empty();
+  return !fcollectedJS1_.size() &&
+         !fcollectedJS2_.size();
 }
 
 void WebRenderer::setJSSynced(bool invisibleToo)
 {
   LOG_DEBUG("setJSSynced: {}", invisibleToo);
 
-  collectedJS1_.clear();
-  collectedJS2_.clear();
+  fcollectedJS1_.clear();
+  fcollectedJS2_.clear();
 
   if (!invisibleToo)
-    collectedJS1_ << invisibleJS_.str();
+    fmt::format_to(std::back_inserter(fcollectedJS1_), "{}", finvisibleJS_);
 
-  invisibleJS_.clear();
+  finvisibleJS_.clear();
 }
 
 void WebRenderer::setHeaders(http::response &response, const std::string mimeType)
 {
-  for (auto &[key, cookie] : cookiesToSet_) {
-    //const CookieValue& cookie = i->second;
+    for (auto &[key, cookie] : cookiesToSet_) {
+        //const CookieValue& cookie = i->second;
 
-    WStringStream header;
+        fmt::memory_buffer header;
+        fmt::format_to(std::back_inserter(header), FMT_COMPILE("{}={}; Version=1;"),
+                       Utils::urlEncode(key),
+                       cookie.value.empty() ? "deleted" : Utils::urlEncode(cookie.value));
+        if (!cookie.expires.isNull())
+            fmt::format_to(std::back_inserter(header), FMT_COMPILE(" Expires={};"), cookie.expires.cookieformat());
+        if (!cookie.domain.empty())
+            fmt::format_to(std::back_inserter(header), FMT_COMPILE(" Domain={};"), cookie.domain);
 
-    std::string value = cookie.value;
-    if (value.empty())
-      value = "deleted";
+        fmt::format_to(std::back_inserter(header), FMT_COMPILE(" Path={}; httponly; {}"),
+                       cookie.path.empty() ?
+                           (!session_.env().publicDeploymentPath_.empty() ?
+                                session_.env().publicDeploymentPath_ : session_.env().deploymentPath()) : cookie.path,
+                       cookie.secure ? "secure;" : "");
 
-    header << Utils::urlEncode(key) << '=' << Utils::urlEncode(value)
-           << "; Version=1;";
-
-    if (!cookie.expires.isNull()) {
-#ifndef WT_TARGET_JAVA
-      std::string formatString = "ddd, dd-MMM-yyyy hh:mm:ss 'GMT'";
-#else
-      std::string formatString = "EEE, dd-MMM-yyyy HH:mm:ss 'GMT'";
-#endif
-
-      std::string d = cookie.expires.toString(WString::fromUTF8(formatString), false).toUTF8();
-
-      header << "Expires=" << d << ';';
+        response.addHeader("Set-Cookie", fmt::to_string(header));
     }
+    cookiesToSet_.clear();
+    cookieUpdateNeeded_ = false;
 
-    if (!cookie.domain.empty())
-      header << " Domain=" << cookie.domain << ';';
-
-    if (cookie.path.empty())
-      if (!session_.env().publicDeploymentPath_.empty())
-    header << " Path=" << session_.env().publicDeploymentPath_ << ';';
-      else
-    header << " Path=" << session_.env().deploymentPath() << ';';
-    else
-      header << " Path=" << cookie.path << ';';
-
-    header << " httponly;";
-
-    if (cookie.secure)
-      header << " secure;";
-
-    response.addHeader("Set-Cookie", header.str());
-  }
-  cookiesToSet_.clear();
-  cookieUpdateNeeded_ = false;
-
-  response.setContentType(mimeType);
+    response.setContentType(mimeType);
 }
 
 void WebRenderer::setCaching(http::response &response, bool allowCache)
@@ -1757,25 +2599,26 @@ void WebRenderer::serveJavaScriptUpdate(http::context *context)
   }
 
   if (session_.sessionIdChanged_) {
-    collectedJS1_ << session_.app()->javaScriptClass()
-                  << "._p_.setSessionUrl("
-                  << WWebWidget::jsStringLiteral(sessionUrl())
-                  << ");";
+      fmt::format_to(std::back_inserter(fcollectedJS1_), FMT_COMPILE("{}._p_.setSessionUrl('{:s}');"),
+                     session_.app()->javaScriptClass(),
+                     JsString(sessionUrl()));
   }
 
-  WStringStream out(context->out());
+  //WStringStream out(context->out());
+  auto& out = context->buffer();
 
   if (!rendered_) {
     serveMainAjax(out);
   } else {
-    collectJavaScript();
+    collectJavaScript(fcollectedJS1_);
 
     addResponseAckPuzzle(out);
     renderSetServerPush(out);
 
-    LOG_DEBUG("js: {}{}", collectedJS1_.str(), collectedJS2_.str());
+    LOG_DEBUG("js: {}{}", fcollectedJS1_, fcollectedJS2_);
 
-    out << collectedJS1_.str() << collectedJS2_.str();
+    //out << collectedJS1_.str() << collectedJS2_.str();
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}{}"), fcollectedJS1_, fcollectedJS2_);
 
     if (context->isWebSocketMessage()) {
       renderCookieUpdate(out);
@@ -1786,7 +2629,7 @@ void WebRenderer::serveJavaScriptUpdate(http::context *context)
     }
   }
 
-  out.spool(context->out());
+  //out.spool(context->out());
 }
 
 void WebRenderer::serveMainscript(http::context *context)
@@ -1810,7 +2653,8 @@ void WebRenderer::serveMainscript(http::context *context)
   setCaching(response, conf.splitScript() && serveSkeletons);
   setHeaders(response, "text/javascript; charset=UTF-8");
 
-  WStringStream out(response.out());
+  //WStringStream out(response.out());
+  auto& out = context->buffer();
 
   if (!widgetset) {
     // FIXME: this cannot be replayed
@@ -1818,7 +2662,7 @@ void WebRenderer::serveMainscript(http::context *context)
 
     if (!redirect.empty()) {
       streamRedirectJS(out, redirect);
-      out.spool(response.out());
+      //out.spool(response.out());
       return;
     }
   } else {
@@ -1830,61 +2674,61 @@ void WebRenderer::serveMainscript(http::context *context)
 
   const bool innerHtml = true;
 
-  FileServe script(skeletons::Wt_js);
+  // FileServe script(skeletons::Wt_js);
 
-  script.setCondition
-      ("CATCH_ERROR", conf.errorReporting() != Configuration::NoErrors);
-  script.setCondition
-      ("SHOW_ERROR", conf.errorReporting() == Configuration::ErrorMessage);
-  script.setCondition
-      ("UGLY_INTERNAL_PATHS", session_.useUglyInternalPaths());
+  // script.setCondition
+  //     ("CATCH_ERROR", conf.errorReporting() != Configuration::NoErrors);
+  // script.setCondition
+  //     ("SHOW_ERROR", conf.errorReporting() == Configuration::ErrorMessage);
+  // script.setCondition
+  //     ("UGLY_INTERNAL_PATHS", session_.useUglyInternalPaths());
 
-#ifdef WT_DEBUG_JS
-  script.setCondition("DYNAMIC_JS", true);
-#else
-  script.setCondition("DYNAMIC_JS", false);
-#endif // WT_DEBUG_JS
+// #ifdef WT_DEBUG_JS
+//   script.setCondition("DYNAMIC_JS", true);
+// #else
+//   script.setCondition("DYNAMIC_JS", false);
+// #endif // WT_DEBUG_JS
 
-  script.setVar("WT_CLASS", WT_CLASS);
-  script.setVar("APP_CLASS", app->javaScriptClass());
-  script.setCondition("STRICTLY_SERIALIZED_EVENTS", conf.serializedEvents());
-  script.setCondition("WEB_SOCKETS", conf.webSockets());
-  script.setVar("INNER_HTML", innerHtml);
-  script.setVar("ACK_UPDATE_ID", expectedAckId_);
-  script.setVar("SESSION_URL", WWebWidget::jsStringLiteral(sessionUrl()));
-  script.setVar("QUITTED_STR",
-                WString::tr("Wt.QuittedMessage").jsStringLiteral());
-  script.setVar("MAX_FORMDATA_SIZE", conf.maxFormDataSize());
-  script.setVar("MAX_PENDING_EVENTS", conf.maxPendingEvents());
+  // script.setVar("WT_CLASS", WT_CLASS);
+  // script.setVar("APP_CLASS", app->javaScriptClass());
+  // script.setCondition("STRICTLY_SERIALIZED_EVENTS", conf.serializedEvents());
+  // script.setCondition("WEB_SOCKETS", conf.webSockets());
+  // script.setVar("INNER_HTML", innerHtml);
+  // script.setVar("ACK_UPDATE_ID", expectedAckId_);
+  // script.setVar("SESSION_URL", WWebWidget::jsStringLiteral(sessionUrl()));
+  // script.setVar("QUITTED_STR",
+  //               WString::tr("Wt.QuittedMessage").jsStringLiteral());
+  // script.setVar("MAX_FORMDATA_SIZE", conf.maxFormDataSize());
+  // script.setVar("MAX_PENDING_EVENTS", conf.maxPendingEvents());
 
   std::string deployPath = session_.env().publicDeploymentPath_;
   if (deployPath.empty())
     deployPath = session_.deploymentPath();
 
-  script.setVar("DEPLOY_PATH", WWebWidget::jsStringLiteral(deployPath));
+//   script.setVar("DEPLOY_PATH", WWebWidget::jsStringLiteral(deployPath));
 
-// WS_PATH = DEPLOY_PATH for C++, = CONTEXT_PATH for Java = request.contextPath()
-// WS_ID = empty for C++, servlet ID for Java
-#ifdef WT_TARGET_JAVA
-  script.setVar("WS_PATH", WWebWidget::jsStringLiteral(session_.controller()->getContextPath() + "/ws"));
-  script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::to_string(session_.controller()->getIdForWebSocket())));
-#else
-  script.setVar("WS_PATH", WWebWidget::jsStringLiteral(deployPath));
-  script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::string("")));
-#endif
+// // WS_PATH = DEPLOY_PATH for C++, = CONTEXT_PATH for Java = request.contextPath()
+// // WS_ID = empty for C++, servlet ID for Java
+// #ifdef WT_TARGET_JAVA
+//   script.setVar("WS_PATH", WWebWidget::jsStringLiteral(session_.controller()->getContextPath() + "/ws"));
+//   script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::to_string(session_.controller()->getIdForWebSocket())));
+// #else
+//   script.setVar("WS_PATH", WWebWidget::jsStringLiteral(deployPath));
+//   script.setVar("WS_ID", WWebWidget::jsStringLiteral(std::string("")));
+// #endif
 
-  script.setVar("KEEP_ALIVE", std::to_string(conf.keepAlive()));
+//   script.setVar("KEEP_ALIVE", std::to_string(conf.keepAlive()));
 
-  script.setVar("IDLE_TIMEOUT", conf.idleTimeout() != -1 ?
-                                    std::to_string(conf.idleTimeout()) : std::string("null"));
+//   script.setVar("IDLE_TIMEOUT", conf.idleTimeout() != -1 ?
+//                                     std::to_string(conf.idleTimeout()) : std::string("null"));
 
-  script.setVar("INDICATOR_TIMEOUT", conf.indicatorTimeout());
-  script.setVar("SERVER_PUSH_TIMEOUT", conf.serverPushTimeout() * 1000);
+//   script.setVar("INDICATOR_TIMEOUT", conf.indicatorTimeout());
+//   script.setVar("SERVER_PUSH_TIMEOUT", conf.serverPushTimeout() * 1000);
 
-  /*
-     * Was in honor of Mozilla Bugzilla #246651
-     */
-  script.setVar("CLOSE_CONNECTION", false);
+//   /*
+//      * Was in honor of Mozilla Bugzilla #246651
+//      */
+//   script.setVar("CLOSE_CONNECTION", false);
 
   /*
      * Set the original script params for a widgetset session, so that any
@@ -1908,22 +2752,41 @@ void WebRenderer::serveMainscript(http::context *context)
       params += Utils::urlEncode(i->first) + '=' + Utils::urlEncode(i->second[0]);
     }
   }
-  script.setVar("PARAMS", params);
+  // script.setVar("PARAMS", params);
 
-  script.stream(out);
+  fmt::format_to(std::back_inserter(out), FMT_COMPILE(skeletons::Wt_js_template),
+                 fmt::arg("WT_CLASS", WT_CLASS),
+                 fmt::arg("APP_CLASS", app->javaScriptClass()),
+                 fmt::arg("INNER_HTML", innerHtml),
+                 fmt::arg("ACK_UPDATE_ID", expectedAckId_),
+                 fmt::arg("SESSION_URL", JsString(sessionUrl())),
+                 fmt::arg("QUITTED_STR", WString::tr("Wt.QuittedMessage").jsStringLiteral()),
+                 fmt::arg("MAX_FORMDATA_SIZE", conf.maxFormDataSize()),
+                 fmt::arg("MAX_PENDING_EVENTS", conf.maxPendingEvents()),
+                 fmt::arg("DEPLOY_PATH", WWebWidget::jsStringLiteral(deployPath)),
+                 fmt::arg("WS_PATH", WWebWidget::jsStringLiteral(deployPath)),
+                 fmt::arg("WS_ID", WWebWidget::jsStringLiteral(std::string(""))),
+                 fmt::arg("KEEP_ALIVE", std::to_string(conf.keepAlive())),
+                 fmt::arg("IDLE_TIMEOUT", conf.idleTimeout() != -1 ? std::to_string(conf.idleTimeout()) : std::string("null")),
+                 fmt::arg("INDICATOR_TIMEOUT", conf.indicatorTimeout()),
+                 fmt::arg("SERVER_PUSH_TIMEOUT", conf.serverPushTimeout() * 1000),
+                 fmt::arg("CLOSE_CONNECTION", false),
+                 fmt::arg("PARAMS", params));
+
+  // script.stream(out);
 
   if (!serveRest) {
-    out.spool(response.out());
+    //out.spool(response.out());
     return;
   }
 
-  out << app->javaScriptClass() << "._p_.setPage(" << pageId_ << ");";
+  fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.setPage({});"), app->javaScriptClass(), pageId_);
 
   formObjectsChanged_ = true;
   app->autoJavaScriptChanged_ = true;
 
   if (session_.type() == EntryPointType::WidgetSet) {
-    out << app->javaScriptClass() << "._p_.update(null, 'load', null, false);";
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.update(null, 'load', null, false);"), app->javaScriptClass());
   } else if (!rendered_) {
     serveMainAjax(out);
   } else {
@@ -1932,92 +2795,97 @@ void WebRenderer::serveMainscript(http::context *context)
     if (app->enableAjax_) {
       // Before-load JavaScript of libraries that were loaded directly
       // in HTML
-      collectedJS1_ << "var form = " WT_CLASS ".getElement('Wt-form'); "
-                       "if (form) {" << beforeLoadJS_.str();
+      fmt::format_to(std::back_inserter(fcollectedJS1_), FMT_COMPILE("var form={}.getElement('Wt-form');if(form){{{}var domRoot={};{}.progressed(domRoot);"),
+                     WT_CLASS,
+                     std::string_view(fbeforeLoadJS_),
+                     app->domRoot_->jsRef(),
+                     WT_CLASS);
+      // collectedJS1_ << "var form = " WT_CLASS ".getElement('Wt-form'); "
+      //                  "if (form) {" << beforeLoadJS_.str();
 
-      beforeLoadJS_.clear();
+      fbeforeLoadJS_.clear();
 
-      collectedJS1_
-          << "var domRoot=" << app->domRoot_->jsRef() << ';'
-          << WT_CLASS ".progressed(domRoot);";
+      // collectedJS1_
+      //     << "var domRoot=" << app->domRoot_->jsRef() << ';'
+      //     << WT_CLASS ".progressed(domRoot);";
 
       // Load JavaScript libraries that were added during enableAjax()
-      int librariesLoaded = loadScriptLibraries(collectedJS1_, app);
+      int librariesLoaded = loadScriptLibraries(fcollectedJS1_, app);
 
-      app->streamBeforeLoadJavaScript(collectedJS1_, false);
+      app->streamBeforeLoadJavaScript(fcollectedJS1_, false);
 
-      collectedJS2_
-          << WT_CLASS ".resolveRelativeAnchors();"
-          << "domRoot.style.visibility = 'visible';"
-          << app->javaScriptClass() << "._p_.doAutoJavaScript();";
+      fmt::format_to(std::back_inserter(fcollectedJS2_), FMT_COMPILE("{}.resolveRelativeAnchors();domRoot.style.visibility='visible';{}.doAutoJavaScript();}}"), WT_CLASS, app->javaScriptClass());
+      // collectedJS2_
+      //     << WT_CLASS ".resolveRelativeAnchors();"
+      //     << "domRoot.style.visibility = 'visible';"
+      //     << app->javaScriptClass() << "._p_.doAutoJavaScript();";
 
-      loadScriptLibraries(collectedJS2_, app, librariesLoaded);
+      loadScriptLibraries(fcollectedJS2_, app, librariesLoaded);
 
-      collectedJS2_ << '}';
+      //collectedJS2_ << '}';
 
       app->enableAjax_ = false;
     } else
       app->streamBeforeLoadJavaScript(out, true);
 
-    out << "window." << app->javaScriptClass()
-        << "LoadWidgetTree = function(){\n";
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("window.{}_LoadWidgetTree = function() {{\n"), app->javaScriptClass());
+    // out << "window." << app->javaScriptClass()
+    //     << "LoadWidgetTree = function(){\n";
 
     if (app->internalPathsEnabled_)
-      out << app->javaScriptClass() << "._p_.enableInternalPaths("
-          << WWebWidget::jsStringLiteral(app->renderedInternalPath_)
-          << ");\n";
+      fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.enableInternalPaths('{:s}');\n"), app->javaScriptClass(), JsString(app->renderedInternalPath_));
+      // out << app->javaScriptClass() << "._p_.enableInternalPaths("
+      //     << WWebWidget::jsStringLiteral(app->renderedInternalPath_)
+      //     << ");\n";
 
     visibleOnly_ = false;
 
     formObjectsChanged_ = true;
     currentFormObjectsList_.clear();
-    collectJavaScript();
-    updateLoadIndicator(collectedJS1_, app, true);
+    collectJavaScript(fcollectedJS1_);
+    updateLoadIndicator(fcollectedJS1_, app, true);
 
-    LOG_DEBUG("js: {}{}", collectedJS1_.str(), collectedJS2_.str());
+    LOG_DEBUG("js: {}{}", fcollectedJS1_, fcollectedJS2_);
 
-    out << collectedJS1_.str();
+    fmt::format_to(std::back_inserter(out), "{}", fcollectedJS1_);
+    //out << collectedJS1_.str();
 
     addResponseAckPuzzle(out);
 
-    out << app->javaScriptClass()
-        << "._p_.setHash("
-        << WWebWidget::jsStringLiteral(app->newInternalPath_)
-        << ", false);\n";
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.setHash('{:s}', false);\n"), app->javaScriptClass(), JsString(app->newInternalPath_));
+    // out << app->javaScriptClass()
+    //     << "._p_.setHash("
+    //     << WWebWidget::jsStringLiteral(app->newInternalPath_)
+    //     << ", false);\n";
 
     if (!app->environment().internalPathUsingFragments())
       session_.setPagePathInfo(app->newInternalPath_);
 
-    out << app->javaScriptClass()
-        << "._p_.update(null, 'load', null, false);"
-        << collectedJS2_.str()
-        << "};"; // LoadWidgetTree = function() { ... }
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.update(null, 'load', null, false);{}}};"), app->javaScriptClass(), std::string_view(fcollectedJS2_));
+    // out << app->javaScriptClass()
+    //     << "._p_.update(null, 'load', null, false);"
+    //     << collectedJS2_.str()
+    //     << "};"; // LoadWidgetTree = function() { ... }
 
     session_.app()->serverPushChanged_ = true;
     renderSetServerPush(out);
 
     if (enabledAjax)
     {
-      out
-          /*
+        /*
          * Firefox < 3.5 doesn't have this and in that case it could be
          * that we are already ready and jqeury doesn't fire the callback.
          */
-          << "\nif (typeof document.readyState === 'undefined')"
-          << " setTimeout(function() { "
-          <<              app->javaScriptClass() << "._p_.load(true);"
-          <<   "}, 400);"
-          << "else ";
-
-      out << WT_CLASS ".ready(function() { "
-          << app->javaScriptClass() << "._p_.load(true);});\n";
+      fmt::format_to(std::back_inserter(out), FMT_COMPILE("if(typeof document.readyState==='undefined') setTimeout(function(){{ {}.load(true); }},400); else" WT_CLASS ".ready(function() {{ {}._p_.load(true);}});\n"),
+                     app->javaScriptClass(),
+                     app->javaScriptClass());
     }
 
 //    out << "$(document).ready(function() { "
 //        << app->javaScriptClass() << "._p_.load(true);});\n";
   }
 
-  out.spool(response.out());
+  //out.spool(response.out());
 }
 
 void WebRenderer::serveBootstrap(http::context *context)
@@ -2025,29 +2893,35 @@ void WebRenderer::serveBootstrap(http::context *context)
   auto& response = context->res();
   Configuration& conf = session_.controller()->configuration();
 
-  FileServe boot(skeletons::Boot_html);
-  setPageVars(boot);
+  // FileServe boot(skeletons::Boot_html);
+  // setPageVars(boot);
 
-  WStringStream noJsRedirectUrl;
-  DomElement::htmlAttributeValue
-      (noJsRedirectUrl,
-       session_.bootstrapUrl(context,
-                             WebSession::BootstrapOption::KeepInternalPath) + "&js=no");
+  // WStringStream noJsRedirectUrl;
+  // DomElement::htmlAttributeValue
+  //     (noJsRedirectUrl,
+  //      session_.bootstrapUrl(context,
+  //                            WebSession::BootstrapOption::KeepInternalPath) + "&js=no");
 
-  boot.setVar("REDIRECT_URL", noJsRedirectUrl.str());
-  boot.setVar("AUTO_REDIRECT",
-              "<noscript><meta http-equiv=\"refresh\" content=\"0; url="
-                  + noJsRedirectUrl.str() + "\"></noscript>");
-  boot.setVar("NOSCRIPT_TEXT", conf.redirectMessage());
+  std::string noJsRedirectUrl = fmt::format("{:h}&amp;js=no",
+                                    JsString(session_.bootstrapUrl(context, WebSession::BootstrapOption::KeepInternalPath)));
 
-  WStringStream bootStyleUrl;
-  DomElement::htmlAttributeValue
-      (bootStyleUrl,
-       session_.bootstrapUrl(context,
-                             WebSession::BootstrapOption::ClearInternalPath)
-           + "&request=style&page=" + std::to_string(pageId_));
+  // boot.setVar("REDIRECT_URL", noJsRedirectUrl.str());
+  // boot.setVar("AUTO_REDIRECT",
+  //             "<noscript><meta http-equiv=\"refresh\" content=\"0; url="
+  //                 + noJsRedirectUrl.str() + "\"></noscript>");
+  // boot.setVar("NOSCRIPT_TEXT", conf.redirectMessage());
 
-  boot.setVar("BOOT_STYLE_URL", bootStyleUrl.str());
+  // WStringStream bootStyleUrl;
+  // DomElement::htmlAttributeValue
+  //     (bootStyleUrl,
+  //      session_.bootstrapUrl(context,
+  //                            WebSession::BootstrapOption::ClearInternalPath)
+  //          + "&request=style&page=" + std::to_string(pageId_));
+
+  std::string bootStyleUrl = fmt::format("{:h}&amp;request=style&amp;page={}",
+                                            JsString(session_.bootstrapUrl(context, WebSession::BootstrapOption::ClearInternalPath)), pageId_);
+
+  //boot.setVar("BOOT_STYLE_URL", bootStyleUrl.str());
 
   setCaching(response, false);
   response.addHeader("X-Frame-Options", "SAMEORIGIN");
@@ -2056,13 +2930,21 @@ void WebRenderer::serveBootstrap(http::context *context)
 
   setHeaders(response, contentType);
 
-  WStringStream out(response.out());
-  streamBootContent(context, boot, false);
-  boot.stream(out);
+  //WStringStream out(response.out());
+  streamBootContent(context, false);
+  //boot.stream(out);
+
+  static auto redirectmessage = conf.redirectMessage();
+
+  fmt::format_to(response.out(), FMT_COMPILE(skeletons::Boot_template),
+                 fmt::arg("REDIRECT_URL", noJsRedirectUrl),
+                 fmt::arg("AUTO_REDIRECT", "<noscript><meta http-equiv=\"refresh\" content=\"0; url=" + noJsRedirectUrl + "\"></noscript>"),
+                 fmt::arg("NOSCRIPT_TEXT", redirectmessage),
+                 fmt::arg("BOOT_STYLE_URL", bootStyleUrl));
 
   setRendered(false);
 
-  out.spool(response.out());
+  //out.spool(response.out());
 }
 
 std::string WebRenderer::safeJsStringLiteral(const std::string& value)
@@ -2086,9 +2968,22 @@ void WebRenderer::updateLoadIndicator(WStringStream& out, WApplication *app, boo
   }
 }
 
+void WebRenderer::updateLoadIndicator(fmt::memory_buffer &out, WApplication *app, bool all)
+{
+    if (app->showLoadingIndicator_.needsUpdate(all)) {
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("showLoadingIndicator=function(){{var o=null,e=null;\n{}}};\n"), app->showLoadingIndicator_.javaScript());
+        app->showLoadingIndicator_.updateOk();
+    }
+
+    if (app->hideLoadingIndicator_.needsUpdate(all)) {
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("hideLoadingIndicator=function(){{var o=null,e=null;\n{}}};\n"), app->hideLoadingIndicator_.javaScript());
+        app->hideLoadingIndicator_.updateOk();
+    }
+}
+
 void WebRenderer::renderStyleSheet(WStringStream& out,
-				   const WLinkedCssStyleSheet& sheet,
-				   WApplication *app)
+                                   const WLinkedCssStyleSheet& sheet,
+                                   WApplication *app)
 {
   out << "<link href=\"";
   DomElement::htmlAttributeValue(out, sheet.link().resolveUrl(app));
@@ -2098,6 +2993,17 @@ void WebRenderer::renderStyleSheet(WStringStream& out,
     out << " media=\"" << sheet.media() << '"';
   
   closeSpecial(out);
+}
+
+void WebRenderer::renderStyleSheet(fmt::memory_buffer &out, const WLinkedCssStyleSheet &sheet, WApplication *app)
+{
+    if (!sheet.media().empty() && sheet.media() != "all")
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("<link href=\"{:h}\" rel=\"stylesheet\" type=\"text/css\" media=\"{}\">\n"),
+                       JsString(sheet.link().resolveUrl(app)),
+                       sheet.media());
+    else
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("<link href=\"{:h}\" rel=\"stylesheet\" type=\"text/css\">\n"),
+                       JsString(sheet.link().resolveUrl(app)));
 }
 
 /*
@@ -2313,12 +3219,57 @@ int WebRenderer::loadScriptLibraries(WStringStream& out,
     return 0;
   }
 }
+#warning "TODO: reImplement this"
+int WebRenderer::loadScriptLibraries(fmt::memory_buffer &out, WApplication *app, int count)
+{
+    if (count == -1) {
+        int first = app->scriptLibraries_.size() - app->scriptLibrariesAdded_;
+
+        for (unsigned i = first; i < app->scriptLibraries_.size(); ++i) {
+            std::string uri = session_.fixRelativeUrl(app->scriptLibraries_[i].uri);
+
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}{}._p_.loadScript('{}','{:s}');\n{}._p_.onJsLoad(\"{}\",function() {{\n"),
+                           app->scriptLibraries_[i].beforeLoadJS,
+                           app->javaScriptClass(),
+                           uri,
+                           JsString(app->scriptLibraries_[i].symbol),
+                           app->javaScriptClass(),
+                           uri);
+            // out << app->scriptLibraries_[i].beforeLoadJS
+            //     << app->javaScriptClass() << "._p_.loadScript('" << uri << "',";
+            // DomElement::jsStringLiteral(out, app->scriptLibraries_[i].symbol, '\'');
+            // out << ");\n";
+            // out << app->javaScriptClass() << "._p_.onJsLoad(\""
+            //     << uri << "\",function() {\n";
+        }
+
+        count = app->scriptLibrariesAdded_;
+        app->scriptLibrariesAdded_ = 0;
+
+        return count;
+    } else {
+        if (count) {
+            //fmt::format_to(std::back_inserter(out), "{}._p_.doAutoJavaScript();", app->javaScriptClass(), fmt::repeat("});", n));
+
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.doAutoJavaScript();{}"), app->javaScriptClass(), fmt::join(std::vector<std::string_view>(count, "});"), ""));
+            //out << app->javaScriptClass() << "._p_.doAutoJavaScript();";
+            // for (int i = 0; i < count; ++i)
+            //     out << "});";
+        }
+
+        return 0;
+    }
+}
 
 void WebRenderer::loadStyleSheet(WStringStream& out, WApplication *app, const WLinkedCssStyleSheet& sheet)
 {
   out << WT_CLASS << ".addStyleSheet('"
       << sheet.link().resolveUrl(app) << "', '"
       << sheet.media() << "');\n ";
+}
+void WebRenderer::loadStyleSheet(fmt::memory_buffer &out, WApplication *app, const WLinkedCssStyleSheet &sheet)
+{
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.addStyleSheet('{}', '{}');\n"), WT_CLASS, sheet.link().resolveUrl(app), sheet.media());
 }
 
 void WebRenderer::removeStyleSheets(WStringStream& out, WApplication *app)
@@ -2328,6 +3279,14 @@ void WebRenderer::removeStyleSheets(WStringStream& out, WApplication *app)
         << app->styleSheetsToRemove_[i].link().resolveUrl(app) << "');\n ";
     app->styleSheetsToRemove_.erase(app->styleSheetsToRemove_.begin() + i);
   }
+}
+
+void WebRenderer::removeStyleSheets(fmt::memory_buffer &out, WApplication *app)
+{
+    for (unsigned i = app->styleSheetsToRemove_.size() - 1; i > -1; --i){
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.removeStyleSheet('{}');\n"), WT_CLASS, JsString(app->styleSheetsToRemove_[i].link().resolveUrl(app)));
+        app->styleSheetsToRemove_.erase(app->styleSheetsToRemove_.begin() + i);
+    }
 }
 
 void WebRenderer::loadStyleSheets(WStringStream& out, WApplication *app)
@@ -2342,73 +3301,73 @@ void WebRenderer::loadStyleSheets(WStringStream& out, WApplication *app)
   app->styleSheetsAdded_ = 0;
 }
 
-void WebRenderer::collectChanges(std::vector<DomElement *>& changes)
+void WebRenderer::loadStyleSheets(fmt::memory_buffer &out, WApplication *app)
+{
+    int first = app->styleSheets_.size() - app->styleSheetsAdded_;
+
+    for (unsigned i = first; i < app->styleSheets_.size(); ++i)
+        loadStyleSheet(out, app, app->styleSheets_[i]);
+
+    removeStyleSheets(out, app);
+
+    app->styleSheetsAdded_ = 0;
+}
+
+void WebRenderer::collectChanges(std::vector<DomElement>& changes)
 {
   WApplication *app = session_.app();
 
   do {
     moreUpdates_ = false;
 
-    std::multimap<int, WWidget *> depthOrder;
-
-    for (auto i = updateMap_.begin(); i != updateMap_.end(); ++i)
-    {
-      int depth = 1;
-
-      WWidget *ww = *i;
-      WWidget *w = ww;
-      for (; w->parent(); ++depth)
-        w = w->parent();
-
-      if (w != app->domRoot_.get() && w != app->domRoot2_.get())
-      {
-        LOG_DEBUG("ignoring: {} ({}) {} ({})", ww->id(), DESCRIBE(ww), w->id(), DESCRIBE(w));
-
-        // not in displayed widgets: will be removed from the update list
-        depth = 0;
-      }
-
-#ifndef WT_TARGET_JAVA
-      depthOrder.insert(std::make_pair(depth, ww));
-#else
-      depthOrder.insert(depth, ww);
-#endif // WT_TARGET_JAVA
-    }
-
-    for (auto i = depthOrder.begin(); i != depthOrder.end(); ++i)
-    {
-      UpdateMap::iterator j = updateMap_.find(i->second);
-      if (j != updateMap_.end())
-      {
-        WWidget *w = i->second;
-
-        // depth == 0: remove it from the update list
-        if (i->first == 0) {
-          w->webWidget()->propagateRenderOk();
-          continue;
-        }
-
-        LOG_DEBUG("updating: {} ({})", w->id(), DESCRIBE(w));
-
-        if (!learning_ && visibleOnly_) {
-          if (w->isRendered()) {
-            w->getSDomChanges(changes, app);
-
-            /* if (!w->isVisible()) {
-              // We should postpone rendering the changes -- but
-              // at the same time need to propageRenderOk() now for stateless
-              // slot learning to work properly.
-              w->getSDomChanges(changes, app);
-            } else
-              w->getSDomChanges(changes, app); */
-          } else {
-            LOG_DEBUG("Ignoring: {}", w->id());
+      auto computeDepth = [&app](WWidget* ww) {
+          int depth = 1;
+          WWidget* w = ww;
+          for (; w->parent(); ++depth) {
+              w = w->parent();
           }
-        } else {
-          w->getSDomChanges(changes, app);
-        }
+          if (w != app->domRoot_.get() && w != app->domRoot2_.get()) {
+              LOG_DEBUG("ignoring: {} ({}) {} ({})", ww->id(), DESCRIBE(ww), w->id(), DESCRIBE(w));
+              depth = 0; // Not in displayed widgets
+          }
+          return depth;
+      };
+
+      std::vector<std::pair<int, WWidget*>> depthWidgets;
+      depthWidgets.reserve(updateMap_.size());
+
+      // Step 1: Collect widgets with their depths
+      for (WWidget* ww : updateMap_) {
+          int depth = computeDepth(ww);
+          depthWidgets.emplace_back(depth, ww);
       }
-    }
+
+      // Step 2: Sort by depth using C++20 ranges with projection
+      std::ranges::sort(depthWidgets, std::less{}, &std::pair<int, WWidget*>::first);
+
+      // Step 3: Process widgets in sorted order
+      for (const auto& [depth, w] : depthWidgets) {
+          // Check if widget is still in updateMap_ (for safety, assuming external modifications)
+          if (updateMap_.find(w) == updateMap_.end()) {
+              continue; // Skip if removed elsewhere
+          }
+
+          if (depth == 0) {
+              w->webWidget()->propagateRenderOk(); // Remove from update list
+              continue;
+          }
+
+          LOG_DEBUG("updating: {} ({})", w->id(), DESCRIBE(w));
+          if (!learning_ && visibleOnly_) {
+              if (w->isRendered()) {
+                  w->getSDomChanges(changes, app);
+              } else {
+                  LOG_DEBUG("Ignoring: {}", w->id());
+              }
+          } else {
+              w->getSDomChanges(changes, app);
+          }
+      }
   } while (!learning_ && moreUpdates_);
 }
 
@@ -2416,7 +3375,7 @@ void WebRenderer::collectJavaScriptUpdate(WStringStream& out)
 {
   WApplication *app = session_.app();
 
-  //out << '{';
+  out << '{';
 
   try {
     if (session_.sessionIdChanged_) {
@@ -2475,13 +3434,83 @@ void WebRenderer::collectJavaScriptUpdate(WStringStream& out)
 
     updateLoadIndicator(out, app, false);
   } catch (const std::exception &e) {
-    //out << '}';
+    out << '}';
     RETHROW(e);
   } catch (...) {
-    //out << '}';
+    out << '}';
     throw;
   }
-  //out << '}';
+  out << '}';
+}
+
+void WebRenderer::collectJavaScriptUpdate(fmt::memory_buffer &out)
+{
+    WApplication *app = session_.app();
+
+    out.push_back('{');
+
+    try {
+        if (session_.sessionIdChanged_) {
+            if (session_.hasSessionIdInUrl()) {
+                if (app->environment().ajax() &&
+                    !app->environment().internalPathUsingFragments()) {
+                    streamRedirectJS(out, app->url(app->internalPath()));
+                    // better would be to use HTML5 history in this case but that would
+                    // need some minor JavaScript reorganizations
+                } else {
+                    streamRedirectJS(out, app->url(app->internalPath()));
+                }
+                out.push_back('}');
+                return;
+            }
+
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.setSessionUrl({});"),
+                           session_.app()->javaScriptClass(),
+                           WWebWidget::jsStringLiteral(sessionUrl()));
+            session_.sessionIdChanged_ = false;
+        }
+
+        collectJS(&out);
+
+        /*
+         * Now, as we have cleared and recorded all JavaScript changes that were
+         * caused by the actual code, we can learn stateless code and collect
+         * changes that result.
+         */
+
+        preLearnStateless(app, out);
+
+        if (formObjectsChanged_) {
+            std::string formObjectsList = createFormObjectsList(app);
+            if (formObjectsList != currentFormObjectsList_) {
+                currentFormObjectsList_ = formObjectsList;
+                fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.setFormObjects([{}]);"), app->javaScriptClass(), currentFormObjectsList_);
+            }
+        }
+
+        app->streamAfterLoadJavaScript(out);
+
+        if (app->hasQuit())
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.quit({});"),
+                           app->javaScriptClass(),
+                           app->quittedMessage_.empty() ? "null" : app->quittedMessage_.jsStringLiteral());
+
+        if (updateLayout_) {
+            fmt::format_to(std::back_inserter(out), "window.onresize();");
+            updateLayout_ = false;
+        }
+
+        app->renderedInternalPath_ = app->newInternalPath_;
+
+        updateLoadIndicator(out, app, false);
+    } catch (const std::exception &e) {
+        out.push_back('}');
+        throw e;
+    } catch (...) {
+        out.push_back('}');
+        throw;
+    }
+    out.push_back('}');
 }
 
 void WebRenderer::updateFormObjects(WWebWidget *source, bool checkDescendants)
@@ -2502,96 +3531,165 @@ void WebRenderer::updateFormObjectsList(WApplication *app)
 
 std::string WebRenderer::createFormObjectsList(WApplication *app)
 {
-  updateFormObjectsList(app);
+    updateFormObjectsList(app);
 
-  std::string result;
+    std::string result;
 
-  for (FormObjectsMap::const_iterator i = currentFormObjects_.begin();
-       i != currentFormObjects_.end(); ++i) {
-    if (!result.empty())
-      result += ',';
+    for (auto i = currentFormObjects_.begin(); i != currentFormObjects_.end(); ++i)
+    {
+        if (!result.empty())
+            result += ',';
 
-    result += "'" + i->first + "'";
-  }
+        result += "'" + i->first + "'";
+    }
 
-  formObjectsChanged_ = false;
+    formObjectsChanged_ = false;
 
-  return result;
+    return result;
 }
 
 void WebRenderer::collectJS(WStringStream* js)
 {
-  std::vector<DomElement *> changes;
+    //std::vector<DomElement> changes;
+    changes_.clear();
 
-  collectChanges(changes);
+    collectChanges(changes_);
 
-  WApplication *app = session_.app();
+    WApplication *app = session_.app();
 
-  if (js) {
-    if (!preLearning())
-      app->streamBeforeLoadJavaScript(*js, false);
+    if (js) {
+        if (!preLearning())
+            app->streamBeforeLoadJavaScript(*js, false);
 
-    Configuration& conf = session_.controller()->configuration();
-    if (conf.inlineCss())
-      app->styleSheet().javaScriptUpdate(app, *js, false);
+        Configuration& conf = session_.controller()->configuration();
+        if (conf.inlineCss())
+            app->styleSheet().javaScriptUpdate(app, *js, false);
 
-    EscapeOStream sout(*js);
+        EscapeOStream sout(*js);
 
-    for (unsigned i = 0; i < changes.size(); ++i)
-      changes[i]->asJavaScript(sout, DomElement::Priority::Delete);
+        for (unsigned i = 0; i < changes_.size(); ++i)
+            changes_[i].asJavaScript(sout, DomElement::Priority::Delete);
 
-    for (unsigned i = 0; i < changes.size(); ++i) {
-      changes[i]->asJavaScript(sout, DomElement::Priority::Update);
-      delete changes[i];
-    }
-  } else {
-    for (unsigned i = 0; i < changes.size(); ++i)
-      delete changes[i];
-  }
+        for (unsigned i = 0; i < changes_.size(); ++i) {
+            changes_[i].asJavaScript(sout, DomElement::Priority::Update);
+            //delete changes[i];
+        }
+    } //else {
+    //for (unsigned i = 0; i < changes.size(); ++i)
+    //delete changes[i];
+    //}
+    changes_.clear();
 
-  if (js) {
-    if (app->titleChanged_) {
-      *js << app->javaScriptClass()
-	  << "._p_.setTitle(" << app->title().jsStringLiteral() << ");\n";
-    }
+    if (js) {
+        if (app->titleChanged_) {
+            *js << app->javaScriptClass()
+            << "._p_.setTitle(" << app->title().jsStringLiteral() << ");\n";
+        }
 
-    if (app->closeMessageChanged_) {
-      *js << app->javaScriptClass()
-	  << "._p_.setCloseMessage(" << app->closeMessage().jsStringLiteral()
-	  << ");\n";
-    }
-    
-	if (app->localeChanged_) {
-      *js << app->javaScriptClass()
-	  << "._p_.setLocale(" << WString(app->locale().name()).jsStringLiteral()
-	  << ");\n";
-    }
-  }
+        if (app->closeMessageChanged_) {
+            *js << app->javaScriptClass()
+            << "._p_.setCloseMessage(" << app->closeMessage().jsStringLiteral()
+            << ");\n";
+        }
 
-  app->titleChanged_ = false;
-  app->closeMessageChanged_ = false;
-  app->localeChanged_ = false;
-
-  if (js) {
-    int librariesLoaded = loadScriptLibraries(*js, app);
-
-    app->streamAfterLoadJavaScript(*js);
-
-    if (app->internalPathIsChanged_) {
-      *js << app->javaScriptClass()
-	  << "._p_.setHash("
-	  << WWebWidget::jsStringLiteral(app->newInternalPath_)
-	  << ", false);\n";
-      if (!preLearning() && !app->environment().internalPathUsingFragments())
-	session_.setPagePathInfo(app->newInternalPath_);
+        if (app->localeChanged_) {
+            *js << app->javaScriptClass()
+            << "._p_.setLocale(" << WString(app->locale().name()).jsStringLiteral()
+            << ");\n";
+        }
     }
 
-    loadScriptLibraries(*js, app, librariesLoaded);
-  } else
-    app->afterLoadJavaScript_.clear();
+    app->titleChanged_ = false;
+    app->closeMessageChanged_ = false;
+    app->localeChanged_ = false;
 
-  app->internalPathIsChanged_ = false;
-  app->renderedInternalPath_ = app->newInternalPath_;
+    if (js) {
+        int librariesLoaded = loadScriptLibraries(*js, app);
+
+        app->streamAfterLoadJavaScript(*js);
+
+        if (app->internalPathIsChanged_) {
+            *js << app->javaScriptClass()
+            << "._p_.setHash("
+            << WWebWidget::jsStringLiteral(app->newInternalPath_)
+            << ", false);\n";
+            if (!preLearning() && !app->environment().internalPathUsingFragments())
+                session_.setPagePathInfo(app->newInternalPath_);
+        }
+
+        loadScriptLibraries(*js, app, librariesLoaded);
+    } else
+        app->afterLoadJavaScript_.clear();
+
+    app->internalPathIsChanged_ = false;
+    app->renderedInternalPath_ = app->newInternalPath_;
+}
+
+void WebRenderer::collectJS(fmt::memory_buffer *js)
+{
+    //std::vector<DomElement> changes;
+    changes_.clear();
+
+    collectChanges(changes_);
+
+    WApplication *app = session_.app();
+
+    if (js) {
+        if (!preLearning())
+            app->streamBeforeLoadJavaScript(*js, false);
+
+        Configuration& conf = session_.controller()->configuration();
+        if (conf.inlineCss())
+            app->styleSheet().javaScriptUpdate(app, *js, false);
+
+        for (unsigned i = 0; i < changes_.size(); ++i)
+            changes_[i].asJavaScript(*js, DomElement::Priority::Delete);
+
+        for (unsigned i = 0; i < changes_.size(); ++i) {
+            changes_[i].asJavaScript(*js, DomElement::Priority::Update);
+            //delete changes[i];
+        }
+    } //else {
+    //for (unsigned i = 0; i < changes.size(); ++i)
+    //delete changes[i];
+    //}
+    changes_.clear();
+
+    if (js) {
+        if (app->titleChanged_) {
+            fmt::format_to(std::back_inserter(*js), FMT_COMPILE("{}._p_.setTitle({});\n"), app->javaScriptClass(), app->title().jsStringLiteral());
+        }
+
+        if (app->closeMessageChanged_) {
+            fmt::format_to(std::back_inserter(*js), FMT_COMPILE("{}._p_.setCloseMessage({});\n"), app->javaScriptClass(), app->closeMessage().jsStringLiteral());
+        }
+
+        if (app->localeChanged_) {
+            fmt::format_to(std::back_inserter(*js), FMT_COMPILE("{}._p_.setLocale({});\n"), app->javaScriptClass(), WString(app->locale().name()).jsStringLiteral());
+        }
+    }
+
+    app->titleChanged_ = false;
+    app->closeMessageChanged_ = false;
+    app->localeChanged_ = false;
+
+    if (js) {
+        int librariesLoaded = loadScriptLibraries(*js, app);
+
+        app->streamAfterLoadJavaScript(*js);
+
+        if (app->internalPathIsChanged_) {
+            fmt::format_to(std::back_inserter(*js), FMT_COMPILE("{}._p_.setHash('{:s}', false);\n"), app->javaScriptClass(), JsString(app->newInternalPath_));
+            if (!preLearning() && !app->environment().internalPathUsingFragments())
+                session_.setPagePathInfo(app->newInternalPath_);
+        }
+
+        loadScriptLibraries(*js, app, librariesLoaded);
+    } else
+        app->afterLoadJavaScript_.clear();
+
+    app->internalPathIsChanged_ = false;
+    app->renderedInternalPath_ = app->newInternalPath_;
 }
 
 void WebRenderer::preLearnStateless(WApplication *app, WStringStream& out)
@@ -2624,6 +3722,36 @@ void WebRenderer::preLearnStateless(WApplication *app, WStringStream& out)
   statelessJS_.clear();
 }
 
+void WebRenderer::preLearnStateless(WApplication *app, fmt::memory_buffer &out)
+{
+    if (!session_.env().ajax())
+        return;
+
+    collectJS(&out);
+
+    // TODO optimize this so that only signals which require an update
+    //      are processed instead of looping through all signals.
+
+    WApplication::SignalMap& ss = session_.app()->exposedSignals();
+
+    for (auto i = ss.begin(); i != ss.end(); ++i)
+    {
+        Wt::EventSignalBase* s = i->second;
+
+        if (s->owner() == app)
+            s->processPreLearnStateless(this);
+        else if (s->canAutoLearn())
+        {
+            WWidget *ww = static_cast<WWidget *>(s->owner());
+            if (ww && ww->isRendered())
+                s->processPreLearnStateless(this);
+        }
+    }
+
+    fmt::format_to(std::back_inserter(out), "{}", fstatelessJS_);
+    fstatelessJS_.clear();
+}
+
 std::string WebRenderer::learn(WStatelessSlot* slot)
 {
   if (slot->invalidated())
@@ -2638,21 +3766,21 @@ std::string WebRenderer::learn(WStatelessSlot* slot)
 
   slot->trigger();
 
-  WStringStream js;
+  fmt::memory_buffer js;
 
   collectJS(&js);
 
-  std::string result = js.str();
+  std::string result = fmt::to_string(js);
 
   LOG_DEBUG("learned: {}", result);
 
   if (slot->type() == WStatelessSlot::SlotType::PreLearnStateless) {
     slot->undoTrigger();
-    collectJS(nullptr);
+    collectJS((fmt::memory_buffer*)nullptr);
 
     learning_ = false;
   } else { // AutoLearnStateless
-    statelessJS_ << result;
+      fmt::format_to(std::back_inserter(fstatelessJS_), "{}", result);
   }
 
   if (currentStatelessSlotIsActuallyStateless_ && !learningIncomplete_) {
@@ -2661,7 +3789,7 @@ std::string WebRenderer::learn(WStatelessSlot* slot)
     slot->invalidate();
   }
 
-  collectJS(&statelessJS_);
+  collectJS(&fstatelessJS_);
 
   return result;
 }
@@ -2673,153 +3801,126 @@ void WebRenderer::learningIncomplete()
 
 std::string WebRenderer::headDeclarations() const
 {
-  EscapeOStream result;
- 
-  const Configuration& conf = session_.env().server()->configuration();
+    const Configuration& conf = session_.env().server()->configuration();
 
-  const std::vector<HeadMatter>& headMatters = conf.headMatter();
-  for (unsigned i = 0; i < headMatters.size(); ++i) {
-    const HeadMatter& m = headMatters[i];
-
-    bool add = true;
-    if (!m.userAgent().empty()) {
-      std::string s = session_.env().userAgent();
-      std::regex expr(m.userAgent());
-      if (!std::regex_search(s, expr))
-	add = false;
+    std::vector<std::string_view> contents;
+    const std::vector<HeadMatter>& headMatters = conf.headMatter();
+    for (unsigned i = 0; i < headMatters.size(); ++i) {
+        const HeadMatter& m = headMatters[i];
+        if (m.matches(session_.env().userAgent()))
+            contents.push_back(m.contents());
     }
 
-    if (add)
-      result << m.contents();
-  }
+    std::vector<MetaHeader> metaHeaders;
+    if (session_.app()) {
+        const auto& appMetaHeaders = session_.app()->metaHeaders_;
 
-  const std::vector<MetaHeader>& confMetaHeaders = conf.metaHeaders();
-  std::vector<MetaHeader> metaHeaders;
-
-  for (unsigned i = 0; i < confMetaHeaders.size(); ++i) {
-    const MetaHeader& m = confMetaHeaders[i];
-
-    bool add = true;
-    if (!m.userAgent.empty()) {
-      std::string s = session_.env().userAgent();
-      std::regex expr(m.userAgent);
-      if (!std::regex_search(s, expr))
-	add = false;
+        for (unsigned i = 0; i < appMetaHeaders.size(); ++i) {
+            metaHeaders.push_back(appMetaHeaders[i]);
+        }
     }
 
-    if (add)
-      metaHeaders.push_back(confMetaHeaders[i]);
-  }
+    //fmt::memory_buffer result;
 
-  if (session_.app()) {
-    const std::vector<MetaHeader>& appMetaHeaders
-      = session_.app()->metaHeaders_;
+    std::string baseUrl;
+    WApplication::readConfigurationProperty("baseURL", baseUrl);
 
-    for (unsigned i = 0; i < appMetaHeaders.size(); ++i) {
-      const MetaHeader& m = appMetaHeaders[i];
+    return fmt::format("{}{}{}{}",
+                       fmt::join(metaHeaders, ""),
+                       fmt::join(contents, ""),
+                       fmt::Favicon(session_.favicon()),
+                       fmt::Baseurl(baseUrl));
 
-      bool add = true;
-      for (unsigned j = 0; j < metaHeaders.size(); ++j) {
-	MetaHeader& m2 = metaHeaders[j];
+    // for (unsigned i = 0; i < metaHeaders.size(); ++i) {
+    //     const MetaHeader& m = metaHeaders[i];
 
-	if (m.type == m2.type && m.name == m2.name) {
-	  m2.content = m.content;
-	  add = false;
-	  break;
-	}
-      }
+    //     result << "<meta";
 
-      if (add)
-	metaHeaders.push_back(m);
-    }
-  }
+    //     if (!m.name.empty()) {
+    //         std::string attribute;
+    //         switch (m.type) {
+    //         case MetaHeaderType::Meta: attribute = "name"; break;
+    //         case MetaHeaderType::Property: attribute = "property"; break;
+    //         case MetaHeaderType::HttpHeader: attribute = "http-equiv"; break;
+    //         }
 
-  for (unsigned i = 0; i < metaHeaders.size(); ++i) {
-    const MetaHeader& m = metaHeaders[i];
+    //         appendAttribute(result, attribute, m.name);
+    //     }
 
-    result << "<meta";
+    //     if (!m.lang.empty())
+    //         appendAttribute(result, "lang", m.lang);
 
-    if (!m.name.empty()) {
-      std::string attribute;
-      switch (m.type) {
-      case MetaHeaderType::Meta: attribute = "name"; break;
-      case MetaHeaderType::Property: attribute = "property"; break;
-      case MetaHeaderType::HttpHeader: attribute = "http-equiv"; break;
-      }
+    //     appendAttribute(result, "content", m.content.toUTF8());
 
-      appendAttribute(result, attribute, m.name);
-    }
+    //     closeSpecial(result);
+    // }
 
-    if (!m.lang.empty())
-      appendAttribute(result, "lang", m.lang);
+    // if (session_.app()) {
+    //     for (unsigned i = 0; i < session_.app()->metaLinks_.size(); ++i) {
+    //         const WApplication::MetaLink& ml = session_.app()->metaLinks_[i];
 
-    appendAttribute(result, "content", m.content.toUTF8());
+    //         result << "<link";
 
-    closeSpecial(result);
-  }
+    //         appendAttribute(result, "href", ml.href);
+    //         appendAttribute(result, "rel", ml.rel);
+    //         if (!ml.media.empty())
+    //             appendAttribute(result, "media", ml.media);
+    //         if (!ml.hreflang.empty())
+    //             appendAttribute(result, "hreflang", ml.hreflang);
+    //         if (!ml.type.empty())
+    //             appendAttribute(result, "type", ml.type);
+    //         if (!ml.sizes.empty())
+    //             appendAttribute(result, "sizes", ml.sizes);
+    //         if (ml.disabled)
+    //             appendAttribute(result, "disabled", "");
 
-  if (session_.app()) {
-    for (unsigned i = 0; i < session_.app()->metaLinks_.size(); ++i) {
-      const WApplication::MetaLink& ml = session_.app()->metaLinks_[i];
+    //         closeSpecial(result);
+    //     }
+    // }
+    // else { //DEPRECATED
+    //     if (session_.env().agentIsIE()) {
+    //         /*
+    //        * WARNING: Similar code in WApplication.C must be kept in sync for
+    //        *          progressive boot.
+    //        */
+    //         if (session_.env().agentIsIElt(9)) {
+    //             bool selectIE7 = conf.uaCompatible().find("IE8=IE7")
+    //             != std::string::npos;
 
-      result << "<link";
+    //             if (selectIE7) {
+    //                 result << "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=7\"";
+    //                 closeSpecial(result);
+    //             }
+    //         } else if (session_.env().agent() == UserAgent::IE9) {
+    //             result << "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=9\"";
+    //             closeSpecial(result);
+    //         } else if (session_.env().agent() == UserAgent::IE10) {
+    //             result << "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=10\"";
+    //             closeSpecial(result);
+    //         } else {
+    //             result << "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=11\"";
+    //             closeSpecial(result);
+    //         }
+    //     }
+    // }
 
-      appendAttribute(result, "href", ml.href); 
-      appendAttribute(result, "rel", ml.rel);
-      if (!ml.media.empty())
-	appendAttribute(result, "media", ml.media);
-      if (!ml.hreflang.empty())
-	appendAttribute(result, "hreflang", ml.hreflang);
-      if (!ml.type.empty())
-	appendAttribute(result, "type", ml.type);
-      if (!ml.sizes.empty())
-	appendAttribute(result, "sizes", ml.sizes);
-      if (ml.disabled)
-	appendAttribute(result, "disabled", "");
+    // if (!session_.favicon().empty()) {
+    //     fmt::format_to(std::back_inserter(result), FMT_COMPILE("<link rel=\"shortcut icon\" href=\"{}\">\n"), session_.favicon());
+    //     // result <<
+    //     //     "<link rel=\"shortcut icon\" href=\"" << session_.favicon() << '"';
+    //     // closeSpecial(result);
+    // }
 
-      closeSpecial(result);
-    }
-  } else
-    if (session_.env().agentIsIE()) {
-      /*
-       * WARNING: Similar code in WApplication.C must be kept in sync for 
-       *          progressive boot.
-       */
-      if (session_.env().agentIsIElt(9)) {
-	bool selectIE7 = conf.uaCompatible().find("IE8=IE7")
-	  != std::string::npos;
+    // std::string baseUrl;
+    // WApplication::readConfigurationProperty("baseURL", baseUrl);
 
-	if (selectIE7) {
-	  result << "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=7\"";
-	  closeSpecial(result);
-	}
-      } else if (session_.env().agent() == UserAgent::IE9) {
-	result << "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=9\"";
-	closeSpecial(result);
-      } else if (session_.env().agent() == UserAgent::IE10) {
-	result << "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=10\"";
-	closeSpecial(result);
-      } else {
-	result << "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=11\"";
-	closeSpecial(result);
-      }
-    }
+    // if (!baseUrl.empty()) {
+    //     fmt::format_to(std::back_inserter(result), FMT_COMPILE("<base href=\"{}\">\n"), baseUrl);
+    //     // result << "<base href=\"" << baseUrl << '"';
+    //     // closeSpecial(result);
+    // }
 
-  if (!session_.favicon().empty()) {
-    result <<
-      "<link rel=\"shortcut icon\" href=\"" << session_.favicon() << '"';
-    closeSpecial(result);
-  }
-
-  std::string baseUrl;
-  WApplication::readConfigurationProperty("baseURL", baseUrl);
-
-  if (!baseUrl.empty()) {
-    result << "<base href=\"" << baseUrl << '"';
-    closeSpecial(result);
-  }
-
-  return result.str();
+    //return result;
 }
 
 void WebRenderer::addWsRequestId(int wsRqId)

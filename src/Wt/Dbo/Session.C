@@ -19,7 +19,7 @@
 #include "Wt/Dbo/Query_impl.h"
 
 
-#include <fmt/format.h>
+#include "Wt/fmt/format.h"
 
 #include <iostream>
 #include <vector>

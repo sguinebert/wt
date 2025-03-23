@@ -228,7 +228,7 @@ public:
    * Returns a header value, or an empty string if the header was 
    * present.
    */
-  const std::string headerValue(const std::string& field) const;
+  std::string_view headerValue(const std::string& field) const;
 
   /*! \brief Returns whether the browser has enabled support for cookies.
    *
@@ -489,7 +489,7 @@ public:
    *
    * \sa serverSignature(), serverSoftware(), serverAdmin(),
    */
-  std::string getCgiValue(const std::string& varName) const;
+  std::string_view getCgiValue(const std::string& varName) const;
 
   /*! \brief The type of the content provided to the browser.
    *

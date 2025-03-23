@@ -271,32 +271,48 @@ void WWidget::setOffsets(int pixels, WFlags<Side> sides)
 
 std::string WWidget::jsRef() const
 {
-  return WT_CLASS ".$('" + id() + "')";
+  return fmt::format(FMT_COMPILE(WT_CLASS ".$('{}')"), id());
 }
 
 void WWidget::htmlText(std::ostream& out)
 {
-  DomElement *element = createSDomElement(WApplication::instance());
+  DomElement element = createSDomElement(WApplication::instance());
 
   DomElement::TimeoutList timeouts;
   EscapeOStream sout(out);
   EscapeOStream js;
-  element->asHTML(sout, js, timeouts);
+  element.asHTML(sout, js, timeouts);
 
   WApplication::instance()->doJavaScript(js.str());
 
-  delete element;
+  //delete element;
 }
 
-std::string WWidget::inlineCssStyle()
+void WWidget::htmlText(fmt::memory_buffer &out)
 {
-  WWebWidget *ww = webWidget();
-  DomElement *e = DomElement::getForUpdate(ww, ww->domElementType());
-  ww->updateDom(*e, true);
-  std::string result = e->cssStyle();
-  delete e;
-  return result;
+    DomElement element = createSDomElement(WApplication::instance());
+
+    DomElement::TimeoutList timeouts;
+
+    // fmt::memory_buffer js;
+    // auto afterjs = WApplication::instance()->afterLoadJavaScript();
+//#warning "we could replace doJavaScript 'afterLoadJavaScript_ += javascript' via fmt::memory_buffer& js()"
+    element.asHTML(out, WApplication::instance()->afterLoadJavaScript(), timeouts);
+
+    //WApplication::instance()->doJavaScript(std::string_view(js.begin(), js.end()));
+
+    //delete element;
 }
+
+// std::string WWidget::inlineCssStyle()
+// {
+//   WWebWidget *ww = webWidget();
+//   DomElement e = DomElement::getForUpdate((WObject*)ww, ww->domElementType());
+//   ww->updateDom(e, true);
+//   std::string result = e.cssStyle();
+//   //delete e;
+//   return result;
+// }
 
 WWidget *WWidget::adam()
 {
@@ -337,20 +353,16 @@ void WWidget::stopAcceptDrops(const std::string& mimeType)
   thisWebWidget->setAcceptDropsImpl(mimeType, false, "");
 }
 
-void WWidget::getDrop(const std::string sourceId, const std::string mimeType,
-		      WMouseEvent event)
+void WWidget::getDrop(const std::string sourceId, const std::string mimeType, WMouseEvent event)
 {
-  WDropEvent e(WApplication::instance()->decodeObject(sourceId), mimeType,
-	       event);
+  WDropEvent e(WApplication::instance()->decodeObject(sourceId), mimeType, event);
 
   dropEvent(e);
 }
 
-void WWidget::getDropTouch(const std::string sourceId, const std::string mimeType,
-		      WTouchEvent event)
+void WWidget::getDropTouch(const std::string sourceId, const std::string mimeType, WTouchEvent event)
 {
-  WDropEvent e(WApplication::instance()->decodeObject(sourceId), mimeType,
-	       event);
+  WDropEvent e(WApplication::instance()->decodeObject(sourceId), mimeType, event);
  
   dropEvent(e);
 }
@@ -358,13 +370,13 @@ void WWidget::getDropTouch(const std::string sourceId, const std::string mimeTyp
 void WWidget::dropEvent(WDropEvent event)
 { }
 
-DomElement *WWidget::createSDomElement(WApplication *app)
+DomElement WWidget::createSDomElement(WApplication *app)
 {
   if (!needsToBeRendered()) {
-    DomElement *result = webWidget()->createStubElement(app);
+    //DomElement result = webWidget()->createStubElement(app);
     renderOk();
     scheduleRerender(true);
-    return result;
+    return webWidget()->createStubElement(app); //result;
   } else {
     webWidget()->setRendered(true);
     render(RenderFlag::Full);
@@ -372,21 +384,20 @@ DomElement *WWidget::createSDomElement(WApplication *app)
   }
 }
 
-std::string WWidget::createJavaScript(WStringStream& js,
-				      std::string insertJS)
-{
-  WApplication *app = WApplication::instance();
-  DomElement *de = createSDomElement(app);
+// std::string WWidget::createJavaScript(WStringStream& js, std::string insertJS)
+// {
+//   WApplication *app = WApplication::instance();
+//   DomElement de = createSDomElement(app);
 
-  std::string var = de->createVar();
-  if (!insertJS.empty())
-    insertJS += var + ");";
-  de->createElement(js, app, insertJS);
+//   std::string var = de.createVar();
+//   if (!insertJS.empty())
+//     insertJS += var + ");";
+//   de.createElement(js, app, insertJS);
 
-  delete de;
+//   //delete de;
 
-  return var;
-}
+//   return var;
+// }
 
 void WWidget::addEventSignal(EventSignalBase& s)
 {
@@ -395,12 +406,11 @@ void WWidget::addEventSignal(EventSignalBase& s)
 
 EventSignalBase *WWidget::getEventSignal(const char *name)
 {
-  for (EventSignalList::iterator i = eventSignals_.begin();
-       i != eventSignals_.end(); ++i) {
-    EventSignalBase& s = **i;
-    if (s.name() == name)
-      return &s;
-  }
+    for (auto s : eventSignals_) {
+        //EventSignalBase& s = **i;
+        if (s->name() == name)
+            return s;
+    }
 
   return nullptr;
 }
@@ -417,16 +427,16 @@ int WWidget::boxBorder(Orientation orientation) const
 
 void WWidget::positionAt(const WWidget *widget, Orientation orientation)
 {
-  if (isHidden())
-    show();
+    if (isHidden())
+        show();
 
-  std::string side = (orientation == Orientation::Horizontal 
-		      ? ".Horizontal" : ".Vertical");
+    std::string side = (orientation == Orientation::Horizontal
+                            ? ".Horizontal" : ".Vertical");
 
-  doJavaScript(WT_CLASS ".positionAtWidget('"
-	       + id() + "','"
-	       + widget->id() + "',"
-	       WT_CLASS + side + ");");
+    doJavaScript(WT_CLASS ".positionAtWidget('"
+                 + id() + "','"
+                 + widget->id() + "',"
+                 WT_CLASS + side + ");");
 }
 
 void WWidget::setLayoutSizeAware(bool aware)
@@ -501,7 +511,7 @@ WCssTextRule *WWidget::addCssRule(const std::string& selector,
 				  const std::string& ruleName)
 {
   WApplication *app = WApplication::instance();
-  std::unique_ptr<WCssTextRule> rule(new WCssTextRule(selector, declarations));
+  auto rule = std::make_unique<WCssTextRule>(selector, declarations);
   WCssTextRule *result = rule.get();
   app->styleSheet().addRule(std::move(rule), ruleName);
   return result;

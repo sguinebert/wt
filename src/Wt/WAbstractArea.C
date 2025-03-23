@@ -43,7 +43,7 @@ namespace Wt {
         if (!element.getProperty(Property::StyleCursor).empty()
             && !wApp->environment().agentIsGecko()
             && element.getAttribute("href").empty())
-          element.setAttribute("href", "javascript:void(0);");
+          element.setAttribute("href", "javascript:void(0);", true);
 
         if (needsUrlResolution)
           WAnchor::renderUrlResolution(this, element, all);
@@ -276,10 +276,10 @@ bool WAbstractArea::updateDom(DomElement& element, bool all)
     WAnchor::renderHTarget(anchor_->linkState, element, all);
     element.setAttribute("alt", anchor_->altText.toUTF8());
   } else {
-    element.setAttribute("alt", "");
+    element.setAttribute("alt", "", true);
 
     if (hole_)
-      element.setAttribute("nohref", "nohref");
+      element.setAttribute("nohref", "nohref", true);
   }
 
   return needsUrlResolution;

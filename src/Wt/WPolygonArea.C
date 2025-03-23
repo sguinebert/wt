@@ -10,6 +10,32 @@
 #include "DomElement.h"
 #include "WebUtils.h"
 
+namespace fmt {
+
+template <>
+struct formatter<const Wt::WPointF> {
+    constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const Wt::WPointF& p, FormatContext& ctx) const {
+    return fmt::format_to(ctx.out(), "{:.0},{:.0}", p.x(), p.y());
+  }
+};
+template <>
+struct fmt::formatter<Wt::WPointF> {
+    // Parse the format specifiers (if any).
+    constexpr auto parse(fmt::format_parse_context& ctx) {
+        return ctx.begin();
+    }
+    // Format the Wt::WPointF. Adjust the formatting as needed.
+    template <typename FormatContext>
+    auto format(const Wt::WPointF& point, FormatContext& ctx) const {
+        return fmt::format_to(ctx.out(), "{:.0},{:.0}", point.x(), point.y());
+    }
+};
+
+}
+
 namespace Wt {
 
 WPolygonArea::WPolygonArea()
@@ -74,16 +100,17 @@ void WPolygonArea::setPoints(const std::vector<WPointF>& points)
 
 bool WPolygonArea::updateDom(DomElement& element, bool all)
 {
-  element.setAttribute("shape", "poly");
+  element.setAttribute("shape", "poly", true);
 
-  std::stringstream coords;
-  for (unsigned i = 0; i < points_.size(); ++i) {
-    if (i != 0)
-      coords << ',';
-    coords << static_cast<int>(points_[i].x()) << ','
-           << static_cast<int>(points_[i].y());
-  }
-  element.setAttribute("coords", coords.str());
+  // std::stringstream coords;
+  // for (unsigned i = 0; i < points_.size(); ++i) {
+  //   if (i != 0)
+  //     coords << ',';
+  //   coords << static_cast<int>(points_[i].x()) << ','
+  //          << static_cast<int>(points_[i].y());
+  // }
+  ;
+  element.setAttribute("coords", fmt::format("{}", fmt::join(points_, ",")), true);
 
   return WAbstractArea::updateDom(element, all);
 }

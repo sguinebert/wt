@@ -146,6 +146,7 @@ public:
    * The default implementation serves all the styleSheets().
    */
   virtual void serveCss(WStringStream& out) const;
+  virtual void serveCss(fmt::memory_buffer& out) const;
 
   /*! \brief Returns a vector with stylesheets for the theme.
    *

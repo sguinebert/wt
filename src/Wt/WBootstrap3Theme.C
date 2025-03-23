@@ -45,8 +45,14 @@
 #endif
 
 namespace skeletons {
-  extern const char * BootstrapTheme_xml;
-  extern const char * Bootstrap3Theme_xml;
+static constexpr char Bootstrap3Theme_xml[] = {
+#embed "../xml/bootstrap3_theme.xml"
+    , '\0'
+};
+extern const char *BootstrapTheme_xml;
+static constexpr std::string_view Bootstrap3Theme_xml_sv(Bootstrap3Theme_xml, sizeof(Bootstrap3Theme_xml) - 1);
+//  extern const char * BootstrapTheme_xml;
+//  extern const char * Bootstrap3Theme_xml;
 }
 
 namespace {
@@ -257,8 +263,8 @@ void WBootstrap3Theme::apply(WWidget *widget, DomElement& element,
         != std::string::npos) {
       WMenuItem *item = dynamic_cast<WMenuItem *>(widget->parent());
       if (!dynamic_cast<WPopupMenu *>(item->parentMenu())) {
-        DomElement *b = DomElement::createNew(DomElementType::B);
-        b->setProperty(Property::Class, "caret");
+        DomElement b = DomElement::createNew(DomElementType::B);
+        b.setProperty(Property::Class, "caret");
         element.addChild(b);
       }
     }

@@ -17,7 +17,7 @@ class WLayout;
 class StdLayoutImpl : public StdLayoutItemImpl, public WLayoutImpl
 {
 public:
-  StdLayoutImpl(WLayout *layout);
+  StdLayoutImpl(WLayout *layout, Type type);
   virtual ~StdLayoutImpl();
 
   virtual void updateDom(DomElement& parent) = 0;
@@ -28,6 +28,12 @@ public:
 
   virtual WLayoutItem *layoutItem() const override;
 
+  virtual bool checkParent(DomElement* parent, WApplication* app)
+  {
+      return false;
+  }
+
+
 protected:
   WLayout *layout() const { return layout_; }
 
@@ -35,6 +41,7 @@ protected:
 
 private:
   WLayout *layout_;
+
 };
 
 }

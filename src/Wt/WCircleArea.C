@@ -51,28 +51,31 @@ void WCircleArea::setRadius(int radius)
 
 bool WCircleArea::updateDom(DomElement& element, bool all)
 {
-  element.setAttribute("shape", "circle");
+  element.setAttribute("shape", "circle", true);
 
-  std::stringstream coords;
-  coords << static_cast<int>(x_) << ','
-         << static_cast<int>(y_) << ','
-         << static_cast<int>(r_);
-  element.setAttribute("coords", coords.str());
+  // std::stringstream coords;
+  // coords << static_cast<int>(x_) << ','
+  //        << static_cast<int>(y_) << ','
+  //        << static_cast<int>(r_);
+  auto coords = fmt::format("{},{},{}", x_, y_, r_);
+  element.setAttribute("coords", coords, true);
 
   return WAbstractArea::updateDom(element, all);
 }
 
 std::string WCircleArea::updateAreaCoordsJS()
 {
-  std::stringstream coords;
-  char buf[30];
+    return fmt::format("[{},[{:.2},{:.2},{:.2}]]", jsRef(), x_, y_, r_);
 
-  coords << "[" << jsRef() << ",[";
-  coords << Utils::round_js_str(x_, 2, buf) << ',';
-  coords << Utils::round_js_str(y_, 2, buf) << ',';
-  coords << Utils::round_js_str(r_, 2, buf) << "]]";
+  // std::stringstream coords;
+  // char buf[30];
 
-  return coords.str();
+  // coords << "[" << jsRef() << ",[";
+  // coords << Utils::round_js_str(x_, 2, buf) << ',';
+  // coords << Utils::round_js_str(y_, 2, buf) << ',';
+  // coords << Utils::round_js_str(r_, 2, buf) << "]]";
+
+  // return coords.str();
 }
 
 }

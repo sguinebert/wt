@@ -188,14 +188,14 @@ public:
   std::string jsMediaRef() const;
 
 protected:
-  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
-  virtual DomElement * createDomElement(WApplication *app) override;
+  virtual void getDomChanges(std::vector<DomElement>& result, WApplication *app) override;
+  virtual DomElement createDomElement(WApplication *app) override;
   virtual void iterateChildren(const HandleWidgetMethod& method) const override;
   virtual awaitable<void> iterateChildren2(AsyncHandleWidgetMethod&& method) const override;
 
 
   virtual void updateMediaDom(DomElement& element, bool all);
-  virtual DomElement *createMediaDomElement() = 0;
+  virtual DomElement createMediaDomElement() = 0;
 
   virtual void setFormData(const FormData& formData) override;
   virtual void enableAjax() override;

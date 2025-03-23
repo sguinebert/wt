@@ -37,7 +37,7 @@ void WVideo::updateMediaDom(DomElement& element, bool all)
   sizeChanged_ = posterChanged_ = false;
 }
 
-DomElement *WVideo::createMediaDomElement()
+DomElement WVideo::createMediaDomElement()
 {
   return DomElement::createNew(DomElementType::VIDEO);
 }

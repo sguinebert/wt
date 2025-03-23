@@ -314,7 +314,7 @@ void WPopupMenu::setAutoHide(bool enabled, int autoHideDelay)
 void WPopupMenu::renderSelected(WMenuItem *item, bool selected)
 { }
 
-void WPopupMenu::getSDomChanges(std::vector<DomElement *> &result, WApplication *app)
+void WPopupMenu::getSDomChanges(std::vector<DomElement> &result, WApplication *app)
 {
   WMenu::getSDomChanges(result, app);
   willPopup_ = false;

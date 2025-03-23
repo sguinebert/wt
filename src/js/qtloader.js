@@ -1,4 +1,3 @@
-R"""(
 function QtLoader(config)
 {
     return new _QtLoader(config);
@@ -479,4 +478,3 @@ function _QtLoader(config)
 
     return publicAPI;
 }
-)"""

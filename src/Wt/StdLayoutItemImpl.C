@@ -13,15 +13,15 @@
 
 namespace Wt {
 
-StdLayoutItemImpl::StdLayoutItemImpl()
+StdLayoutItemImpl::StdLayoutItemImpl(Type type) : type_(type)
 { }
 
 StdLayoutItemImpl::~StdLayoutItemImpl()
 { }
   
-WContainerWidget *StdLayoutItemImpl::container() const
+constexpr WContainerWidget *StdLayoutItemImpl::container() const
 {  
-  return dynamic_cast<WContainerWidget *>(layoutItem()->parentWidget());
+  return static_cast<WContainerWidget *>(layoutItem()->parentWidget());
 }
 
 StdLayoutImpl *StdLayoutItemImpl::parentLayoutImpl() const
@@ -29,7 +29,7 @@ StdLayoutImpl *StdLayoutItemImpl::parentLayoutImpl() const
   WLayoutItem *i = layoutItem();
   
   if (i->parentLayout())
-    return dynamic_cast<StdLayoutImpl *>(i->parentLayout()->impl());
+    return static_cast<StdLayoutImpl *>(i->parentLayout()->impl());
   else
     return nullptr;
 }

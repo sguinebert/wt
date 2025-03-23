@@ -99,6 +99,7 @@ public:
    */
   WLength(double value, LengthUnit unit = LengthUnit::Pixel);
 
+
   /*! \brief Returns whether the length is 'auto'.
    *
    * \sa WLength(), Auto
@@ -119,7 +120,7 @@ public:
 
   /*! \brief Returns the CSS text.
    */
-  const std::string cssText() const;
+  std::string cssText() const;
 
   /*! \brief Comparison operator.
    */

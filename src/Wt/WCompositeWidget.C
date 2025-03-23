@@ -18,10 +18,13 @@ namespace Wt {
 LOGGER("WCompositeWidget");
 
 WCompositeWidget::WCompositeWidget()
-{ }
+{
+  isComposite_ = true;
+}
 
 WCompositeWidget::WCompositeWidget(std::unique_ptr<WWidget> implementation)
 {
+  isComposite_ = true;
   setImplementation(std::move(implementation));
 }
 
@@ -489,7 +492,7 @@ std::unique_ptr<WWidget> WCompositeWidget::takeImplementation()
   return std::move(impl_);
 }
 
-void WCompositeWidget::getSDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WCompositeWidget::getSDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
   if (needsToBeRendered())
     render(impl_->isRendered() || !WWebWidget::canOptimizeUpdates()

@@ -170,7 +170,7 @@ public:
    * or be overridden!
    */
 #endif
-  virtual DomElement *createDomElement(WApplication *app);
+  virtual DomElement createDomElement(WApplication *app);
 #ifdef WT_TARGET_JAVA
   /*! \brief Get DOM changes for this widget
    *
@@ -178,11 +178,11 @@ public:
    * or be overridden!
    */
 #endif
-  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app);
+  virtual void getDomChanges(std::vector<DomElement>& result, WApplication *app);
   virtual DomElementType domElementType() const = 0;
 
-  DomElement *createStubElement(WApplication *app);
-  DomElement *createActualElement(WWidget *self, WApplication *app);
+  DomElement createStubElement(WApplication *app);
+  DomElement createActualElement(WWidget *self, WApplication *app);
 
   /*! \brief Change the way the widget is loaded when invisible.
    *
@@ -519,7 +519,7 @@ private:
   void calcZIndex();
 
   virtual bool needsToBeRendered() const override;
-  virtual void getSDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
+  virtual void getSDomChanges(std::vector<DomElement>& result, WApplication *app) override;
   void getSFormObjects(FormObjectsMap& formObjects);
 
   WWebWidget *parentWebWidget() const;
@@ -534,7 +534,37 @@ private:
   JSignal<int, int>& resized();
 
   void addJavaScriptStatement(JavaScriptStatementType type,
-			      const std::string& data);
+                              const std::string& data)
+  {
+      if (!otherImpl_)
+          otherImpl_.reset(new OtherImpl(this));
+
+      if (!otherImpl_->jsStatements_)
+          otherImpl_->jsStatements_.reset
+              (new std::vector<OtherImpl::JavaScriptStatement>());
+
+      std::vector<OtherImpl::JavaScriptStatement>& v = *otherImpl_->jsStatements_;
+
+      /*
+   * a SetMember is idempotent, if one is already scheduled we do not need
+   * to add another statement.
+   */
+      if (type == JavaScriptStatementType::SetMember) {
+          for (unsigned i = 0; i < v.size(); ++i) {
+              if (v[i].type == JavaScriptStatementType::SetMember && v[i].data == data)
+                  return;
+          }
+      }
+
+      /*
+       * If the last statement is exactly the same, then it's a dupe, discard it
+       * too.
+       */
+      if (v.empty() ||
+          v.back().type != type ||
+          v.back().data != data)
+          v.push_back(OtherImpl::JavaScriptStatement(type, data));
+  }
   int indexOfJavaScriptMember(const std::string& name) const;
   void declareJavaScriptMember(DomElement& element,
 			       const std::string& name,

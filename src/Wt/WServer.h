@@ -535,11 +535,12 @@ public:
         //                //this->impl_->server_->request_handler_.handleRequest(req, )
         //                //res->end("");
         //            });
+        //std::string docRoot = config->docRoot();
 
         server_->use(router_);
         server_->ws().use(ws_router_);
         //server_->use(http::use_static("C:/Users/xcyl/Desktop"));
-        server_->use(http::use_static(config->docRoot().c_str()));
+        server_->use(http::use_static(config->docRoot().data()));
 
         server_->listen(std::stoi(serverConfiguration_->httpPort()), serverConfiguration_->httpAddress());
 
@@ -782,7 +783,7 @@ public:
    *
    * \sa WApplication::appRoot()
    */
-  WT_API std::string appRoot() const;
+  WT_API std::string_view appRoot() const;
 
   /*! \brief Returns the docroot (if using wthttp)
    *
@@ -999,7 +1000,7 @@ private:
 #endif // WT_TARGET_JAVA
 
   std::string application_, configurationFile_, appRoot_, description_;
-  Configuration *configuration_;
+  static thread_local Configuration *configuration_;
   std::shared_ptr<WLocalizedStrings> localizedStrings_;
 
   bool ownsIOService_;

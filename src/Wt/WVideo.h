@@ -98,7 +98,7 @@ public:
   virtual void resize(const WLength &width, const WLength &height) override;
 
 protected:
-  virtual DomElement *createMediaDomElement() override;
+  virtual DomElement createMediaDomElement() override;
   virtual DomElementType domElementType() const override;
   virtual void updateMediaDom(DomElement& element, bool all) override;
 

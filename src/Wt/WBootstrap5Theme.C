@@ -48,8 +48,16 @@
 #endif
 
 namespace skeletons {
-  extern const char * BootstrapTheme_xml;
-  extern const char * Bootstrap5Theme_xml;
+static constexpr char Bootstrap5Theme_xml[] = {
+#embed "../xml/bootstrap5_theme.xml"
+};
+static constexpr char BootstrapTheme_xml[] = {
+#embed "../xml/bootstrap5_theme.xml"
+};
+static constexpr std::string_view BootstrapTheme_xml_sv(BootstrapTheme_xml, sizeof(BootstrapTheme_xml) - 1);
+static constexpr std::string_view Bootstrap5Theme_xml_sv(Bootstrap5Theme_xml, sizeof(Bootstrap5Theme_xml) - 1);
+  // extern const char * BootstrapTheme_xml;
+  // extern const char * Bootstrap5Theme_xml;
 }
 
 namespace {

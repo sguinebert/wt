@@ -145,7 +145,7 @@ public:
    */
   void use(const std::string& path, bool loadInMemory = true);
 
-  void useBuiltin(const char *xmlbundle);
+  void useBuiltin(std::string_view xmlbundle);
 
   /*! \brief Returns a set of all keys in this bundle.
    *

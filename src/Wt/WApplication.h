@@ -1047,7 +1047,7 @@ public:
    *
    * \sa WServer::appRoot(), docRoot()
    */
-  static std::string appRoot();
+  static std::string_view appRoot();
 
   /*! \brief Returns the server document root.
    *
@@ -1061,7 +1061,7 @@ public:
    *
    * \sa appRoot()
    */
-  std::string docRoot() const;
+  std::string_view docRoot() const;
 
   /*! \brief Sets a client-side connection monitor
    *
@@ -1409,8 +1409,37 @@ public:
    *
    * \sa WWidget::doJavaScript(), declareJavaScriptFunction()
    */
-  void doJavaScript(const std::string& javascript, bool afterLoaded = true);
+  void doJavaScript(std::string_view javascript, bool afterLoaded = true);
 
+  auto& afterLoadJavaScript() { return afterLoadJavaScript_; }
+  auto& beforeLoadJavaScript() { return beforeLoadJavaScript_; }
+
+  template<bool afterLoaded = true, typename... Args>
+  void doJavaScript(fmt::format_string<Args...> javascript, Args&&... args) {
+      if constexpr (afterLoaded) {
+          fmt::format_to(std::back_inserter(afterLoadJavaScript_), javascript, fmt::make_format_args(std::forward<Args>(args)...));
+          afterLoadJavaScript_.push_back('\n');
+      } else {
+          auto presize = beforeLoadJavaScript_.size();
+          fmt::format_to(std::back_inserter(beforeLoadJavaScript_), javascript, fmt::make_format_args(std::forward<Args>(args)...));
+          //beforeLoadJavaScript_ += javascript;
+          beforeLoadJavaScript_.push_back('\n');
+          newBeforeLoadJavaScript_ += beforeLoadJavaScript_.size() - presize;
+      }
+  }
+  // Compile-time version with FMT_COMPILE
+  template<bool afterLoaded = true, typename... Args>
+  void doJavaScript(const char* javascript, Args&&... args) {
+      if constexpr (afterLoaded) {
+          fmt::format_to(std::back_inserter(afterLoadJavaScript_), FMT_COMPILE(javascript), std::forward<Args>(args)...);
+          afterLoadJavaScript_.push_back('\n');
+      } else {
+          auto presize = beforeLoadJavaScript_.size();
+          fmt::format_to(std::back_inserter(beforeLoadJavaScript_), FMT_COMPILE(javascript), std::forward<Args>(args)...);
+          beforeLoadJavaScript_.push_back('\n');
+          newBeforeLoadJavaScript_ += beforeLoadJavaScript_.size() - presize;
+      }
+  }
   /*! \brief Adds JavaScript statements that should be run continuously.
    *
    * This is an internal method.
@@ -1421,6 +1450,9 @@ public:
    * \sa doJavaScript()
    */
   void addAutoJavaScript(const std::string& javascript);
+
+  //std::back_insert_iterator<std::string>
+  auto autoJavaScript() { autoJavaScriptChanged_ = true; return std::back_inserter(autoJavaScript_); }
 
   /*! \brief Declares an application-wide JavaScript function.
    *
@@ -1502,7 +1534,7 @@ public:
    * allow multiple applications to run simultaneously on the same
    * page in Wt::WidgtSet mode, without interfering.
    */
-  std::string javaScriptClass() { return javaScriptClass_; }
+  std::string_view javaScriptClass() { return javaScriptClass_; }
   //!@}
 
   /*! \brief Processes UI events.
@@ -2323,7 +2355,7 @@ private:
 
   bool exposeSignals_; // if we are currently exposing signals (see WViewWidget)
 
-  std::string afterLoadJavaScript_, beforeLoadJavaScript_;
+  fmt::memory_buffer afterLoadJavaScript_, beforeLoadJavaScript_;
   int newBeforeLoadJavaScript_;
   std::string autoJavaScript_;
   bool autoJavaScriptChanged_;
@@ -2376,6 +2408,9 @@ private:
   void streamAfterLoadJavaScript(WStringStream& out);
   void streamBeforeLoadJavaScript(WStringStream& out, bool all);
   void streamJavaScriptPreamble(WStringStream& out, bool all);
+  void streamAfterLoadJavaScript(fmt::memory_buffer& out);
+  void streamBeforeLoadJavaScript(fmt::memory_buffer& out, bool all);
+  void streamJavaScriptPreamble(fmt::memory_buffer& out, bool all);
 #ifdef WT_DEBUG_JS
   void loadJavaScriptFile(WStringStream& out, const char *jsFile);
 #endif // WT_DEBUG_JS
@@ -2433,6 +2468,7 @@ private:
   friend class WViewWidget;
   friend class WWidget;
   friend class WWebWidget;
+  friend struct fmt::formatter<Wt::WApplication::MetaLink>;
 };
 
 #ifndef WT_TARGET_JAVA

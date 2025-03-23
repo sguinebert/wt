@@ -191,8 +191,8 @@ public:
   // tries to figure out the current bookmark url (from the app or otherwise)
   std::string bookmarkUrl() const;
 
-  std::string getCgiValue(const std::string& varName) const;
-  std::string getCgiHeader(const std::string& headerName) const;
+  std::string_view getCgiValue(const std::string& varName) const;
+  std::string_view getCgiHeader(const std::string& headerName) const;
 
   EventType getEventType(const WEvent& event) const;
   void setState(State state, int timeout);
@@ -224,12 +224,15 @@ public:
     void unlock();
 
     void flushResponse();
-    WebResponse *response() { return response_; }
-    WebRequest *request() { return request_; }
-    WebSession *session() const { return session_; }
-    void setRequest(WebRequest *request, WebResponse *response);
-    void setRequest(http::context *context);
 
+    WebSession *session() const { return session_; }
+
+    //deprecated
+    WebResponse *response() { return response_; } //deprecated
+    WebRequest *request() { return request_; } //deprecated
+    void setRequest(WebRequest *request, WebResponse *response); //deprecated
+
+    void setRequest(http::context *context);
     Wt::http::context *context() { return context_; }
 
     int nextSignal;

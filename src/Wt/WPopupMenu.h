@@ -237,7 +237,7 @@ public:
 protected:
   virtual void renderSelected(WMenuItem *item, bool selected) override;
   virtual void setCurrent(int index) override;
-  virtual void getSDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
+  virtual void getSDomChanges(std::vector<DomElement>& result, WApplication *app) override;
   virtual void render(WFlags<RenderFlag> flags) override;
   virtual std::string renderRemoveJs(bool recursive) override;
 

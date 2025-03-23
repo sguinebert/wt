@@ -13,6 +13,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <regex>
 
 #if defined(WT_THREADED) && !defined(WT_CONF_NO_SHARED_LOCK)
 #if _MSC_VER >= 1900 || __cplusplus >= 201703L
@@ -96,15 +97,25 @@ struct WT_API PathSegment {
 
 class WT_API HeadMatter {
 public:
-  HeadMatter(std::string contents,
-             std::string userAgent);
+    HeadMatter(std::string contents,
+               std::string userAgent)
+        : contents_(contents),
+        userAgent_(userAgent)
+    { regex_ = std::regex(userAgent_);  }
 
-  const std::string& contents() const { return contents_; }
-  const std::string& userAgent() const { return userAgent_; }
+  std::string_view contents() const { return contents_; }
+  std::string_view userAgent() const { return userAgent_; }
+
+  bool matches(const std::string& ua) const {
+      if (userAgent_.empty())
+          return false;
+      return std::regex_search(ua, regex_);
+  }
 
 private:
   std::string contents_;
   std::string userAgent_;
+  std::regex regex_;
 };
 
 class WT_API Configuration
@@ -138,7 +149,7 @@ public:
     Progressive
   };
 
-  typedef std::map<std::string, std::string> PropertyMap;
+  typedef std::unordered_map<std::string, std::string> PropertyMap;
   typedef std::vector<std::string> AgentList;
 
   Configuration(const std::string& applicationPath,
@@ -176,7 +187,7 @@ public:
   void setNumThreads(int threads);
 #endif // WT_TARGET_JAVA
 
-  const std::vector<MetaHeader>& metaHeaders() const { return metaHeaders_; }
+  //const std::vector<MetaHeader>& metaHeaders() const { return metaHeaders_; } //Deprecated: use <head-matter> instead.
   const std::vector<HeadMatter>& headMatter() const { return headMatter_; }
   SessionPolicy sessionPolicy() const;
   int numProcesses() const;
@@ -242,13 +253,13 @@ public:
   };
 
   void setAppRoot(const std::string& path);
-  std::string appRoot() const;
+  std::string_view appRoot() const;
   bool behindReverseProxy() const; // Deprecated
-  std::string originalIPHeader() const;
+  std::string_view originalIPHeader() const;
   std::vector<Network> trustedProxies() const;
   bool isTrustedProxy(const std::string &ipAddress) const;
   bool isTrustedProxy(std::string_view ipAddress) const;
-  std::string redirectMessage() const;
+  std::string_view redirectMessage() const;
   bool serializedEvents() const;
   bool webSockets() const;
   bool inlineCss() const;
@@ -265,7 +276,7 @@ public:
 
   bool agentIsBot(const std::string& agent) const;
   bool agentSupportsAjax(const std::string& agent) const;
-  std::string uaCompatible() const;
+  std::string_view uaCompatible() const;
 
   // Things which are overridden by the connector
   void setSessionTimeout(int sessionTimeout);
@@ -356,7 +367,7 @@ private:
   std::vector<std::string> allowedOrigins_;
 
   std::vector<BootstrapEntry> bootstrapConfig_;
-  std::vector<MetaHeader> metaHeaders_;
+  //std::vector<MetaHeader> metaHeaders_; //Deprecated: use <head-matter> instead.
   std::vector<HeadMatter> headMatter_;
 
   bool connectorSlashException_;

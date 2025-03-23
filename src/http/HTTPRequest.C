@@ -162,22 +162,22 @@ const char *HTTPRequest::contentType() const
 
 const char *HTTPRequest::envValue(const char *name) const
 {
-  if (strcmp(name, "CONTENT_TYPE") == 0) {
-    return headerValue("Content-Type");
-  } else if (strcmp(name, "CONTENT_LENGTH") == 0) {
-    return headerValue("Content-Length");
-  } else if (strcmp(name, "SERVER_SIGNATURE") == 0) {
-    return "<address>Wt httpd server</address>";
-  } else if (strcmp(name, "SERVER_SOFTWARE") == 0) {
-    return "Wthttpd/" WT_VERSION_STR ;
-  } else if (strcmp(name, "SERVER_ADMIN") == 0) {
-    return "webmaster@localhost";
-  } else if (strcmp(name, "REMOTE_ADDR") == 0) {
-    return remoteAddr().c_str();
-  } else if (strcmp(name, "DOCUMENT_ROOT") == 0) {
-    return reply_->configuration().docRoot().c_str();
-  } else
-    return nullptr;
+    if (strcmp(name, "CONTENT_TYPE") == 0) {
+        return headerValue("Content-Type");
+    } else if (strcmp(name, "CONTENT_LENGTH") == 0) {
+        return headerValue("Content-Length");
+    } else if (strcmp(name, "SERVER_SIGNATURE") == 0) {
+        return "<address>Wt httpd server</address>";
+    } else if (strcmp(name, "SERVER_SOFTWARE") == 0) {
+        return "Wthttpd/" WT_VERSION_STR ;
+    } else if (strcmp(name, "SERVER_ADMIN") == 0) {
+        return "webmaster@localhost";
+    } else if (strcmp(name, "REMOTE_ADDR") == 0) {
+        return remoteAddr().c_str();
+    } else if (strcmp(name, "DOCUMENT_ROOT") == 0) {
+        return reply_->configuration().docRoot().c_str();
+    } else
+        return nullptr;
 }
 
 const std::string& HTTPRequest::serverName() const

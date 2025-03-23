@@ -201,7 +201,7 @@ DomElementType WLabel::domElementType() const
     return isInline() ? DomElementType::SPAN : DomElementType::DIV;
 }
 
-void WLabel::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WLabel::getDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
   WInteractWidget::getDomChanges(result, app);
 

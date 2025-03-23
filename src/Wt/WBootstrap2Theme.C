@@ -225,8 +225,8 @@ void WBootstrap2Theme::apply(WWidget *widget,
           != std::string::npos) {
         WMenuItem *item = dynamic_cast<WMenuItem *>(widget->parent());
         if (!dynamic_cast<WPopupMenu *>(item->parentMenu())) {
-          DomElement *b = DomElement::createNew(DomElementType::B);
-          b->setProperty(Property::Class, "caret");
+          DomElement b = DomElement::createNew(DomElementType::B);
+          b.setProperty(Property::Class, "caret");
           element.addChild(b);
         }
       }

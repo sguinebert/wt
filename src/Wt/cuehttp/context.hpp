@@ -172,9 +172,14 @@ class context final : safe_noncopyable {
 
   void body(const char* buffer, std::size_t size) { response_.body(buffer, size); }
 
-  std::ostream& body() { return response_.body(); }
+  std::ostream& body() { return response_.outstd(); }
 
-  std::ostream& out() { return response_.body(); }
+  auto &out() { return response_; }
+
+  std::ostream &outstd() { return response_.outstd(); }
+
+
+  fmt::memory_buffer& buffer() { return response_.buffer(); }
 
   void reset() {
     flush_ = false;

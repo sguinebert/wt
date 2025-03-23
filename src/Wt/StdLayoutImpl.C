@@ -12,8 +12,8 @@
 
 namespace Wt {
 
-StdLayoutImpl::StdLayoutImpl(WLayout *layout)
-  : layout_(layout)
+StdLayoutImpl::StdLayoutImpl(WLayout *layout, Type type)
+    : StdLayoutItemImpl(type), layout_(layout)
 { }
 
 StdLayoutImpl::~StdLayoutImpl()
@@ -26,7 +26,7 @@ WLayoutItem *StdLayoutImpl::layoutItem() const
 
 StdLayoutItemImpl *StdLayoutImpl::getImpl(WLayoutItem *item)
 {
-  return dynamic_cast<StdLayoutItemImpl *>(item->impl());
+  return static_cast<StdLayoutItemImpl *>(item->impl()); // we are sure that the item is of type StdLayoutItemImpl
 }
 
 }

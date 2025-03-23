@@ -119,7 +119,7 @@ private:
   ServerSideFontMetrics *fontMetrics_;
 
   std::stringstream js_;
-  std::vector<DomElement *> textElements_;
+  std::vector<DomElement> textElements_;
   std::vector<std::string> images_;
 
   void finishPath();

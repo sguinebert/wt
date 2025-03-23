@@ -93,6 +93,7 @@ public:
   AckState ackUpdate(unsigned int updateId);
 
   void streamRedirectJS(WStringStream& out, const std::string& redirect);
+  void streamRedirectJS(fmt::memory_buffer& out, const std::string& redirect);
 
   bool checkResponsePuzzle(const WebRequest& request);
   bool checkResponsePuzzle(http::context *context);
@@ -136,6 +137,8 @@ private:
   std::vector<int> wsRequestsToHandle_;
   bool cookieUpdateNeeded_;
 
+  std::vector<DomElement> changes_;
+
   void setHeaders(http::response& response, const std::string mimeType);
   void setCaching(http::response& response, bool allowCache);
 
@@ -153,10 +156,12 @@ private:
   void serveBootstrap(WebResponse& request);
   awaitable<void> serveMainpage(WebResponse& response);
   void serveMainAjax(WStringStream& out);
+  void serveMainAjax(fmt::memory_buffer& out);
   void serveWidgetSet(WebResponse& request);
   void collectJavaScript();
+  void collectJavaScript(fmt::memory_buffer& out);
 
-  void collectChanges(std::vector<DomElement *>& changes);
+  void collectChanges(std::vector<DomElement>& changes);
 
   void collectJavaScriptUpdate(WStringStream& out);
   void loadStyleSheet(WStringStream& out, WApplication *app, const WLinkedCssStyleSheet& sheet);
@@ -167,16 +172,32 @@ private:
   void renderSetServerPush(WStringStream& out);
   void renderStyleSheet(WStringStream& out, const WLinkedCssStyleSheet& sheet, WApplication *app);
 
+  void collectJavaScriptUpdate(fmt::memory_buffer& out);
+  void loadStyleSheet(fmt::memory_buffer& out, WApplication *app, const WLinkedCssStyleSheet& sheet);
+  void loadStyleSheets(fmt::memory_buffer& out, WApplication *app);
+  void removeStyleSheets(fmt::memory_buffer& out, WApplication *app);
+  int loadScriptLibraries(fmt::memory_buffer& out, WApplication *app, int count = -1);
+  void updateLoadIndicator(fmt::memory_buffer& out, WApplication *app, bool all);
+  void renderSetServerPush(fmt::memory_buffer& out);
+  void renderStyleSheet(fmt::memory_buffer& out, const WLinkedCssStyleSheet& sheet, WApplication *app);
+
   std::string createFormObjectsList(WApplication *app);
 
   void preLearnStateless(WApplication *app, WStringStream& out);
+  void preLearnStateless(WApplication *app, fmt::memory_buffer& out);
+
   WStringStream collectedJS1_, collectedJS2_, invisibleJS_, statelessJS_, beforeLoadJS_;
+  fmt::memory_buffer fcollectedJS1_, fcollectedJS2_, finvisibleJS_, fstatelessJS_, fbeforeLoadJS_;
   void collectJS(WStringStream *js);
+  void collectJS(fmt::memory_buffer *js);
+
+  // void collectJS(fmt::memory_buffer &js);
 
   void setPageVars(FileServe& page);
   void streamBootContent(WebResponse& response, FileServe& boot, bool hybrid);
-  void streamBootContent(http::context *context, FileServe& boot, bool hybrid);
+  void streamBootContent(http::context *context, bool hybrid);
   void addResponseAckPuzzle(WStringStream& out);
+  void addResponseAckPuzzle(fmt::memory_buffer& out);
   void addContainerWidgets(WWebWidget *w, std::vector<WContainerWidget *>& v);
 
   std::string headDeclarations() const;
@@ -191,11 +212,13 @@ private:
 
   void addWsRequestId(int wsRqId);
   void renderWsRequestsDone(WStringStream &out);
+  void renderWsRequestsDone(fmt::memory_buffer &out);
 
   void updateMultiSessionCookie(const WebRequest &request);
   void updateMultiSessionCookie(Wt::http::context *context);
 
   void renderCookieUpdate(WStringStream &out);
+  void renderCookieUpdate(fmt::memory_buffer &out);
   /*
    * See how large the invisible changes are, perhaps we can
    * send them along in the first request.

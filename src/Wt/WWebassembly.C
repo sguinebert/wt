@@ -7,8 +7,9 @@
 //std::unique_ptr<Wt::WMemoryResource> Wt::WWebassembly::wasmresource_;
 //std::unique_ptr<Wt::WMemoryResource> Wt::WWebassembly::jsresource_;
 
-constexpr const char* qtloader = {
-#include "../js/qtloader.js"
+static constexpr char qtloader[] = {
+#embed "../js/qtloader.js"
+    , '\0'
 };
 
 namespace Wt {

@@ -83,7 +83,7 @@ const std::string StdWidgetItemImpl::id() const
   return item_->widget()->id();
 }
 
-DomElement *StdWidgetItemImpl::createDomElement(DomElement *parent,
+DomElement StdWidgetItemImpl::createDomElement(DomElement *parent,
 						bool fitWidth, bool fitHeight,
 						WApplication *app)
 {
@@ -91,25 +91,25 @@ DomElement *StdWidgetItemImpl::createDomElement(DomElement *parent,
 
   w->setInline(false);
 
-  DomElement *d = w->createSDomElement(app);
-  DomElement *result = d;
+  DomElement d = w->createSDomElement(app);
+  //DomElement *result = d;
 
   if (app->environment().agentIsIElt(9) &&
-      (d->type() == DomElementType::TEXTAREA ||
-       d->type() == DomElementType::SELECT ||
-       d->type() == DomElementType::INPUT ||
-       d->type() == DomElementType::BUTTON)) {
-    d->removeProperty(Property::StyleDisplay);
+      (d.type() == DomElementType::TEXTAREA ||
+       d.type() == DomElementType::SELECT ||
+       d.type() == DomElementType::INPUT ||
+       d.type() == DomElementType::BUTTON)) {
+    d.removeProperty(Property::StyleDisplay);
   }
 
   // FIXME IE9 does border-box perhaps ?
   if (!app->environment().agentIsIElt(9) && 
       w->javaScriptMember(WWidget::WT_RESIZE_JS).empty() &&
-      d->type() != DomElementType::TABLE /* buggy in Chrome, see #1856 */ &&
-      app->theme()->canBorderBoxElement(*d))
-    d->setProperty(Property::StyleBoxSizing, "border-box");
+      d.type() != DomElementType::TABLE /* buggy in Chrome, see #1856 */ &&
+      app->theme()->canBorderBoxElement(d))
+    d.setProperty(Property::StyleBoxSizing, "border-box");
 
-  return result;
+  return d;
 }
 
 WLayoutItem *StdWidgetItemImpl::layoutItem() const

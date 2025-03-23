@@ -27,6 +27,7 @@ class WT_API WMessageResources
 {
 public:
   WMessageResources(const std::string& path, bool loadInMemory = true);
+  //WMessageResources(const std::string_view path);
   WMessageResources(const char *builtin);
 
   void hibernate();

@@ -10,7 +10,11 @@
 #include "web/WebUtils.h"
 
 namespace skeletons {
-  extern const char *AuthStrings_xml;
+static constexpr char AuthStrings_xmldata[] = {
+#embed "../../web/skeleton/Hybrid.html"
+};
+static constexpr std::string_view AuthStrings_xml(AuthStrings_xmldata, sizeof(AuthStrings_xmldata) - 1);
+//  extern const char *AuthStrings_xml;
 }
 
 namespace Wt {

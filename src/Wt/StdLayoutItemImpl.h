@@ -20,10 +20,16 @@ namespace Wt {
 class StdLayoutItemImpl : public WObject, public WLayoutItemImpl
 {
 public:
-  StdLayoutItemImpl();
+    enum Type {
+        FlexLayout,
+        GridLayout,
+        StdGridLayout2
+    };
+public:
+  StdLayoutItemImpl(Type type);
   virtual ~StdLayoutItemImpl();
 
-  WContainerWidget *container() const;
+  constexpr WContainerWidget *container() const;
   virtual WLayoutItem *layoutItem() const = 0;
 
   virtual int minimumWidth() const = 0;
@@ -31,9 +37,11 @@ public:
 
   StdLayoutImpl *parentLayoutImpl() const;
 
-  virtual DomElement *createDomElement(DomElement *parent,
+  virtual DomElement createDomElement(DomElement *parent,
 				       bool fitWidth, bool fitHeight,
 				       WApplication *app) = 0;
+
+  const Type type_;
 };
 
 }

@@ -244,7 +244,7 @@ public:
 protected:
   virtual std::string renderRemoveJs(bool recursive) override;
   virtual void updateDom(DomElement& element, bool all) override;
-  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
+  virtual void getDomChanges(std::vector<DomElement>& result, WApplication *app) override;
   virtual bool domCanBeSaved() const override;
 
   virtual int boxPadding(Orientation orientation) const override;
@@ -278,6 +278,8 @@ private:
   static void initTinyMCE();
   static int getTinyMCEVersion();
   bool serialize(std::stringstream &ss, std::map<std::string, cpp17::any>& map);
+  bool serialize(fmt::memory_buffer &ss, std::map<std::string, cpp17::any>& map);
+
 };
 
 }

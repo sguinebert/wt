@@ -274,7 +274,7 @@ void ProxyReply::assembleRequestHeaders()
       } else {
         LOG_SECURE("wthttp is not behind a trusted reverse proxy, dropping {} header", it->name.str());
       }
-    } else if (it->name.iequals(wtConfiguration.originalIPHeader().c_str())) {
+    } else if (it->name.iequals(wtConfiguration.originalIPHeader().data())) {
       if (trustedProxy) {
         forwardedFor = it->value.str() + ", ";
       } else {

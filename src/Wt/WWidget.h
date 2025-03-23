@@ -62,6 +62,84 @@ class WCssTextRule;
  * CSS. It also provides access to CSS-based layout, which you may not
  * use when the widget is not inserted into a layout manager.
  */
+
+#include "magic_enum/magic_enum.hpp"
+
+enum WidgetType {
+  first,
+  second,
+  third,
+  _COUNT //insert your types before this one
+};
+enum class Color  { RED = -10, BLUE = 0, GREEN = 10 };
+
+template<WidgetType T>
+class Base;
+
+// --- EnumTuple Definitions ---
+template <typename Enum, std::size_t... Is>
+struct MakeEnumTuple {
+    using type = std::tuple<std::vector<std::unique_ptr<Base<static_cast<Enum>(Is)>>>...>;
+};
+
+template <typename Enum, typename Indices>
+struct MakeEnumTupleHelper;
+
+template <typename Enum, std::size_t... Is>
+struct MakeEnumTupleHelper<Enum, std::index_sequence<Is...>> {
+    using type = typename MakeEnumTuple<Enum, Is...>::type;
+};
+#ifdef MAGIC_ENUM_SUPPORTED
+auto cc = static_cast<std::size_t>(WidgetType::third)+1;
+constexpr std::size_t cccvvbb = magic_enum::enum_count<WidgetType>();
+#endif
+
+template<typename Enum>
+using EnumTuple = typename MakeEnumTupleHelper<Enum, std::make_index_sequence<Enum::_COUNT>>::type;
+
+template<WidgetType T>
+class Base
+{
+public:
+
+  virtual void foo() = 0;
+
+  template <WidgetType E>
+  void push_back(std::unique_ptr<Base<E>> test) {
+    if constexpr (E == WidgetType::first) {
+        std::get<0>(myTuple_).push_back(std::move(test));
+    } else if constexpr (E == WidgetType::second) {
+        std::get<1>(myTuple_).push_back(std::move(test));
+    } else {
+        std::get<2>(myTuple_).push_back(std::move(test));
+    }
+  }
+
+private:
+    void execute_all(EnumTuple<WidgetType>& myTuple) {
+        std::apply([](auto&... vecs) {
+            (..., [](auto& vec) {
+                for (auto& ptr : vec) {
+                    ptr->execute();
+                }
+            }(vecs));
+        }, myTuple);
+    }
+    void execute() {
+        if constexpr (T == WidgetType::first) {
+            //static_cast<DerivedValue1*>(this)->foo();
+        } else if constexpr (T == WidgetType::second) {
+            //static_cast<DerivedValue2*>(this)->foo();
+        } else {
+            //static_cast<DerivedValue3*>(this)->foo();
+        }
+    }
+private:
+    EnumTuple<WidgetType> myTuple_;
+};
+
+#include "WWidget.hpp"
+
 class WT_API WWidget : public WObject
 {
 public:
@@ -973,6 +1051,8 @@ public:
    */
   virtual void htmlText(std::ostream& out);
 
+  virtual void htmlText(fmt::memory_buffer& out);
+
   /*! \brief Sets as selectable.
    *
    * When a widget is made unselectable, a selection of text (or images)
@@ -1001,15 +1081,26 @@ public:
    */
   virtual void doJavaScript(const std::string& js) = 0;
 
+  // void doJavaScript(const std::string& js)
+  // {
+  //     if(isComposite_){
+
+
+  //     }
+  //     else{
+  //         doJavaScript(js);
+  //     }
+  // }
+
   /*! \brief Returns whether the widget is rendered.
    *
    * \sa jsRef()
    */
   bool isRendered() const;
 
-  std::string inlineCssStyle();
+  // std::string inlineCssStyle();
 
-  std::string createJavaScript(WStringStream& js, std::string insertJS);
+  // std::string createJavaScript(WStringStream& js, std::string insertJS);
 
   /*! \brief Hides the widget.
    *
@@ -1142,7 +1233,7 @@ public:
    */
   virtual bool isThemeStyleEnabled() const = 0;
 
-  DomElement *createSDomElement(WApplication *app);
+  DomElement createSDomElement(WApplication *app);
 
   static void setTabOrder(WWidget *first, WWidget *second);
 
@@ -1332,7 +1423,7 @@ protected:
   void scheduleRerender(bool laterOnly, WFlags<RepaintFlag> flags = None);
   bool needRerender() const { return flags_.test(BIT_NEED_RERENDER); }
 
-  virtual void getSDomChanges(std::vector<DomElement *>& result, WApplication *app) = 0;
+  virtual void getSDomChanges(std::vector<DomElement>& result, WApplication *app) = 0;
   virtual bool needsToBeRendered() const = 0;
   bool isInLayout() const;
 
@@ -1345,6 +1436,8 @@ protected:
   bool isGlobalWidget() const;
 
   virtual std::string renderRemoveJs(bool recursive) = 0;
+
+  bool isComposite_ = false;
 
 private:
   /*
@@ -1360,6 +1453,7 @@ private:
   static const int BIT_GLOBAL_WIDGET = 7;
   std::bitset<8> flags_;
 
+#warning "For a type of 88 bytes, storing it directly in a std::vector<T> is usually the cleanest and most efficient approach"
   EventSignalList eventSignals_;
   std::vector<EventSignalBase*> jsignals_;
 

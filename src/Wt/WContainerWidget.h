@@ -552,6 +552,8 @@ private:
   bool wasEmpty() const;
 
   void rootAsJavaScript(WApplication *app, WStringStream& out, bool all);
+  void rootAsJavaScript(WApplication *app, fmt::memory_buffer& out, bool all);
+
 
   friend class WebRenderer;
 
@@ -560,11 +562,11 @@ protected:
 
   virtual void childResized(WWidget *child, WFlags<Orientation> directions) override;
   virtual void parentResized(WWidget *parent, WFlags<Orientation> directions) override;
-  virtual void getDomChanges(std::vector<DomElement *>& result, WApplication *app) override;
+  virtual void getDomChanges(std::vector<DomElement>& result, WApplication *app) override;
   virtual void iterateChildren(const HandleWidgetMethod& method) const override;
   virtual awaitable<void> iterateChildren2(AsyncHandleWidgetMethod&& method) const override;
 
-  DomElement *createDomElement(WApplication *app, bool addChildren);
+  DomElement createDomElement(WApplication *app, bool addChildren);
 
   void createDomChildren(DomElement& parent, WApplication *app);
   void updateDomChildren(DomElement& parent, WApplication *app);
@@ -572,7 +574,7 @@ protected:
   virtual DomElementType domElementType() const override;
   virtual void updateDom(DomElement& element, bool all) override;
   virtual void propagateRenderOk(bool deep) override;
-  virtual DomElement *createDomElement(WApplication *app) override;
+  virtual DomElement createDomElement(WApplication *app) override;
 
   StdLayoutImpl *layoutImpl() const;
   virtual void setFormData(const FormData& formData) override;

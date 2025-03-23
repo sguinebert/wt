@@ -646,62 +646,62 @@ std::string WebSession::bootstrapUrl(const WebResponse& /*response*/, BootstrapO
 
 std::string WebSession::bootstrapUrl(http::context */*context*/, BootstrapOption option) const
 {
-  switch (option) {
-  case BootstrapOption::KeepInternalPath: {
-    std::string url;
+    switch (option) {
+    case BootstrapOption::KeepInternalPath: {
+        std::string url;
 
-    std::string internalPath = app_ ? app_->internalPath() : env_->internalPath();
+        std::string internalPath = app_ ? app_->internalPath() : env_->internalPath();
 
-    if (useUglyInternalPaths()) {
-      if (internalPath.length() > 1)
-        url = "?_=" + DomElement::urlEncodeS(internalPath, "#/");
+        if (useUglyInternalPaths()) {
+            if (internalPath.length() > 1)
+                url = "?_=" + DomElement::urlEncodeS(internalPath, "#/");
 
-      if (isAbsoluteUrl(applicationUrl_))
-        url = applicationUrl_ + url;
-    } else {
-      if (!isAbsoluteUrl(applicationUrl_)) {
-        /*
-         * Java application servers use ";jsessionid=..." which generates
-         * URLs relative to the current directory, not current filename
-         * (unlike '?=...')
-         *
-         * Therefore we start with the current 'filename', this does no harm
-         * for C++ well behaving servers either.
-         */
-        if (internalPath.length() > 1)
-        {
-          std::string lastPart = internalPath.substr(internalPath.rfind('/') + 1);
-
-          url = ""; /* lastPart; */
+            if (isAbsoluteUrl(applicationUrl_))
+                url = applicationUrl_ + url;
         } else {
-            url = applicationName_;
-        }
-      } else {
-        if (applicationName_.empty() && internalPath.length() > 1)
-          internalPath = internalPath.substr(1);
+            if (!isAbsoluteUrl(applicationUrl_)) {
+                /*
+                 * Java application servers use ";jsessionid=..." which generates
+                 * URLs relative to the current directory, not current filename
+                 * (unlike '?=...')
+                 *
+                 * Therefore we start with the current 'filename', this does no harm
+                 * for C++ well behaving servers either.
+                 */
+                if (internalPath.length() > 1)
+                {
+                    std::string lastPart = internalPath.substr(internalPath.rfind('/') + 1);
 
-        url = applicationUrl_ + internalPath;
-      }
+                    url = ""; /* lastPart; */
+                } else {
+                    url = applicationName_;
+                }
+            } else {
+                if (applicationName_.empty() && internalPath.length() > 1)
+                    internalPath = internalPath.substr(1);
+
+                url = applicationUrl_ + internalPath;
+            }
+        }
+
+        return appendSessionQuery(url);
+    }
+    case BootstrapOption::ClearInternalPath:
+    {
+        std::string url;
+        if (applicationName_.empty()) {
+            url = fixRelativeUrl(".");
+            url = url.substr(0, url.length() - 1);
+        } else
+            url = fixRelativeUrl(applicationName_);
+
+        return appendSessionQuery(url);
+    }
+    default:
+        assert(false);
     }
 
-    return appendSessionQuery(url);
-  }
-  case BootstrapOption::ClearInternalPath:
-  {
-    std::string url;
-    if (applicationName_.empty()) {
-      url = fixRelativeUrl(".");
-      url = url.substr(0, url.length() - 1);
-    } else
-      url = fixRelativeUrl(applicationName_);
-
-    return appendSessionQuery(url);
-  }
-  default:
-    assert(false);
-  }
-
-  return std::string();
+    return std::string();
 }
 
 std::string WebSession::fixRelativeUrl(const std::string& url) const
@@ -973,24 +973,24 @@ awaitable<bool> WebSession::start(http::context *context, EntryPoint *ep)
   co_return app_;
 }
 
-std::string WebSession::getCgiValue(const std::string& varName) const
+std::string_view WebSession::getCgiValue(const std::string& varName) const
 {
-  WebRequest *request = WebSession::Handler::instance()->request();
-  if (request)
-    return str(request->envValue(varName.c_str()));
-  else if(varName == "DOCUMENT_ROOT")
-	return docRoot_;
-  else 
-    return std::string();
+    if (auto *context = WebSession::Handler::instance()->context())
+        return context->getHeader(varName);
+    else if(varName == "DOCUMENT_ROOT")
+        return docRoot_;
+    else
+        return std::string_view();
 }
 
-std::string WebSession::getCgiHeader(const std::string& headerName) const
+std::string_view WebSession::getCgiHeader(const std::string& headerName) const
 {
-  WebRequest *request = WebSession::Handler::instance()->request();
-  if (request)
-    return str(request->headerValue(headerName.c_str()));
-  else
-    return std::string();
+    //WebRequest *request = WebSession::Handler::instance()->request();
+
+    if (auto *context = WebSession::Handler::instance()->context())
+        return context->getHeader(headerName);
+    else
+        return std::string_view();
 }
 
 void WebSession::kill()
@@ -1007,12 +1007,12 @@ awaitable<void> WebSession::checkTimers()
 {
   WContainerWidget *timers = app_->timerRoot();
 
-  const std::vector<WWidget *>& timerWidgets = timers->children();
+  const std::vector<WWidget*>& timerWidgets = timers->children();
 
-  std::vector<WTimerWidget *> expired;
+  std::vector<WTimerWidget*> expired;
 
   for (unsigned i = 0; i < timerWidgets.size(); ++i) {
-    WTimerWidget *wti = dynamic_cast<WTimerWidget *>(timerWidgets[i]);
+    WTimerWidget *wti = static_cast<WTimerWidget *>(timerWidgets[i]);
 
     if (wti->timerExpired())
       expired.push_back(wti);
@@ -1034,8 +1034,8 @@ void WebSession::redirect(const std::string& url)
 
 std::string WebSession::getRedirect()
 {
-  std::string result = redirect_;
-  redirect_.clear();
+  std::string result;
+  result.swap(redirect_);
   return result;
 }
 
@@ -1839,7 +1839,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
             } else if (requestE != "page") {
                 LOG_INFO("Not serving this: request of type '{}' in a brand new session (probably coming from an old session)", requestE);
                 context->setContentType("text/html");
-                context->out() << "<html><head></head><body></body></html>";
+                context->buffer().append("<html><head></head><body></body></html>");
 
                 kill();
                 break;
@@ -1894,13 +1894,13 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
             auto resourceE = request.get("resource");
             if (resourceE == "blank") {
                 context->type("text/html");
-                context->out() <<
+                context->buffer().append(
                     "<html><head><title>bhm</title></head>"
-                    "<body> </body></html>";
+                    "<body> </body></html>");
             } else {
                 LOG_INFO("not starting session for unexpected request type.");
                 context->type("text/html");
-                context->out() << "<html><head></head><body></body></html>";
+                context->buffer().append("<html><head></head><body></body></html>");
             }
 
             kill();
@@ -2065,7 +2065,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
           else if (requestForResource && resourceE == "blank")
           {
             handler.context()->type("text/html");
-            handler.context()->out() << "<html><head><title>bhm</title></head><body> </body></html>";
+            handler.context()->buffer().append("<html><head><title>bhm</title></head><body> </body></html>");
             break;
           }
           else
@@ -2090,8 +2090,8 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
                     setState(State::Loaded, conf.bootstrapTimeout());
                 } else {
                     handler.context()->type("text/html");
-                    handler.context()->out() <<
-                        "<html><body><h1>Refusing to respond.</h1></body></html>";
+                    handler.context()->buffer().append("<html><head></head><body></body></html>");
+//                        "<html><body><h1>Refusing to respond.</h1></body></html>";
                 }
 
                 break;

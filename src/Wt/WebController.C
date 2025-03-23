@@ -120,34 +120,45 @@ void WebController::start()
 
 void WebController::shutdown()
 {
-  {
-    std::vector<std::shared_ptr<WebSession>> sessionList;
-
+#ifdef BOOST_CONCURENT_MAP
+    sessions_.visit_all([&] (auto &it){
+        std::shared_ptr<WebSession> session = it->second;
+        WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock); //general shutdown : block the thread is ok
+        session->expire();
+    });
+    ajaxSessions_ = 0;
+    plainHtmlSessions_ = 0;
+#else
     {
+        std::vector<std::shared_ptr<WebSession>> sessionList;
+
+        {
 #ifdef WT_THREADED
-      std::unique_lock<std::recursive_mutex> lock(mutex_);
+            std::unique_lock<std::recursive_mutex> lock(mutex_);
 #endif // WT_THREADED
 
-      running_ = false;
+            running_ = false;
 
-      LOG_INFO_S(&server_, "shutdown: stopping {} sessions.", sessions_.size());
+            LOG_INFO_S(&server_, "shutdown: stopping {} sessions.", sessions_.size());
 
 
-      for (auto i = sessions_.begin(); i != sessions_.end(); ++i)
-        sessionList.push_back(i->second);
+            for (auto i = sessions_.begin(); i != sessions_.end(); ++i)
+                sessionList.push_back(i->second);
 
-      sessions_.clear();
+            sessions_.clear();
 
-      ajaxSessions_ = 0;
-      plainHtmlSessions_ = 0;
+            ajaxSessions_ = 0;
+            plainHtmlSessions_ = 0;
+        }
+
+        for (unsigned i = 0; i < sessionList.size(); ++i) {
+            std::shared_ptr<WebSession> session = sessionList[i];
+            WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock); //general shutdown : block the thread is ok
+            session->expire();
+        }
     }
 
-    for (unsigned i = 0; i < sessionList.size(); ++i) {
-      std::shared_ptr<WebSession> session = sessionList[i];
-      WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock); //general shutdown : block the thread is ok
-      session->expire();
-    }
-  }
+#endif
 
 #ifdef WT_THREADED
   while (zombieSessions_ > 0) {
@@ -179,14 +190,25 @@ int WebController::sessionCount() const
 
 std::vector<std::string> WebController::sessions(bool onlyRendered)
 {
+
+  std::vector<std::string> sessionIds;
+
+#ifdef BOOST_CONCURENT_MAP
+  sessions_.visit_all([&] (auto &it){
+      if (!onlyRendered || it->second->app() != nullptr)
+          sessionIds.push_back(it->first);
+  });
+#else
 #ifdef WT_THREADED
   std::unique_lock<std::recursive_mutex> lock(mutex_);
 #endif
-  std::vector<std::string> sessionIds;
   for (auto i = sessions_.begin(); i != sessions_.end(); ++i) {
-    if (!onlyRendered || i->second->app() != nullptr)
-      sessionIds.push_back(i->first);
+      if (!onlyRendered || i->second->app() != nullptr)
+          sessionIds.push_back(i->first);
   }
+#endif
+
+
   return sessionIds;
 }
 //TODO : first WHY this is called each time a client is requesting to server ? create a coroutine with a steady_timer (wake up every 30min) ?
@@ -199,23 +221,34 @@ awaitable<bool> WebController::expireSessions()
   {
     Time now;
 
+#ifdef BOOST_CONCURENT_MAP
+    sessions_.visit_all([&](auto& pair) {
+        std::shared_ptr<WebSession> session = pair.second;
+        int diff = session->expireTime() - now;
+        if (diff < 1000 && configuration().sessionTimeout() != -1) {
+            toExpire.push_back(session);
+        }
+    });
+
+#else
 #ifdef WT_THREADED
     std::unique_lock<std::recursive_mutex> lock(mutex_);
 #endif // WT_THREADED
 
     for (auto i = sessions_.begin(); i != sessions_.end(); ++i) {
-      std::shared_ptr<WebSession> session = i->second;
+        std::shared_ptr<WebSession> session = i->second;
 
-      int diff = session->expireTime() - now;
+        int diff = session->expireTime() - now;
 
-      if (diff < 1000 && configuration().sessionTimeout() != -1) {
-        toExpire.push_back(session);
-        // Note: the session is not yet removed from sessions_ map since
-        // we want to grab the UpdateLock to do this and grabbing it here
-        // might cause a deadlock.
-      }
+        if (diff < 1000 && configuration().sessionTimeout() != -1) {
+            toExpire.push_back(session);
+            // Note: the session is not yet removed from sessions_ map since
+            // we want to grab the UpdateLock to do this and grabbing it here
+            // might cause a deadlock.
+        }
     }
 
+#endif
     result = !sessions_.empty();
   }
 
@@ -230,28 +263,41 @@ awaitable<bool> WebController::expireSessions()
     WebSession::Handler handler(session, WebSession::Handler::LockOption::NoLock);
     co_await session->takeLock(); //SEGFAULT in asio
 
-#ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+
 
 //    server_.ioService().dispatchAll([this, session] () {
 //        sessions_.erase(session->sessionId());
 //    });
 
+#ifdef BOOST_CONCURENT_MAP
+    // if (!sessions_.contains(session->sessionId()))
+    //     continue;
+    auto removed = sessions_.erase(session->sessionId());
+    if (session->env().ajax())
+        ajaxSessions_.fetch_sub(removed, std::memory_order_relaxed);
+    else
+        plainHtmlSessions_.fetch_sub(removed, std::memory_order_relaxed);
+
+    zombieSessions_.fetch_add(removed, std::memory_order_relaxed);
+#else
+#ifdef WT_THREADED
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
     // Another thread might have already removed it
     if (sessions_.find(session->sessionId()) == sessions_.end())
-      continue;
-//    if (!sessions_.erase(session->sessionId()))
-//      continue;
+        continue;
+    //    if (!sessions_.erase(session->sessionId()))
+    //      continue;
 
     if (session->env().ajax())
-      --ajaxSessions_;
+        --ajaxSessions_;
     else
-      --plainHtmlSessions_;
+        --plainHtmlSessions_;
 
     ++zombieSessions_;
 
     sessions_.erase(session->sessionId());
+#endif
 
     session->expire();
     co_await handler.destroy();
@@ -266,18 +312,20 @@ void WebController::addSession(const std::shared_ptr<WebSession>& session)
 //      sessions_[session->sessionId()] = session;
 //  });
 
-#ifdef WT_THREADED
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
 
+#ifdef BOOST_CONCURENT_MAP
+  sessions_.emplace(session->sessionId(), session);
+#else
+#ifdef WT_THREADED
+std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
   sessions_[session->sessionId()] = session;
+#endif
 }
 
 void WebController::removeSession(const std::string& sessionId)
 {
-#ifdef WT_THREADED
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+
 
   LOG_INFO("Removing session {}", sessionId);
 
@@ -285,15 +333,31 @@ void WebController::removeSession(const std::string& sessionId)
   //        sessions_.erase(sessionId);
   //    });
 
+
+#ifdef BOOST_CONCURENT_MAP
+  sessions_.visit(sessionId, [&](auto& s) {
+      zombieSessions_.fetch_add(1, std::memory_order_relaxed);
+      if (s->second->env().ajax())
+          ajaxSessions_.fetch_sub(1, std::memory_order_relaxed);
+      else
+          plainHtmlSessions_.fetch_sub(1, std::memory_order_relaxed);
+      sessions_.erase(sessionId);
+  });
+#else
+#ifdef WT_THREADED
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
   SessionMap::iterator i = sessions_.find(sessionId);
   if (i != sessions_.end()) {
-    ++zombieSessions_;
-    if (i->second->env().ajax())
-      --ajaxSessions_;
-    else
-      --plainHtmlSessions_;
-    sessions_.erase(i);
+      ++zombieSessions_;
+      if (i->second->env().ajax())
+          --ajaxSessions_;
+      else
+          --plainHtmlSessions_;
+      sessions_.erase(i);
   }
+#endif
+
 
   if (server_.dedicatedSessionProcess() && sessions_.size() == 0) {
     server_.scheduleStop();
@@ -498,16 +562,20 @@ bool WebController::requestDataReceived(WebRequest *request,
                     std::uintmax_t current,
                     std::uintmax_t total)
 {
-#ifdef WT_THREADED
+#if defined(WT_THREADED) && !defined(BOOST_CONCURENT_MAP)
+
   std::unique_lock<std::mutex> lock(uploadProgressUrlsMutex_);
 #endif // WT_THREADED
 
   if (!running_)
     return false;
 
-  if (uploadProgressUrls_.find(request->queryString())
-      != uploadProgressUrls_.end()) {
-#ifdef WT_THREADED
+#ifdef BOOST_CONCURENT_MAP
+  if (uploadProgressUrls_.contains(request->queryString())) {
+#endif
+#if defined(WT_THREADED) && !defined(BOOST_CONCURENT_MAP)
+  if (uploadProgressUrls_.find(request->queryString()) != uploadProgressUrls_.end())
+  {
     lock.unlock();
 #endif // WT_THREADED
 
@@ -549,15 +617,18 @@ bool WebController::requestDataReceived(WebRequest *request,
 
 awaitable<bool> WebController::requestDataReceived(http::context *context, uintmax_t current, uintmax_t total)
 {
-#ifdef WT_THREADED
+#if defined(WT_THREADED) && !defined(BOOST_CONCURENT_MAP)
   std::unique_lock<std::mutex> lock(uploadProgressUrlsMutex_);
 #endif // WT_THREADED
 
   if (!running_)
     co_return false;
-
-  if (uploadProgressUrls_.find(std::string(context->querystring()))!= uploadProgressUrls_.end()) {
-#ifdef WT_THREADED
+#ifdef BOOST_CONCURENT_MAP
+  if (uploadProgressUrls_.contains(std::string {context->querystring() })) {
+#endif
+#if defined(WT_THREADED) && !defined(BOOST_CONCURENT_MAP)
+  if (uploadProgressUrls_.find(request->queryString()) != uploadProgressUrls_.end())
+  {
     lock.unlock();
 #endif // WT_THREADED
 
@@ -634,12 +705,20 @@ awaitable<bool> WebController::handleApplicationEvent(const std::shared_ptr<Appl
    */
   std::shared_ptr<WebSession> session;
   {
-#ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
 
+
+#ifdef BOOST_CONCURENT_MAP
+    sessions_.visit(event->sessionId, [&session](const std::shared_ptr<WebSession>& s) {
+        if(!s->dead())
+            session = s;
+    });
+#else
+#ifdef WT_THREADED
+      std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
     if (auto i = sessions_.find(event->sessionId); i != sessions_.end() && !i->second->dead())
       session = i->second;
+#endif
   }
 
   if (!session) {
@@ -663,7 +742,7 @@ awaitable<bool> WebController::handleApplicationEvent(const std::shared_ptr<Appl
 
 void WebController::addUploadProgressUrl(const std::string& url)
 {
-#ifdef WT_THREADED
+#if defined(WT_THREADED) && !defined(BOOST_CONCURENT_MAP)
   std::unique_lock<std::mutex> lock(uploadProgressUrlsMutex_);
 #endif // WT_THREADED
 
@@ -672,7 +751,7 @@ void WebController::addUploadProgressUrl(const std::string& url)
 
 void WebController::removeUploadProgressUrl(const std::string& url)
 {
-#ifdef WT_THREADED
+#if defined(WT_THREADED) && !defined(BOOST_CONCURENT_MAP)
   std::unique_lock<std::mutex> lock(uploadProgressUrlsMutex_);
 #endif // WT_THREADED
 
@@ -785,26 +864,29 @@ void WebController::handleRequest(WebRequest *request)
 #endif // WT_THREADED
 
     if (!singleSessionId_.empty() && sessionId != singleSessionId_) {
-      if (conf_.persistentSessions()) {
-    // This may be because of a race condition in the filesystem:
-    // the session file is renamed in generateNewSessionId() but
-    // still a request for an old session may have arrived here
-    // while this was happening.
-    //
-    // If it is from the old app, We should be sent a reload signal,
-    // this is what will be done by a new session (which does not create
-    // an application).
-    //
-    // If it is another request to take over the persistent session,
-    // it should be handled by the persistent session. We can distinguish
-    // using the type of the request
-    LOG_INFO_S(&server_, "persistent session requested Id: {}, persisten Id: {}", sessionId, singleSessionId_);
+        if (conf_.persistentSessions()) {
+            // This may be because of a race condition in the filesystem:
+            // the session file is renamed in generateNewSessionId() but
+            // still a request for an old session may have arrived here
+            // while this was happening.
+            //
+            // If it is from the old app, We should be sent a reload signal,
+            // this is what will be done by a new session (which does not create
+            // an application).
+            //
+            // If it is another request to take over the persistent session,
+            // it should be handled by the persistent session. We can distinguish
+            // using the type of the request
+            LOG_INFO_S(&server_, "persistent session requested Id: {}, persisten Id: {}", sessionId, singleSessionId_);
 
-    if (sessions_.empty() || strcmp(request->requestMethod(), "GET") == 0)
-      sessionId = singleSessionId_;
-      } else
-    sessionId = singleSessionId_;
+            if (sessions_.empty() || strcmp(request->requestMethod(), "GET") == 0)
+                sessionId = singleSessionId_;
+        } else
+            sessionId = singleSessionId_;
     }
+
+#ifdef BOOST_CONCURENT_MAP
+#else
 
     SessionMap::iterator i = sessions_.find(sessionId);
 
@@ -812,70 +894,73 @@ void WebController::handleRequest(WebRequest *request)
 
     if (i == sessions_.end() || i->second->dead() ||
         (sessionTracking == Configuration::Combined &&
-     (multiSessionCookie.empty() || multiSessionCookie != i->second->multiSessionId()))) {
-      try {
-        if (sessionTracking == Configuration::Combined &&
+         (multiSessionCookie.empty() || multiSessionCookie != i->second->multiSessionId()))) {
+        try {
+            if (sessionTracking == Configuration::Combined &&
                 i != sessions_.end() && !i->second->dead()) {
-              if (!request->headerValue("Cookie")) {
-                LOG_ERROR_S(&server_, "Valid session id: {}, but no cookie received (expecting multi session cookie)", sessionId);
+                if (!request->headerValue("Cookie")) {
+                    LOG_ERROR_S(&server_, "Valid session id: {}, but no cookie received (expecting multi session cookie)", sessionId);
+                    request->setStatus(403);
+                    request->flush(WebResponse::ResponseState::ResponseDone);
+                    return;
+                }
+            }
+
+            if (request->isWebSocketRequest()) {
+                LOG_INFO_S(&server_, "WebSocket request for non-existing session rejected. "
+                                     "This is likely because of a browser with an old session "
+                                     "trying to reconnect (e.g. when the server was restarted)");
                 request->setStatus(403);
                 request->flush(WebResponse::ResponseState::ResponseDone);
+                return;
+            }
+
+            if (singleSessionId_.empty()) {
+                do {
+                    sessionId = conf_.generateSessionId();
+                    if (!conf_.registerSessionId(std::string(), sessionId))
+                        sessionId.clear();
+                } while (sessionId.empty());
+            }
+
+            std::string favicon = request->entryPoint_->favicon();
+            if (favicon.empty())
+                conf_.readConfigurationProperty("favicon", favicon);
+
+            //	session.reset(new WebSession(this, sessionId,
+            //				     request->entryPoint_->type(),
+            //				     favicon, request));
+
+            if (sessionTracking == Configuration::Combined) {
+                if (multiSessionCookie.empty())
+                    multiSessionCookie = conf_.generateSessionId();
+                session->setMultiSessionId(multiSessionCookie);
+            }
+
+            if (sessionTracking == Configuration::CookiesURL)
+                request->addHeader("Set-Cookie",
+                                   appSessionCookie(request->scriptName())
+                                       + "=" + sessionId + "; Version=1;"
+                                       + " Path=" + session->env().deploymentPath()
+                                       + "; httponly;" + (session->env().urlScheme() == "https" ? " secure;" : ""));
+
+            sessions_[sessionId] = session;
+            ++plainHtmlSessions_;
+
+            if (server_.dedicatedSessionProcess()) {
+                server_.updateProcessSessionId(sessionId);
+            }
+        } catch (std::exception& e) {
+            LOG_ERROR_S(&server_, "could not create new session: {}", e.what());
+            request->flush(WebResponse::ResponseState::ResponseDone);
             return;
-          }
         }
-
-        if (request->isWebSocketRequest()) {
-          LOG_INFO_S(&server_, "WebSocket request for non-existing session rejected. "
-                               "This is likely because of a browser with an old session "
-                               "trying to reconnect (e.g. when the server was restarted)");
-          request->setStatus(403);
-          request->flush(WebResponse::ResponseState::ResponseDone);
-          return;
-        }
-
-        if (singleSessionId_.empty()) {
-          do {
-            sessionId = conf_.generateSessionId();
-            if (!conf_.registerSessionId(std::string(), sessionId))
-              sessionId.clear();
-          } while (sessionId.empty());
-        }
-
-        std::string favicon = request->entryPoint_->favicon();
-        if (favicon.empty())
-          conf_.readConfigurationProperty("favicon", favicon);
-
-    //	session.reset(new WebSession(this, sessionId,
-    //				     request->entryPoint_->type(),
-    //				     favicon, request));
-
-        if (sessionTracking == Configuration::Combined) {
-          if (multiSessionCookie.empty())
-            multiSessionCookie = conf_.generateSessionId();
-          session->setMultiSessionId(multiSessionCookie);
-        }
-
-        if (sessionTracking == Configuration::CookiesURL)
-          request->addHeader("Set-Cookie",
-                     appSessionCookie(request->scriptName())
-                     + "=" + sessionId + "; Version=1;"
-                     + " Path=" + session->env().deploymentPath()
-                     + "; httponly;" + (session->env().urlScheme() == "https" ? " secure;" : ""));
-
-        sessions_[sessionId] = session;
-        ++plainHtmlSessions_;
-
-        if (server_.dedicatedSessionProcess()) {
-          server_.updateProcessSessionId(sessionId);
-        }
-      } catch (std::exception& e) {
-        LOG_ERROR_S(&server_, "could not create new session: {}", e.what());
-        request->flush(WebResponse::ResponseState::ResponseDone);
-        return;
-      }
     } else {
-      session = i->second;
+        session = i->second;
     }
+#endif
+
+
   }
 
   bool handled = false;
@@ -934,7 +1019,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
     LOG_ERROR_S(&server_, "could not parse request: {}", e.what());
 
     context->type("text/html");
-    context->body()
+    context->res()
         << "<title>Error occurred.</title>"
         << "<h2>Error occurred.</h2>"
            "Error parsing CGI request: " << e.what(); //<< std::endl
@@ -962,7 +1047,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
       context->redirect(urlE);
     } else {
       context->type("text/html");
-      context->res().body()
+      context->res()
           << "<title>Error occurred.</title><h2>Error occurred.</h2><p>Invalid redirect.</p>"; //<< std::endl
     }
     //request->flush(WebResponse::ResponseState::ResponseDone);
@@ -996,9 +1081,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
   std::shared_ptr<WebSession> session = context->websession();
   //if(!session || sessionId.empty())
   {
-#ifdef WT_THREADED
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
+
 
     if (!singleSessionId_.empty() && sessionId != singleSessionId_) {
       if (conf_.persistentSessions()) {
@@ -1022,6 +1105,98 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
         sessionId = singleSessionId_;
     }
 
+#ifdef BOOST_CONCURENT_MAP
+    auto size = sessions_.visit(sessionId, [&](auto& value){
+        session = value;
+        context->websession(session);
+    });
+    Configuration::SessionTracking sessionTracking = configuration().sessionTracking();
+
+    if (size == 0 || session->dead() ||
+        (conf_.sessionTracking() == Configuration::Combined &&
+         (multiSessionCookie.empty() || multiSessionCookie != session->multiSessionId())))
+    {
+        try {
+            if (conf_.sessionTracking() == Configuration::Combined &&
+                size != 0 && !session->dead())
+            {
+                if (context->getHeader("Cookie").empty())
+                {
+                    LOG_ERROR_S(&server_, "Valid session id: {}, but no cookie received (expecting multi session cookie)", sessionId);
+                    context->status(403);
+                    context->flush();
+                    //request->flush(WebResponse::ResponseState::ResponseDone);
+                    co_return;
+                }
+            }
+
+            if (context->req().websocket())
+            {
+                LOG_INFO_S(&server_, "WebSocket request for non-existing session rejected. "
+                                     "This is likely because of a browser with an old session "
+                                     "trying to reconnect (e.g. when the server was restarted)");
+                context->status(403);
+                context->flush();
+                //context->flush(WebResponse::ResponseState::ResponseDone);
+                co_return;
+            }
+
+            if (singleSessionId_.empty())
+            {
+                do {
+                    sessionId = conf_.generateSessionId();
+                    if (!conf_.registerSessionId(std::string(), sessionId))
+                        sessionId.clear();
+                } while (sessionId.empty());
+            }
+            std::string favicon = entryPoint->favicon();
+            if (favicon.empty())
+                conf_.readConfigurationProperty("favicon", favicon);
+
+            session.reset(new WebSession(this, sessionId,
+                                         entryPoint->path(),
+                                         entryPoint->type(),
+                                         favicon, context));
+
+            if (sessionTracking == Configuration::Combined) {
+                if (multiSessionCookie.empty())
+                    multiSessionCookie = conf_.generateSessionId();
+                session->setMultiSessionId(multiSessionCookie);
+            }
+
+
+
+            if (sessionTracking == Configuration::CookiesURL) {
+                auto cookie = fmt::format(FMT_COMPILE("{}={}; Version=1; Path={}; httponly;{}"),
+                                          appSessionCookie(context->req().path()),
+                                          sessionId, session->env().deploymentPath(),
+                                          (session->env().urlScheme() == "https" ? " secure;" : ""));
+                context->res().addHeader("Set-Cookie", cookie);
+            }
+
+            //        server_.ioService().dispatchAll([this, session, sessionId] () {
+            //            sessions_[sessionId] = session;
+            //        });
+
+            sessions_.emplace(sessionId, session);
+            context->websession(session);
+            ++plainHtmlSessions_;
+
+            if (server_.dedicatedSessionProcess()) {
+                server_.updateProcessSessionId(sessionId);
+            }
+        } catch (std::exception& e) {
+            LOG_ERROR_S(&server_, "could not create new session: {}", e.what());
+            context->flush();
+            //context->flush(WebResponse::ResponseState::ResponseDone);
+            co_return;
+        }
+    }
+
+#else
+#ifdef WT_THREADED
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
     SessionMap::iterator si = sessions_.find(sessionId);
 
     Configuration::SessionTracking sessionTracking = configuration().sessionTracking();
@@ -1030,87 +1205,88 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
         (sessionTracking == Configuration::Combined &&
          (multiSessionCookie.empty() || multiSessionCookie != si->second->multiSessionId())))
     {
-      try {
-        if (sessionTracking == Configuration::Combined &&
-            si != sessions_.end() && !si->second->dead())
-        {
-          if (context->getHeader("Cookie").empty())
-          {
-            LOG_ERROR_S(&server_, "Valid session id: {}, but no cookie received (expecting multi session cookie)", sessionId);
-            context->status(403);
+        try {
+            if (sessionTracking == Configuration::Combined &&
+                si != sessions_.end() && !si->second->dead())
+            {
+                if (context->getHeader("Cookie").empty())
+                {
+                    LOG_ERROR_S(&server_, "Valid session id: {}, but no cookie received (expecting multi session cookie)", sessionId);
+                    context->status(403);
+                    context->flush();
+                    //request->flush(WebResponse::ResponseState::ResponseDone);
+                    co_return;
+                }
+            }
+
+            if (context->req().websocket())
+            {
+                LOG_INFO_S(&server_, "WebSocket request for non-existing session rejected. "
+                                     "This is likely because of a browser with an old session "
+                                     "trying to reconnect (e.g. when the server was restarted)");
+                context->status(403);
+                context->flush();
+                //context->flush(WebResponse::ResponseState::ResponseDone);
+                co_return;
+            }
+
+            if (singleSessionId_.empty())
+            {
+                do {
+                    sessionId = conf_.generateSessionId();
+                    if (!conf_.registerSessionId(std::string(), sessionId))
+                        sessionId.clear();
+                } while (sessionId.empty());
+            }
+
+
+            std::string favicon = entryPoint->favicon();
+            if (favicon.empty())
+                conf_.readConfigurationProperty("favicon", favicon);
+
+            session.reset(new WebSession(this, sessionId,
+                                         entryPoint->path(),
+                                         entryPoint->type(),
+                                         favicon, context));
+
+            if (sessionTracking == Configuration::Combined) {
+                if (multiSessionCookie.empty())
+                    multiSessionCookie = conf_.generateSessionId();
+                session->setMultiSessionId(multiSessionCookie);
+            }
+
+
+
+            if (sessionTracking == Configuration::CookiesURL) {
+                auto cookie = fmt::format(FMT_COMPILE("{}={}; Version=1; Path={}; httponly;{}"),
+                                          appSessionCookie(context->req().path()),
+                                          sessionId, session->env().deploymentPath(),
+                                          (session->env().urlScheme() == "https" ? " secure;" : ""));
+                context->res().addHeader("Set-Cookie", cookie);
+            }
+
+            //        server_.ioService().dispatchAll([this, session, sessionId] () {
+            //            sessions_[sessionId] = session;
+            //        });
+
+            sessions_[sessionId] = session;
+            context->websession(session);
+            ++plainHtmlSessions_;
+
+            if (server_.dedicatedSessionProcess()) {
+                server_.updateProcessSessionId(sessionId);
+            }
+        } catch (std::exception& e) {
+            LOG_ERROR_S(&server_, "could not create new session: {}", e.what());
             context->flush();
-            //request->flush(WebResponse::ResponseState::ResponseDone);
+            //context->flush(WebResponse::ResponseState::ResponseDone);
             co_return;
-          }
         }
-
-        if (context->req().websocket())
-        {
-              LOG_INFO_S(&server_, "WebSocket request for non-existing session rejected. "
-                                   "This is likely because of a browser with an old session "
-                                   "trying to reconnect (e.g. when the server was restarted)");
-              context->status(403);
-              context->flush();
-              //context->flush(WebResponse::ResponseState::ResponseDone);
-              co_return;
-        }
-
-        if (singleSessionId_.empty())
-        {
-              do {
-                sessionId = conf_.generateSessionId();
-                if (!conf_.registerSessionId(std::string(), sessionId))
-                    sessionId.clear();
-              } while (sessionId.empty());
-        }
-
-
-        std::string favicon = entryPoint->favicon();
-        if (favicon.empty())
-            conf_.readConfigurationProperty("favicon", favicon);
-
-        session.reset(new WebSession(this, sessionId,
-                                     entryPoint->path(),
-                                     entryPoint->type(),
-                                     favicon, context));
-
-        if (sessionTracking == Configuration::Combined) {
-              if (multiSessionCookie.empty())
-                multiSessionCookie = conf_.generateSessionId();
-              session->setMultiSessionId(multiSessionCookie);
-        }
-
-
-
-        if (sessionTracking == Configuration::CookiesURL) {
-              auto cookie = fmt::format(FMT_COMPILE("{}={}; Version=1; Path={}; httponly;{}"),
-                                        appSessionCookie(context->req().path()),
-                                        sessionId, session->env().deploymentPath(),
-                                        (session->env().urlScheme() == "https" ? " secure;" : ""));
-              context->res().addHeader("Set-Cookie", cookie);
-        }
-
-//        server_.ioService().dispatchAll([this, session, sessionId] () {
-//            sessions_[sessionId] = session;
-//        });
-
-        sessions_[sessionId] = session;
-        context->websession(session);
-        ++plainHtmlSessions_;
-
-        if (server_.dedicatedSessionProcess()) {
-              server_.updateProcessSessionId(sessionId);
-        }
-      } catch (std::exception& e) {
-        LOG_ERROR_S(&server_, "could not create new session: {}", e.what());
-        context->flush();
-        //context->flush(WebResponse::ResponseState::ResponseDone);
-        co_return;
-      }
     } else {
-      session = si->second;
-      context->websession(session);
+        session = si->second;
+        context->websession(session);
     }
+#endif
   }
 //  else if(sessionId.empty()) {
 //    sessionId = session->sessionId();
@@ -1148,7 +1324,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
     removeSession(sessionId);
 
   session.reset();
-
+/*FIX : It is better to use a unique coroutine to handle the session expiration [the original code was weird : why checking at each request]*/
   // if (autoExpire_)
   //   co_await expireSessions();
 
@@ -1224,7 +1400,7 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
 //      if (lock->canWriteWebSocket_)
 //      {
         lock->canWriteWebSocket_ = false;
-        context->out() << "{}";
+        context->res() << "{}";
         context->flush();
 //      }
       co_await handler.destroy();
@@ -1299,9 +1475,6 @@ EntryPointMatch WebController::getEntryPoint(WebRequest *request)
 std::string
 WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
 {
-#ifdef WT_THREADED
-  std::unique_lock<std::recursive_mutex> lock(mutex_);
-#endif // WT_THREADED
 
   std::string newSessionId;
   do {
@@ -1310,21 +1483,34 @@ WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
       newSessionId.clear();
   } while (newSessionId.empty());
 
+
+
+#ifdef BOOST_CONCURENT_MAP
+   sessions_.visit(session->sessionId(), [&](const auto& pair) {
+       sessions_.erase(session->sessionId());
+       sessions_.emplace(newSessionId, std::move(pair.second));
+   });
+#else
+#ifdef WT_THREADED
+  std::unique_lock<std::recursive_mutex> lock(mutex_);
+#endif // WT_THREADED
+
   /* more efficient c++ 17 ? than make shared_ptr then find insert erase*/
-//    auto node = sessions_.extract(session->sessionId());
-//    node.key() = newSessionId;
-//    sessions_.insert(std::move(node));
+  auto node = sessions_.extract(session->sessionId());
+  node.key() = newSessionId;
+  sessions_.insert(std::move(node));
+
+// sessions_[newSessionId] = session;
+// SessionMap::iterator i = sessions_.find(session->sessionId());
+// sessions_.erase(i);
+#endif
+
 
 //  server_.ioService().dispatchAll([this, session, newSessionId] {
 //      sessions_[newSessionId] = session;
 //      SessionMap::iterator i = sessions_.find(session->sessionId());
 //      sessions_.erase(i);
 //  });
-
-  sessions_[newSessionId] = session;
-
-  SessionMap::iterator i = sessions_.find(session->sessionId());
-  sessions_.erase(i);
 
   if (!singleSessionId_.empty())
     singleSessionId_ = newSessionId;
@@ -1338,8 +1524,8 @@ void WebController::newAjaxSession()
 //  std::unique_lock<std::recursive_mutex> lock(mutex_);
 //#endif // WT_THREADED
 
-  --plainHtmlSessions_;
-  ++ajaxSessions_;
+  plainHtmlSessions_.fetch_sub(1, std::memory_order_relaxed);
+  ajaxSessions_.fetch_add(1, std::memory_order_relaxed);
 }
 
 bool WebController::limitPlainHtmlSessions()

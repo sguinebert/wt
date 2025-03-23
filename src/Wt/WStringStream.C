@@ -9,7 +9,6 @@
 #include <charconv>
 
 #include "Wt/WStringStream.h"
-#include "fmt/format.h"
 
 #ifndef WT_DBO_STRINGSTREAM
 #include <Wt/AsioWrapper/asio.hpp>

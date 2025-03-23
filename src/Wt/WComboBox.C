@@ -256,108 +256,113 @@ bool WComboBox::supportsNoSelection() const
 
 void WComboBox::updateDom(DomElement& element, bool all)
 {
-  if (itemsChanged_ || all) {
-    if (!all) {
-      element.removeAllChildren();
+    if (itemsChanged_ || all) {
+        if (!all) {
+            element.removeAllChildren();
 
-      // For 'no selection', the index must be explicitly set after rerender
-      if (currentIndex_ == -1)
-        selectionChanged_ = true;
+            // For 'no selection', the index must be explicitly set after rerender
+            if (currentIndex_ == -1)
+                selectionChanged_ = true;
+        }
+
+        DomElement *currentGroup = nullptr;
+        bool groupDisabled = true;
+
+        auto currentGroup_ = DomElement::createNew(DomElementType::OPTGROUP);
+
+        int size = count();
+        for (int i = 0; i < size; ++i) {
+            // Make new option item
+            DomElement item = DomElement::createNew(DomElementType::OPTION);
+
+            item.setProperty(Property::Value, std::to_string(i));
+            item.setProperty(Property::InnerHTML,
+                              escapeText(asString(model_->data(i, modelColumn_)))
+                                  .toUTF8());
+
+            if (!(model_->flags(model_->index(i, modelColumn_)) &
+                  ItemFlag::Selectable))
+                item.setProperty(Property::Disabled, "true");
+
+            if (isSelected(i))
+                item.setProperty(Property::Selected, "true");
+
+            WString sc = asString(model_->data(i, modelColumn_, ItemDataRole::StyleClass));
+            if (!sc.empty())
+                item.setProperty(Property::Class, sc.toUTF8());
+
+
+            // Read out opt-group
+            WString groupname = Wt::asString(model_->data(i, modelColumn_,
+                                                          ItemDataRole::Level));
+
+            bool isSoloItem = false;
+            if (groupname.empty()) { // no group
+                isSoloItem = true;
+
+                if (currentGroup) { // possibly close off an active group
+                    if (groupDisabled)
+                        currentGroup->setProperty(Property::Disabled, "true");
+                    element.addChild(currentGroup_);
+                    currentGroup = nullptr;
+                    currentGroup_.setType(DomElementType::OPTGROUP);
+                }
+            } else {
+                isSoloItem = false;
+
+                // not same as current group
+                if (!currentGroup ||
+                    currentGroup->getProperty(Property::Label) != groupname.toUTF8()) {
+                    if (currentGroup) { // possibly close off an active group
+                        if (groupDisabled)
+                            currentGroup->setProperty(Property::Disabled, "true");
+                        element.addChild(currentGroup_);
+                        currentGroup = nullptr;
+                        currentGroup_.setType(DomElementType::OPTGROUP);
+                    }
+
+                    // make group
+                    //currentGroup = DomElement::createNew(DomElementType::OPTGROUP);
+                    currentGroup = &currentGroup_;
+                    currentGroup->setProperty(Property::Label, groupname.toUTF8());
+                    groupDisabled = !(model_->flags(model_->index(i, modelColumn_)) & ItemFlag::Selectable);
+                } else {
+                    if (model_->flags(model_->index(i, modelColumn_)).test(ItemFlag::Selectable))
+                        groupDisabled = false;
+                }
+            }
+
+            if (isSoloItem)
+                element.addChild(item);
+            else
+                currentGroup->addChild(item);
+
+            // last loop and there's still an open group
+            if (i == size - 1 && currentGroup) {
+                if (groupDisabled)
+                    currentGroup->setProperty(Property::Disabled, "true");
+                element.addChild(currentGroup_);
+                currentGroup = nullptr;
+                currentGroup_.setType(DomElementType::OPTGROUP);
+            }
+        }
+
+        itemsChanged_ = false;
     }
 
-    DomElement *currentGroup = nullptr;
-    bool groupDisabled = true;
-
-    int size = count();
-    for (int i = 0; i < size; ++i) {
-      // Make new option item
-      DomElement *item = DomElement::createNew(DomElementType::OPTION);
-      item->setProperty(Property::Value, std::to_string(i));
-      item->setProperty(Property::InnerHTML,
-			escapeText(asString(model_->data(i, modelColumn_)))
-			.toUTF8());
-
-      if (!(model_->flags(model_->index(i, modelColumn_)) &
-	    ItemFlag::Selectable))
-	item->setProperty(Property::Disabled, "true");
-
-      if (isSelected(i))
-	item->setProperty(Property::Selected, "true");
-
-      WString sc = asString(model_->data(i, modelColumn_, ItemDataRole::StyleClass));
-      if (!sc.empty())
-        item->setProperty(Property::Class, sc.toUTF8());
-
-
-      // Read out opt-group
-      WString groupname = Wt::asString(model_->data(i, modelColumn_,
-						    ItemDataRole::Level));
-
-      bool isSoloItem = false;
-      if (groupname.empty()) { // no group
-	isSoloItem = true;
-
-	if (currentGroup) { // possibly close off an active group
-	  if (groupDisabled)
-	    currentGroup->setProperty(Property::Disabled, "true");
-	  element.addChild(currentGroup);
-	  currentGroup = nullptr;
-	}
-      } else {
-	isSoloItem = false;
-
-	// not same as current group
-	if (!currentGroup ||
-	    currentGroup->getProperty(Property::Label) != groupname.toUTF8()) {
-	  if (currentGroup) { // possibly close off an active group
-	    if (groupDisabled)
-	      currentGroup->setProperty(Property::Disabled, "true");
-	    element.addChild(currentGroup);
-	    currentGroup = nullptr;
-	  }
-
-	  // make group
-	  currentGroup = DomElement::createNew(DomElementType::OPTGROUP);
-	  currentGroup->setProperty(Property::Label, groupname.toUTF8());
-	  groupDisabled = !(model_->flags(model_->index(i, modelColumn_)) &
-			    ItemFlag::Selectable);
-	} else {
-	  if (model_->flags(model_->index(i, modelColumn_)).test(
-	      ItemFlag::Selectable))
-	    groupDisabled = false;
-	}
-      }
-      
-      if (isSoloItem)
-	element.addChild(item);
-      else
-	currentGroup->addChild(item);
-
-      // last loop and there's still an open group
-      if (i == size - 1 && currentGroup) {
-	if (groupDisabled)
-	  currentGroup->setProperty(Property::Disabled, "true");
-	element.addChild(currentGroup);
-	currentGroup = nullptr;
-      }
+    if (selectionChanged_ ||
+        (all && (selectionMode() == SelectionMode::Single))) {
+        element.setProperty(Property::SelectedIndex, std::to_string(currentIndex_));
+        selectionChanged_ = false;
     }
 
-    itemsChanged_ = false;
-  }
+    if (!currentlyConnected_
+        && (activated_.isConnected() || sactivated_.isConnected())) {
+        currentlyConnected_ = true;
+        changed().connect<&WComboBox::propagateChange>(this);
+    }
 
-  if (selectionChanged_ ||
-      (all && (selectionMode() == SelectionMode::Single))) {
-    element.setProperty(Property::SelectedIndex, std::to_string(currentIndex_));
-    selectionChanged_ = false;
-  }
-
-  if (!currentlyConnected_
-      && (activated_.isConnected() || sactivated_.isConnected())) {
-    currentlyConnected_ = true;
-    changed().connect<&WComboBox::propagateChange>(this);
-  }
-
-  WFormWidget::updateDom(element, all);
+    WFormWidget::updateDom(element, all);
 }
 
 void WComboBox::propagateRenderOk(bool deep)

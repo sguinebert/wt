@@ -7,11 +7,10 @@
   _$_SCRIPT_ID_$_
   _$_SELF_URL_$_
   _$_USE_COOKIES_$_
-  _$_$if_COOKIE_CHECKS_$_
-  _$_$if_HYBRID_$_
-  _$_$if_PROGRESS_$_
-  _$_$if_WEBGL_DETECT_$_
-  _$_$endif_$_
+  _$_COOKIE_CHECKS_$_
+  _$_HYBRID_$_
+  _$_PROGRESS_$_
+  _$_WEBGL_DETECT_$_
 */
 window.onresize = function() {};
 
@@ -44,7 +43,7 @@ function loadScript(url) {
   }
 }
 
-_$_$if_PROGRESS_$_();
+if(_$_PROGRESS_$_){
 window.delayedClicks = [];
 /* eslint-disable-next-line no-implicit-globals */
 function delayClick(e) {
@@ -96,7 +95,7 @@ function setupDelayClick() {
     }
   }
 }
-_$_$endif_$_();
+}
 
 (function() {
   function doLoad() {
@@ -208,17 +207,17 @@ _$_$endif_$_();
     const inOneSecond = new Date();
     inOneSecond.setTime(inOneSecond.getTime() + 1000);
 
-    _$_$if_COOKIE_CHECKS_$_();
-    // client-side cookie support
-    const testcookie = "jscookietest=valid;SameSite=Lax";
-    doc.cookie = testcookie;
-    no_replace = no_replace ||
-      (_$_USE_COOKIES_$_ && doc.cookie.indexOf(testcookie) !== -1);
-    doc.cookie = testcookie + ";expires=Thu, 01 Jan 1970 00:00:00 GMT;SameSite=Lax";
+    if(_$_COOKIE_CHECKS_$_){
+        // client-side cookie support
+        const testcookie = "jscookietest=valid;SameSite=Lax";
+        doc.cookie = testcookie;
+        no_replace = no_replace ||
+                (_$_USE_COOKIES_$_ && doc.cookie.indexOf(testcookie) !== -1);
+        doc.cookie = testcookie + ";expires=Thu, 01 Jan 1970 00:00:00 GMT;SameSite=Lax";
 
-    // server-side cookie support
-    doc.cookie = "WtTestCookie=ok;path=/;expires=" + inOneSecond.toGMTString() + ";SameSite=Lax";
-    _$_$endif_$_();
+        // server-side cookie support
+        doc.cookie = "WtTestCookie=ok;path=/;expires=" + inOneSecond.toGMTString() + ";SameSite=Lax";
+    }
 
     // hash to query
     let hash = win.location.hash;
@@ -242,19 +241,18 @@ _$_$endif_$_();
       otherInfo = "&scale=" + screen.deviceXDPI / screen.logicalXDPI;
     }
 
-    _$_$if_WEBGL_DETECT_$_();
     // webgl-check
-    if (window.WebGLRenderingContext) {
+    if (_$_WEBGL_DETECT_$_&&window.WebGLRenderingContext) {
       const canvas = document.createElement("canvas");
       let ctx = null;
       try {
-        ctx = canvas.getContext("webgl", { antialias: true });
+        ctx = canvas.getContext("webgl2", { antialias: true });
       } catch (e) {
         // Empty catch
       }
       if (ctx === null) {
         try {
-          ctx = canvas.getContext("experimental-webgl");
+          ctx = canvas.getContext("webgl");
         } catch (e) {
           // Empty catch
         }
@@ -263,7 +261,6 @@ _$_$endif_$_();
         otherInfo += "&webGL=true";
       }
     }
-    _$_$endif_$_();
 
     // info about screen resolution
     otherInfo += "&scrW=" + screen.width + "&scrH=" + screen.height;
@@ -317,11 +314,11 @@ _$_$endif_$_();
       let canonicalUrl = _$_AJAX_CANONICAL_URL_$_;
       let hashInfo = "";
       if (!htmlHistory && canonicalUrl.length > 1) {
-        _$_$if_HYBRID_$_();
-        const pathcookie = "WtInternalPath=" + escape(_$_INTERNAL_PATH_$_) +
-          ";path=/;expires=" + inOneSecond.toGMTString() + ";SameSite=Lax";
-        doc.cookie = pathcookie;
-        _$_$endif_$_();
+          if(_$_HYBRID_$_){
+              const pathcookie = "WtInternalPath=" + escape(_$_INTERNAL_PATH_$_) +
+                               ";path=/;expires=" + inOneSecond.toGMTString() + ";SameSite=Lax";
+              doc.cookie = pathcookie;
+          }
         /* Otherwise we do not get a page reload */
         if (canonicalUrl.charAt(0) === "#") {
           canonicalUrl = "../" + canonicalUrl;
@@ -330,20 +327,16 @@ _$_$endif_$_();
       } else {
         if (hash.length > 1 && hash.charAt(0) === "/") {
           hashInfo = "&_=" + encodeURIComponent(hash);
-          _$_$if_HYBRID_$_();
-          if (hash !== _$_INTERNAL_PATH_$_) {
+          if (_$_HYBRID_$_ && hash !== _$_INTERNAL_PATH_$_) {
             setTimeout(hideForm, 10);
           }
-          _$_$endif_$_();
         }
-
-        _$_$if_PROGRESS_$_();
         /*
          * Make sure that we are not processing click events while progressing.
          * Instead, delay them.
          */
-        setupDelayClick();
-        _$_$endif_$_();
+        if(_$_PROGRESS_$_)
+            setupDelayClick();
 
         const allInfo = hashInfo + otherInfo + htmlHistoryInfo + deployPathInfo;
         loadScript(selfUrl + allInfo + "&request=script&rand=" + rand());

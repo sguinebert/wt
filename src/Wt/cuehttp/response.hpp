@@ -162,7 +162,9 @@ class response final : safe_noncopyable {
 
   bool has_body() const noexcept { return buffer_.size() != 0; }
 
-  std::string_view dump_body() const noexcept { return std::string_view(boost::asio::buffer_cast<const char*>(buffer_.data()), buffer_.size()); }
+  //std::string_view dump_body() const noexcept { return std::string_view(boost::asio::buffer_cast<const char*>(buffer_.data()), buffer_.size()); }
+  std::string_view dump_body() const noexcept { return std::string_view(body_buffer_.data(), body_buffer_.size()); }
+
 
   void chunked() noexcept {
     if (!is_chunked_) {
@@ -173,24 +175,40 @@ class response final : safe_noncopyable {
 
   template <typename _Body>
   void body(_Body&& body) {
+      body_buffer_.append(body.data(), body.data() + body.length());
     //if constexpr(std::is_same_v<_Body, const char*>){
-    ostream_ << body;
+    //ostream_ << body;
     //}
 
 //    body_ = std::forward<_Body>(body);
 //    length(body_.length());
   }
 
+  auto operator<<(std::string_view body) -> response& {
+    body_buffer_.append(body.data(), body.data() + body.length());
+    return *this;
+  }
+
   void body(const char* buffer, std::size_t size) {
-    ostream_.write(buffer, size);
+    body_buffer_.append(buffer, buffer + size);
+
+    // ostream_.write(buffer, size);
     length(size);
   }
 
-  std::ostream& body() {
+  std::ostream& bodystd() {
     return ostream_;
   }
-  std::ostream& out() {
+  std::ostream& outstd() {
     return ostream_;
+  }
+
+  auto out() -> std::back_insert_iterator<fmt::memory_buffer> {
+    return std::back_inserter(body_buffer_);
+  }
+
+  auto buffer() -> fmt::memory_buffer& {
+    return body_buffer_;
   }
   /*cancel*/
 
@@ -228,7 +246,8 @@ class response final : safe_noncopyable {
         ostream_  << "\r\n";
 
         auto chunk_sv = dump_body();
-        auto data = boost::asio::buffer_cast<const char*>(buffer_.data());
+        //auto data = boost::asio::buffer_cast<const char*>(buffer_.data());
+        auto data = body_buffer_.data();
         corr = corrected((char*)data, chunk_sv);
       }
 
@@ -252,7 +271,8 @@ class response final : safe_noncopyable {
       ostream_  << "\r\n";
 
       auto chunk_sv = dump_body();
-      auto data = boost::asio::buffer_cast<const char*>(buffer_.data());
+      //auto data = boost::asio::buffer_cast<const char*>(buffer_.data());
+      auto data = body_buffer_.data();
       auto corr = corrected((char*)data, chunk_sv);
 
       co_await reply_handler_(corr);
@@ -356,7 +376,8 @@ class response final : safe_noncopyable {
             addHeader("Content-Encoding", "gzip");
         }
         else {
-            auto data = boost::asio::buffer_cast<const char*>(buffer_.data());
+            //auto data = boost::asio::buffer_cast<const char*>(buffer_.data());
+            auto data = body_buffer_.data();
 
             auto corr = corrected((char*)data, chunk_sv);
             //            std::span<char> s((char*)data, 10);
@@ -413,9 +434,10 @@ class response final : safe_noncopyable {
 
     buf_.asioBuffers(sgbuffers);
     if(content_length_)
-        body_.empty() ? sgbuffers.push_back(buffer_.data()) : sgbuffers.push_back(asio::buffer(body_));
+        body_.empty() ? sgbuffers.push_back(asio::buffer(body_buffer_.data(), body_buffer_.size())) : sgbuffers.push_back(asio::buffer(body_));
     //postBuf_.asioBuffers(sgbuffers);
   }
+#warning "finish changes fmt::memory_buffer all"
   /* SINGLE BUFFER WRITE : convert header buffer (WStringStream) and body buffer (asio::streambuff) to one dynamic char array (string) */
   void to_strbuffers(std::string& strbuffer) {
 
@@ -544,6 +566,7 @@ private:
   Wt::WStringStream postBuf_;
   asio::streambuf buffer_;
   std::ostream ostream_;
+  fmt::memory_buffer body_buffer_; //experimental
 
   bool is_chunked_{false};
   bool is_stream_{false};

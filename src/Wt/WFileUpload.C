@@ -456,6 +456,7 @@ void WFileUpload::updateDom(DomElement& element, bool all)
 {
   bool containsProgress = progressBar_ && progressBar_->parent() == this;
   DomElement *inputE = nullptr;
+  DomElement input = DomElement::getForUpdate("in" + id(), DomElementType::INPUT);
 
   if (element.type() != DomElementType::INPUT
       && flags_.test(BIT_DO_UPLOAD)
@@ -505,14 +506,15 @@ void WFileUpload::updateDom(DomElement& element, bool all)
     flags_.reset(BIT_DO_UPLOAD);
 
     if (containsProgress) {
-      inputE = DomElement::getForUpdate("in" + id(), DomElementType::INPUT);
+      //inputE = DomElement::getForUpdate("in" + id(), DomElementType::INPUT);
+      inputE = &input;
       inputE->setProperty(Property::StyleDisplay, "none");
     }
   }
 
   if (flags_.test(BIT_ENABLED_CHANGED)) {
     if (!inputE)
-      inputE = DomElement::getForUpdate("in" + id(), DomElementType::INPUT);
+        inputE = &input;// DomElement::getForUpdate("in" + id(), DomElementType::INPUT);
 
     if (isEnabled())
       inputE->callMethod("disabled=false");
@@ -522,7 +524,7 @@ void WFileUpload::updateDom(DomElement& element, bool all)
 
   if (flags_.test(BIT_ACCEPT_ATTRIBUTE_CHANGED) || flags_.test(BIT_ENABLED_CHANGED)){
     if (!inputE)
-      inputE = DomElement::getForUpdate("in" + id(), DomElementType::INPUT);
+      inputE = &input;//DomElement::getForUpdate("in" + id(), DomElementType::INPUT);
 
     inputE->setAttribute("accept", acceptAttributes_);
   }
@@ -534,13 +536,13 @@ void WFileUpload::updateDom(DomElement& element, bool all)
   EventSignal<> *change = voidEventSignal(CHANGE_SIGNAL, false);
   if (change && change->needsUpdate(all)) {
     if (!inputE)
-      inputE = DomElement::getForUpdate("in" + id(), DomElementType::INPUT);
+      inputE = &input;//DomElement::getForUpdate("in" + id(), DomElementType::INPUT);
 
-    updateSignalConnection(*inputE, *change, "change", all);
+    updateSignalConnection(input, *change, "change", all);
   }
 
   if (inputE)
-    element.addChild(inputE);
+    element.addChild(input);
 
   WWebWidget::updateDom(element, all);
 }
@@ -556,35 +558,36 @@ DomElementType WFileUpload::domElementType() const
   return fileUploadTarget_ ? DomElementType::FORM : DomElementType::INPUT;
 }
 
-void WFileUpload::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WFileUpload::getDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
   if (flags_.test(BIT_ENABLE_AJAX)) {
-    DomElement *plainE = DomElement::getForUpdate(this, DomElementType::INPUT);
-    DomElement *ajaxE = createDomElement(app);
-    plainE->replaceWith(ajaxE);
-    result.push_back(plainE);
+    DomElement plainE = DomElement::getForUpdate(this, DomElementType::INPUT);
+    DomElement ajaxE = createDomElement(app);
+    plainE.replaceWith(std::move(ajaxE));
+#warning "plainE.replaceWith(&ajaxE);"
+    result.push_back(std::move(plainE));
   } else
     WWebWidget::getDomChanges(result, app);
 }
 
-DomElement * WFileUpload::createDomElement(WApplication *app)
+DomElement WFileUpload::createDomElement(WApplication *app)
 {
-  DomElement *result = DomElement::createNew(domElementType());
-  if (result->type() == DomElementType::FORM) {
-    result->setId(id());
-    app->theme()->apply(this, *result, FileUploadForm);
+  DomElement result = DomElement::createNew(domElementType());
+  if (result.type() == DomElementType::FORM) {
+    result.setId(id());
+    app->theme()->apply(this, result, FileUploadForm);
   } else {
-    result->setName(id());
-    app->theme()->apply(this, *result, FileUploadInput);
+    result.setName(id());
+    app->theme()->apply(this, result, FileUploadInput);
   }
 
   EventSignal<> *change = voidEventSignal(CHANGE_SIGNAL, false);
 
   if (fileUploadTarget_) {
-    DomElement *i = DomElement::createNew(DomElementType::IFRAME);
-    i->setProperty(Property::Class, "Wt-resource");
-    i->setProperty(Property::Src, fileUploadTarget_->url());
-    i->setName("if" + id());
+    DomElement i = DomElement::createNew(DomElementType::IFRAME);
+    i.setProperty(Property::Class, "Wt-resource");
+    i.setProperty(Property::Src, fileUploadTarget_->url());
+    i.setName("if" + id());
     if (app->environment().agentIsIE()) {
       // http://msdn.microsoft.com/en-us/library/ms536474%28v=vs.85%29.aspx
       // HTA's (started by mshta.exe) have a different security model than
@@ -592,42 +595,48 @@ DomElement * WFileUpload::createDomElement(WApplication *app)
       // interaction from iframes to the parent window unless this
       // attribute is set. If omitted, this causes the 'uploaded()'
       // signal to be blocked when a Wt app is executed as a HTA.
-      i->setAttribute("APPLICATION", "yes");
+      i.setAttribute("APPLICATION", "yes", true);
     }
 
-    DomElement *form = result;
+    // DomElement *form = result;
 
-    form->setAttribute("method", "post");
-    form->setAttribute("action", fileUploadTarget_->url());
-    form->setAttribute("enctype", "multipart/form-data");
-    form->setProperty(Property::Target, "if" + id());
+    // form->setAttribute("method", "post");
+    // form->setAttribute("action", fileUploadTarget_->url());
+    // form->setAttribute("enctype", "multipart/form-data");
+    // form->setProperty(Property::Target, "if" + id());
+    result.setAttribute("method", "post", true);
+    result.setAttribute("action", fileUploadTarget_->url());
+    result.setAttribute("enctype", "multipart/form-data", true);
+    result.setProperty(Property::Target, "if" + id());
 
     /*
      * wrap iframe in an extra span to work around bug in IE which does
      * not set the name use DOM methods
      */
-    DomElement *d = DomElement::createNew(DomElementType::SPAN);
-    d->addChild(i);
+    DomElement d = DomElement::createNew(DomElementType::SPAN);
+    d.addChild(i);
 
-    form->addChild(d);
+    //form->addChild(d);
+    result.addChild(d);
 
-    DomElement *input = DomElement::createNew(DomElementType::INPUT);
-    app->theme()->apply(this, *input, FileUploadInput);
-    input->setAttribute("type", "file");
+    DomElement input = DomElement::createNew(DomElementType::INPUT);
+    app->theme()->apply(this, input, FileUploadInput);
+    input.setAttribute("type", "file", true);
     if (flags_.test(BIT_MULTIPLE))
-      input->setAttribute("multiple", "multiple");
-    input->setAttribute("name", "data");
-    input->setAttribute("size", std::to_string(textSize_));
-    input->setAttribute("accept", acceptAttributes_);
-    input->setId("in" + id());
+      input.setAttribute("multiple", "multiple", true);
+    input.setAttribute("name", "data", true);
+    input.setAttribute("size", std::to_string(textSize_), true);
+    input.setAttribute("accept", acceptAttributes_);
+    input.setId("in" + id());
 
     if (!isEnabled())
-      input->setProperty(Wt::Property::Disabled, "true");
+      input.setProperty(Wt::Property::Disabled, "true");
 
     if (change)
-      updateSignalConnection(*input, *change, "change", true);
+      updateSignalConnection(input, *change, "change", true);
 
-    form->addChild(input);
+    //form->addChild(input);
+    result.addChild(input);
 
     doJavaScript("var a =" + jsRef() + ".action;"
 		 "var f = function(event) {"
@@ -635,7 +644,7 @@ DomElement * WFileUpload::createDomElement(WApplication *app)
 		 ""  "var data = JSON.parse(event.data);"
      ""  "if (data.type === 'upload') {"
      ""    "if (data.fu == '" + id() + "')"
-     +        app->javaScriptClass()
+     +        std::string(app->javaScriptClass())
      +        "._p_.update(null, data.signal, null, true);"
      ""  "} else if (data.type === 'file_too_large') {"
 #ifndef WT_TARGET_JAVA
@@ -652,19 +661,19 @@ DomElement * WFileUpload::createDomElement(WApplication *app)
 		 """window.attachEvent('onmessage', f);"
 		 );
   } else {
-    result->setAttribute("type", "file");
+    result.setAttribute("type", "file", true);
     if (flags_.test(BIT_MULTIPLE))
-      result->setAttribute("multiple", "multiple");
-    result->setAttribute("size", std::to_string(textSize_));
+      result.setAttribute("multiple", "multiple", true);
+    result.setAttribute("size", std::to_string(textSize_), true);
 
     if (!isEnabled())
-      result->setProperty(Wt::Property::Disabled, "true");
+      result.setProperty(Wt::Property::Disabled, "true");
 
     if (change)
-      updateSignalConnection(*result, *change, "change", true);
+      updateSignalConnection(result, *change, "change", true);
   }
 
-  updateDom(*result, true);
+  updateDom(result, true);
 
   flags_.reset(BIT_ENABLE_AJAX);
 

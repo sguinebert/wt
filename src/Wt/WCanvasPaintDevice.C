@@ -489,143 +489,149 @@ void WCanvasPaintDevice::drawLine(double x1, double y1, double x2, double y2)
 }
 
 void WCanvasPaintDevice::drawText(const WRectF& rect,
-				  WFlags<AlignmentFlag> flags,
-				  TextFlag textFlag,
-				  const WString& text,
-				  const WPointF *clipPoint)
+                                  WFlags<AlignmentFlag> flags,
+                                  TextFlag textFlag,
+                                  const WString& text,
+                                  const WPointF *clipPoint)
 {
-  if (textFlag == TextFlag::WordWrap)
-    throw WException("WCanvasPaintDevice::drawText() "
-		     "WordWrap is not supported");
+    if (textFlag == TextFlag::WordWrap)
+        throw WException("WCanvasPaintDevice::drawText() "
+                         "WordWrap is not supported");
 
-  AlignmentFlag horizontalAlign = flags & AlignHorizontalMask;
-  AlignmentFlag verticalAlign = flags & AlignVerticalMask;
+    AlignmentFlag horizontalAlign = flags & AlignHorizontalMask;
+    AlignmentFlag verticalAlign = flags & AlignVerticalMask;
 
-  if (textMethod_ != TextMethod::DomText) {
-    renderStateChanges(true);
-  }
+    if (textMethod_ != TextMethod::DomText) {
+        renderStateChanges(true);
+    }
 
-  switch (textMethod_) {
-  case TextMethod::Html5Text: 
+    switch (textMethod_) {
+    case TextMethod::Html5Text:
     {
-      js_ << WT_CLASS ".gfxUtils.drawText(ctx,"
-	  << rect.jsRef() << ',' << flags.value() << ','
-	  << text.jsStringLiteral();
-      if (clipPoint && painter()) {
-	js_ << ',' << painter()->worldTransform().map(*clipPoint).jsRef();
-      }
-      js_ << ");";
+#warning "finish this"
+        //fmt::format_to(js_.)
+        // fmt::memory_buffer js;
+        // fmt::format_to(std::back_inserter(js), )
+
+            js_ << WT_CLASS ".gfxUtils.drawText(ctx,"
+            << rect.jsRef() << ',' << flags.value() << ','
+            << text.jsStringLiteral();
+        if (clipPoint && painter()) {
+            js_ << ',' << painter()->worldTransform().map(*clipPoint).jsRef();
+        }
+        js_ << ");";
     }
     break;
-  case TextMethod::MozText:
+    case TextMethod::MozText:
     {
-      std::string x;
+        std::string x;
 
-      switch (horizontalAlign) {
-      case AlignmentFlag::Left:
-	x = std::to_string(rect.left());
-	break;
-      case AlignmentFlag::Right:
-	x = std::to_string(rect.right())
-	  + " - ctx.mozMeasureText(" + text.jsStringLiteral() + ")";
-	break;
-      case AlignmentFlag::Center:
-	x = std::to_string(rect.center().x())
-	  + " - ctx.mozMeasureText(" + text.jsStringLiteral() + ")/2";
-	break;
-      default:
-	break;
-      }
+        switch (horizontalAlign) {
+        case AlignmentFlag::Left:
+            x = std::to_string(rect.left());
+            break;
+        case AlignmentFlag::Right:
+            x = std::to_string(rect.right())
+                + " - ctx.mozMeasureText(" + text.jsStringLiteral() + ")";
+            break;
+        case AlignmentFlag::Center:
+            x = std::to_string(rect.center().x())
+                + " - ctx.mozMeasureText(" + text.jsStringLiteral() + ")/2";
+            break;
+        default:
+            break;
+        }
 
-      double fontSize;
-      switch (painter()->font().size()) {
-      case FontSize::FixedSize:
-	fontSize = painter()->font().sizeLength().toPixels();
-	break;
-      default:
-	fontSize = 16;
-      }
+        double fontSize;
+        switch (painter()->font().size()) {
+        case FontSize::FixedSize:
+            fontSize = painter()->font().sizeLength().toPixels();
+            break;
+        default:
+            fontSize = 16;
+        }
 
-      double y = 0;
-      switch (verticalAlign) {
-      case AlignmentFlag::Top:
-	y = rect.top() + fontSize * 0.75; break;
-      case AlignmentFlag::Middle:
-	y = rect.center().y() + fontSize * 0.25; break;
-      case AlignmentFlag::Bottom:
-	y = rect.bottom() - fontSize * 0.25 ; break;
-      default:
-	break;
-      }
+        double y = 0;
+        switch (verticalAlign) {
+        case AlignmentFlag::Top:
+            y = rect.top() + fontSize * 0.75; break;
+        case AlignmentFlag::Middle:
+            y = rect.center().y() + fontSize * 0.25; break;
+        case AlignmentFlag::Bottom:
+            y = rect.bottom() - fontSize * 0.25 ; break;
+        default:
+            break;
+        }
 
-      js_ << "ctx.save();";
-      js_ << "ctx.translate(" << x << ", " << y << ");";
-      if (currentPen_.isJavaScriptBound()) {
-	js_ << "ctx.fillStyle=" WT_CLASS ".gfxUtils.css_text(" << currentPen_.jsRef() << ".color);";
-      } else if (currentBrush_.color() != currentPen_.color() || currentBrush_.isJavaScriptBound())
-	js_ << "ctx.fillStyle="
-	    << WWebWidget::jsStringLiteral(currentPen_.color().cssText(true))
-	    << ";";
-      js_ << "ctx.mozDrawText(" << text.jsStringLiteral() << ");";
-      js_ << "ctx.restore();";
+        js_ << "ctx.save();";
+        js_ << "ctx.translate(" << x << ", " << y << ");";
+        if (currentPen_.isJavaScriptBound()) {
+            js_ << "ctx.fillStyle=" WT_CLASS ".gfxUtils.css_text(" << currentPen_.jsRef() << ".color);";
+        } else if (currentBrush_.color() != currentPen_.color() || currentBrush_.isJavaScriptBound())
+            js_ << "ctx.fillStyle="
+                << WWebWidget::jsStringLiteral(currentPen_.color().cssText(true))
+                << ";";
+        js_ << "ctx.mozDrawText(" << text.jsStringLiteral() << ");";
+        js_ << "ctx.restore();";
     }
     break;
-  case TextMethod::DomText:
+    case TextMethod::DomText:
     {
-      WPointF pos = painter()->combinedTransform().map(rect.topLeft());
+        WPointF pos = painter()->combinedTransform().map(rect.topLeft());
 
-      DomElement *e = DomElement::createNew(DomElementType::DIV);
-      e->setProperty(Property::StylePosition, "absolute");
-      e->setProperty(Property::StyleTop,
-		     std::to_string(pos.y()) + "px");
-      e->setProperty(Property::StyleLeft,
-		     std::to_string(pos.x()) + "px");
-      e->setProperty(Property::StyleWidth,
-		     std::to_string(rect.width()) + "px");
-      e->setProperty(Property::StyleHeight,
-		     std::to_string(rect.height()) + "px");
+        DomElement e = DomElement::createNew(DomElementType::DIV);
+        e.setProperty(Property::StylePosition, "absolute");
+        e.setProperty(Property::StyleTop,
+                       std::to_string(pos.y()) + "px");
+        e.setProperty(Property::StyleLeft,
+                       std::to_string(pos.x()) + "px");
+        e.setProperty(Property::StyleWidth,
+                       std::to_string(rect.width()) + "px");
+        e.setProperty(Property::StyleHeight,
+                       std::to_string(rect.height()) + "px");
 
-      DomElement *t = e;
+        DomElement *t = &e;
+        auto tt = DomElement::createNew(DomElementType::DIV);
 
-      /*
+        /*
        * HTML tricks to center things vertically -- does not work on IE,
        * (neither does canvas)
        */
-      if (verticalAlign != AlignmentFlag::Top) {
-	t = DomElement::createNew(DomElementType::DIV);
+        if (verticalAlign != AlignmentFlag::Top) {
+            t = &tt;
 
-	if (verticalAlign == AlignmentFlag::Middle) {
-	  e->setProperty(Property::StyleDisplay, "table");
-	  t->setProperty(Property::StyleDisplay, "table-cell");
-	  t->setProperty(Property::StyleVerticalAlign, "middle");
-	} else if (verticalAlign == AlignmentFlag::Bottom) {
-	  t->setProperty(Property::StylePosition, "absolute");
-	  t->setProperty(Property::StyleWidth, "100%");
-	  t->setProperty(Property::StyleBottom, "0px");
-	}
-      }
+            if (verticalAlign == AlignmentFlag::Middle) {
+                e.setProperty(Property::StyleDisplay, "table");
+                t->setProperty(Property::StyleDisplay, "table-cell");
+                t->setProperty(Property::StyleVerticalAlign, "middle");
+            } else if (verticalAlign == AlignmentFlag::Bottom) {
+                t->setProperty(Property::StylePosition, "absolute");
+                t->setProperty(Property::StyleWidth, "100%");
+                t->setProperty(Property::StyleBottom, "0px");
+            }
+        }
 
-      t->setProperty(Property::InnerHTML,
-		     WWebWidget::escapeText(text, true).toUTF8());
+        t->setProperty(Property::InnerHTML,
+                       WWebWidget::escapeText(text, true).toUTF8());
 
-      WFont f = painter()->font();
-      f.updateDomElement(*t, false, true);
+        WFont f = painter()->font();
+        f.updateDomElement(*t, false, true);
 
-      t->setProperty(Property::StyleColor, painter()->pen().color().cssText());
+        t->setProperty(Property::StyleColor, painter()->pen().color().cssText());
 
-      if (horizontalAlign == AlignmentFlag::Right)
-	t->setProperty(Property::StyleTextAlign, "right");
-      else if (horizontalAlign == AlignmentFlag::Center)
-	t->setProperty(Property::StyleTextAlign, "center");
-      else
-	t->setProperty(Property::StyleTextAlign, "left");
+        if (horizontalAlign == AlignmentFlag::Right)
+            t->setProperty(Property::StyleTextAlign, "right");
+        else if (horizontalAlign == AlignmentFlag::Center)
+            t->setProperty(Property::StyleTextAlign, "center");
+        else
+            t->setProperty(Property::StyleTextAlign, "left");
 
-      if (t != e)
-	e->addChild(t);
+        if (t != &e)
+            e.addChild(tt);
 
-      textElements_.push_back(e);
+        textElements_.push_back(std::move(e));
     }
-  }
+    }
 }
 
 void WCanvasPaintDevice::drawTextOnPath(const WRectF &rect,

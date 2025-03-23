@@ -332,6 +332,26 @@ public:
   void connect(JSlot& slot);
   void connect(const std::string& function);
 
+  // template<typename ...Args>
+  // void connect(const char* function, Args&&... args) {
+  //   // std::string js = fmt::format(function, std::forward<Args>(args)...);
+  //   // connect(js);
+  //     // Wt::Signals::Connection c;
+
+  //     // int argc = argumentCount(); // user arguments, excluding 'e'
+
+  //     // WStringStream ss;
+  //     // ss << "(" << javaScript << ")(o,e";
+  //     // for (int i = 0; i < argc; ++i)
+  //     //     ss << ",a" << (i+1);
+  //     // ss << ");";
+
+  //     // connections_.push_back
+  //     //     (StatelessConnection(c, nullptr, new WStatelessSlot(ss.str())));
+
+  //     // ownerRepaint();
+  // }
+
   WObject *owner() const { return owner_; }
   void ownerRepaint();
 

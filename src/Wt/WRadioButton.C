@@ -34,7 +34,7 @@ WRadioButton::~WRadioButton()
 void WRadioButton::updateInput(DomElement& input, bool all)
 {
   if (all) {
-    input.setAttribute("type", "radio");
+    input.setAttribute("type", "radio", true);
 
     if (buttonGroup_) {
       input.setAttribute("name", buttonGroup_->id());

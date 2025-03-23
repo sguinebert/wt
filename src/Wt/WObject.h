@@ -344,8 +344,8 @@ private:
   WStatelessSlot *implementAutolearn(Method method);
   void resetLearnedSlot(Method method);
 
-  std::vector<std::unique_ptr<WStatelessSlot> > statelessSlots_;
-  std::vector<std::unique_ptr<WObject> > children_;
+  std::vector<std::unique_ptr<WStatelessSlot>> statelessSlots_;
+  std::vector<std::unique_ptr<WObject>> children_;
 
   const unsigned id_;
   std::string name_;

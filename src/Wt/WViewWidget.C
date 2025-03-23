@@ -72,7 +72,7 @@ void WViewWidget::updateDom(DomElement& element, bool all)
 
       WApplication::instance()->session()->renderer().setVisibleOnly(false);
 
-      DomElement *e = contents_->createSDomElement(WApplication::instance());
+      DomElement e = contents_->createSDomElement(WApplication::instance());
 
       if (!all)
           element.setWasEmpty(true); // removes previous content

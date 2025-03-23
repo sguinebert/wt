@@ -82,9 +82,9 @@ void WTableCell::updateDom(DomElement& element, bool all)
     element.setProperty(Property::ColSpan, std::to_string(columnSpan_));
 
   if (row() < table()->headerCount(Orientation::Horizontal))
-    element.setAttribute("scope", "col");
+    element.setAttribute("scope", "col", true);
   else if (column_ < table()->headerCount(Orientation::Vertical))
-    element.setAttribute("scope", "row");
+    element.setAttribute("scope", "row", true);
 
   spanChanged_ = false;
 

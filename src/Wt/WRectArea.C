@@ -63,7 +63,7 @@ void WRectArea::setHeight(int height)
 
 bool WRectArea::updateDom(DomElement& element, bool all)
 {
-  element.setAttribute("shape", "rect");
+  element.setAttribute("shape", "rect", true);
 
   std::stringstream coords;
 
@@ -72,26 +72,28 @@ bool WRectArea::updateDom(DomElement& element, bool all)
   int width = static_cast<int>(width_);
   int height = static_cast<int>(height_);
   if (x == 0 && y == 0 && width == 0 && height == 0)
-    coords << "0%,0%,100%,100%";
+    element.setAttribute("coords", "0%,0%,100%,100%", true);
   else
-    coords << x << ',' << y << ',' << (x + width) << ',' << (y + height);
-  element.setAttribute("coords", coords.str());
+      element.setAttribute("coords", fmt::format(FMT_COMPILE("{},{},{},{}"), x, y, (x+width), (y+height)), true);
+  //   coords << x << ',' << y << ',' << (x + width) << ',' << (y + height);
+  // element.setAttribute("coords", coords.str());
 
   return WAbstractArea::updateDom(element, all);
 }
 
 std::string WRectArea::updateAreaCoordsJS()
 {
-  std::stringstream coords;
-  char buf[30];
+    return fmt::format("[{},[{:.2},{:.2},{:.2},{:.2}]]", jsRef(), x_, y_, x_ + width_, y_ + height_);
+  // std::stringstream coords;
+  // char buf[30];
 
-  coords << "[" << jsRef() << ",[";
-  coords << Utils::round_js_str(x_, 2, buf) << ',';
-  coords << Utils::round_js_str(y_, 2, buf) << ',';
-  coords << Utils::round_js_str((x_ + width_), 2, buf) << ',';
-  coords << Utils::round_js_str((y_ + height_), 2, buf) << "]]";
+  // coords << "[" << jsRef() << ",[";
+  // coords << Utils::round_js_str(x_, 2, buf) << ',';
+  // coords << Utils::round_js_str(y_, 2, buf) << ',';
+  // coords << Utils::round_js_str((x_ + width_), 2, buf) << ',';
+  // coords << Utils::round_js_str((y_ + height_), 2, buf) << "]]";
 
-  return coords.str();
+  // return coords.str();
 }
 
 }

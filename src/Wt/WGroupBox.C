@@ -36,14 +36,15 @@ void WGroupBox::setTitle(const WString& title)
 void WGroupBox::updateDom(DomElement& element, bool all)
 {
   if (all || titleChanged_) {
-    DomElement *legend;
+    DomElement legend = all ? DomElement::createNew(DomElementType::LEGEND) :
+      DomElement::getForUpdate(id() + "l", DomElementType::LEGEND);
     if (all) {
-      legend = DomElement::createNew(DomElementType::LEGEND);
-      legend->setId(id() + "l");
-    } else
-      legend = DomElement::getForUpdate(id() + "l", DomElementType::LEGEND);
+      //legend = DomElement::createNew(DomElementType::LEGEND);
+      legend.setId(id() + "l");
+    } /*else
+      legend = DomElement::getForUpdate(id() + "l", DomElementType::LEGEND);*/
 
-    legend->setProperty(Wt::Property::InnerHTML, escapeText(title_).toUTF8());
+    legend.setProperty(Wt::Property::InnerHTML, escapeText(title_).toUTF8());
     element.addChild(legend);
 
     titleChanged_ = false;

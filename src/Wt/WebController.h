@@ -22,6 +22,10 @@
 //#include "web/SocketNotifier.h"
 //#include <Wt/WSocketNotifier.h>
 
+#include <boost/unordered/concurrent_flat_map.hpp>
+#include <boost/unordered/concurrent_flat_set.hpp>
+#define BOOST_CONCURENT_MAP
+
 #if defined(WT_THREADED) && !defined(WT_TARGET_JAVA)
 #include <thread>
 #include <mutex>
@@ -174,13 +178,17 @@ private:
   std::string redirectSecret_;
   bool running_;
 
+
+#ifdef BOOST_CONCURENT_MAP
+  boost::concurrent_flat_set<std::string> uploadProgressUrls_;
+  typedef boost::concurrent_flat_map<std::string, std::shared_ptr<WebSession> > SessionMap;
+#else
 #ifdef WT_THREADED
   std::mutex uploadProgressUrlsMutex_;
 #endif // WT_THREADED
   std::set<std::string> uploadProgressUrls_;
-
   typedef std::unordered_map<std::string, std::shared_ptr<WebSession> > SessionMap;
-  //typedef phmap::parallel_flat_hash_map<std::string, std::shared_ptr<WebSession> > SessionMap;
+#endif
   SessionMap sessions_;
   //static inline thread_local SessionMap sessions_;
 

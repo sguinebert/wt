@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+//#include "fmt/format.h"
 
 #ifdef WT_ASIO_IS_BOOST_ASIO
 namespace boost {
@@ -89,6 +90,30 @@ public:
    */
   WStringStream& operator=(const WStringStream& other);
 
+  WStringStream(WStringStream&& other) noexcept : sink_(other.sink_), buf_i_(other.buf_i_) { //will suppress the final version
+    if (buf_ == static_buf_) {
+      std::memcpy(static_buf_, other.static_buf_, S_LEN + 1);
+    } else {
+      buf_ = other.buf_;
+      other.buf_ = nullptr;
+    }
+    bufs_ = std::move(other.bufs_);
+    other.bufs_.clear();
+  }
+  WStringStream& operator=(WStringStream&& other) noexcept
+  { //will suppress the final version
+      sink_ = other.sink_;
+      buf_i_ = other.buf_i_;
+      if (buf_ == static_buf_) {
+          std::memcpy(static_buf_, other.static_buf_, S_LEN + 1);
+      } else {
+          buf_ = other.buf_;
+          other.buf_ = nullptr;
+      }
+      bufs_ = std::move(other.bufs_);
+      other.bufs_.clear();
+      return *this;
+  }
   /*! \brief Constructor with std::ostream sink.
    *
    * Creates a string stream which flushes contents to an
@@ -204,6 +229,9 @@ public:
   // no-op for C++, but needed for Java
   void spool(std::ostream& ) { }
 
+  template<typename T>
+  void spool(T&) { }
+
 private:
   WStringStream(const WStringStream& other);
 
@@ -211,6 +239,7 @@ private:
   enum {D_LEN = 2048};
 
   std::ostream *sink_;
+  //fmt::memory_buffer *sink2_;
 
   char static_buf_[S_LEN + 1];
 

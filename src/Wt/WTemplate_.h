@@ -4,11 +4,131 @@
  *
  * See the LICENSE file for terms of use.
  */
-#ifndef WTEMPLATE_H_
-#define WTEMPLATE_H_
+#ifndef WTemplateCSP_H_
+#define WTemplateCSP_H_
 
 #include <Wt/WInteractWidget.h>
 #include <Wt/WString.h>
+#include "fmt/format.h"
+#include "fmt/compile.h"
+#include "fmt/args.h"
+
+template <>
+class fmt::formatter<Wt::WWidget*> {
+    // format specification storage
+    std::vector<Wt::WString> args_;
+public:
+    // parse format specification and store it:
+    constexpr auto parse (format_parse_context& ctx) {
+        auto i = ctx.begin(), end = ctx.end();
+        parseargs(std::string_view(i, end));
+        return i;
+    }
+    // format a value using stored specification:
+    template <typename FmtContext>
+    auto format (std::pair<Wt::WWidget*, Wt::WWidget*> const& widgets, FmtContext& ctx)
+    {
+        auto [parent, widget] = widgets;
+        auto w = const_cast<Wt::WWidget*>(widget);
+        // note: we can't use ternary operator '?:' in a constexpr
+        std::stringstream result;
+        if (w) {
+            //w->setParentWidget(parent);
+
+            if (previouslyRendered_
+                && previouslyRendered_->find(w) != previouslyRendered_->end()) {
+                //result << "<span id=\"" << w->id() << "\"> </span>";
+                format_to(ctx.out(), "<span id=\"{}\"> </span>", w->id());
+            } else {
+                w->htmlText(result);
+            }
+
+            if (newlyRendered_)
+                newlyRendered_->push_back(w);
+        }
+    }
+
+    std::size_t parseargs(std::string_view text)
+    {
+        std::size_t pos = 0;
+        std::size_t Error = std::string::npos;
+
+        if (pos == std::string::npos)
+            return Error;
+
+        enum { Next, Name, Value, SValue, DValue } state = Next;
+
+        Wt::WStringStream v;
+
+        for (; pos < text.length(); ++pos) {
+            char c = text[pos];
+            switch (state) {
+            case Next:
+                if (!std::isspace(c)) {
+                    if (c == '}')
+                        return pos;
+                    else if (std::isalpha(c) || c == '_') {
+                        state = Name;
+                        v.clear();
+                        v << c;
+                    } else if (c == '\'') {
+                        state = SValue;
+                        v.clear();
+                    } else if (c == '"') {
+                        state = DValue;
+                        v.clear();
+                    } else
+                        return Error;
+                }
+                break;
+
+            case Name:
+                if (c == '=') {
+                    state = Value;
+                    v << '=';
+                } else if (std::isspace(c)) {
+                    args_.push_back(Wt::WString::fromUTF8(v.str()));
+                    state = Next;
+                } else if (c == '}') {
+                    args_.push_back(Wt::WString::fromUTF8(v.str()));
+                    return pos;
+                } else if (std::isalnum(c) || c == '_' || c == '-' || c == '.')
+                    v << c;
+                else
+                    return Error;
+                break;
+
+            case Value:
+                if (c == '\'')
+                    state = SValue;
+                else if (c == '"')
+                    state = DValue;
+                else
+                    return Error;
+                break;
+
+            case SValue:
+            case DValue:
+                char quote = state == SValue ? '\'' : '"';
+
+                std::size_t end = text.find(quote, pos);
+                if (end == std::string::npos)
+                    return Error;
+                if (text[end - 1] == '\\')
+                    v << text.substr(pos, end - pos - 1) << quote;
+                else {
+                    v << text.substr(pos, end - pos);
+                    args_.push_back(Wt::WString::fromUTF8(v.str()));
+                    state = Next;
+                }
+
+                pos = end;
+            }
+        }
+
+        return pos == text.length() ? std::string::npos : pos;
+    }
+};
 
 namespace Wt {
 
@@ -39,7 +159,7 @@ enum class TemplateWidgetIdMode {
   SetId
 };
 
-/*! \class WTemplate Wt/WTemplate.h Wt/WTemplate.h
+/*! \class WTemplateCSP Wt/WTemplateCSP.h Wt/WTemplateCSP.h
  *  \brief A widget that renders an XHTML template.
  *
  * The XHTML template may contain references to variables which
@@ -59,7 +179,7 @@ enum class TemplateWidgetIdMode {
  * \code
  * WString userName = ...;
  *
- * auto t = std::make_unique<WTemplate>();
+ * auto t = std::make_unique<WTemplateCSP>();
  * t->setTemplateText("<div> How old are you, ${friend} ? ${age-input} </div>");
  *
  * t->bindString("friend", userName, TextFormat::Plain);
@@ -69,7 +189,7 @@ enum class TemplateWidgetIdMode {
  * \code
  * WString userName = ...;
  *
- * WTemplate t = new WTemplate();
+ * WTemplateCSP t = new WTemplateCSP();
  * t.setTemplateText("<div> How old are you, ${friend} ? ${age-input} </div>");
  *
  * t.bindString("friend", userName, TextFormat::Plain);
@@ -135,16 +255,16 @@ enum class TemplateWidgetIdMode {
  *
  * \if cpp
  * \code
- * auto t = std::make_unique<WTemplate>();
- * t->addFunction("tr", &WTemplate::Functions::tr);
+ * auto t = std::make_unique<WTemplateCSP>();
+ * t->addFunction("tr", &WTemplateCSP::Functions::tr);
  * t->setTemplateText("<div> ${tr:age-label} ${age-input} </div>");
  * ageEdit_ = t->bindWidget("age-input", std::make_unique<WLineEdit>());
  * \endcode
  * \elseif java
  * \code
- * WTemplate t = new WTemplate();
+ * WTemplateCSP t = new WTemplateCSP();
  * t.setTemplateText("<div> ${tr:age-label} ${age-input} </div>");
- * t.addFunction("tr", WTemplate.Functions.tr);
+ * t.addFunction("tr", WTemplateCSP.Functions.tr);
  * t.bindWidget("age-input", ageEdit = new WLineEdit());
  * \endcode
  * \endif
@@ -157,13 +277,13 @@ enum class TemplateWidgetIdMode {
  * For example:
  * \if cpp
  * \code
- * auto t = std::make_unique<WTemplate>();
+ * auto t = std::make_unique<WTemplateCSP>();
  * t->setTemplateText("<div> ${<if-register>} Register ... ${</if-register>}</div>");
  * t->setCondition("if-register", true);
  * \endcode
  * \elseif java
  * \code
- * WTemplate t = new WTemplate();
+ * WTemplateCSP t = new WTemplateCSP();
  * t.setTemplateText("<div> ${<if-register>} Register ... ${</if-register>}</div>");
  * t.setCondition("if-register", true);
  * \endcode
@@ -181,7 +301,7 @@ enum class TemplateWidgetIdMode {
  * This widget does not provide styling, 
  * and can be styled using inline or external CSS as appropriate.
  */
-class WT_API WTemplate : public WInteractWidget
+class WT_API WTemplate_ : public WInteractWidget
 {
 private:
   bool _tr(const std::vector<WString>& args, 
@@ -197,54 +317,14 @@ public:
   /*! \brief Typedef for enum Wt::TemplateWidgetIdMode */
   typedef TemplateWidgetIdMode WidgetIdMode;
 
-#ifndef WT_TARGET_JAVA
   /*! \brief A function type
    *
    * \sa addFunction()
    * \sa Functions::tr, Functions::id, Functions::block, Functions::while_f
    */
-  typedef std::function<bool(WTemplate *t, const std::vector<WString>& args,
+  typedef std::function<bool(WTemplate_ *t, const std::vector<WString>& args,
 			     std::ostream& result)> Function;
 
-#else
-  /*! \brief A function interface type
-   *
-   * \sa addFunction()
-   * \sa Functions::tr, Functions::id, Functions::block, Functions::while_f
-   */
-  class Function {
-  public:
-    virtual bool evaluate(WTemplate *t, const std::vector<WString>& args,
-			  std::ostream& result) const = 0;
-
-  };
-
-private:
-  class TrFunction : public Function {
-  public:
-    virtual bool evaluate(WTemplate *t, const std::vector<WString>& args,
-			  std::ostream& result) const;
-  };
-
-  class BlockFunction : public Function {
-  public:
-    virtual bool evaluate(WTemplate *t, const std::vector<WString>& args,
-                          std::ostream& result) const;
-  };
-
-  class WhileFunction : public Function {
-  public:
-    virtual bool evaluate(WTemplate *t, const std::vector<WString>& args,
-			  std::ostream& result) const;
-  };
-
-  class IdFunction : public Function {
-  public:
-    virtual bool evaluate(WTemplate *t, const std::vector<WString>& args,
-			  std::ostream& result) const;
-  };
-public:
-#endif
   /*! \brief A collection of predefined functions
    *
    * \sa addFunction()
@@ -265,12 +345,8 @@ public:
      *
      * \sa addFunction()
      */
-#ifndef WT_TARGET_JAVA
-    static bool tr(WTemplate *t, const std::vector<WString>& args,
+    static bool tr(WTemplate_ *t, const std::vector<WString>& args,
 		   std::ostream& result);
-#else
-    static Function& tr = TrFunction();
-#endif
 
     /*! \brief A function that renders a macro block.
      *
@@ -305,12 +381,8 @@ public:
      * ...
      * \endcode
      */
-#ifndef WT_TARGET_JAVA
-    static bool block(WTemplate *t, const std::vector<WString>& args,
+    static bool block(WTemplate_ *t, const std::vector<WString>& args,
 		      std::ostream& result);
-#else
-    static Function& block = BlockFunction();
-#endif
 
     /*! \brief A function that renders a macro block as long as the given condition is true
      *
@@ -320,13 +392,8 @@ public:
      * Just like the block() function, you can provide additional arguments, so the third
      * argument will be what is filled in into <tt>{1}</tt> in the macro block, etc.
      */
-#ifndef WT_TARGET_JAVA
-    static bool while_f(WTemplate *t, const std::vector<WString>& args,
+    static bool while_f(WTemplate_ *t, const std::vector<WString>& args,
 		      std::ostream& result);
-#else
-    static Function& while_f = WhileFunction();
-#endif
-
     /*! \brief A function that resolves the id of a bound widget
      *
      * For example, when bound to the function <tt>"id"</tt>, template text
@@ -350,17 +417,13 @@ public:
      *
      * \sa addFunction()
      */
-#ifndef WT_TARGET_JAVA
-    static bool id(WTemplate *t, const std::vector<WString>& args,
+    static bool id(WTemplate_ *t, const std::vector<WString>& args,
 		   std::ostream& result);
-#else
-    static Function& id = IdFunction();
-#endif // WT_TARGET_JAVA
   };
 
   /*! \brief Creates a template widget.
    */
-  WTemplate();
+  WTemplate_();
 
   /*! \brief Creates a template widget with given template.
    *
@@ -369,9 +432,9 @@ public:
    * behavior is similar to a WText when configured with the
    * Wt::TextFormat::XHTML textformat.
    */
-  WTemplate(const WString& text);
+  WTemplate_(const WString& text);
 
-  virtual ~WTemplate();
+  virtual ~WTemplate_();
 
   /*! \brief Returns the template.
    *
@@ -440,8 +503,8 @@ public:
    * \p varName may occur at most once in the template, and the
    * \p widget must not yet be bound to another variable.
    *
-   * The widget is reparented to the WTemplate, so that it is deleted
-   * when the WTemplate is deleted.
+   * The widget is reparented to the WTemplate_, so that it is deleted
+   * when the WTemplate_ is deleted.
    *
    * If a widget was already bound to the variable, it is deleted
    * first. If previously a string or other value was bound to the
@@ -469,17 +532,12 @@ public:
   template <typename Widget>
     Widget *bindWidget(const std::string& varName,
                        std::unique_ptr<Widget> widget)
-#ifndef WT_TARGET_JAVA
   {
     Widget *result = widget.get();
     bindWidget(varName, std::unique_ptr<WWidget>(std::move(widget)));
     return result;
   }
-#else // WT_TARGET_JAVA
-  ;
-#endif // WT_TARGET_JAVA
 
-#ifndef WT_TARGET_JAVA
   /*! \brief Creates a new widget with the given arguments, and binds it, returning a raw pointer.
    *
    * This is implemented as:
@@ -502,7 +560,6 @@ public:
     bindWidget(varName, std::unique_ptr<WWidget>(std::move(w)));
     return result;
   }
-#endif // WT_TARGET_JAVA
 
   using WWidget::removeWidget;
 
@@ -548,25 +605,21 @@ public:
    * There are three predefined functions, which can be bound using:
    * \if cpp
    * \code
-   * WTemplate *t = ...;
-   * t->addFunction("id", &WTemplate::Functions::id);
-   * t->addFunction("tr", &WTemplate::Functions::tr);
-   * t->addFunction("block", &WTemplate::Functions::block);
+   * WTemplate_ *t = ...;
+   * t->addFunction("id", &WTemplate_::Functions::id);
+   * t->addFunction("tr", &WTemplate_::Functions::tr);
+   * t->addFunction("block", &WTemplate_::Functions::block);
    * \endcode
    * \else
    * \code
-   * WTemplate t = ...;
-   * t.addFunction("id", WTemplate.Functions.id);
-   * t.addFunction("tr", WTemplate.Functions.tr);
-   * t.addFunction("block", WTemplate.Functions.block);
+   * WTemplate_ t = ...;
+   * t.addFunction("id", WTemplate_.Functions.id);
+   * t.addFunction("tr", WTemplate_.Functions.tr);
+   * t.addFunction("block", WTemplate_.Functions.block);
    * \endcode
    * \endif
    */
-#ifndef WT_TARGET_JAVA
   void addFunction(const std::string& name, const Function& function);
-#else
-  void addFunction(const std::string& name, const Function *function);
-#endif
 
   /*! \brief Sets a condition.
    *
@@ -639,7 +692,7 @@ public:
    *
    * You may want to reimplement this method to create widgets
    * on-demand. All widgets that are returned by this method are
-   * reparented to the WTemplate, so they will be deleted when the
+   * reparented to the WTemplate_, so they will be deleted when the
    * template is destroyed, but they are not deleted by clear() (unless
    * bind was called on them as in the example below).
    *
@@ -647,7 +700,7 @@ public:
    * Usage example:
    * \if cpp
    * \code
-   * if (Wt::WWidget *known = WTemplate::resolveWidget(varName)) {
+   * if (Wt::WWidget *known = WTemplate_::resolveWidget(varName)) {
    *   return known;
    * } else {
    *   if (varName == "age-input") {
@@ -814,12 +867,12 @@ protected:
 
   /*! \brief Notifies the template that it has changed and must be rerendered.
    *
-   * If you update a WTemplate with e.g bindWidget or setCondition,
+   * If you update a WTemplate_ with e.g bindWidget or setCondition,
    * or change the template text, the template will automatically be
    * rerendered.
    *
-   * However, if you create a subclass of WTemplate and override resolveString or
-   * resolveWidget, you will have to notify the WTemplate if it has changed with
+   * However, if you create a subclass of WTemplate_ and override resolveString or
+   * resolveWidget, you will have to notify the WTemplate_ if it has changed with
    * a call to reset().
    */
   void reset();
@@ -840,6 +893,7 @@ private:
 
   WString text_;
   std::string errorText_;
+  fmt::dynamic_format_arg_store<fmt::format_context> fmt_args_;
 
   bool encodeInternalPaths_, encodeTemplateText_, changed_;
   TemplateWidgetIdMode widgetIdMode_;
@@ -853,7 +907,7 @@ private:
   EscapeOStream* plainTextNewLineEscStream_;
 };
 
-template <typename T> T WTemplate::resolve(const std::string& varName)
+template <typename T> T WTemplate_::resolve(const std::string& varName)
 {
   WWidget *w = resolveWidget(varName);
   return dynamic_cast<T>(w);
@@ -862,4 +916,4 @@ template <typename T> T WTemplate::resolve(const std::string& varName)
 
 }
 
-#endif // WTEMPLATE_H_
+#endif // WTemplateCSP_H_

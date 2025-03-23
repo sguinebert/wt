@@ -16,7 +16,46 @@
 #ifndef WT_DEBUG_JS
 #include "js/WTextEdit.min.js"
 #endif
+namespace fmt {
+template <>
+struct formatter<std::pair<const std::string, cpp17::any>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
+    template <typename FormatContext>
+    auto format(const std::pair<const std::string, cpp17::any>& pair, FormatContext& ctx) const {
+        auto out = ctx.out();
+
+        auto& [key, value] = pair;
+        if (key == "plugins")
+            return out;
+
+        auto literal = Impl::asJSLiteral(value, TextFormat::UnsafeXHTML);
+
+        return fmt::format_to(out, "{}: {}", key, literal);
+            // ss << it->first << ": "
+            //    <<  Impl::asJSLiteral(it->second, TextFormat::UnsafeXHTML);
+    }
+};
+template <>
+struct formatter<const std::pair<const std::string, cpp17::any>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const std::pair<const std::string, cpp17::any>& pair, FormatContext& ctx) const {
+        auto out = ctx.out();
+
+        auto& [key, value] = pair;
+        if (key == "plugins")
+            return out;
+
+        std::string literal = Impl::asJSLiteral(value, TextFormat::UnsafeXHTML);
+
+        return fmt::format_to(out, "{}: {}", key, literal);
+            // ss << it->first << ": "
+            //    <<  Impl::asJSLiteral(it->second, TextFormat::UnsafeXHTML);
+    }
+};
+}
 namespace Wt {
 
 typedef std::map<std::string, cpp17::any> SettingsMapType;
@@ -60,7 +99,7 @@ void WTextEdit::init()
 
   version_ = getTinyMCEVersion();
 
-  setJavaScriptMember(" WTextEdit", "new " WT_CLASS ".WTextEdit(" + app->javaScriptClass() + "," + jsRef() + ");");
+  setJavaScriptMember(" WTextEdit", "new " WT_CLASS ".WTextEdit(" + std::string(app->javaScriptClass()) + "," + jsRef() + ");");
 
   setJavaScriptMember
     (WT_RESIZE_JS,
@@ -289,29 +328,35 @@ std::string WTextEdit::plugins() const
 
 bool WTextEdit::serialize(std::stringstream& ss, std::map<std::string, cpp17::any>& map)
 {
-  ss << "{";
+    ss << "{";
 
-  bool first = true;
+    bool first = true;
 
-  for (SettingsMapType::const_iterator it = map.begin();
-    it != map.end(); ++it) {
-    if (it->first == "plugins")
-      continue;
+    for (auto it = map.begin(); it != map.end(); ++it) {
+        if (it->first == "plugins")
+            continue;
 
-    if (!first)
-      ss << ',';
+        if (!first)
+            ss << ',';
 
-    first = false;
+        first = false;
 
-      ss << it->first << ": "
-        <<  Impl::asJSLiteral(it->second, TextFormat::UnsafeXHTML);
-  }
-  if(isReadOnly()) {
-    if (!first)
-      ss << ',';
-    ss << "setup: function(ed) { ed.setMode('readonly') }";
-  }
+        ss << it->first << ": "
+           <<  Impl::asJSLiteral(it->second, TextFormat::UnsafeXHTML);
+    }
+    if(isReadOnly()) {
+        if (!first)
+            ss << ',';
+        ss << "setup: function(ed) { ed.setMode('readonly') }";
+    }
   return first;
+}
+
+bool WTextEdit::serialize(fmt::memory_buffer &ss, std::map<std::string, cpp17::any> &map)
+{
+    fmt::format_to(std::back_inserter(ss), "{{init_instance_callback: obj.init,{}plugins: '{}',{}}}", isReadOnly() ? "setup:function(ed){ed.setMode('readonly'),}": "", plugins(), fmt::join(map, ","));
+
+    return !ss.size();
 }
 void WTextEdit::updateDom(DomElement& element, bool all)
 {
@@ -322,46 +367,47 @@ void WTextEdit::updateDom(DomElement& element, bool all)
 
   // we are creating the actual element
   if (all && element.type() == DomElementType::TEXTAREA) {
-    std::stringstream config;
+    fmt::memory_buffer config;
 
     bool first = serialize(config, configurationSettings_);
 
-    if (!first)
-      config << ',';
+    // if (!first)
+    //   config.push_back(',');
 
-    config << "plugins: '" << plugins() << "'";
+    // fmt::format_to(std::back_inserter(config), "plugins: '{}',init_instance_callback: obj.init}}", plugins());
 
-    config <<
-      ",init_instance_callback: obj.init"
-      "}";
 
-    std::stringstream events;
-    serialize(events, eventSettings_);
-    events << "}";
+    // std::stringstream events;
+    // serialize(events, eventSettings_);
+    // events << "}";
 
 
     DomElement dummy(DomElement::Mode::Update, DomElementType::TABLE);
     updateDom(dummy, true);
 
-    element.callJavaScript("(function() { "
-			   """var obj = " + jsRef() + ".wtObj;"
-			   """obj.render(" + config.str() + ","
-			   + jsStringLiteral(dummy.cssStyle()) + ","
-			   + (changed().isConnected() ? "true" : "false")
-                          // + events.str()
-			   + ");"
-			   "})();");
+    // using Escaper = MixedRules<RuleSet::JsStringLiteralSQuote>;
+    // auto jscall = fmt::format("(function(){{var obj={}.wtObj;obj.render({},{});}})();", jsRef(), config.str(), JsString(dummy.cssStyle()), changed().isConnected());
+    // element.callJavaScript(jscall);
+#warning "optimize jsStringLiteral(dummy.cssStyle()) via specialize template"
+    element.callJavaScript("function() {{ var obj = {}.wtObj;obj.render({},{},{});}}();", jsRef(), config, jsStringLiteral(dummy.cssStyle()), changed().isConnected());
+               // """var obj = " + jsRef() + ".wtObj;"
+               // """obj.render(" + config.str() + ","
+               // + jsStringLiteral(dummy.cssStyle()) + ","
+               // + (changed().isConnected() ? "true" : "false")
+      //                     // + events.str()
+               // + ");"
+               // "})();");
 
     contentChanged_ = false;
   }
 
   if (!all && contentChanged_) {
-    element.callJavaScript(jsRef() + ".ed.load();");
+    element.callJavaScript("{}.ed.load();", jsRef());
     contentChanged_ = false;
   }
 }
 
-void WTextEdit::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WTextEdit::getDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
   /*
    * We apply changes directly to the table element, except of the textarea
@@ -382,12 +428,20 @@ void WTextEdit::getDomChanges(std::vector<DomElement *>& result, WApplication *a
    * New version of tinyMCE uses divs instead of table and removing the _tbl 
    * makes it work on all version
    */
-  DomElement *e = DomElement::getForUpdate(formName()/* + "_tbl" */ , DomElementType::TABLE);
-  updateDom(*e, false);
+  DomElement e(DomElement::Mode::Update, DomElementType::TABLE, formName());
+  updateDom(e, false);
 
   WTextArea::getDomChanges(result, app);
 
-  result.push_back(e);
+  result.push_back(std::move(e));
+
+
+  // DomElement *e = DomElement::getForUpdate(formName()/* + "_tbl" */ , DomElementType::TABLE);
+  // updateDom(*e, false);
+
+  // WTextArea::getDomChanges(result, app);
+
+  // result.push_back(e);
 }
 
 bool WTextEdit::domCanBeSaved() const

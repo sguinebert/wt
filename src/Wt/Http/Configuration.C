@@ -48,41 +48,41 @@ void Configuration::setOptions(const std::string &applicationPath,
   createOptions(all_options, visible_options);
 
   try {
-    po::variables_map vm;
+      po::variables_map vm;
 
-    if (!args.empty())
-      po::store(po::command_line_parser(args).options(all_options).allow_unregistered().run(), vm);
+      if (!args.empty())
+          po::store(po::command_line_parser(args).options(all_options).allow_unregistered().run(), vm);
 
-    if (!configurationFile.empty()) {
-      std::ifstream cfgFile(configurationFile.c_str(),
-        std::ios::in | std::ios::binary);
-      if (cfgFile) {
-        if (!silent_)
-          LOG_INFO_S(this, "reading wthttpd configuration from: {}", configurationFile);
-        po::store(po::parse_config_file(cfgFile, all_options), vm);
+      if (!configurationFile.empty()) {
+          std::ifstream cfgFile(configurationFile.c_str(),
+                                std::ios::in | std::ios::binary);
+          if (cfgFile) {
+              if (!silent_)
+                  LOG_INFO_S(this, "reading wthttpd configuration from: {}", configurationFile);
+              po::store(po::parse_config_file(cfgFile, all_options), vm);
+          }
       }
-    }
 
-    po::notify(vm);
+      po::notify(vm);
 
-    if (vm.count("help")) {
-      std::cout << visible_options << std::endl;
+      if (vm.count("help")) {
+          std::cout << visible_options << std::endl;
 
-      if (!configurationFile.empty())
-        std::cout << "Settings may be set in the configuration file " << configurationFile << std::endl;
+          if (!configurationFile.empty())
+              std::cout << "Settings may be set in the configuration file " << configurationFile << std::endl;
 
-      std::cout << std::endl;
+          std::cout << std::endl;
 
-      throw Wt::WServer::Exception("");
-    }
+          throw Wt::WServer::Exception("");
+      }
 
-    readOptions(vm);
+      readOptions(vm);
   } catch (Wt::WServer::Exception& e) {
-    throw;
+      throw;
   } catch (std::exception& e) {
-    throw Wt::WServer::Exception(std::string("Error: ") + e.what());
+      throw Wt::WServer::Exception(std::string("Error: ") + e.what());
   } catch (...) {
-    throw Wt::WServer::Exception("Exception of unknown type!\n");
+      throw Wt::WServer::Exception("Exception of unknown type!\n");
   }
 
   options_.clear();
@@ -92,14 +92,14 @@ void Configuration::setOptions(const std::string &applicationPath,
 
 void Configuration::createOptions(boost::program_options::options_description &options, boost::program_options::options_description &visible_options)
 {
-  po::options_description general("General options");
-  general.add_options()
-      ("help,h", "produce help message")
+    po::options_description general("General options");
+    general.add_options()
+        ("help,h", "produce help message")
 
-      ("threads,t",
-       po::value<int>(&threads_)->default_value(threads_),
-       "number of threads (-1 indicates that num_threads from wt_config.xml "
-       "is to be used, which defaults to 10)")
+        ("threads,t",
+         po::value<int>(&threads_)->default_value(threads_),
+         "number of threads (-1 indicates that num_threads from wt_config.xml "
+         "is to be used, which defaults to 10)")
 
       ("servername",
        po::value<std::string>(&serverName_)->default_value(serverName_),

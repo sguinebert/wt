@@ -240,35 +240,37 @@ DomElementType WTable::domElementType() const
   return DomElementType::TABLE;
 }
 
-DomElement * WTable::createDomElement(WApplication *app)
+DomElement WTable::createDomElement(WApplication *app)
 {
   bool withIds = !app->environment().agentIsSpiderBot();
 
-  DomElement *table = DomElement::createNew(domElementType());
-  setId(table, app);
+  DomElement table = DomElement::createNew(domElementType());
+  setId(&table, app);
 
-  DomElement *thead = nullptr;
+  DomElement thead = DomElement::createNew(DomElementType::THEAD);//nullptr;
+  bool ff = false;
   if (headerRowCount_ != 0) {
-    thead = DomElement::createNew(DomElementType::THEAD);
+    //thead = DomElement::createNew(DomElementType::THEAD);
+    ff = true;
     if (withIds)
-      thead->setId(id() + "th");
+      thead.setId(id() + "th");
   }
 
-  DomElement *tbody = DomElement::createNew(DomElementType::TBODY);
+  DomElement tbody = DomElement::createNew(DomElementType::TBODY);
   if (withIds)
-    tbody->setId(id() + "tb");
+    tbody.setId(id() + "tb");
 
-  DomElement *colgroup = DomElement::createNew(DomElementType::COLGROUP);
+  DomElement colgroup = DomElement::createNew(DomElementType::COLGROUP);
 
   for (unsigned col = 0; col < columns_.size(); ++col) {
-    DomElement *c = DomElement::createNew(DomElementType::COL);
+    DomElement c = DomElement::createNew(DomElementType::COL);
     if (withIds)
-      c->setId(columns_[col]->id());
-    columns_[col]->updateDom(*c, true);
-    colgroup->addChild(c);
+      c.setId(columns_[col]->id());
+    columns_[col]->updateDom(c, true);
+    colgroup.addChild(c);
   }
 
-  table->addChild(colgroup);
+  table.addChild(colgroup);
   
   flags_.reset(BIT_COLUMNS_CHANGED);
 
@@ -277,19 +279,19 @@ DomElement * WTable::createDomElement(WApplication *app)
       itemAt(row, col)->overSpanned_ = false;
   
   for (unsigned row = 0; row < (unsigned)rowCount(); ++row) {
-    DomElement *tr = createRowDomElement(row, withIds, app);
+    DomElement tr = createRowDomElement(row, withIds, app);
     if (row < static_cast<unsigned>(headerRowCount_))
-      thead->addChild(tr);
+      thead.addChild(tr);
     else
-      tbody->addChild(tr);
+      tbody.addChild(tr);
   }
   rowsAdded_ = 0;
 
-  if (thead)
-    table->addChild(thead);
-  table->addChild(tbody);
+  if (ff)
+    table.addChild(thead);
+  table.addChild(tbody);
 
-  updateDom(*table, true);
+  updateDom(table, true);
 
   flags_.reset(BIT_GRID_CHANGED);
   rowsChanged_.clear();
@@ -297,92 +299,96 @@ DomElement * WTable::createDomElement(WApplication *app)
   return table;
 }
 
-DomElement *WTable::createRowDomElement(int row, bool withIds, WApplication *app)
+DomElement WTable::createRowDomElement(int row, bool withIds, WApplication *app)
 {
-  DomElement *tr = DomElement::createNew(DomElementType::TR);
-  if (withIds)
-    tr->setId(rows_[row]->id());
-  rows_[row]->updateDom(*tr, true);
+    DomElement tr = DomElement::createNew(DomElementType::TR);
+    if (withIds)
+        tr.setId(rows_[row]->id());
+    rows_[row]->updateDom(tr, true);
 
-  // because of the mix of addChild() and insertChildAt()
-  tr->setWasEmpty(false);
-  int spanCounter = 0;
+    // because of the mix of addChild() and insertChildAt()
+    tr.setWasEmpty(false);
+    int spanCounter = 0;
 
-  for (int col = 0; col < columnCount(); ++col) {
-    auto cell = itemAt(row, col);
+    for (int col = 0; col < columnCount(); ++col) {
+        auto cell = itemAt(row, col);
 
-    if (!cell->overSpanned_) {
-      DomElement *td = cell->createSDomElement(app);
+        if (!cell->overSpanned_) {
+            DomElement td = cell->createSDomElement(app);
 
-      /*
-       * So, IE gets confused when doing appendChild() for TH followed by
-       * insertCell(-1) for TD. But, we cannot insertChild() for element 0,
-       * so we do TH with appendChild, and insertCell(col).
-       */
-      if (col < headerColumnCount_ || row < headerRowCount_)
-	tr->addChild(td);
-      else
-	tr->insertChildAt(td, col - spanCounter);
+            /*
+           * So, IE gets confused when doing appendChild() for TH followed by
+           * insertCell(-1) for TD. But, we cannot insertChild() for element 0,
+           * so we do TH with appendChild, and insertCell(col).
+           */
+            if (col < headerColumnCount_ || row < headerRowCount_)
+                tr.addChild(td);
+            else
+                tr.insertChildAt(td, col - spanCounter);
 
-      for (int i = 0; i < cell->rowSpan(); ++i)
-	for (int j = 0; j < cell->columnSpan(); ++j)
-	  if (i + j > 0) {
-	    itemAt(row + i, col + j)->overSpanned_ = true;
-	    itemAt(row + i, col + j)->setRendered(false);
-	  }
-    } else {
-      spanCounter++;
+            for (int i = 0; i < cell->rowSpan(); ++i)
+                for (int j = 0; j < cell->columnSpan(); ++j)
+                    if (i + j > 0) {
+                        itemAt(row + i, col + j)->overSpanned_ = true;
+                        itemAt(row + i, col + j)->setRendered(false);
+                    }
+        } else {
+            spanCounter++;
+        }
     }
-  }
 
-  return tr;
+    return tr;
 }
 
-void WTable::getDomChanges(std::vector<DomElement *>& result, WApplication *app)
+void WTable::getDomChanges(std::vector<DomElement>& result, WApplication *app)
 {
-  DomElement *e = DomElement::getForUpdate(this, domElementType());
+    DomElement &e = result.emplace_back(DomElement::Mode::Update, domElementType());
+    //DomElement e = DomElement::getForUpdate(this, domElementType());
 
-  if (!isStubbed() && flags_.test(BIT_GRID_CHANGED)) {
-    DomElement *newE = createDomElement(app);
-    e->replaceWith(newE);
-  } else {
-    for (auto i = rowsChanged_.begin(); i != rowsChanged_.end(); ++i)
-    {
-      DomElement *e2 = DomElement::getForUpdate(*i, DomElementType::TR);
-      (*i)->updateDom(*e2, false);
-      result.push_back(e2);
+    if (!isStubbed() && flags_.test(BIT_GRID_CHANGED)) {
+        //DomElement newE = createDomElement(app);
+        e.replaceWith(createDomElement(app));
+#warning "oisqdcnoqsicdn"
+    } else {
+        for (auto i = rowsChanged_.begin(); i != rowsChanged_.end(); ++i)
+        {
+            DomElement e2 = DomElement::getForUpdate(*i, DomElementType::TR);
+            (*i)->updateDom(e2, false);
+            result.push_back(std::move(e2));
+        }
+
+        rowsChanged_.clear();
+
+        if (rowsAdded_)
+        {
+            auto& etb = result.emplace_back(DomElement::Mode::Update, DomElementType::TBODY, id() + "tb");
+            //DomElement etb = DomElement::getForUpdate(id() + "tb", DomElementType::TBODY);
+            for (unsigned i = 0; i < static_cast<unsigned>(rowsAdded_); ++i)
+            {
+                DomElement tr = createRowDomElement(rowCount() - rowsAdded_ + i, true, app);
+                etb.addChild(tr);
+            }
+
+            //result.push_back(std::move(etb));
+
+            rowsAdded_ = 0;
+        }
+
+        if (flags_.test(BIT_COLUMNS_CHANGED)) {
+            for (unsigned i = 0; i < columns_.size(); ++i) {
+                auto& e2 = result.emplace_back(DomElement::Mode::Update, DomElementType::COL, columns_[i]->id());
+                //DomElement e2 = DomElement::getForUpdate(columns_[i].get(), DomElementType::COL);
+                columns_[i]->updateDom(e2, false);
+                //result.push_back(std::move(e2));
+            }
+
+            flags_.reset(BIT_COLUMNS_CHANGED);
+        }
+
+        updateDom(e, false);
     }
 
-    rowsChanged_.clear();
-
-    if (rowsAdded_)
-    {
-      DomElement *etb = DomElement::getForUpdate(id() + "tb", DomElementType::TBODY);
-      for (unsigned i = 0; i < static_cast<unsigned>(rowsAdded_); ++i)
-      {
-        DomElement *tr = createRowDomElement(rowCount() - rowsAdded_ + i, true, app);
-        etb->addChild(tr);
-      }
-
-      result.push_back(etb);
-
-      rowsAdded_ = 0;
-    }
-
-    if (flags_.test(BIT_COLUMNS_CHANGED)) {
-	for (unsigned i = 0; i < columns_.size(); ++i) {
-      DomElement *e2 = DomElement::getForUpdate(columns_[i].get(), DomElementType::COL);
-	  columns_[i]->updateDom(*e2, false);
-	  result.push_back(e2);
-	}
-
-      flags_.reset(BIT_COLUMNS_CHANGED);
-    }
-
-    updateDom(*e, false);
-  }
-
-  result.push_back(e);
+    //result.push_back(std::move(e));
 }
 
 WTableCell *WTable::itemAt(int row, int column)

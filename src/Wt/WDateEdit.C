@@ -229,9 +229,9 @@ void WDateEdit::defineJavaScript()
 
   LOAD_JAVASCRIPT(app, "js/WDateEdit.js", "WDateEdit", wtjs1);
 
-  std::string jsObj = "new " WT_CLASS ".WDateEdit("
-    + app->javaScriptClass() + "," + jsRef() + "," 
-    + jsStringLiteral(popup_->id()) + ");";
+  std::string jsObj = fmt::format("new " WT_CLASS ".WDateEdit({},{},{});", app->javaScriptClass(), jsRef(), jsStringLiteral(popup_->id()));
+    // + app->javaScriptClass() + "," + jsRef() + ","
+    // + jsStringLiteral(popup_->id()) + ");";
 
   setJavaScriptMember(" WDateEdit", jsObj);
 

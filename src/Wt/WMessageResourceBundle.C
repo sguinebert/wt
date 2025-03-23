@@ -22,20 +22,17 @@ void WMessageResourceBundle::use(const std::string& path, bool loadInMemory)
         messageResources_[i]->path() == path)
       return;
 
-  messageResources_.push_back
-    (std::unique_ptr<WMessageResources>
-     (new WMessageResources(path, loadInMemory)));
+  messageResources_.emplace_back(new WMessageResources(path, loadInMemory));
 }
 
-void WMessageResourceBundle::useBuiltin(const char *xmlbundle)
+void WMessageResourceBundle::useBuiltin(std::string_view xmlbundle)
 {
   for (unsigned i = 0; i < messageResources_.size(); ++i)
-    if (messageResources_[i]->isBuiltin(xmlbundle))
+    if (messageResources_[i]->isBuiltin(xmlbundle.data()))
       return;
 
-  messageResources_.insert
-    (messageResources_.begin(),
-     std::unique_ptr<WMessageResources>(new WMessageResources(xmlbundle)));
+//use char* constructor to avoid ambiguity vs WMessageResourceBundle::use(const std::string& path, bool loadInMemory)
+  messageResources_.emplace(messageResources_.begin(), new WMessageResources(xmlbundle.data()));
 }
 
 LocalizedString WMessageResourceBundle::resolveKey(const WLocale& locale,

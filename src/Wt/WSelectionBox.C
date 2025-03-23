@@ -95,7 +95,7 @@ bool WSelectionBox::supportsNoSelection() const
 void WSelectionBox::updateDom(DomElement& element, bool all)
 {
   if (configChanged_ || all) {
-    element.setAttribute("size", std::to_string(verticalSize_));
+    element.setAttribute("size", verticalSize_);
 
     if (!all || (selectionMode_ == SelectionMode::Extended)) {
       element.setProperty(Property::Multiple,
@@ -111,8 +111,7 @@ void WSelectionBox::updateDom(DomElement& element, bool all)
   if (selectionMode_ == SelectionMode::Extended) {
     if (selectionChanged_ && !all) {
       for (int i = 0; i < count(); ++i) {
-        element.callMethod("options[" + std::to_string(i) + "].selected="
-                   + (isSelected(i) ? "true" : "false"));
+        element.callMethod("options[{}].selected={}", i, isSelected(i));
       }
     }
     selectionChanged_ = false;

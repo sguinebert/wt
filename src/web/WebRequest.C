@@ -399,7 +399,7 @@ std::string WebRequest::clientAddress(const Configuration &conf) const
     return remoteAddr;
   } else {
     if (conf.isTrustedProxy(remoteAddr)) {
-      std::string forwardedFor = str(headerValue(conf.originalIPHeader().c_str()));
+      std::string forwardedFor = str(headerValue(conf.originalIPHeader().data()));
       boost::trim(forwardedFor);
       std::vector<std::string> forwardedIps;
       boost::split(forwardedIps, forwardedFor, boost::is_any_of(","));

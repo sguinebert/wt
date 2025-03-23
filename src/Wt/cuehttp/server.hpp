@@ -70,20 +70,25 @@ public:
 
     base_server& listen(unsigned port) {
         assert(port != 0);
-        listen_impl(asio::ip::tcp::resolver::query{std::to_string(port)});
+        //listen_impl(asio::ip::tcp::resolver::query{std::to_string(port)});
+        listen_impl("", std::to_string(port));
         return *this;
     }
 
     template <typename _Host>
     base_server& listen(unsigned port, _Host&& host) {
         assert(port != 0);
-        listen_impl(asio::ip::tcp::resolver::query{std::forward<_Host>(host), std::to_string(port)});
+        //listen_impl(asio::ip::tcp::resolver::query{std::forward<_Host>(host), std::to_string(port)});
+        listen_impl(std::forward<_Host>(host), std::to_string(port));
         return *this;
     }
 
 protected:
-    void listen_impl(asio::ip::tcp::resolver::query&& query) {
-        asio::ip::tcp::endpoint endpoint{*asio::ip::tcp::resolver{engine_->get()}.resolve(query)};
+    void listen_impl(std::string host, const std::string& service /*asio::ip::tcp::resolver::query&& query*/) {
+        asio::ip::tcp::resolver resolver{engine_->get()};
+        auto endpoints = resolver.resolve(host, service);
+        asio::ip::tcp::endpoint endpoint = *endpoints.begin();
+        //asio::ip::tcp::endpoint endpoint{*asio::ip::tcp::resolver{engine_->get()}.resolve(host, service)};
         acceptor_ = std::make_unique<asio::ip::tcp::acceptor>(engine_->get());
         acceptor_->open(endpoint.protocol());
         acceptor_->set_option(asio::ip::tcp::acceptor::reuse_address(true));
