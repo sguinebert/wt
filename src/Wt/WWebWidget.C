@@ -1530,11 +1530,11 @@ void WWebWidget::updateDom(DomElement& element, bool all)
 
                     WString tooltipText(lookImpl_->toolTip_->toUTF8()); // UTF8 Guarantees copy for JWt
                     if (lookImpl_->toolTipTextFormat_ == TextFormat::Plain) {
-                        tooltipText = escapeText(*lookImpl_->toolTip_);
+                        tooltipText = escapeText(lookImpl_->toolTip_->toUTF8());
                     } else if (lookImpl_->toolTipTextFormat_ == TextFormat::XHTML) {
                         bool res = removeScript(tooltipText);
                         if (!res) {
-                            tooltipText = escapeText(*lookImpl_->toolTip_);
+                            tooltipText = escapeText(lookImpl_->toolTip_->toUTF8());
                         }
                     }
 
@@ -2350,29 +2350,24 @@ void WWebWidget::enableAjax()
         });
 }
 
-WString WWebWidget::escapeText(const WString& text, bool newlinestoo)
-{
-    std::string result = text.toUTF8();
-    result = escapeText(result, newlinestoo);
-    return WString::fromUTF8(result);
-}
+// WString WWebWidget::escapeText(const WString& text, bool newlinestoo)
+// {
+//     std::string result = text.toUTF8();
+//     result = escapeText(result, newlinestoo);
+//     return WString::fromUTF8(result);
+// }
 
-std::string& WWebWidget::escapeText(std::string& text, bool newlinestoo)
+std::string WWebWidget::escapeText(const std::string& text, bool newlinestoo)
 {
     EscapeOStream sout;
     if (newlinestoo)
-        sout.pushEscape(EscapeOStream::PlainTextNewLines);
+        sout.pushEscape(EscapeOStream::PlainTextNewLines); //replace '&' '<' '>' '\n' by &amp; &lt; &gt; and <br />
     else
-        sout.pushEscape(EscapeOStream::Plain);
+        sout.pushEscape(EscapeOStream::Plain); //replace '&' '<' '>' by &amp; &lt; &gt;
 
     Wt::Utils::sanitizeUnicode(sout, text);
 
-#ifndef WT_TARGET_JAVA
-    text = sout.str();
-    return text;
-#else
     return sout.str();
-#endif // WT_TARGET_JAVA
 }
 
 std::string& WWebWidget::unescapeText(std::string &text)

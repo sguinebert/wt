@@ -71,7 +71,7 @@ class WT_API WTimer : public WObject
 public:
   /*! \brief Construct a new timer with the given parent.
    */
-  WTimer();
+  WTimer(bool clientSide = true);
 
   /*! \brief Destuctor.
    */
@@ -156,8 +156,10 @@ private:
   std::chrono::milliseconds  interval_;
   bool singleShot_;
   bool active_;
+  bool clientSideTimeout_;
 
   std::unique_ptr<Time> timeout_;
+  asio::cancellation_signal timer_cancel_;
 
   void gotTimeout();
   int getRemainingInterval() const;

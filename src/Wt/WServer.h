@@ -431,9 +431,9 @@ public:
         if (!ioService_) {
             int numSessionThreads = configuration().numSessionThreads();
             if (dedicatedProcessEnabled_&& numSessionThreads != -1)
-                ioService_ = new WIOService(numSessionThreads);
+                ioService_ = &WIOService::engine(numSessionThreads); //new WIOService(numSessionThreads);
             else
-                ioService_ = new WIOService(configuration().numThreads());
+                ioService_ = &WIOService::engine(configuration().numThreads()); //new WIOService(configuration().numThreads());
         }
 
         server_ = new Wt::http::cuehttp(*ioService_);

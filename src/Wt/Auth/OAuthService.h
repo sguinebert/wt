@@ -548,7 +548,7 @@ public:
    * interface. This URL is loaded in the popup window at the start of
    * an authorization process.
    */
-  virtual std::string authorizationEndpoint() const = 0;
+  virtual std::string_view authorizationEndpoint() const = 0;
 
   /*! \brief Returns the token endpoint URL.
    *

@@ -24,6 +24,7 @@
 #include "base64.h"
 #include "ImageUtils.h"
 #include "fasthex/hex.h"
+#include "Wt/cuehttp/deps/ada.h"
 
 #include <cstring>
 
@@ -209,10 +210,7 @@ namespace Wt
 
     std::string htmlEncode(const std::string &text, WFlags<HtmlEncodingFlag> flags)
     {
-      std::string result = text;
-      WWebWidget::escapeText(result,
-                             (flags.test(HtmlEncodingFlag::EncodeNewLines)) ? true : false);
-      return result;
+        return WWebWidget::escapeText(text, (flags.test(HtmlEncodingFlag::EncodeNewLines)) ? true : false);
     }
 
     WString htmlEncode(const WString &text, WFlags<HtmlEncodingFlag> flags)
@@ -220,49 +218,20 @@ namespace Wt
       return WString::fromUTF8(htmlEncode(text.toUTF8(), flags));
     }
 
-    std::string urlEncode(const std::string &text)
-    {
-      return DomElement::urlEncodeS(text);
-    }
-
     std::string urlEncode(std::string_view text)
     {
-      return DomElement::urlEncodeS(text);
+      return DomElement::urlEncodeS(text, ada::character_sets::QUERY_PERCENT_ENCODE);
+    }
+
+    std::string urlEncode(std::string_view text, const uint8_t charset[])
+    {
+      return DomElement::urlEncodeS(text, charset);
     }
 
 
     std::string urlDecode(const std::string &text)
     {
-      WStringStream result;
-
-      for (unsigned i = 0; i < text.length(); ++i)
-      {
-        char c = text[i];
-
-        if (c == '+')
-        {
-          result << ' ';
-        }
-        else if (c == '%' && i + 2 < text.length())
-        {
-          std::string h = text.substr(i + 1, 2);
-          char *e = nullptr;
-          int hval = std::strtol(h.c_str(), &e, 16);
-
-          if (*e == 0)
-          {
-            result << (char)hval;
-            i += 2;
-          }
-          else
-            // not a proper %XX with XX hexadecimal format
-            result << c;
-        }
-        else
-          result << c;
-      }
-
-      return result.str();
+      return ada::unicode::percent_decode(text, text.find('%'));
     }
 
     bool removeScript(WString &text)
@@ -281,9 +250,12 @@ namespace Wt
 
     std::string createDataUrl(std::vector<unsigned char> &data, std::string mimeType)
     {
-      std::string url = "data:" + mimeType + ";" + "base64,";
-      std::string datab64 = base64Encode(std::string_view((char *)data.data(), data.size()));
-      return url + datab64;
+        return fmt::format(FMT_COMPILE("data:{};base64,{}"),
+                           mimeType,
+                           base64Encode(std::string_view((char *)data.data(), data.size())));
+      // std::string url = "data:" + mimeType + ";" + "base64,";
+      // std::string datab64 = base64Encode(std::string_view((char *)data.data(), data.size()));
+      // return url + datab64;
     }
 
     std::string hmac(const std::string &text,

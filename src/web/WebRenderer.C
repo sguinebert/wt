@@ -501,18 +501,39 @@ static constexpr char JQuery_js[] = {
   constexpr auto plainparts0 = split_template<count_splits(Plain_templates0, delimiters)>(Plain_templates0, delimiters);
   constexpr auto plainparts1 = split_template<count_splits(Plain_templates1, delimiters)>(Plain_templates1, delimiters);
 
-  FMT_INLINE auto getTemplate(bool hybrid, bool ajax, unsigned part) {
-    if(hybrid) {
-      if(ajax) {
-        return FMT_COMPILE(hibridparts0[part]);
+
+
+  // auto AJAX_HYBRID_COMPILE_PART0 = FMT_COMPILE(hibridparts0[0]);
+  // auto AJAX_HYBRID_COMPILE_PART1 = FMT_COMPILE(hibridparts0[1]);
+  // auto AJAX_HYBRID_COMPILE_PART2 = FMT_COMPILE(hibridparts0[2]);
+
+  // auto HYBRID_COMPILE_PART0 = FMT_COMPILE(hibridparts1[0]);
+  // auto HYBRID_COMPILE_PART1 = FMT_COMPILE(hibridparts1[1]);
+  // auto HYBRID_COMPILE_PART2 = FMT_COMPILE(hibridparts1[2]);
+
+  // auto AJAX_PLAIN_COMPILE_PART0 = FMT_COMPILE(plainparts0[0]);
+  // auto AJAX_PLAIN_COMPILE_PART1 = FMT_COMPILE(plainparts0[1]);
+  // auto AJAX_PLAIN_COMPILE_PART2 = FMT_COMPILE(plainparts0[2]);
+
+  // auto PLAIN_COMPILE_PART0 = FMT_COMPILE(plainparts1[0]);
+  // auto PLAIN_COMPILE_PART1 = FMT_COMPILE(plainparts1[1]);
+  // auto PLAIN_COMPILE_PART2 = FMT_COMPILE(plainparts1[2]);
+
+  template<std::size_t part>
+  FMT_INLINE auto getTemplate(bool hybrid, bool ajax) {
+      if (hybrid) {
+          if (ajax) {
+              return hibridparts0[part];
+          }
+          return hibridparts1[part];
       }
-      return FMT_COMPILE(hibridparts1[part]);
-    }
-    if(ajax) {
-      return FMT_COMPILE(plainparts0[part]);
-    }
-    return FMT_COMPILE(plainparts1[part]);
+      if (ajax) {
+          return plainparts0[part];
+      }
+
+      return plainparts1[part];
   }
+
   // static inline constexpr auto Wt_js_template = build_format_array<compute_size(Wt_js_sv)>(Wt_js_sv);
   // static inline constexpr auto Boot_js_template = build_format_array<compute_size(Boot_js_sv)>(Boot_js_sv);
 
@@ -599,7 +620,7 @@ bool WebRenderer::isDirty() const
   return !updateMap_.empty()
     || formObjectsChanged_
     || session_.app()->hasQuit()
-    || !session_.app()->afterLoadJavaScript_.empty()
+    || session_.app()->afterLoadJavaScript_.size()
     || session_.app()->serverPushChanged_
     || session_.app()->styleSheetsAdded_
     || !session_.app()->styleSheetsToRemove_.empty()
@@ -1137,9 +1158,9 @@ void WebRenderer::serveMainpage(http::context *context)
   }
   app->scriptLibrariesAdded_ = 0;
 
-  app->newBeforeLoadJavaScript_ = app->beforeLoadJavaScript_.length();
+  app->newBeforeLoadJavaScript_ = app->beforeLoadJavaScript_.size();
 
-  bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
+  const bool hybridPage = session_.progressiveBoot() || session_.env().ajax();
 
   auto blankUrl = session_.bootstrapUrl(context, WebSession::BootstrapOption::ClearInternalPath) + "&amp;request=resource&amp;resource=blank";
 
@@ -1185,27 +1206,80 @@ void WebRenderer::serveMainpage(http::context *context)
   std::string htmlAttr = app && !app->htmlClass_.empty() ?
                              fmt::format(FMT_COMPILE("{}lang=\"en\" dir=\"ltr\" class=\"{}\""), session_.env().agentIsIE() ? "xmlns:v=\"urn:schemas-microsoft-com:vml\"" : "", app->htmlClass_) :
                              "xmlns:v=\"urn:schemas-microsoft-com:vml\" lang=\"en\" dir=\"ltr\"";
-  std::string attr = fmt::format(" class=\"{}\"{}", bodyClassRtl(), (app->layoutDirection() == LayoutDirection::RightToLeft) ? " dir=\"RTL\"" : "");
+  std::string attr = fmt::format(FMT_COMPILE(" class=\"{}\"{}"), bodyClassRtl(), (app->layoutDirection() == LayoutDirection::RightToLeft) ? " dir=\"RTL\"" : "");
 
-  fmt::format_to(response.out(), skeletons::getTemplate(hybridPage, session_.env().ajax(), 0),
-                 fmt::arg("DOCTYPE", session_.docType()),
-                 fmt::arg("HTMLATTRIBUTES", htmlAttr),
-                 fmt::arg("HEADDECLARATIONS", headDeclarations()),
-                 fmt::arg("TITLE", WWebWidget::escapeText(app->title()).toUTF8()),
-                 fmt::arg("STYLESHEET", css),
-                 fmt::arg("STYLESHEETS", std::string_view(styleSheets.data(), styleSheets.size())),
-                 fmt::arg("BODYATTRIBUTES", attr));
+  if(hybridPage) {
+      if(session_.env().ajax())
+          fmt::format_to(response.out(), FMT_COMPILE(skeletons::hibridparts0[0]),
+                         fmt::arg("DOCTYPE", session_.docType()),
+                         fmt::arg("HTMLATTRIBUTES", htmlAttr),
+                         fmt::arg("HEADDECLARATIONS", headDeclarations()),
+                         fmt::arg("TITLE", WWebWidget::escapeText(app->title())),
+                         fmt::arg("STYLESHEET", css),
+                         fmt::arg("STYLESHEETS", std::string_view(styleSheets.data(), styleSheets.size())),
+                         fmt::arg("BODYATTRIBUTES", attr));
+      else
+          fmt::format_to(response.out(), FMT_COMPILE(skeletons::hibridparts1[0]),
+                         fmt::arg("DOCTYPE", session_.docType()),
+                         fmt::arg("HTMLATTRIBUTES", htmlAttr),
+                         fmt::arg("HEADDECLARATIONS", headDeclarations()),
+                         fmt::arg("TITLE", WWebWidget::escapeText(app->title().toUTF8())),
+                         fmt::arg("STYLESHEET", css),
+                         fmt::arg("STYLESHEETS", std::string_view(styleSheets.data(), styleSheets.size())),
+                         fmt::arg("BODYATTRIBUTES", attr));
+  }
+  else {
+      if(session_.env().ajax())
+          fmt::format_to(response.out(), FMT_COMPILE(skeletons::plainparts0[0]),
+                         fmt::arg("DOCTYPE", session_.docType()),
+                         fmt::arg("HTMLATTRIBUTES", htmlAttr),
+                         fmt::arg("HEADDECLARATIONS", headDeclarations()),
+                         fmt::arg("TITLE", WWebWidget::escapeText(app->title().toUTF8())),
+                         fmt::arg("STYLESHEET", css),
+                         fmt::arg("STYLESHEETS", std::string_view(styleSheets.data(), styleSheets.size())),
+                         fmt::arg("BODYATTRIBUTES", attr));
+      else
+          fmt::format_to(response.out(), FMT_COMPILE(skeletons::plainparts1[0]),
+                         fmt::arg("DOCTYPE", session_.docType()),
+                         fmt::arg("HTMLATTRIBUTES", htmlAttr),
+                         fmt::arg("HEADDECLARATIONS", headDeclarations()),
+                         fmt::arg("TITLE", WWebWidget::escapeText(app->title().toUTF8())),
+                         fmt::arg("STYLESHEET", css),
+                         fmt::arg("STYLESHEETS", std::string_view(styleSheets.data(), styleSheets.size())),
+                         fmt::arg("BODYATTRIBUTES", attr));
+  }
+
 
   if (hybridPage)
     streamBootContent(context, true);
 
   // WStringStream out(response.outstd());
   // page.streamUntil(out, "HTML");
+  if(hybridPage) {
+      if(session_.env().ajax())
+          fmt::format_to(response.out(), FMT_COMPILE(skeletons::hibridparts0[1]),
+                         fmt::arg("BLANK_HTML", blankUrl),
+                         fmt::arg("RELATIVE_URL", url),
+                         fmt::arg("SESSION_ID", session_.sessionId()));
+      else
+          fmt::format_to(response.out(), FMT_COMPILE(skeletons::hibridparts1[1]),
+                         fmt::arg("BLANK_HTML", blankUrl),
+                         fmt::arg("RELATIVE_URL", url),
+                         fmt::arg("SESSION_ID", session_.sessionId()));
+  }
+  else {
+      if(session_.env().ajax())
+          fmt::format_to(response.out(), FMT_COMPILE(skeletons::plainparts0[1]),
+                         fmt::arg("BLANK_HTML", blankUrl),
+                         fmt::arg("RELATIVE_URL", url),
+                         fmt::arg("SESSION_ID", session_.sessionId()));
+      else
+          fmt::format_to(response.out(), FMT_COMPILE(skeletons::plainparts1[1]),
+                         fmt::arg("BLANK_HTML", blankUrl),
+                         fmt::arg("RELATIVE_URL", url),
+                         fmt::arg("SESSION_ID", session_.sessionId()));
+  }
 
-  fmt::format_to(response.out(), skeletons::getTemplate(hybridPage, session_.env().ajax(), 1),
-                 fmt::arg("BLANK_HTML", blankUrl),
-                 fmt::arg("RELATIVE_URL", url),
-                 fmt::arg("SESSION_ID", session_.sessionId()));
 
   DomElement::TimeoutList timeouts;
   {
@@ -1244,7 +1318,19 @@ void WebRenderer::serveMainpage(http::context *context)
 
   // page.stream(out);
 
-  fmt::format_to(response.out(), skeletons::getTemplate(hybridPage, session_.env().ajax(), 2));
+  if(hybridPage) {
+      if(session_.env().ajax())
+          fmt::format_to(response.out(), skeletons::hibridparts0[2]);
+      else
+          fmt::format_to(response.out(), skeletons::hibridparts1[2]);
+  }
+  // else {
+  //     if(session_.env().ajax())
+  //         fmt::format_to(response.out(), skeletons::plainparts0[2]);
+  //     else
+  //         fmt::format_to(response.out(), skeletons::plainparts1[2]);
+  // }
+
 
   // std::string htmlAttr = app && !app->htmlClass_.empty() ?
   //                            fmt::format("{}lang=\"en\" dir=\"ltr\" class=\"{}\"", session_.env().agentIsIE() ? "xmlns:v=\"urn:schemas-microsoft-com:vml\"" : "", app->htmlClass_) :
@@ -1279,7 +1365,7 @@ void WebRenderer::serveMainpage(http::context *context)
   //                fmt::arg("DOCTYPE", session_.docType()),
   //                fmt::arg("HTMLATTRIBUTES", "lang=\"en\" dir=\"ltr\""),
   //                fmt::arg("HEADDECLARATIONS", headDeclarations()),
-  //                fmt::arg("TITLE", WWebWidget::escapeText(app->title()).toUTF8()),
+  //                fmt::arg("TITLE", WWebWidget::escapeText(app->title().toUTF8())),
   //                fmt::arg("STYLESHEET", css.str()),
   //                fmt::arg("STYLESHEETS", styleSheets.str()),
   //                fmt::arg("BODYATTRIBUTES", attr),
@@ -2734,15 +2820,16 @@ void WebRenderer::serveMainscript(http::context *context)
      * Set the original script params for a widgetset session, so that any
      * Ajax update request has all the information to reload the session.
      */
+#warning "simplify this !!"
   std::string params;
   if (session_.type() == EntryPointType::WidgetSet)
   {
-    const Http::ParameterMap *m = &session_.env().getParameterMap();
-    Http::ParameterMap::const_iterator it = m->find("Wt-params");
-    Http::ParameterMap wtParams;
-    if (it != m->end()) {
+    auto m = &session_.env().getParameterMap();
+
+    http::ParameterMap wtParams;
+    if (auto it = m->find("Wt-params"); it != m->end()) {
       // Parse and reencode Wt-params, so it's definitely safe
-      Http::Request::parseFormUrlEncoded(it->second[0], wtParams);
+      http::request::parseFormUrlEncoded(it->second[0], wtParams);
       m = &wtParams;
     }
     for (auto i = m->begin(); i != m->end(); ++i)
@@ -3126,7 +3213,7 @@ void WebRenderer::renderStyleSheet(fmt::memory_buffer &out, const WLinkedCssStyl
 
 //  page.setVar("STYLESHEETS", styleSheets.str());
 
-//  page.setVar("TITLE", WWebWidget::escapeText(app->title()).toUTF8());
+//  page.setVar("TITLE", WWebWidget::escapeText(app->title().toUTF8()));
 
 //  app->titleChanged_ = false;
 

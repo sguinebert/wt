@@ -83,7 +83,7 @@ public:
   virtual std::string authenticationScope() const override;
   virtual std::string redirectEndpoint() const override;
   virtual std::string redirectEndpointPath() const override;
-  virtual std::string authorizationEndpoint() const override;
+  virtual std::string_view authorizationEndpoint() const override;
   virtual std::string tokenEndpoint() const override;
   virtual std::string clientId() const override;
   virtual std::string clientSecret() const override;

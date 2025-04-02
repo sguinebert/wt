@@ -355,21 +355,22 @@ void WServer::addEntryPoint(EntryPointType type, ApplicationCreator callback,
   configuration().addEntryPoint(EntryPoint(type, callback, prependDefaultPath(path), favicon));
 }
 
+boost::unordered::concurrent_flat_map<std::string, WResource*> localResource_;
+#warning "big problem for local session resources in the router"
 void WServer::addResource(WResource *resource, const std::string& path)
 {
   bool success = configuration().tryAddResource(EntryPoint(resource, prependDefaultPath(path)));
   if (success)
     resource->setInternalPath(path);
   else {
-    //WString error(Wt::utf8("WServer::addResource() error: a static resource was already deployed on path '{0}'"));
     throw WServer::Exception(fmt::format("WServer::addResource() error: a static resource was already deployed on path '{}'", path));
   }
 
+  localResource_.try_emplace(resource->id(), resource);
+
 //  router_.get(path, [this, resource] (http::context& ctx) -> awaitable<void>
 //              {
-
 //                  ctx.status(200);
-
 //                  co_await resource->handle(&ctx);;
 //                  co_return;
 //              });

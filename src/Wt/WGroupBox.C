@@ -44,7 +44,7 @@ void WGroupBox::updateDom(DomElement& element, bool all)
     } /*else
       legend = DomElement::getForUpdate(id() + "l", DomElementType::LEGEND);*/
 
-    legend.setProperty(Wt::Property::InnerHTML, escapeText(title_).toUTF8());
+    legend.setProperty(Wt::Property::InnerHTML, escapeText(title_.toUTF8()));
     element.addChild(legend);
 
     titleChanged_ = false;

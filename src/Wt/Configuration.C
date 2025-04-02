@@ -36,10 +36,10 @@
 #include <process.h>
 #endif
 
-#if defined(WT_STD_CONF_LOCK) && defined(NEED_LOCK)
+#if defined(WT_STD_CONF_LOCK) //&& defined(NEED_LOCK)
 #define READ_LOCK std::shared_lock<std::shared_mutex> lock(mutex_)
 #define WRITE_LOCK std::unique_lock<std::shared_mutex> lock(mutex_)
-#elif defined(WT_BOOST_CONF_LOCK) && defined(NEED_LOCK)
+#elif defined(WT_BOOST_CONF_LOCK) //&& defined(NEED_LOCK)
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex_)
 #define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex_)
 #else
@@ -193,7 +193,7 @@ Configuration::Network Configuration::Network::fromString(const std::string &s)
     const auto slashPos = s.find('/');
     if (slashPos == std::string::npos) {
         AsioWrapper::error_code ec;
-        const auto address = AsioWrapper::asio::ip::address::from_string(s, ec);
+        const auto address = AsioWrapper::asio::ip::make_address(s, ec);
         if (ec) {
             throw std::invalid_argument("'" + s + "' is not a valid IP address");
         }
@@ -201,7 +201,7 @@ Configuration::Network Configuration::Network::fromString(const std::string &s)
         return Network { address, prefixLength };
     } else {
         AsioWrapper::error_code ec;
-        const auto address = AsioWrapper::asio::ip::address::from_string(s.substr(0, slashPos), ec);
+        const auto address = AsioWrapper::asio::ip::make_address(s.substr(0, slashPos), ec);
         if (ec) {
             throw std::invalid_argument("'" + s + "' is not a valid IP address");
         }
@@ -287,6 +287,7 @@ void Configuration::reset()
     persistentSessions_ = false;
     splitScript_ = false;
     maxPlainSessionsRatio_ = 1;
+    maxPlainSessions_ = 0;
     ajaxPuzzle_ = false;
     sessionIdCookie_ = false;
     cookieChecks_ = true;
@@ -486,7 +487,7 @@ std::vector<Configuration::Network> Configuration::trustedProxies() const {
 bool Configuration::isTrustedProxy(const std::string &ipAddress) const {
     READ_LOCK;
     AsioWrapper::error_code ec;
-    const auto address = AsioWrapper::asio::ip::address::from_string(ipAddress, ec);
+    const auto address = AsioWrapper::asio::ip::make_address(ipAddress, ec);
     if (ec) {
         return false;
     }
@@ -566,6 +567,12 @@ float Configuration::maxPlainSessionsRatio() const
 {
     READ_LOCK;
     return maxPlainSessionsRatio_;
+}
+
+int Configuration::maxPlainSessions() const
+{
+    READ_LOCK;
+    return maxPlainSessions_;
 }
 
 bool Configuration::ajaxPuzzle() const
@@ -1190,6 +1197,12 @@ void Configuration::readApplicationSettings(xml_node<> *app)
 
     if (!plainAjaxSessionsRatioLimit.empty())
         maxPlainSessionsRatio_ = Utils::stof(plainAjaxSessionsRatioLimit);
+
+    std::string maxPlain
+        = singleChildElementValue(app, "max-plain-session", "20");
+
+    if (!maxPlain.empty())
+        maxPlainSessionsRatio_ = Utils::stoi(maxPlain);
 
     setBoolean(app, "ajax-puzzle", ajaxPuzzle_);
     setInt(app, "indicator-timeout", indicatorTimeout_);

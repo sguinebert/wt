@@ -507,7 +507,7 @@ void WebSession::setState(State state, int timeout)
 
 std::string WebSession::sessionQuery() const
 {
-  std::string result ="?wtd=" + DomElement::urlEncodeS(sessionId_);
+  std::string result ="?wtd=" + DomElement::urlEncodeS(sessionId_, ada::character_sets::QUERY_PERCENT_ENCODE);
   if (type() == EntryPointType::WidgetSet)
     result += "&wtt=widgetset";
   return result;
@@ -572,89 +572,32 @@ void WebSession::init(const WebRequest& request)
 bool WebSession::useUglyInternalPaths() const
 {
 #ifndef WT_TARGET_JAVA
-  /*
+    /*
    * We need ugly ?_= internal paths if the server does not route
    * /app/foo to an application deployed as /app/
    */
-  if (applicationName_.empty() && controller_->server()) {
-    Configuration& conf = controller_->configuration();
-    return conf.useSlashExceptionForInternalPaths();
-  } else
-    return false;
+    if (applicationName_.empty() && controller_->server()) {
+        Configuration& conf = controller_->configuration();
+        return conf.useSlashExceptionForInternalPaths();
+    } else
+        return false;
 #else
-  return false;
+    return false;
 #endif
 }
 
 std::string WebSession::bootstrapUrl(const WebResponse& /*response*/, BootstrapOption option) const
 {
-  switch (option) {
-  case BootstrapOption::KeepInternalPath: {
-    std::string url;
-
-    std::string internalPath
-      = app_ ? app_->internalPath() : env_->internalPath();
-
-    if (useUglyInternalPaths()) {
-      if (internalPath.length() > 1)
-	url = "?_=" + DomElement::urlEncodeS(internalPath, "#/");
-
-      if (isAbsoluteUrl(applicationUrl_))
-	url = applicationUrl_ + url;
-    } else {
-      if (!isAbsoluteUrl(applicationUrl_)) {
-	/*
-	 * Java application servers use ";jsessionid=..." which generates
-	 * URLs relative to the current directory, not current filename
-	 * (unlike '?=...')
-	 *
-	 * Therefore we start with the current 'filename', this does no harm
-	 * for C++ well behaving servers either.
-	 */
-	if (internalPath.length() > 1) {
-      std::string lastPart = internalPath.substr(internalPath.rfind('/') + 1);
-
-	  url = ""; /* lastPart; */
-	} else
-	  url = applicationName_;
-      } else {
-	if (applicationName_.empty() && internalPath.length() > 1)
-	  internalPath = internalPath.substr(1);
-
-	url = applicationUrl_ + internalPath;
-      }
-    }
-
-    return appendSessionQuery(url);
-  }
-  case BootstrapOption::ClearInternalPath: {
-    std::string url;
-    if (applicationName_.empty()) {
-      url = fixRelativeUrl(".");
-      url = url.substr(0, url.length() - 1);
-    } else
-      url = fixRelativeUrl(applicationName_);
-
-    return appendSessionQuery(url);
-  }
-  default:
-    assert(false);
-  }
-
-  return std::string();
-}
-
-std::string WebSession::bootstrapUrl(http::context */*context*/, BootstrapOption option) const
-{
     switch (option) {
     case BootstrapOption::KeepInternalPath: {
         std::string url;
 
-        std::string internalPath = app_ ? app_->internalPath() : env_->internalPath();
+        std::string internalPath
+            = app_ ? app_->internalPath() : env_->internalPath();
 
         if (useUglyInternalPaths()) {
             if (internalPath.length() > 1)
-                url = "?_=" + DomElement::urlEncodeS(internalPath, "#/");
+                //url = "?_=" + DomElement::urlEncodeS(internalPath, "#/");
 
             if (isAbsoluteUrl(applicationUrl_))
                 url = applicationUrl_ + url;
@@ -668,14 +611,12 @@ std::string WebSession::bootstrapUrl(http::context */*context*/, BootstrapOption
                  * Therefore we start with the current 'filename', this does no harm
                  * for C++ well behaving servers either.
                  */
-                if (internalPath.length() > 1)
-                {
+                if (internalPath.length() > 1) {
                     std::string lastPart = internalPath.substr(internalPath.rfind('/') + 1);
 
                     url = ""; /* lastPart; */
-                } else {
+                } else
                     url = applicationName_;
-                }
             } else {
                 if (applicationName_.empty() && internalPath.length() > 1)
                     internalPath = internalPath.substr(1);
@@ -683,6 +624,66 @@ std::string WebSession::bootstrapUrl(http::context */*context*/, BootstrapOption
                 url = applicationUrl_ + internalPath;
             }
         }
+
+        return appendSessionQuery(url);
+    }
+    case BootstrapOption::ClearInternalPath: {
+        std::string url;
+        if (applicationName_.empty()) {
+            url = fixRelativeUrl(".");
+            url = url.substr(0, url.length() - 1);
+        } else
+            url = fixRelativeUrl(applicationName_);
+
+        return appendSessionQuery(url);
+    }
+    default:
+        assert(false);
+    }
+
+    return std::string();
+}
+
+std::string WebSession::bootstrapUrl(http::context */*context*/, BootstrapOption option) const
+{
+    switch (option) {
+    case BootstrapOption::KeepInternalPath: {
+        std::string url;
+
+        std::string internalPath = app_ ? app_->internalPath() : env_->internalPath();
+
+/*useUglyInternalPaths() should be deprecated : the reverse proxy should be configured to route /app/foo correctly nowaday*/
+        // if (useUglyInternalPaths()) {
+        //     if (internalPath.length() > 1)
+        //         url = "?_=" + DomElement::urlEncodeS(internalPath, "#/");
+
+        //     if (isAbsoluteUrl(applicationUrl_))
+        //         url = applicationUrl_ + url;
+        // } else {
+        if (!isAbsoluteUrl(applicationUrl_)) {
+            /*
+                 * Java application servers use ";jsessionid=..." which generates
+                 * URLs relative to the current directory, not current filename
+                 * (unlike '?=...')
+                 *
+                 * Therefore we start with the current 'filename', this does no harm
+                 * for C++ well behaving servers either.
+                 */
+            if (internalPath.length() > 1)
+            {
+                std::string lastPart = internalPath.substr(internalPath.rfind('/') + 1);
+
+                url = ""; /* lastPart; */
+            } else {
+                url = applicationName_;
+            }
+        } else {
+            if (applicationName_.empty() && internalPath.length() > 1)
+                internalPath = internalPath.substr(1);
+
+            url = applicationUrl_ + internalPath;
+        }
+        //}
 
         return appendSessionQuery(url);
     }
@@ -843,24 +844,25 @@ std::string WebSession::bookmarkUrl(const std::string& internalPath) const
 
 std::string WebSession::appendInternalPath(const std::string& baseUrl, const std::string& internalPath) const
 {
-  if (internalPath.empty() || internalPath == "/")
-    if (baseUrl.empty())
-      if (applicationName_.empty())
-	return ".";
-      else
-        return applicationName_;
-    else
-      return baseUrl;
-  else {
-    if (useUglyInternalPaths())
-      return baseUrl + "?_=" + DomElement::urlEncodeS(internalPath, "#/");
+    if (internalPath.empty() || internalPath == "/")
+        if (baseUrl.empty())
+            if (applicationName_.empty())
+                return ".";
+            else
+                return applicationName_;
+        else
+            return baseUrl;
     else {
-      if (applicationName_.empty())
-	return baseUrl + DomElement::urlEncodeS(internalPath.substr(1), "#/");
-      else
-	return baseUrl + DomElement::urlEncodeS(internalPath, "#/");
+        // if (useUglyInternalPaths()) // deprecated with modern reverse proxies
+        //     return baseUrl + "?_=" + DomElement::urlEncodeS(internalPath, "#/");
+        // else {
+
+        if (applicationName_.empty()) // it is unnecessary to preserve # in a path...
+            return baseUrl + DomElement::urlEncodeS(internalPath.substr(1), ada::character_sets::PATH_PERCENT_ENCODE);//, "#/");
+        else
+            return baseUrl + DomElement::urlEncodeS(internalPath, ada::character_sets::PATH_PERCENT_ENCODE); //, "#/");
+        //}
     }
-  }
 }
 
 bool WebSession::start(WebResponse *response, EntryPoint *ep)
@@ -1480,10 +1482,6 @@ awaitable<void> WebSession::doRecursiveEventLoop()
 {
   Handler *handler = WebSession::Handler::instance();
 
-#ifndef WT_BOOST_THREADS
-  LOG_ERROR("cannot do recursive event loop without threads");
-#else
-
 #ifdef WT_TARGET_JAVA
   if (handler->request() && !WebController::isAsyncSupported())
     throw WException("Recursive eventloop requires a Servlet 3.0 "
@@ -1508,18 +1506,6 @@ awaitable<void> WebSession::doRecursiveEventLoop()
       app_->triggerUpdate();
 
   if (handler->response()) {
-    if (!env_->ajax()) //move elsewhere
-    {
-      try {
-        co_await checkTimers();
-      } catch (std::exception& e) {
-        LOG_ERROR("Exception while triggering timers {}", e.what());
-        RETHROW(e);
-      } catch (...) {
-        LOG_ERROR("Exception while triggering timers");
-        throw;
-      }
-    }
     handler->session()->render(*handler);
   }
 
@@ -1591,7 +1577,6 @@ awaitable<void> WebSession::doRecursiveEventLoop()
   //recursiveEventDone_.notify_one();
 
   recursiveEventHandler_ = prevRecursiveEventHandler;
-#endif // WT_BOOST_THREADS
 }
 
 void WebSession::expire()
@@ -1609,20 +1594,16 @@ bool WebSession::unlockRecursiveEventLoop()
    */
   Handler *handler = WebSession::Handler::instance();
 
-  recursiveEventHandler_->setRequest(handler->request(), handler->response());
-  handler->setRequest(nullptr, nullptr);
-
   recursiveEventHandler_->setRequest(handler->context());
   handler->setRequest(nullptr);
 
   newRecursiveEvent_ = new WEvent::Impl(recursiveEventHandler_);
 
-#ifdef WT_BOOST_THREADS
   //recursiveEvent_.notify_one();
   if(suspended_handler_)
     suspended_handler_(); //unlock externalNotify
   suspended_handler_ = nullptr;
-#endif
+
 
   return true;
 }
@@ -1894,9 +1875,8 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
             auto resourceE = request.get("resource");
             if (resourceE == "blank") {
                 context->type("text/html");
-                context->buffer().append(
-                    "<html><head><title>bhm</title></head>"
-                    "<body> </body></html>");
+                context->buffer().append("<html><head><title>bhm</title></head>"
+                                         "<body></body></html>");
             } else {
                 LOG_INFO("not starting session for unexpected request type.");
                 context->type("text/html");
@@ -2065,7 +2045,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
           else if (requestForResource && resourceE == "blank")
           {
             handler.context()->type("text/html");
-            handler.context()->buffer().append("<html><head><title>bhm</title></head><body> </body></html>");
+            handler.context()->buffer().append("<html><head><title>bhm</title></head><body></body></html>");
             break;
           }
           else
@@ -2132,7 +2112,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
           doNotify = false;
 #endif
         }
-
+        /* Private resource will be served as a WEvent via app_->notify() -> session->notify() */
         if (doNotify) {
           co_await app_->notify(WEvent(WEvent::Impl(&handler)));
           if (handler.context() && !requestForResource) {
@@ -2489,10 +2469,6 @@ void WebSession::pushUpdates()
         catch (std::exception& e)
         {
             LOG_ERROR("Exception in WApplication::notify(): {}", e.what());
-
-#ifdef WT_TARGET_JAVA
-            e.printStackTrace();
-#endif // WT_TARGET_JAVA
         }
         catch (...)
         {
@@ -2519,25 +2495,21 @@ void WebSession::pushUpdates()
 //        m.setResponseType(WebResponse::ResponseType::Update);
         //app_->notify(WEvent(WEvent::Impl((WebResponse *)&m)));
         //co_await app_->notify(WEvent(WEvent::Impl(webSocket_ctx_)));
-        {
-            try
-            {
-            renderer_.serveResponse(webSocket_ctx_);
-            }
-            catch (std::exception& e)
-            {
-            LOG_ERROR("Exception in WApplication::notify(): {}", e.what());
-
-#ifdef WT_TARGET_JAVA
-            e.printStackTrace();
-#endif // WT_TARGET_JAVA
-            }
-            catch (...)
-            {
-            LOG_ERROR("Exception in WApplication::notify()");
-            }
-            //co_return;
-        }
+          {
+              try
+              {
+                  renderer_.serveResponse(webSocket_ctx_);
+              }
+              catch (std::exception& e)
+              {
+                  LOG_ERROR("Exception in WApplication::notify(): {}", e.what());
+              }
+              catch (...)
+              {
+                  LOG_ERROR("Exception in WApplication::notify()");
+              }
+              //co_return;
+          }
       }
 
       updatesPending_ = false;
@@ -2764,6 +2736,7 @@ awaitable<void> WebSession::externalNotify(const WEvent::Impl& event)
   }
 }
 
+//private resouces are retrieved here and served (handle()) not in the webController
 awaitable<void> WebSession::notify(const WEvent& event)
 {
  if (event.impl_.response)
@@ -2793,18 +2766,6 @@ awaitable<void> WebSession::notify(const WEvent& event)
       WT_CALL_FUNCTION(event.impl_.function);
 
       if (event.impl_.handler->context()){
-        if (!env_->ajax()) //move elsewhere
-        {
-          try {
-            co_await checkTimers();
-          } catch (std::exception& e) {
-            LOG_ERROR("Exception while triggering timers {}", e.what());
-            RETHROW(e);
-          } catch (...) {
-            LOG_ERROR("Exception while triggering timers");
-            throw;
-          }
-        }
         render(*event.impl_.handler);
       }
     }
@@ -2853,18 +2814,6 @@ awaitable<void> WebSession::notify(const WEvent& event)
     WebSession::Handler::instance()->setRequest(context);
 
   if (event.impl_.renderOnly) {
-    if (!env_->ajax()) //move elsewhere
-    {
-      try {
-        co_await checkTimers();
-      } catch (std::exception& e) {
-        LOG_ERROR("Exception while triggering timers {}", e.what());
-        RETHROW(e);
-      } catch (...) {
-        LOG_ERROR("Exception while triggering timers");
-        throw;
-      }
-    }
     render(*handler);
     co_return;
   }
@@ -2875,56 +2824,31 @@ awaitable<void> WebSession::notify(const WEvent& event)
    * Capture JavaScript error server-side.
    */
   if (requestE == "jserror") {
-    auto err = context->getParameter("err");
-    if (!err.empty()) {
-      app_->handleJavaScriptError(err);
-    } else {
-      // Forming a custom request with missing err parameter should not crash the server,
-      // but our JavaScript should not produce these requests.
-      LOG_ERROR("malformed jserror request: missing err parameter");
-      app_->handleJavaScriptError("unknown error");
-    }
-    renderer_.setJSSynced(false);
-    if (!env_->ajax()) //move elsewhere
-    {
-      try {
-        co_await checkTimers();
-      } catch (std::exception& e) {
-        LOG_ERROR("Exception while triggering timers {}", e.what());
-        RETHROW(e);
-      } catch (...) {
-        LOG_ERROR("Exception while triggering timers");
-        throw;
+      auto err = context->getParameter("err");
+      if (!err.empty()) {
+          app_->handleJavaScriptError(err);
+      } else {
+          // Forming a custom request with missing err parameter should not crash the server,
+          // but our JavaScript should not produce these requests.
+          LOG_ERROR("malformed jserror request: missing err parameter");
+          app_->handleJavaScriptError("unknown error");
       }
-    }
-    render(*handler);
-    co_return;
+      renderer_.setJSSynced(false);
+      render(*handler);
+      co_return;
   }
 
   auto pageIdE = context->getParameter("pageId");
-  if (!pageIdE.empty() && pageIdE != std::to_string(renderer_.pageId())) {
+  if (!pageIdE.empty() && Utils::stoi(pageIdE) != renderer_.pageId()) {
     context->res().setContentType("text/javascript; charset=UTF-8");
-    context->out() << "{}";
+    context->res() << "{}";
     handler->flushResponse();
     co_return;
   }
 
   switch (state_) {
   case State::JustCreated:
-    if (!env_->ajax()) //move elsewhere
-    {
-      try {
-        co_await checkTimers();
-      } catch (std::exception& e) {
-        LOG_ERROR("Exception while triggering timers {}", e.what());
-        RETHROW(e);
-      } catch (...) {
-        LOG_ERROR("Exception while triggering timers");
-        throw;
-      }
-    }
     render(*handler);
-
     break;
   case State::ExpectLoad:
   case State::Loaded:
@@ -2932,368 +2856,345 @@ awaitable<void> WebSession::notify(const WEvent& event)
     /*
      * Excluding resources here ?
      */
-    if (((requestE != "resource"))
-        && context->responseType() == http::ResponseType::Page) {
-      /*
-       * Prevent a session fixation attack and a session stealing attack:
-       * - user agent has changed: close the session
-       * - remote IP address changes: only allowed if the session cookie
-       *   is not empty and matches.
-       * - prevent attack on ajax sessions:
-       *   - use random initial ackUpdateId to prevent attacks on ajax sessions
-       *     (in the case somehow the session Id got stolen): this ackUpdateId
-       *     is not exposed in a referer
-       *   - tie script with unique id to page to prevent attack on a ajax
-       *     session: this scriptId is not exposed in a referer
-       *
-       * Note: this may interfere with the use-case for the undocumented
-       *       persistent session configuration option
-       */
-      if (!env_->agentIsIE()) {
-        auto useragent = context->getHeader("User-Agent");
-        if (useragent != env_->userAgent()) //str(handler.request()->headerValue("User-Agent")
-        {
-          LOG_SECURE("change of user-agent not allowed.");
-          LOG_INFO("old user agent: {}", env_->userAgent());
-          LOG_INFO("new user agent: {}", useragent);
-          serveError(403, *handler, "Forbidden");
-          co_return;
-        }
-      }
-
-      auto ca = clientAddress(context->req(), controller_->configuration());// context->req().clientAddress(controller_->configuration());
-
-      if (ca != env_->clientAddress()) {
-        bool isInvalid = sessionIdCookie_.empty();
-
-        if (!isInvalid) {
-          auto cookie = context->getHeader("Cookie");
-          if (cookie.find("Wt" + sessionIdCookie_) == std::string_view::npos)
-            isInvalid = true;
-        }
-
-        if (isInvalid) {
-          LOG_SECURE("change of IP address ({} -> {}) not allowed.", env_->clientAddress(), ca);
-          serveError(403, *handler, "Forbidden");
-          co_return;
-        }
-      }
-    }
-
-    if (sessionIdCookieChanged_) {
-      auto cookie = context->getHeader("Cookie");
-      if (cookie.find("Wt" + sessionIdCookie_) == std::string::npos) {
-        sessionIdCookie_.clear();
-        LOG_INFO("session id cookie not working");
-      }
-
-      sessionIdCookieChanged_ = false;
-    }
-
-    if (context->responseType() == http::ResponseType::Script) {
-      auto sidE = context->getParameter("sid");
-      if (sidE != std::to_string(renderer_.scriptId())) {
-        std::cerr << "sidE : " << sidE << "ded " << renderer_.scriptId() << std::endl;
-        throw WException("Script id mismatch");
-      }
-
-      if (context->getParameter("skeleton").empty()) {
-        if (!env_->ajax()) {
-          env_->enableAjax(context);
-          app_->enableAjax();
-          if (env_->internalPath().length() > 1)
-            co_await changeInternalPath(env_->internalPath(), context);
-        } else {
-          std::string hashE { context->getParameter("_") };
-          if (!hashE.empty())
-            co_await changeInternalPath(hashE, context);
-        }
-      }
-      if (!env_->ajax()) //move elsewhere
-      {
-        try {
-          co_await checkTimers();
-        } catch (std::exception& e) {
-          LOG_ERROR("Exception while triggering timers {}", e.what());
-          RETHROW(e);
-        } catch (...) {
-          LOG_ERROR("Exception while triggering timers");
-          throw;
-        }
-      }
-      render(*handler);
-    } else {
-      // a normal request to a loaded application
-      try {
-        if (context->postDataExceeded())
-          co_await app_->requestTooLarge().emit(context->postDataExceeded());
-      } catch (std::exception& e) {
-        LOG_ERROR("Exception in WApplication::requestTooLarge {}", e.what());
-        RETHROW(e);
-      } catch (...) {
-        LOG_ERROR("Exception in WApplication::requestTooLarge");
-        throw;
-      }
-
-      std::string hashE  {context->getParameter("_")};
-
-      WResource *resource = nullptr;
-      if (requestE.empty()) {
-        if (auto subpath = context->pathInfo(applicationUrl_); !subpath.empty())
-          resource = app_->decodeExposedResource("/path/" + Utils::prepend(std::string(subpath), '/'));
-
-        if (!resource && !hashE.empty())
-          resource = app_->decodeExposedResource("/path/" + hashE);
-      }
-
-      std::string resourceE { context->getParameter("resource") };
-      auto signalE = getSignal(context, "");
-      auto verE = context->getParameter("ver");
-
-      if (!signalE.empty())
-        progressiveBoot_ = false;
-
-      if (resource || (requestE == "resource" && !resourceE.empty())) {
-        if (resourceE == "blank") {
-          context->type("text/html");
-          context->out() <<
-            "<html><head><title>bhm</title></head>"
-            "<body> </body></html>";
-          handler->flushResponse();
-        } else {
-          if (!resource) {
-            unsigned long ver = 0;
-            try {
-              if (!verE.empty())
-                ver = Utils::stoul(verE);
-            } catch (std::exception& e) {
-              ver = 0;
-            }
-            resource = app_->decodeExposedResource(resourceE, ver);
-           }
-
-          if (resource) {
-            try {
-              co_await resource->handle(context);
-              handler->setRequest(nullptr, nullptr);
-              handler->setRequest(nullptr);
-            } catch (std::exception& e) {
-              LOG_ERROR("Exception while streaming resource {}", e.what());
-              RETHROW(e);
-            } catch (...) {
-              LOG_ERROR("Exception while streaming resource");
-              throw;
-            }
-          } else {
-            LOG_ERROR("decodeResource(): resource '{}' not exposed", resourceE);
-            context->status(404);
-            context->type("text/html");
-            context->out() << "<html><body><h1>Page not found.</h1></body></html>";
-            handler->flushResponse();
-          }
-        }
-      } else {
-        env_->updateUrlScheme(context);
-
-    if (!signalE.empty()) {
-	  /*
-	   * Check the ackIdE. This is required for a request carrying a signal.
-	   */
-      auto ackIdE = context->getParameter("ackId");
-
-      bool invalidAckId = env_->ajax() && !context->isWebSocketMessage();
-
-	  WebRenderer::AckState ackState = WebRenderer::CorrectAck;
-      if (invalidAckId && !ackIdE.empty()) {
-	    try {
-          ackState = renderer_.ackUpdate(static_cast<unsigned int>(Utils::stoul(ackIdE)));
-	      if (ackState != WebRenderer::BadAck)
-            invalidAckId = false;
-	    } catch (const std::exception& e) {
-	    }
-	  }
-
-      if (invalidAckId)
-      {
-        if (ackIdE.empty())
-        {
-          LOG_SECURE("missing ackId");
-        }
-        else {
-          LOG_SECURE("invalid ackId");
-        }
-        serveError(403, *handler, "Forbidden");
-        co_return;
-	  }
-
-      if (signalE == "poll" &&
-	      ackState != WebRenderer::CorrectAck &&
-          renderer_.jsSynced())
-      {
-        LOG_DEBUG("Ignoring poll with incorrect ack -- was rescheduled in browser?");
-        handler->flushResponse();
-        co_return;
-	  }
-	  
-	  /*
-	   * In case we are not using websocket but long polling, the client
-	   * aborts the previous poll request to indicate a client-side event.
-	   *
-	   * So we also discard the previous asyncResponse_ server-side.
-	   * We don't do this if we have a websocket request -- it might be
-	   * a race between the websocket being established and a poll
-	   * request.
-	   */
-	  if (asyncResponse_) {
-	    asyncResponse_->flush();
-	    asyncResponse_ = nullptr;
-	  }
-
-      if (signalE == "poll") {
-//#ifdef WT_BOOST_THREADS
-//	    /*
-//	     * If we cannot do async I/O, we cannot suspend the current
-//	     * request and return. Thus we need to block the thread, waiting
-//	     * for a push update. We wait at most twice as long as the client
-//	     * will renew this poll connection.
-//	     */
-//        if (!WebController::isAsyncSupported() && renderer_.jsSynced())
-//        {
-//          updatesPendingEvent_.notify_one();
-//          if (!updatesPending_)
-//          {
-//#ifndef WT_TARGET_JAVA
-//            updatesPendingEvent_.wait(handler->lock());
-//#else
-//            try {
-//                updatesPendingEvent_.timed_wait
-//                    (controller_->configuration().serverPushTimeout() * 2);
-//            } catch (InterruptedException& e) { }
-//#endif // WT_TARGET_JAVA
-//          }
-//          if (!updatesPending_) {
-//            handler->flushResponse();
-//            co_return;
-//          }
-//        }
-//#endif // WT_BOOST_THREADS
-
-	    // LOG_DEBUG("poll: " << updatesPending_ << ", " << (asyncResponse_ ? "async" : "no async"));
-        if (!updatesPending_ && renderer_.jsSynced())
-        {
-           /*
-	       * If we are ignoring many poll requests (because we are
-	       * assuming to have a websocket), we will need to assume
-	       * the web socket isn't working properly.
+      if (((requestE != "resource"))
+          && context->responseType() == http::ResponseType::Page) {
+          /*
+           * Prevent a session fixation attack and a session stealing attack:
+           * - user agent has changed: close the session
+           * - remote IP address changes: only allowed if the session cookie
+           *   is not empty and matches.
+           * - prevent attack on ajax sessions:
+           *   - use random initial ackUpdateId to prevent attacks on ajax sessions
+           *     (in the case somehow the session Id got stolen): this ackUpdateId
+           *     is not exposed in a referer
+           *   - tie script with unique id to page to prevent attack on a ajax
+           *     session: this scriptId is not exposed in a referer
+           *
+           * Note: this may interfere with the use-case for the undocumented
+           *       persistent session configuration option
            */
-            if (!webSocket_ || (pollRequestsIgnored_ == 2))
-            {
-                if (webSocket_) {
-                    LOG_INFO("discarding broken websocket");
-                    webSocket_->flush();
-                    webSocket_ = nullptr;
-                }
+          if (!env_->agentIsIE()) {
+              auto useragent = context->getHeader("User-Agent");
+              if (useragent != env_->userAgent()) //str(handler.request()->headerValue("User-Agent")
+              {
+                  LOG_SECURE("change of user-agent not allowed.");
+                  LOG_INFO("old user agent: {}", env_->userAgent());
+                  LOG_INFO("new user agent: {}", useragent);
+                  serveError(403, *handler, "Forbidden");
+                  co_return;
+              }
+          }
 
-                pollRequestsIgnored_ = 0;
-                asyncResponse_ = handler->context(); //handler.response();
-                handler->setRequest(nullptr);
-                //handler.setRequest(nullptr, nullptr);
-            } else {
-                ++pollRequestsIgnored_;
-                LOG_DEBUG("ignored poll request (#{})", pollRequestsIgnored_);
-            }
-	    } else
-	      pollRequestsIgnored_ = 0;
+          auto ca = clientAddress(context->req(), controller_->configuration());// context->req().clientAddress(controller_->configuration());
+
+          if (ca != env_->clientAddress()) {
+              bool isInvalid = sessionIdCookie_.empty();
+
+              if (!isInvalid) {
+                  auto cookie = context->getHeader("Cookie");
+                  if (cookie.find("Wt" + sessionIdCookie_) == std::string_view::npos)
+                      isInvalid = true;
+              }
+
+              if (isInvalid) {
+                  LOG_SECURE("change of IP address ({} -> {}) not allowed.", env_->clientAddress(), ca);
+                  serveError(403, *handler, "Forbidden");
+                  co_return;
+              }
+          }
       }
-//      else
-//      {
-//#ifdef WT_BOOST_THREADS
-//	    if (!WebController::isAsyncSupported()) {
-//	      updatesPending_ = false;
-//	      updatesPendingEvent_.notify_one();
-//	    }
-//#endif
-//	  }
 
-      if (handler->context()) {
-        LOG_DEBUG("signal: {}", signalE);
+      if (sessionIdCookieChanged_) {
+          auto cookie = context->getHeader("Cookie");
+          if (cookie.find("Wt" + sessionIdCookie_) == std::string::npos) {
+              sessionIdCookie_.clear();
+              LOG_INFO("session id cookie not working");
+          }
 
-	    /*
-	     * Special signal values:
-	     * 'poll' : long poll
-	     * 'none' : no event, but perhaps a synchronization
-	     * 'load' : load invisible content
-	     * 'keepAlive' : no event, keep alive
-	     */
+          sessionIdCookieChanged_ = false;
+      }
 
-        try {
-          handler->nextSignal = -1;
-          co_await notifySignal(event);
-	    } catch (std::exception& e) {
-	      LOG_ERROR("error during event handling: {}", e.what());
-	      RETHROW(e);
-	    } catch (...) {
-	      LOG_ERROR("error during event handling");
-	      throw;
-	    }
-	  }
-	}
+      if (context->responseType() == http::ResponseType::Script) {
+          auto sidE = context->getParameter("sid");
+          if (Utils::stoul(sidE) != renderer_.scriptId()) {
+              std::cerr << "sidE : " << sidE << "ded " << renderer_.scriptId() << std::endl;
+              throw WException("Script id mismatch");
+          }
 
-    if (handler->context()
-        && handler->context()->responseType() == http::ResponseType::Page
-	    && (!env_->ajax() ||
-        !controller_->configuration().reloadIsNewSession()))
-    {
-	  app_->domRoot()->setRendered(false);
-
-      env_->parameters_ = handler->context()->req().getParameters();// handler->context()->getParameterMap();
-
-      if (!hashE.empty())
-        co_await changeInternalPath(hashE, context);
-      else if (auto subpath = context->pathInfo(applicationUrl_); !subpath.empty()) {
-        co_await changeInternalPath(std::string(subpath), context);
-	  } else
-        co_await changeInternalPath("", context);
-	}
-
-    if (signalE.empty()) {
-	  if (type() == EntryPointType::WidgetSet) {
-        LOG_ERROR("bogus request: missing signal, discarding");
-        handler->flushResponse();
-        co_return;
-	  }
-
-	  LOG_INFO("refreshing session");
-
-	  flushBootStyleResponse();
-
-      if (handler->context()) {
-        env_->parameters_ = context->req().getParameters();// context->getParameterMap();
-        env_->updateHostName(context);
-	  }
-	    app_->refresh();
-	}
-
-    if (handler->context() && !recursiveEventHandler_)
-    {
-        if (!env_->ajax()) //move elsewhere
-        {
-            try {
-              co_await checkTimers();
-            } catch (std::exception& e) {
-              LOG_ERROR("Exception while triggering timers {}", e.what());
-              RETHROW(e);
-            } catch (...) {
-              LOG_ERROR("Exception while triggering timers");
+          if (context->getParameter("skeleton").empty()) {
+              if (!env_->ajax()) {
+                  env_->enableAjax(context);
+                  app_->enableAjax();
+                  if (env_->internalPath().length() > 1)
+                      co_await changeInternalPath(env_->internalPath(), context);
+              } else {
+                  std::string hashE { context->getParameter("_") };
+                  if (!hashE.empty())
+                      co_await changeInternalPath(hashE, context);
+              }
+          }
+          render(*handler);
+      } else {
+          // a normal request to a loaded application
+          try {
+              if (context->postDataExceeded())
+                  co_await app_->requestTooLarge().emit(context->postDataExceeded());
+          } catch (std::exception& e) {
+              LOG_ERROR("Exception in WApplication::requestTooLarge {}", e.what());
+              RETHROW(e); //is this necessary ?
+          } catch (...) {
+              LOG_ERROR("Exception in WApplication::requestTooLarge");
               throw;
-            }
-        }
-       render(*handler);
-    }
+          }
+
+          std::string hashE  {context->getParameter("_")};
+
+          //this is where the private resources are retrieved from
+          WResource *resource = nullptr;
+          if (requestE.empty()) {
+              if (auto subpath = context->pathInfo(applicationUrl_); !subpath.empty())
+                  resource = app_->decodeExposedResource("/path/" + Utils::prepend(std::string(subpath), '/'));
+
+              if (!resource && !hashE.empty())
+                  resource = app_->decodeExposedResource("/path/" + hashE);
+          }
+
+          std::string resourceE { context->getParameter("resource") };
+          auto signalE = getSignal(context, "");
+          auto verE = context->getParameter("ver");
+
+          if (!signalE.empty())
+              progressiveBoot_ = false;
+
+          if (resource || (requestE == "resource" && !resourceE.empty())) {
+              if (resourceE == "blank") {
+                  context->type("text/html");
+                  context->res() << "<html><head><title>bhm</title></head><body></body></html>";
+                  handler->flushResponse();
+              } else {
+                  if (!resource) {
+                      unsigned long ver = 0;
+                      try {
+                          if (!verE.empty())
+                              ver = Utils::stoul(verE);
+                      } catch (std::exception& e) {
+                          ver = 0;
+                      }
+                      //this is where the private resources are retrieved from
+                      //(not like a global resource that is shared at server level)
+                      resource = app_->decodeExposedResource(resourceE, ver);
+                  }
+
+                  if (resource) {
+                      try {
+                          co_await resource->handle(context);
+                          handler->setRequest(nullptr, nullptr);
+                          handler->setRequest(nullptr);
+                      } catch (std::exception& e) {
+                          LOG_ERROR("Exception while streaming resource {}", e.what());
+                          RETHROW(e);
+                      } catch (...) {
+                          LOG_ERROR("Exception while streaming resource");
+                          throw;
+                      }
+                  } else {
+                      LOG_ERROR("decodeResource(): resource '{}' not exposed", resourceE);
+                      context->status(404);
+                      context->type("text/html");
+                      context->res() << "<html><body><h1>Page not found.</h1></body></html>";
+                      handler->flushResponse();
+                  }
+              }
+          } else {
+              env_->updateUrlScheme(context);
+
+              if (!signalE.empty()) {
+                  /*
+                   * Check the ackIdE. This is required for a request carrying a signal.
+                   */
+                  auto ackIdE = context->getParameter("ackId");
+
+                  bool invalidAckId = env_->ajax() && !context->isWebSocketMessage();
+
+                  WebRenderer::AckState ackState = WebRenderer::CorrectAck;
+                  if (invalidAckId && !ackIdE.empty()) {
+                      try {
+                          ackState = renderer_.ackUpdate(static_cast<unsigned int>(Utils::stoul(ackIdE)));
+                          if (ackState != WebRenderer::BadAck)
+                              invalidAckId = false;
+                      } catch (const std::exception& e) {
+                      }
+                  }
+
+                  if (invalidAckId)
+                  {
+                      if (ackIdE.empty())
+                      {
+                          LOG_SECURE("missing ackId");
+                      }
+                      else {
+                          LOG_SECURE("invalid ackId");
+                      }
+                      serveError(403, *handler, "Forbidden");
+                      co_return;
+                  }
+
+                  if (signalE == "poll" &&
+                      ackState != WebRenderer::CorrectAck &&
+                      renderer_.jsSynced())
+                  {
+                      LOG_DEBUG("Ignoring poll with incorrect ack -- was rescheduled in browser?");
+                      handler->flushResponse();
+                      co_return;
+                  }
+
+                  /*
+                   * In case we are not using websocket but long polling, the client
+                   * aborts the previous poll request to indicate a client-side event.
+                   *
+                   * So we also discard the previous asyncResponse_ server-side.
+                   * We don't do this if we have a websocket request -- it might be
+                   * a race between the websocket being established and a poll
+                   * request.
+                   */
+                  if (asyncResponse_) {
+                      asyncResponse_->flush();
+                      asyncResponse_ = nullptr;
+                  }
+
+                  if (signalE == "poll") {
+                  //#ifdef WT_BOOST_THREADS
+                  //	    /*
+                  //	     * If we cannot do async I/O, we cannot suspend the current
+                  //	     * request and return. Thus we need to block the thread, waiting
+                  //	     * for a push update. We wait at most twice as long as the client
+                  //	     * will renew this poll connection.
+                  //	     */
+                  //        if (!WebController::isAsyncSupported() && renderer_.jsSynced())
+                  //        {
+                  //          updatesPendingEvent_.notify_one();
+                  //          if (!updatesPending_)
+                  //          {
+                  //#ifndef WT_TARGET_JAVA
+                  //            updatesPendingEvent_.wait(handler->lock());
+                  //#else
+                  //            try {
+                  //                updatesPendingEvent_.timed_wait
+                  //                    (controller_->configuration().serverPushTimeout() * 2);
+                  //            } catch (InterruptedException& e) { }
+                  //#endif // WT_TARGET_JAVA
+                  //          }
+                  //          if (!updatesPending_) {
+                  //            handler->flushResponse();
+                  //            co_return;
+                  //          }
+                  //        }
+                  //#endif // WT_BOOST_THREADS
+
+                      // LOG_DEBUG("poll: " << updatesPending_ << ", " << (asyncResponse_ ? "async" : "no async"));
+                      if (!updatesPending_ && renderer_.jsSynced())
+                      {
+                          /*
+                           * If we are ignoring many poll requests (because we are
+                           * assuming to have a websocket), we will need to assume
+                           * the web socket isn't working properly.
+                           */
+                          if (!webSocket_ || (pollRequestsIgnored_ == 2))
+                          {
+                              if (webSocket_) {
+                                  LOG_INFO("discarding broken websocket");
+                                  webSocket_->flush();
+                                  webSocket_ = nullptr;
+                              }
+
+                              pollRequestsIgnored_ = 0;
+                              asyncResponse_ = handler->context(); //handler.response();
+                              handler->setRequest(nullptr);
+                              //handler.setRequest(nullptr, nullptr);
+                          } else {
+                              ++pollRequestsIgnored_;
+                              LOG_DEBUG("ignored poll request (#{})", pollRequestsIgnored_);
+                          }
+                      } else
+                          pollRequestsIgnored_ = 0;
+                  }
+                  //      else
+                  //      {
+                  //#ifdef WT_BOOST_THREADS
+                  //	    if (!WebController::isAsyncSupported()) {
+                  //	      updatesPending_ = false;
+                  //	      updatesPendingEvent_.notify_one();
+                  //	    }
+                  //#endif
+                  //	  }
+
+                  if (handler->context()) {
+                      LOG_DEBUG("signal: {}", signalE);
+
+                      /*
+                     * Special signal values:
+                     * 'poll' : long poll
+                     * 'none' : no event, but perhaps a synchronization
+                     * 'load' : load invisible content
+                     * 'keepAlive' : no event, keep alive
+                     */
+
+                      try {
+                          handler->nextSignal = -1;
+                          co_await notifySignal(event);
+                      } catch (std::exception& e) {
+                          LOG_ERROR("error during event handling: {}", e.what());
+                          RETHROW(e);
+                      } catch (...) {
+                          LOG_ERROR("error during event handling");
+                          throw;
+                      }
+                  }
+              }
+
+              if (handler->context()
+                  && handler->context()->responseType() == http::ResponseType::Page
+                  && (!env_->ajax() ||
+                      !controller_->configuration().reloadIsNewSession()))
+              {
+                  app_->domRoot()->setRendered(false);
+
+                  env_->parameters_ = handler->context()->req().getParameters();// handler->context()->getParameterMap();
+
+                  if (!hashE.empty())
+                      co_await changeInternalPath(hashE, context);
+                  else if (auto subpath = context->pathInfo(applicationUrl_); !subpath.empty()) {
+                      co_await changeInternalPath(std::string(subpath), context);
+                  } else
+                      co_await changeInternalPath("", context);
+              }
+
+              if (signalE.empty()) {
+                  if (type() == EntryPointType::WidgetSet) {
+                      LOG_ERROR("bogus request: missing signal, discarding");
+                      handler->flushResponse();
+                      co_return;
+                  }
+
+                  LOG_INFO("refreshing session");
+
+                  flushBootStyleResponse();
+
+                  if (handler->context()) {
+                      env_->parameters_ = context->req().getParameters();// context->getParameterMap();
+                      env_->updateHostName(context);
+                  }
+                  app_->refresh();
+              }
+
+              if (handler->context() && !recursiveEventHandler_)
+              {
+                  render(*handler);
+              }
+          }
       }
-    }
   case State::Dead:
-    break;
+      break;
   }
 }
 

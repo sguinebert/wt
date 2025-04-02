@@ -77,13 +77,15 @@ class context final : safe_noncopyable {
 
   std::string_view url() const noexcept { return request_.url(); }
 
-  boost::url_view& urlv() noexcept { return request_.urlv(); }
+  //boost::url_view& urlv() noexcept { return request_.urlv(); }
 
   std::string_view origin() const noexcept { return request_.origin(); }
 
   std::string_view href() const noexcept { return request_.href(); }
 
   std::string_view path() const noexcept { return request_.path(); }
+
+  std::vector<std::string_view>& decoded_segments() noexcept { return request_.decoded_segments(); }
 
   std::string_view pathInfo(std::string_view base) noexcept { return request_.pathInfo(base); }
   std::string_view pathInfo() const noexcept { return request_.pathInfo(); }
@@ -172,14 +174,13 @@ class context final : safe_noncopyable {
 
   void body(const char* buffer, std::size_t size) { response_.body(buffer, size); }
 
-  std::ostream& body() { return response_.outstd(); }
-
-  auto &out() { return response_; }
-
-  std::ostream &outstd() { return response_.outstd(); }
-
+  auto out() { return response_.out(); }
 
   fmt::memory_buffer& buffer() { return response_.buffer(); }
+
+  //deprecated
+  std::ostream &outstd() { return response_.outstd(); }
+  std::ostream& body() { return response_.outstd(); }
 
   void reset() {
     flush_ = false;

@@ -269,23 +269,18 @@ public:
 
   /*! \brief Low-level URL encoding function.
    */
-  static std::string urlEncodeS(const std::string& url);
+  static std::string urlEncodeS(std::string_view url, const uint8_t charset[]);
 
   /*! \brief Low-level URL encoding function.
    *
    * This variant allows the exclusion of certain characters from URL
    * encoding.
    */
-  static std::string urlEncodeS(const std::string& url,
-                                const std::string& allowed);
+  // static std::string urlEncodeS(const std::string& url,
+  //                               const std::string& allowed);
 
-  static std::string urlEncodeS(std::string_view url,
-                                     const std::string &allowed);
-
-  static std::string urlEncodeS(std::string_view url)
-  {
-      return urlEncodeS(url, std::string());
-  }
+  // static std::string urlEncodeS(std::string_view url,
+  //                               const std::string &allowed);
 
   /*! \brief Returns the mode.
    */
@@ -869,6 +864,7 @@ private:
   friend struct fmt::formatter<std::tuple<const std::vector<Wt::DomElement::ChildInsertion>&, fmt::memory_buffer&, fmt::memory_buffer&, std::vector<Wt::DomElement::TimeoutEvent>&>>;
   friend struct fmt::formatter<std::tuple<const Wt::DomElement&, fmt::memory_buffer&, fmt::memory_buffer&, std::vector<Wt::DomElement::TimeoutEvent>&>>;
 };
+
 struct DomElement::ChildInsertion {
     int pos = 0;
     DomElement child;
@@ -877,7 +873,7 @@ struct DomElement::ChildInsertion {
     ChildInsertion(int p, DomElement &&c) : pos(p), child(std::move(c)) { }
 };
 
-}
+} // namespace Wt
 
 struct JsString {
     std::string_view value;

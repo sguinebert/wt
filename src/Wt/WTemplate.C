@@ -355,9 +355,9 @@ void WTemplate::bindString(const std::string& varName, const WString& value,
 
     if (textFormat == TextFormat::XHTML && v.literal()) {
         if (!removeScript(v))
-            v = escapeText(v, true);
+            v = escapeText(v.toUTF8(), true);
     } else if (textFormat == TextFormat::Plain)
-        v = escapeText(v, true);
+        v = escapeText(v.toUTF8(), true);
 
     StringMap::const_iterator i = strings_.find(varName);
 

@@ -1486,10 +1486,10 @@ WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
 
 
 #ifdef BOOST_CONCURENT_MAP
-   sessions_.visit(session->sessionId(), [&](const auto& pair) {
-       sessions_.erase(session->sessionId());
-       sessions_.emplace(newSessionId, std::move(pair.second));
-   });
+  sessions_.visit(session->sessionId(), [&](const auto& pair) {
+      sessions_.emplace(newSessionId, std::move(pair.second));
+      sessions_.erase(session->sessionId());
+  });
 #else
 #ifdef WT_THREADED
   std::unique_lock<std::recursive_mutex> lock(mutex_);
@@ -1504,13 +1504,6 @@ WebController::generateNewSessionId(const std::shared_ptr<WebSession>& session)
 // SessionMap::iterator i = sessions_.find(session->sessionId());
 // sessions_.erase(i);
 #endif
-
-
-//  server_.ioService().dispatchAll([this, session, newSessionId] {
-//      sessions_[newSessionId] = session;
-//      SessionMap::iterator i = sessions_.find(session->sessionId());
-//      sessions_.erase(i);
-//  });
 
   if (!singleSessionId_.empty())
     singleSessionId_ = newSessionId;
@@ -1530,18 +1523,22 @@ void WebController::newAjaxSession()
 
 bool WebController::limitPlainHtmlSessions()
 {
-  if (conf_.maxPlainSessionsRatio() > 0) {
+  auto maxRatio = conf_.maxPlainSessionsRatio();
+  auto maxSessions = conf_.maxPlainSessions();
+  if (maxSessions > 0 || maxRatio > 0) {
 //#ifdef WT_THREADED
 //    std::unique_lock<std::recursive_mutex> lock(mutex_);
 //#endif // WT_THREADED
+    auto plain = plainHtmlSessions_.load(std::memory_order_relaxed);
+    auto ajax = ajaxSessions_.load(std::memory_order_relaxed);
 
-    if (plainHtmlSessions_ + ajaxSessions_ > 20)
-      return plainHtmlSessions_ > conf_.maxPlainSessionsRatio()
-                                      * (ajaxSessions_ + plainHtmlSessions_);
-    else
-      return false;
-  } else
-    return false;
+    if (maxSessions)
+      return plain > maxSessions;
+
+    if (plain + ajax > 20)
+      return plain > maxRatio * (ajax + plain);
+  }
+  return false;
 }
 
 }

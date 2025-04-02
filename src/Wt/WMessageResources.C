@@ -338,8 +338,7 @@ void WMessageResources::hibernate()
     }
 }
 
-LocalizedString WMessageResources::resolveKey(const WLocale& locale, const std::string& key)
-    const
+LocalizedString WMessageResources::resolveKey(const WLocale& locale, const std::string& key) const
 {
     LocalizedString result = resolve(locale.name(), key);
     if (result)
@@ -348,8 +347,7 @@ LocalizedString WMessageResources::resolveKey(const WLocale& locale, const std::
     return resolve(std::string(), key);
 }
 
-LocalizedString WMessageResources::resolve(const std::string& locale, const std::string& key)
-    const
+LocalizedString WMessageResources::resolve(const std::string& locale, const std::string& key) const
 {
     if (resources_.find(locale) == resources_.end())
         load(locale);
@@ -368,8 +366,7 @@ LocalizedString WMessageResources::resolve(const std::string& locale, const std:
 
 std::string WMessageResources::findCase(const std::vector<std::string> &cases, 
                                         std::string pluralExpression,
-                                        ::uint64_t amount)
-    const
+                                        ::uint64_t amount) const
 {
 #ifdef WT_NO_SPIRIT
     throw WException("WString::trn() requires the spirit library.");

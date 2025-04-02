@@ -400,23 +400,21 @@ private:
         add(method, path, std::move(handler));
         //handlers_.emplace(fmt::format("{}+{}{}", method, prefix_, path), std::move(handler));
     }
-
+    //route set before the server starts (do not modify after server starts : not thread safe)
+    //the internal application paths are managed by WWebController
     std::function<awaitable<void>(context&)> make_routes() const noexcept {
         return [this](context& ctx) -> awaitable<void>  {
             if (ctx.status() != 404) {
                 co_return;
             }
 
+            auto& decoded_segments = ctx.decoded_segments(); //example : /api/v1/user/123 -> decoded_segments = {api, v1, user, 123}
             auto method = ctx.method();
             /* Begin by finding the method node */
             for (auto &p : root.children) {
                 if (p->name == method) {
                     /* Then route the url */
-                    auto urlv = ctx.urlv();
-                    //boost::url_view cc { ctx.url() };
-                    auto ssv = urlv.encoded_segments();
-                    std::vector<std::string_view> segments { ssv.begin(), ssv.end() };
-                    auto target = getHandlers(p.get(), segments, 0);
+                    auto target = getHandlers(p.get(), decoded_segments, 0);
                     if(target && !target->handlers.empty())
                     {
                         for (uint32_t handler : target->handlers) {

@@ -669,7 +669,7 @@ void WSvgImage::drawText(const WRectF& rect,
 	    << "  </" SVG "flowRegion>\n"
 	    << "  <" SVG "flowPara"
 	    <<              " text-align=\"" << hAlign << "\">\n"
-	    << " " << WWebWidget::escapeText(text, false).toUTF8() << "\n"
+        << " " << WWebWidget::escapeText(text.toUTF8(), false) << "\n"
 	    << "  </" SVG "flowPara>\n"
 	    << "</" SVG "flowRoot>\n";
   } else {
@@ -712,7 +712,7 @@ void WSvgImage::drawText(const WRectF& rect,
       break;
     }
 
-    shapes << ">" << WWebWidget::escapeText(text, false).toUTF8() 
+    shapes << ">" << WWebWidget::escapeText(text.toUTF8(), false).toUTF8()
 	   << "</" SVG "text>";
 
 #else
@@ -737,7 +737,7 @@ void WSvgImage::drawText(const WRectF& rect,
 
   shapes_ << " y=" << quote(y);
 
-  shapes_ << ">" << WWebWidget::escapeText(text, false).toUTF8() 
+  shapes_ << ">" << WWebWidget::escapeText(text.toUTF8(), false)
 	  << "</" SVG "text>";
 #endif
   }

@@ -181,7 +181,7 @@ WApplication::WApplication(const WEnvironment& env
     if (session_->type() == EntryPointType::Application)
         domRoot_->resize(WLength::Auto, WLength(100, LengthUnit::Percentage));
 
-    timerRoot_ = domRoot_->addWidget(std::make_unique<WContainerWidget>());
+    timerRoot_ = domRoot_->addNew<WContainerWidget>();
     timerRoot_->setId("Wt-timers");
     timerRoot_->resize(WLength::Auto, 0);
     timerRoot_->setPositionScheme(PositionScheme::Absolute);
@@ -833,7 +833,8 @@ void WApplication::handleJavaScriptError(std::string_view errorText)
 void WApplication::addExposedSignal(Wt::EventSignalBase *signal)
 {
     auto s = signal->encodeCmd();
-    Utils::insert(exposedSignals_, s, signal);
+    exposedSignals_.insert_or_assign(s, signal);
+    //Utils::insert(exposedSignals_, s, signal);
 
     LOG_DEBUG("addExposedSignal: {}", s);
 }
@@ -853,18 +854,16 @@ void WApplication::removeExposedSignal(Wt::EventSignalBase *signal)
 EventSignalBase *
 WApplication::decodeExposedSignal(const std::string& signalName) const
 {
-    auto i = exposedSignals_.find(signalName);
-
-    if (i != exposedSignals_.end()) {
+    if (auto i = exposedSignals_.find(signalName); i != exposedSignals_.end()) {
         return i->second;
-    } else
-        return nullptr;
+    }
+    return nullptr;
 }
 
-std::string WApplication::encodeSignal(const std::string& objectId,
-                                       const std::string& name) const
+std::string WApplication::encodeSignal(std::string_view objectId,
+                                       std::string_view name) const
 {
-    return objectId + '.' + name;
+    return fmt::format(FMT_COMPILE("{}.{}"), objectId, name);
 }
 
 std::string WApplication::resourceMapKey(WResource *resource)
@@ -875,6 +874,10 @@ std::string WApplication::resourceMapKey(WResource *resource)
 
 std::string WApplication::addExposedResource(WResource *resource)
 {
+    //why this is threadsafe to add/remove/read a resource to/from exposedResources_ ?
+    //the map will not be modified when the client could potentially access it
+    //only when the app is locked (i.e. when the client is not potentially accessing it, he's updating the app)
+    //and notify app is controlled by locking app
     exposedResources_[resourceMapKey(resource)] = resource;
     resource->incrementVersion();
 
@@ -883,9 +886,10 @@ std::string WApplication::addExposedResource(WResource *resource)
         fn = '/' + fn;
 
     if (resource->internalPath().empty())
-        return session_->mostRelativeUrl(fn)
-               + "&request=resource&resource=" + Utils::urlEncode(resource->id())
-               + "&ver=" + std::to_string(resource->version());
+        return fmt::format(FMT_COMPILE("{}&request=resource&resource={}&ver={}"),
+                           session_->mostRelativeUrl(fn),
+                           Utils::urlEncode(resource->id()),
+                           resource->version());
     else {
         fn = resource->internalPath() + fn;
         if (!session_->applicationName().empty() && fn[0] != '/')
@@ -897,9 +901,8 @@ std::string WApplication::addExposedResource(WResource *resource)
 bool WApplication::removeExposedResource(WResource *resource)
 {
     std::string key = resourceMapKey(resource);
-    ResourceMap::iterator i = exposedResources_.find(key);
 
-    if (i != exposedResources_.end() && i->second == resource) {
+    if (auto i = exposedResources_.find(key); (i != exposedResources_.end() && i->second == resource)) {
 #ifndef WT_TARGET_JAVA
         exposedResources_.erase(i);
 #else
@@ -912,9 +915,7 @@ bool WApplication::removeExposedResource(WResource *resource)
 
 WResource *WApplication::decodeExposedResource(const std::string& resourceKey) const
 {
-    ResourceMap::const_iterator i = exposedResources_.find(resourceKey);
-
-    if (i != exposedResources_.end())
+    if (auto i = exposedResources_.find(resourceKey); i != exposedResources_.end())
         return i->second;
     else {
         std::size_t j = resourceKey.rfind('/');
@@ -925,13 +926,10 @@ WResource *WApplication::decodeExposedResource(const std::string& resourceKey) c
     }
 }
 
-WResource *WApplication::decodeExposedResource(const std::string& resourceKey,
-                                               unsigned long ver) const
+WResource *WApplication::decodeExposedResource(const std::string& resourceKey, unsigned long ver) const
 {
-    ResourceMap::const_iterator i = exposedResources_.find(resourceKey);
-
     WResource *resource = nullptr;
-    if (i != exposedResources_.end())
+    if (auto i = exposedResources_.find(resourceKey); i != exposedResources_.end())
         resource = i->second;
 
     if (resource
@@ -945,17 +943,13 @@ WResource *WApplication::decodeExposedResource(const std::string& resourceKey,
 std::string WApplication::encodeObject(WObject *object)
 {
     std::string result = "w" + object->uniqueId();
-
     encodedObjects_[result] = object;
-
     return result;
 }
 
 WObject *WApplication::decodeObject(const std::string& objectId) const
 {
-    ObjectMap::const_iterator i = encodedObjects_.find(objectId);
-
-    if (i != encodedObjects_.end()) {
+    if (auto i = encodedObjects_.find(objectId); i != encodedObjects_.end()) {
         return i->second;
     } else
         return nullptr;
@@ -1028,8 +1022,7 @@ WLocalizedStrings *WApplication::localizedStringsPack()
 
 WMessageResourceBundle& WApplication::builtinLocalizedStrings()
 {
-    return *(dynamic_cast<WMessageResourceBundle *>
-             (localizedStrings_->items().back().get()));
+    return *(static_cast<WMessageResourceBundle *>(localizedStrings_->items().back().get()));
 }
 
 void WApplication
@@ -1076,9 +1069,10 @@ void WApplication::enableAjax()
     if (domRoot2_)
         domRoot2_->enableAjax();
 
-    doJavaScript
-        (WT_CLASS ".ajaxInternalPaths(" +
-         WWebWidget::jsStringLiteral(resolveRelativeUrl(bookmarkUrl("/"))) + ");");
+    doJavaScript(WT_CLASS ".ajaxInternalPaths('{:s}');", JsString(resolveRelativeUrl(bookmarkUrl("/"))));
+    // doJavaScript
+    //     (WT_CLASS ".ajaxInternalPaths(" +
+    //      WWebWidget::jsStringLiteral(resolveRelativeUrl(bookmarkUrl("/"))) + ");");
 }
 
 void WApplication::redirect(const std::string& url)
@@ -1100,9 +1094,9 @@ std::string WApplication::encodeUntrustedUrl(const std::string& url) const
 
     if (needRedirect) {
         WebController *c = session_->controller();
-        return "?request=redirect&url=" + Utils::urlEncode(url)
-               + "&hash="
-               + Utils::urlEncode(c->computeRedirectHash(url));
+        return fmt::format(FMT_COMPILE("?request=redirect&url={}&hash={}"),
+                           Utils::urlEncode(url),
+                           Utils::urlEncode(c->computeRedirectHash(url)));
     } else
         return url;
 }
@@ -1448,11 +1442,11 @@ awaitable<void> WApplication::takeLock()
     WebSession::Handler *handler = WebSession::Handler::instance();
 
     std::shared_ptr<WebSession> appSession = this->weakSession_.lock();
-    if (handler && handler->haveLock() && handler->session() == appSession.get())
+    if (handler /*&& handler->haveLock()*/ && handler->session() == appSession.get())
         co_return;
 
-    //  if (appSession.get() && appSession->dead())
-    //    co_return;
+     if (appSession.get() && appSession->dead())
+       co_return;
 
     co_return co_await appSession->takeLock();
 }

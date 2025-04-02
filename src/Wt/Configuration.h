@@ -267,6 +267,7 @@ public:
   bool progressiveBoot(const std::string& internalPath) const;
   bool splitScript() const;
   float maxPlainSessionsRatio() const;
+  int maxPlainSessions() const;
   bool ajaxPuzzle() const;
   bool sessionIdCookie() const;
   bool cookieChecks() const;
@@ -358,6 +359,7 @@ private:
   bool            persistentSessions_;
   bool            splitScript_;
   float           maxPlainSessionsRatio_;
+  int             maxPlainSessions_;
   bool            ajaxPuzzle_;
   bool            sessionIdCookie_;
   bool            cookieChecks_;

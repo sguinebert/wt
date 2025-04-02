@@ -38,7 +38,7 @@ asio::io_context ctx{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE};
 
 using namespace boost;
 
-inline thread_local boost::asio::io_context* thread_context;
+//inline thread_local boost::asio::io_context* thread_context;
 
 namespace Wt {
 namespace http {
@@ -46,23 +46,46 @@ namespace detail {
 
 class engines final : safe_noncopyable {
  public:
-  explicit engines(std::size_t size) noexcept {
-    assert(size != 0);
-    for (std::size_t i{0}; i < size; ++i) {
-      auto io_context = std::make_shared<asio::io_context>(1);
-      asio::post(*io_context, [ctx = io_context.get()] { thread_context = ctx; });
+    explicit engines(std::size_t size, asio::io_context* thread_context = nullptr) noexcept {
+        assert(size != 0);
+        for (std::size_t i{0}; i < size; ++i) {
+            auto io_context = std::make_shared<asio::io_context>(1);
+            //if(!thread_context)
+            thread_context = io_context.get();
+            //asio::post(*io_context, [ctx = io_context.get(), &thread_context] { thread_context = ctx; });
 
-      /*auto& guard =*/ workers_.emplace_back(asio::make_work_guard(*io_context));
-      //auto worker = std::make_shared<asio::io_context::work>();
-      io_contexts_.emplace_back(std::move(io_context));
-      //workers_.emplace_back(std::move(guard));
+            /*auto& guard =*/ workers_.emplace_back(asio::make_work_guard(*io_context));
+            //auto worker = std::make_shared<asio::io_context::work>();
+            io_contexts_.emplace_back(std::move(io_context));
+            //workers_.emplace_back(std::move(guard));
+        }
     }
-  }
+
+    static thread_local asio::io_context* thread_context;
+    static engines& engine(unsigned th = std::thread::hardware_concurrency()) noexcept {
+        static engines engines{th, thread_context};
+        return engines;
+    }
 
 //  static engines& default_engines() noexcept {
 //    static engines engines{std::thread::hardware_concurrency()};
 //    return engines;
 //  }
+  asio::io_context* get_context() noexcept {
+      static thread_local asio::io_context* thread_context = nullptr;
+      if(thread_context)
+          return thread_context;
+      for(size_t i(0); i < run_threads_.size(); i++)
+      {
+          if(std::this_thread::get_id() == run_threads_[i].get_id())
+          {
+              thread_context = io_contexts_[i].get();
+              return io_contexts_[i].get();
+          }
+      }
+      //static thread_local asio::io_context* thread_context = io_contexts_.back().get();
+      return thread_context;
+  }
 
   asio::io_context& get() noexcept { return *io_contexts_[index_++ % io_contexts_.size()]; }
 

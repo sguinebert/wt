@@ -16,19 +16,19 @@ const Wt::WString ChatEvent::formattedHTML(const Wt::WString& user,
   switch (type_) {
   case Login:
     return Wt::WString("<span class='chat-info'>")
-      + Wt::WWebWidget::escapeText(user_) + " joined.</span>";
+      + Wt::WWebWidget::escapeText(user_.toUTF8()) + " joined.</span>";
   case Logout:
     return Wt::WString("<span class='chat-info'>")
       + ((user == user_) ?
 	 Wt::WString("You") :
-	 Wt::WWebWidget::escapeText(user_))
+     Wt::WWebWidget::escapeText(user_.toUTF8()))
       + " logged out.</span>";
   case Rename:
     return "<span class='chat-info'>"
       + ((user == data_ || user == user_) ?
 	 "You are" :
-	 (Wt::WWebWidget::escapeText(user_) + " is"))
-      + " now known as " + Wt::WWebWidget::escapeText(data_) + ".</span>";
+     (Wt::WWebWidget::escapeText(user_.toUTF8()) + " is"))
+      + " now known as " + Wt::WWebWidget::escapeText(data_.toUTF8()) + ".</span>";
   case Message:{
     Wt::WString result;
 
@@ -36,10 +36,10 @@ const Wt::WString ChatEvent::formattedHTML(const Wt::WString& user,
       + ((user == user_) ?
 	 "chat-self" :
 	 "chat-user")
-      + "'>" + Wt::WWebWidget::escapeText(user_) + ":</span>";
+      + "'>" + Wt::WWebWidget::escapeText(user_.toUTF8()) + ":</span>";
 
     Wt::WString msg
-      = (format == Wt::TextFormat::XHTML ? message_ : Wt::WWebWidget::escapeText(message_));
+      = (format == Wt::TextFormat::XHTML ? message_ : Wt::WWebWidget::escapeText(message_.toUTF8()));
 
     if (message_.toUTF8().find(user.toUTF8()) != std::string::npos)
       return result + "<span class='chat-highlight'>" + msg + "</span>";

@@ -33,12 +33,9 @@ namespace Wt {
 
 struct WString::Impl {
     std::string key_;
-    ::int64_t n_;
-    //fmt::dynamic_format_arg_store<fmt::format_context> fmt_args_;
+    ::int64_t n_ = 0;
+    std::string html_to_plainUtf8_;
     //std::vector<WString> arguments_;
-    //fmt::dynamic_format_arg_store<fmt::format_context> fmt_args_;
-    
-
     Impl();
 
     //Impl(Impl& impl) : key_(impl.key_), n_(impl.n_) {}
@@ -153,11 +150,30 @@ WString::WString(const std::string& value, const std::locale& loc)
   utf8_ = Wt::toUTF8(value, loc);
 }
 
+WString::operator std::string_view() const{
+    //if WString is html encoded we need to unescape it before formatting of Plain string style
+    if (format_ != TextFormat::Plain)
+    {
+        if(!impl_->html_to_plainUtf8_.empty())
+            return std::string_view(impl_->html_to_plainUtf8_);
+        std::string xhtml { utf8_ };
+        auto& plain = Wt::WWebWidget::unescapeText(xhtml);
+        if(!fmt_args_.empty()) {
+            return std::string_view(impl_->html_to_plainUtf8_ = ::fmt::vformat(plain, fmt_args_));
+        }
+        return std::string_view(impl_->html_to_plainUtf8_ = plain);
+    }
+    if(impl_ && !fmt_args_.empty()) {
+        if(formatedUtf8_.empty()) {
+            formatedUtf8_ = fmt::vformat(utf8_, fmt_args_);
+        }
+        return std::string_view(formatedUtf8_.data(), formatedUtf8_.size());
+    }
+    return std::string_view(utf8_.data(), utf8_.size());
+}
+
 WString::WString(const WString& other)
   : utf8_(other.toUTF8()),
-    //fmt_args_(other.fmt_args_),  
-    //arguments_(other.arguments_),
-    //tmarguments_(other.tmarguments_),
     impl_(nullptr)
 {
   if (other.impl_)
@@ -166,9 +182,7 @@ WString::WString(const WString& other)
 
 WString::WString(WString&& other)
   : utf8_(std::move(other.utf8_)),
-    fmt_args_(std::move(other.fmt_args_)),  
-    //arguments_(std::move(other.arguments_)),
-    //tmarguments_(std::move(other.tmarguments_)),
+    fmt_args_(std::move(other.fmt_args_)),
     impl_(other.impl_)
 {
   other.impl_ = nullptr;
@@ -354,69 +368,49 @@ void WString::checkUTF8Encoding(std::string &value)
   }
 }
 
-std::string WString::resolveKey(TextFormat format) const
+std::string WString::resolveKey(TextFormat /*format*/) const
 {
-  LocalizedString result;
-  WLocalizedStrings *ls = nullptr;
-  const WLocale *locale = nullptr;
+    LocalizedString result;
+    WLocalizedStrings *ls = nullptr;
+    const WLocale *locale = nullptr;
 
-  WApplication *app = WApplication::instance();
-  if (app) {
-    ls = app->localizedStringsPack();
-    locale = &WLocale::currentLocale();
-  }
-
-  if (!ls) {
-    WServer *server = WServer::instance();
-    if (server) {
-      ls = server->localizedStrings().get();
-      locale = &WLocale::currentLocale();
+    WApplication *app = WApplication::instance();
+    if (app) {
+        ls = app->localizedStringsPack();
+        locale = &WLocale::currentLocale();
     }
-  }
 
-  if (ls) {
-    if (impl_->n_ == -1) {
-      result = ls->resolveKey(*locale, impl_->key_);
-    } else {
-      result = ls->resolvePluralKey(*locale, impl_->key_, impl_->n_);
+    if (!ls) {
+        WServer *server = WServer::instance();
+        if (server) {
+            ls = server->localizedStrings().get();
+            locale = &WLocale::currentLocale();
+        }
     }
-  }
 
-  if (!result) {
-    result = LocalizedString{fmt::format("??{}??", impl_->key_), TextFormat::Plain};
-  }
+    if (ls) {
+        if (impl_->n_ == -1) {
+            result = ls->resolveKey(*locale, impl_->key_);
+        } else {
+            result = ls->resolvePluralKey(*locale, impl_->key_, impl_->n_);
+        }
+    }
 
-  if (result.format == format)
-    return result.value;
-  else if (result.format == TextFormat::Plain && format != TextFormat::Plain) {
-    return Wt::WWebWidget::escapeText(result.value);
-  } else {
-    return Wt::WWebWidget::unescapeText(result.value);
-  }
+    if (!result) {
+        result = LocalizedString{fmt::format("??{}??", impl_->key_), TextFormat::Plain};
+    }
+
+    format_ = result.format;
+    return result.value; // we will handle the escaping in toUTF8() & toXhtmlUTF8()
+
+    // if (result.format == format)
+    //     return result.value;
+    // else if (result.format == TextFormat::Plain && format != TextFormat::Plain) {
+    //     return Wt::WWebWidget::escapeText(result.value);
+    // } else {
+    //     return Wt::WWebWidget::unescapeText(result.value);
+    // }
 }
-// std::string format_vector(std::string_view format,
-//                           std::vector<std::string> const& args)
-// {
-//     using ctx = fmt::format_context;
-//     std::vector<fmt::basic_format_arg<ctx>> fmt_args;
-//     for (auto const& a : args) {
-//         fmt_args.push_back(fmt::detail::make_arg<ctx>(a));
-//     }
-
-//     return fmt::vformat(format, fmt::basic_format_args<ctx>(fmt_args.data(), fmt_args.size()));
-// }
-// void format_vector(fmt::memory_buffer& out,
-//                    std::string_view format,
-//                    std::vector<std::string> const& args)
-// {
-//     using ctx = fmt::format_context;
-//     std::vector<fmt::basic_format_arg<ctx>> fmt_args;
-//     for (auto const& a : args) {
-//         fmt_args.push_back(fmt::detail::make_arg<ctx>(a));
-//     }
-
-//     fmt::vformat_to(out, format, fmt::basic_format_args<ctx>(fmt_args.data(), fmt_args.size()));
-// }
 std::string format_vector(std::string_view format,
                           std::vector<fmt::basic_format_arg<ctx>> const& fmt_args)
 {
@@ -424,26 +418,47 @@ std::string format_vector(std::string_view format,
 }
 std::string WString::toUTF8() const
 {
-  if(impl_ && !fmt_args_.empty()) {
-    if(formatedUtf8_.empty()) {
-      //formatedUtf8_ = format_vector(utf8_, fmt_args_);
-      formatedUtf8_ = fmt::vformat(utf8_, fmt_args_);
+    //if WString is html encoded we need to unescape it before formatting of Plain string style
+    if (format_ != TextFormat::Plain)
+    {
+        if(!impl_->html_to_plainUtf8_.empty())
+            return impl_->html_to_plainUtf8_;
+        std::string xhtml { utf8_ };
+        auto& plain = Wt::WWebWidget::unescapeText(xhtml);
+        if(!fmt_args_.empty()) {
+            return impl_->html_to_plainUtf8_ = ::fmt::vformat(plain, fmt_args_);
+        }
+        return impl_->html_to_plainUtf8_ = plain;
     }
-    return formatedUtf8_;
-  }
-  return utf8_;
+    if(!fmt_args_.empty()) {
+        if(formatedUtf8_.empty()) {
+            formatedUtf8_ = fmt::vformat(utf8_, fmt_args_);
+        }
+        return formatedUtf8_;
+    }
+    return utf8_;
 }
 
 std::string WString::toXhtmlUTF8() const
 {
-  
-  if(!fmt_args_.empty()) {
-    if(formatedUtf8_.empty())
-      //formatedUtf8_ = format_vector(utf8_, fmt_args_);
-      formatedUtf8_ = ::fmt::vformat(utf8_, fmt_args_);
-    return formatedUtf8_;
-  }
-  return utf8_;
+    //if WString is Plain encoded we need to escape it before formatting of HTML style
+    // do not forget to indicate the format_ as XHTML if you are constructing with HTML literal
+    if (format_ == TextFormat::Plain)
+    {
+        auto xhtml = Wt::WWebWidget::escapeText(utf8_);
+        if(!fmt_args_.empty()) {
+            return ::fmt::vformat(xhtml, fmt_args_);
+        }
+        return xhtml;
+    }
+    // resolveKey(TextFormat::XHTML) has already been called at constructor on utf8_ (via tr() or trn())
+    // so we can directly format utf8_ with fmt_args_
+    if(!fmt_args_.empty()) {
+        if(formatedUtf8_.empty())
+            formatedUtf8_ = ::fmt::vformat(utf8_, fmt_args_);
+        return formatedUtf8_;
+    }
+    return utf8_;
 
   // if (impl_) {
   //   std::string result = utf8_;
@@ -481,7 +496,7 @@ WString WString::trn(const std::string& key, ::uint64_t n)
 {
   return WString(key.c_str(), true, n);
 }
-
+//private constructor used only by tr() and trn()
 WString::WString(const char *key, bool, ::uint64_t n)
 {
   impl_ = new Impl;
@@ -527,10 +542,7 @@ WString::operator std::u32string() const
 
 const std::string WString::key() const
 {
-  if (impl_)
-    return impl_->key_;
-  else
-    return std::string();
+    return impl_ ? impl_->key_ : std::string();
 }
 
 void WString::createImpl()
@@ -541,24 +553,17 @@ void WString::createImpl()
 
 WString &WString::arg(const std::string &value, CharEncoding encoding)
 {
-  createImpl();
+  //we don't need anymore to create the impl_ : args are managed by fmt_args_
+  //createImpl();
 
   if (realEncoding(encoding) == CharEncoding::UTF8) {
-    ////impl_->arguments_.push_back(WString::fromUTF8(value, true));
     //impl_->arguments_.push_back(value);
     fmt_args_.push_back(value);
-    //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
-    //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value));
   }
   else
   {
-    //WString s;
-    //s.utf8_ = Wt::toUTF8(value);
-    ////impl_->arguments_.push_back(s);
     //impl_->arguments_.push_back(Wt::toUTF8(value));
     fmt_args_.push_back(Wt::toUTF8(value));
-    //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
-    //fmt_args_.push_back(fmt::detail::make_arg<ctx>(Wt::toUTF8(value)));
   }
 
   return *this;
@@ -566,22 +571,17 @@ WString &WString::arg(const std::string &value, CharEncoding encoding)
 
 WString &WString::arg(const std::string&& value, CharEncoding encoding)
 {
-    createImpl();
+    //we don't need anymore to create the impl_ : args are managed by fmt_args_
+    //createImpl();
 
   if (realEncoding(encoding) == CharEncoding::UTF8){
     //impl_->arguments_.push_back(std::move(value));
-    fmt_args_.push_back(value);
-    ////impl_->arguments_.push_back(WString::fromUTF8(value, true));
-    //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
+    fmt_args_.push_back(std::move(value));
   }
   else
   {
-    //WString s;
-    //s.utf8_ = Wt::toUTF8(value);
-    ////impl_->arguments_.push_back(s);
     //impl_->arguments_.push_back(Wt::toUTF8(value));
-    fmt_args_.push_back(Wt::toUTF8(value));
-    //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
+    fmt_args_.push_back(Wt::toUTF8(std::move(value)));
   }
  return *this;
 }
@@ -589,46 +589,32 @@ WString &WString::arg(const std::string&& value, CharEncoding encoding)
 WString& WString::arg(const char *value, CharEncoding encoding)
 {
   return arg(std::string(value), encoding);
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value));
-  //return *this;
 }
 
 WString& WString::arg(const std::wstring& value)
 {
-  createImpl();
+    //we don't need anymore to create the impl_ : args are managed by fmt_args_
+    //createImpl();
+    //impl_->arguments_.push_back(Wt::toUTF8(value));
 
-  //WString s;
-  //s.utf8_ = Wt::toUTF8(value);
-  ////impl_->arguments_.push_back(s);
-  //impl_->arguments_.push_back(Wt::toUTF8(value));
-  fmt_args_.push_back(Wt::toUTF8(value));
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
-
-  return *this;
+    fmt_args_.push_back(Wt::toUTF8(value));
+    return *this;
 }
 
 WString& WString::arg(const wchar_t *value)
 {
   //impl_->arguments_.push_back(Wt::toUTF8(value));
   fmt_args_.push_back(Wt::toUTF8(value));
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
   return *this;
-  //return arg(std::wstring(value));
 }
 
 WString& WString::arg(const std::u16string& value)
 {
-  createImpl();
-
-  //WString s;
-  //s.utf8_ = Wt::toUTF8(value);
-  ////impl_->arguments_.push_back(s);
-
-  //impl_->arguments_.push_back(Wt::toUTF8(value));
-  fmt_args_.push_back(Wt::toUTF8(value));
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
-
-  return *this;
+    //we don't need anymore to create the impl_ : args are managed by fmt_args_
+    //createImpl();
+    //impl_->arguments_.push_back(Wt::toUTF8(value));
+    fmt_args_.push_back(Wt::toUTF8(value));
+    return *this;
 }
 
 WString& WString::arg(const char16_t *value)
@@ -638,17 +624,11 @@ WString& WString::arg(const char16_t *value)
 
 WString& WString::arg(const std::u32string& value)
 {
-  createImpl();
-
-  //WString s;
-  //s.utf8_ = Wt::toUTF8(value);
-  ////impl_->arguments_.push_back(s);
-
-  //impl_->arguments_.push_back(Wt::toUTF8(value));
-  fmt_args_.push_back(Wt::toUTF8(value));
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
-
-  return *this;
+    //we don't need anymore to create the impl_ : args are managed by fmt_args_
+    //createImpl();
+    //impl_->arguments_.push_back(Wt::toUTF8(value));
+    fmt_args_.push_back(Wt::toUTF8(value));
+    return *this;
 }
 
 WString& WString::arg(const char32_t *value)
@@ -658,105 +638,77 @@ WString& WString::arg(const char32_t *value)
 
 WString& WString::arg(const WString& value)
 {
-  createImpl();
-  
-  ////impl_->arguments_.push_back(value);
-  //impl_->arguments_.push_back(value.toUTF8());
+    //we don't need anymore to create the impl_ : args are managed by fmt_args_
+    //createImpl();
+    //impl_->arguments_.push_back(value.toUTF8());
+
   fmt_args_.push_back(value.toUTF8());
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(arguments_.back()));
-
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value.utf8_));
-
   return *this;
 }
 
 WString& WString::arg(int value)
 {
   fmt_args_.push_back(value);
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value));
   return *this;
-  //return arg(WLocale::currentLocale().toString(value));
 }
 
 WString& WString::arg(unsigned value)
 {
   fmt_args_.push_back(value);
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value));
   return *this;
-  //return arg(WLocale::currentLocale().toString(value));
 }
 
 WString& WString::arg(long value)
 {
   fmt_args_.push_back(value);
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value));
   return *this;
-  //return arg(WLocale::currentLocale().toString(value));
 }
 
 WString& WString::arg(unsigned long value)
 {
   fmt_args_.push_back(value);
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value));
   return *this;
-  //return arg(WLocale::currentLocale().toString(value));
 }
 
 WString& WString::arg(long long value)
 {
   fmt_args_.push_back(value);
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value));
   return *this;
-  //return arg(WLocale::currentLocale().toString(value));
 }
 
 WString& WString::arg(unsigned long long value)
 {
   fmt_args_.push_back(value);
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value));
   return *this;
-  //return arg(WLocale::currentLocale().toString(value));
 }
 
 WString& WString::arg(double value)
 {
   fmt_args_.push_back(value);
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(value));
   return *this;
-  //return arg(WLocale::currentLocale().toString(value));
 }
 
 WString& WString::arg(const Wt::WDate& value)
 {
-  //tmarguments_.push_back(fmt::gmtime(value.toTimePoint()));
-  fmt_args_.push_back(fmt::gmtime(value.toTimePoint()));
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(tmarguments_.back()));
+  fmt_args_.push_back(value.toTimePoint());
   return *this;
 }
 
 WString& WString::arg(const Wt::WDateTime& value)
 {
-  //tmarguments_.push_back(fmt::gmtime(value.toTimePoint()));
-  fmt_args_.push_back(fmt::gmtime(value.toTimePoint()));
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(tmarguments_.back()));
+  fmt_args_.push_back(value.toTimePoint());
   return *this;
 }
 
 WString& WString::arg(const std::time_t& value)
 {
-  //tmarguments_.push_back(fmt::gmtime(value));
-  fmt_args_.push_back(fmt::gmtime(value));
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(tmarguments_.back()));
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(fmt::gmtime(value)));
+  fmt_args_.push_back(value);
   return *this;
 }
 
 WString& WString::arg(const std::chrono::system_clock::time_point& value)
 {
-  //tmarguments_.push_back(fmt::gmtime(value));
-  fmt_args_.push_back(fmt::gmtime(value));
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(tmarguments_.back()));
-  //fmt_args_.push_back(fmt::detail::make_arg<ctx>(fmt::gmtime(value)));
+  fmt_args_.push_back(value);
   return *this;
 }
 
@@ -772,20 +724,6 @@ bool WString::refresh()
   else
     return true;
 }
-
-// const std::vector<WString>& WString::args() const
-// {
-// //  stArguments_.clear();
-// //  for(auto &arg : fmt_args_)
-// //    stArguments_.push_back("");
-
-//   return std::vector<WString>();
-
-//   //if (impl_)
-//   //  return //impl_->arguments_;
-//   //else
-//   //  return stArguments_;
-// }
 
 WString utf8(const char *value)
 {
@@ -1012,10 +950,10 @@ bool operator!= (const char32_t *lhs, const WString& rhs)
 
 void WString::makeLiteral()
 {
-  if (!literal()) {
-    utf8_ = resolveKey(TextFormat::Plain);
-    impl_->key_ = std::string();
-  }
+  // if (!literal()) {
+  //   utf8_ = resolveKey(TextFormat::Plain);
+  //   impl_->key_ = std::string();
+  // }
 }
 
 std::wostream& operator<< (std::wostream& lhs, const WString& rhs)

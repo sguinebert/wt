@@ -471,7 +471,7 @@ void WVmlImage::drawText(const WRectF& rect,
   }
 
   t->setProperty(Property::InnerHTML,
-		 WWebWidget::escapeText(text, true).toUTF8());
+         WWebWidget::escapeText(text, true));
 
   WFont f = painter()->font();
   f.updateDomElement(*t, false, true);

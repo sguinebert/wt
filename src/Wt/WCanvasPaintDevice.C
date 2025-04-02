@@ -612,7 +612,7 @@ void WCanvasPaintDevice::drawText(const WRectF& rect,
         }
 
         t->setProperty(Property::InnerHTML,
-                       WWebWidget::escapeText(text, true).toUTF8());
+                       WWebWidget::escapeText(text.toUTF8(), true));
 
         WFont f = painter()->font();
         f.updateDomElement(*t, false, true);

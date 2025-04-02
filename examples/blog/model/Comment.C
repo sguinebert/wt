@@ -34,7 +34,7 @@ void Comment::setText(const Wt::WString& src)
 {
   textSrc_ = src;
 
-  std::string html = Wt::WWebWidget::escapeText(src, true).toUTF8();
+  std::string html = Wt::WWebWidget::escapeText(src.toUTF8(), true);
 
   std::string::size_type b = 0;
 

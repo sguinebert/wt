@@ -27,6 +27,40 @@ namespace {
   }
 }
 
+namespace fmt {
+
+template<>
+struct formatter<const std::pair<std::string, Wt::WString>> {
+    char presentation = 'u';
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx) {
+        auto it = ctx.begin(), end = ctx.end();
+        if (it != end && *it == 's'){
+            presentation = 's';
+            ++it;
+        }
+        if (it != end && *it == 'x') {
+            presentation = 'x';
+            ++it;
+        }
+        if (it != end && *it == 'u') {
+            presentation = 'u';
+            ++it;
+        }
+        return it;
+    }
+
+    template<typename FormatContext>
+    auto format(const std::pair<std::string, Wt::WString>& p, FormatContext& ctx) {
+        if (presentation == 's')
+            return format_to(ctx.out(), "{}={}", p.first, Wt::Utils::urlEncode(p.second.toUTF8()));
+        return format_to(ctx.out(), "{}:{}", p.first, p.second.toUTF8());
+    }
+};
+
+
+}
+
 namespace Wt {
 
 WFlashObject::WFlashObject(const std::string& url)
@@ -146,6 +180,8 @@ void WFlashObject::updateDom(DomElement& element, bool all)
       obj.addChild(param);
     }
     if (variables_.size() > 0) {
+
+      auto variables = fmt::format("{}", fmt::join(variables_, "&"));
       std::stringstream ss;
       for (auto i = variables_.begin(); i != variables_.end(); ++i)
       {

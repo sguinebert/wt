@@ -159,8 +159,9 @@ public:
    *
    * \sa getParameterValues()
    */
-  Http::ParameterMap dumb_;
-  const Http::ParameterMap& getParameterMap() const { return dumb_; }
+#warning "repair this"
+  http::ParameterMap dumb_;
+  const http::ParameterMap& getParameterMap() const { return dumb_; }
 
   /*! \brief Returns values for a query parameter.
    *

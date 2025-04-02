@@ -277,8 +277,7 @@ void WComboBox::updateDom(DomElement& element, bool all)
 
             item.setProperty(Property::Value, std::to_string(i));
             item.setProperty(Property::InnerHTML,
-                              escapeText(asString(model_->data(i, modelColumn_)))
-                                  .toUTF8());
+                              escapeText(asString(model_->data(i, modelColumn_)).toUTF8()));
 
             if (!(model_->flags(model_->index(i, modelColumn_)) &
                   ItemFlag::Selectable))

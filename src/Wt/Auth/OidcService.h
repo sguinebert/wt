@@ -189,7 +189,7 @@ public:
    *
    * \sa setAuthEndpoint()
    */
-  virtual std::string authorizationEndpoint() const override { return authorizationEndpoint_; };
+  virtual std::string_view authorizationEndpoint() const override { return authorizationEndpoint_; };
 
   /*! \brief Returns the token endpoint URL.
    *

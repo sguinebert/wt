@@ -130,11 +130,13 @@ WT_API extern WString htmlEncode(const WString& text,
  * \note To url encode a unicode string, the de-facto standard
  * practice is to encode a UTF-8 encoded string.
  *
+ * the default urlEncode() function will encode using QUERY_PERCENT_ENCODE set.
+ *
  * \sa WString::toUTF8(), urlDecode()
  */
-WT_API extern std::string urlEncode(const std::string& text);
-
 WT_API extern std::string urlEncode(std::string_view text);
+
+WT_API extern std::string urlEncode(std::string_view text, const uint8_t charset[]);
 
 /*! \brief Performs Url decoding.
  *

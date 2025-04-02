@@ -146,12 +146,12 @@ std::string asJSLiteral(const cpp17::any& v, TextFormat textFormat)
     bool plainText = false;
     if (textFormat == TextFormat::XHTML) {
       if (s.literal())
-	plainText = !WWebWidget::removeScript(s);
+    plainText = !WWebWidget::removeScript(s);
     } else
       plainText = true;
 
     if (plainText && textFormat != TextFormat::UnsafeXHTML)
-      s = WWebWidget::escapeText(s);
+      s = WWebWidget::escapeText(s.toUTF8());
 
     return s.jsStringLiteral();
   } else if (v.type() == typeid(std::string)
@@ -167,7 +167,7 @@ std::string asJSLiteral(const cpp17::any& v, TextFormat textFormat)
       plainText = true;
 
     if (plainText && textFormat != TextFormat::UnsafeXHTML)
-      s = WWebWidget::escapeText(s);
+      s = WWebWidget::escapeText(s.toUTF8());
 
     return s.jsStringLiteral();
   } else if (v.type() == typeid(bool)) {

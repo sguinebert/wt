@@ -5262,66 +5262,66 @@ awaitable<void> WCartesianChart::jsSeriesSelected(double x, double y)
 
 void WCartesianChart::loadTooltip(double x, double y)
 {
-  std::vector<double> pxs;
-  std::vector<double> rxs;
-  std::vector<double> pys;
-  std::vector<double> rys;
-  for (int i = 0; i < xAxisCount(); ++i) {
-    double px = zoomRangeTransform(xAxes_[i].transformHandle.value(), WTransform()).inverted().map(WPointF(x,0.0)).x();
-    double rx = MarkerMatchIterator::MATCH_RADIUS / xAxes_[i].transformHandle.value().m11();
-    pxs.push_back(px);
-    rxs.push_back(rx);
-    for (int j = 0; j < yAxisCount(); ++j) {
-      WPointF p = zoomRangeTransform(WTransform(), yAxes_[j].transformHandle.value()).inverted().map(WPointF(0.0,y));
-      pys.push_back(p.y());
-      rys.push_back(MarkerMatchIterator::MATCH_RADIUS / yAxes_[j].transformHandle.value().m22());
+    std::vector<double> pxs;
+    std::vector<double> rxs;
+    std::vector<double> pys;
+    std::vector<double> rys;
+    for (int i = 0; i < xAxisCount(); ++i) {
+        double px = zoomRangeTransform(xAxes_[i].transformHandle.value(), WTransform()).inverted().map(WPointF(x,0.0)).x();
+        double rx = MarkerMatchIterator::MATCH_RADIUS / xAxes_[i].transformHandle.value().m11();
+        pxs.push_back(px);
+        rxs.push_back(rx);
+        for (int j = 0; j < yAxisCount(); ++j) {
+            WPointF p = zoomRangeTransform(WTransform(), yAxes_[j].transformHandle.value()).inverted().map(WPointF(0.0,y));
+            pys.push_back(p.y());
+            rys.push_back(MarkerMatchIterator::MATCH_RADIUS / yAxes_[j].transformHandle.value().m22());
+        }
     }
-  }
-  MarkerMatchIterator iterator(*this, pxs, pys, rxs, rys);
-  iterateSeries(&iterator, 0);
+    MarkerMatchIterator iterator(*this, pxs, pys, rxs, rys);
+    iterateSeries(&iterator, 0);
 
-  if (iterator.matchedSeries()) {
-    const WDataSeries &series = *iterator.matchedSeries();
-    WString tooltip = series.model()->toolTip(iterator.yRow(), iterator.yColumn());
-    bool isDeferred = series.model()->flags(iterator.yRow(), iterator.yColumn()).test(ItemFlag::DeferredToolTip);
-    bool isXHTML = series.model()->flags(iterator.yRow(), iterator.yColumn()).test(ItemFlag::XHTMLText);
-    if (!tooltip.empty() && (isDeferred | isXHTML)) {
-      if (isXHTML) {
-	bool res = removeScript(tooltip);
-	if (!res) {
-	  tooltip = escapeText(tooltip);
-	}
-      } else {
-	tooltip = escapeText(tooltip);
-      }
-      doJavaScript(cObjJsRef() + ".updateTooltip(" + tooltip.jsStringLiteral() + ");");
+    if (iterator.matchedSeries()) {
+        const WDataSeries &series = *iterator.matchedSeries();
+        WString tooltip = series.model()->toolTip(iterator.yRow(), iterator.yColumn());
+        bool isDeferred = series.model()->flags(iterator.yRow(), iterator.yColumn()).test(ItemFlag::DeferredToolTip);
+        bool isXHTML = series.model()->flags(iterator.yRow(), iterator.yColumn()).test(ItemFlag::XHTMLText);
+        if (!tooltip.empty() && (isDeferred | isXHTML)) {
+            if (isXHTML) {
+                bool res = removeScript(tooltip);
+                if (!res) {
+                    tooltip = escapeText(tooltip.toUTF8());
+                }
+            } else {
+                tooltip = escapeText(tooltip.toUTF8());
+            }
+            doJavaScript(cObjJsRef() + ".updateTooltip(" + tooltip.jsStringLiteral() + ");");
+        }
+    } else {
+        for (std::size_t btt = 0; btt < barTooltips_.size(); ++btt) {
+            const WT_ARRAY double *xs = barTooltips_[btt].xs;
+            const WT_ARRAY double *ys = barTooltips_[btt].ys;
+            int j = 0;
+            int k = 3;
+            bool c = false;
+            WPointF p = zoomRangeTransform(
+                            xAxes_[barTooltips_[btt].series->xAxis()].transformHandle.value(),
+                            yAxes_[barTooltips_[btt].series->yAxis()].transformHandle.value())
+                            .inverted().map(WPointF(x,y));
+            for (; j < 4; k = j++) {
+                if ((((ys[j]<=p.y()) && (p.y()<ys[k])) ||
+                     ((ys[k]<=p.y()) && (p.y()<ys[j]))) &&
+                    (p.x() < (xs[k] - xs[j]) * (p.y() - ys[j]) / (ys[k] - ys[j]) + xs[j]))
+                    c = !c;
+            }
+            if (c) {
+                WString tooltip = barTooltips_[btt].series->model()->toolTip(barTooltips_[btt].yRow, barTooltips_[btt].yColumn);
+                if (!tooltip.empty()) {
+                    doJavaScript(cObjJsRef() + ".updateTooltip(" + escapeText(tooltip, false).jsStringLiteral() + ");");
+                }
+                return;
+            }
+        }
     }
-  } else {
-    for (std::size_t btt = 0; btt < barTooltips_.size(); ++btt) {
-      const WT_ARRAY double *xs = barTooltips_[btt].xs;
-      const WT_ARRAY double *ys = barTooltips_[btt].ys;
-      int j = 0;
-      int k = 3;
-      bool c = false;
-      WPointF p = zoomRangeTransform(
-          xAxes_[barTooltips_[btt].series->xAxis()].transformHandle.value(),
-          yAxes_[barTooltips_[btt].series->yAxis()].transformHandle.value())
-          .inverted().map(WPointF(x,y));
-      for (; j < 4; k = j++) {
-	  if ((((ys[j]<=p.y()) && (p.y()<ys[k])) ||
-	       ((ys[k]<=p.y()) && (p.y()<ys[j]))) &&
-	      (p.x() < (xs[k] - xs[j]) * (p.y() - ys[j]) / (ys[k] - ys[j]) + xs[j]))
-	    c = !c;
-      }
-      if (c) {
-	WString tooltip = barTooltips_[btt].series->model()->toolTip(barTooltips_[btt].yRow, barTooltips_[btt].yColumn);
-	if (!tooltip.empty()) {
-	  doJavaScript(cObjJsRef() + ".updateTooltip(" + escapeText(tooltip, false).jsStringLiteral() + ");");
-	}
-	return;
-      }
-    }
-  }
 }
 
   }

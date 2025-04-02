@@ -105,7 +105,7 @@ class WT_API WebController
 #endif // WT_TARGET_JAVA
 {
 public:
-  static bool isAsyncSupported() { return true; }
+  constexpr static bool isAsyncSupported() { return true; }
 
   std::unique_ptr<WApplication> doCreateApplication(WebSession *session, EntryPoint *ep);
   Configuration& configuration();

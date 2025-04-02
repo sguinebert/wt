@@ -29,6 +29,7 @@
 #include "detail/common.hpp"
 #include "detail/noncopyable.hpp"
 #include "response.hpp"
+#include "deps/ada.h"
 
 #include <Wt/Http/Request.h>
 #include <boost/url.hpp>
@@ -123,134 +124,337 @@ public:
         bool satisfiable_;
     };
 
-    void inplaceUrlDecode(std::string &text)
-    {
-        // Note: there is a Java-too duplicate of this function in Wt/Utils.C
-        std::size_t j = 0;
-
-        for (std::size_t i = 0; i < text.length(); ++i)
-        {
-            char c = text[i];
-
-            if (c == '+')
-            {
-                text[j++] = ' ';
+// convert url encoded path to decoded url path & split it into segments (vector of string_view) :
+//separated by '/' but "" ("foo//bar) is invalided and "." is considered as prefix folder (./folder/foo or ff/./gg) -> skipped
+// and ".." is interpreted as parent folder (foo/../bar) -> pop the last segment RFC 3986 "/foo/bar/../baz" → "/foo/baz"
+auto inplaceDecode_split(std::string &text) -> std::vector<std::string_view>
+{
+    std::vector<std::string_view> segments;
+    // Note: there is a Java-too duplicate of this function in Wt/Utils.C
+    std::size_t j = 0;
+    std::size_t pos = 0;
+    std::size_t first_percent = text.find('%');
+    if (first_percent == std::string_view::npos) { // no need to decode but parse required
+        std::string_view sv {text};
+        //if(sv[0] == '/') sv.remove_prefix(1);
+        for (auto segment : std::views::split(sv, '/')) {
+            if (segment.empty() || std::equal(segment.begin(), segment.end(), "."))
+                continue; // Skip empty or "." segments
+            else if (std::equal(segment.begin(), segment.end(), "..")) {
+                // handle ".." to pop the previous segment:
+                if (!segments.empty()) {
+                    segments.pop_back();
+                }
+                continue;
             }
-            else if (c == '%' && i + 2 < text.length())
-            {
-                std::string h = text.substr(i + 1, 2);
-                char *e = 0;
-                int hval = std::strtol(h.c_str(), &e, 16);
+            segments.emplace_back(segment.begin(), segment.end());
+        }
+        //boost::split(segments, text, boost::is_any_of("/"));
+        return segments;
+    }
 
-                if (*e == 0)
-                {
-                    text[j++] = (char)hval;
-                    i += 2;
+    // const char* pointer = text.data() + first_percent;
+    // const char* end = text.data() + text.size();
+
+    size_t lenght = text.length();
+
+    for (std::size_t i = first_percent; i < text.length(); ++i)
+    {
+        char c = text[i];
+
+        if (c != '%' || lenght - i < 2 ||
+            ( // ch == '%' && // It is unnecessary to check that ch == '%'.
+                (!ada::unicode::is_ascii_hex_digit(text[j+1]) ||
+                 !ada::unicode::is_ascii_hex_digit(text[j+2]))))
+        {
+            if(c == '/'){
+                std::string_view sv {text.begin() + pos, text.begin() + j};
+                if (!sv.empty() && sv != "." && sv != "..")
+                    segments.emplace_back(sv);
+                else if (sv == "..") {
+                    // handle ".." to pop the previous segment:
+                    if (!segments.empty()) {
+                        segments.pop_back();
+                    }
                 }
-                else
-                {
-                    // not a proper %XX with XX hexadecimal format
-                    text[j++] = c;
-                }
+                pos = j;
+            }
+            text[j++] = (c == '+') ? ' ' : c;
+            // pointer++;
+        }
+        else
+        {
+            unsigned a = ada::unicode::convert_hex_to_binary(text[j+1]);
+            unsigned b = ada::unicode::convert_hex_to_binary(text[j+2]);
+            char ch = static_cast<char>(a * 16 + b);
+            text[j++] = ch;
+            i += 2;
+        }
+    }
+    text.erase(j);
+    std::string_view sv {text.begin() + pos, text.begin() + j};
+    if (!sv.empty() && sv != "." && sv != "..")
+        segments.emplace_back(sv);
+    else if (sv == "..") {
+        // handle ".." to pop the previous segment:
+        if (!segments.empty()) {
+            segments.pop_back();
+        }
+    }
+    //segments.emplace_back(text.begin() + pos, text.end());
+    return segments;
+}
+
+static std::string decode_uri(std::string_view encoded)
+{
+    std::string text {encoded};
+    // Note: there is a Java-too duplicate of this function in Wt/Utils.C
+    std::size_t j = 0;
+    //std::size_t pos = 0;
+    std::size_t first_percent = encoded.find('%');
+    if (first_percent == std::string_view::npos) {
+        return text;
+    }
+
+    // const char* pointer = text.data() + first_percent;
+    // const char* end = text.data() + text.size();
+
+    size_t lenght = text.length();
+
+    for (std::size_t i = first_percent; i < text.length(); ++i)
+    {
+        char c = text[i];
+
+        if (c != '%' || lenght - i < 2 ||
+            ( // ch == '%' && // It is unnecessary to check that ch == '%'.
+                (!ada::unicode::is_ascii_hex_digit(text[j+1]) ||
+                 !ada::unicode::is_ascii_hex_digit(text[j+2]))))
+        {
+            text[j++] = (c == '+') ? ' ' : c;
+            // pointer++;
+        }
+        else
+        {
+            unsigned a = ada::unicode::convert_hex_to_binary(text[j+1]);
+            unsigned b = ada::unicode::convert_hex_to_binary(text[j+2]);
+            char ch = static_cast<char>(a * 16 + b);
+            text[j++] = ch;
+            i += 2;
+        }
+    }
+
+    text.erase(j);
+    return text;
+}
+
+//the best should be using a unique decoded string + vector of std::pair<string_view, string_view>
+//or std::unordered_map<string_view, string_view>
+static void parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
+{
+    //ada::url_search_params search_params(s);
+    for (std::size_t pos = 0; pos < s.length();)
+    {
+        std::size_t next = s.find_first_of("&=", pos);
+
+        if (next == pos && s[next] == '&')
+        {
+            // skip empty
+            pos = next + 1;
+            continue;
+        }
+        if (next == std::string::npos && s[next] == '&')
+        {
+            if (next == std::string::npos)
+                next = s.length();
+            /*                 std::string key { s.substr(pos, next - pos) };
+                inplaceUrlDecode(key);
+                parameters[key].push_back(std::string()); */
+            parameters.emplace(decode_uri(s.substr(pos, next - pos)), std::string{});
+            pos = next + 1;
+        }
+        else
+        {
+            std::size_t amp = s.find('&', next + 1);
+            if (amp == std::string::npos)
+                amp = s.length();
+
+            //std::string key { s.substr(pos, next - pos) };
+            //inplaceUrlDecode(key);
+
+            //std::string value { s.substr(next + 1, amp - (next + 1)) };
+            //inplaceUrlDecode(value);
+
+            //parameters[key].push_back(value);
+            parameters.emplace(decode_uri(s.substr(pos, next - pos)),
+                               decode_uri(s.substr(next + 1, amp - (next + 1))));
+            pos = amp + 1;
+        }
+    }
+}
+
+void parseFormUrlEncoded(std::string_view s)
+{
+    for (std::size_t pos = 0; pos < s.length();)
+    {
+        std::size_t next = s.find_first_of("&=", pos);
+
+        if (next == pos && s[next] == '&')
+        {
+            // skip empty
+            pos = next + 1;
+            continue;
+        }
+
+        if (next == std::string::npos || s[next] == '&')
+        {
+            if (next == std::string::npos)
+                next = s.length();
+            std::string key { s.substr(pos, next - pos) };
+            inplaceUrlDecode(key);
+            query_.emplace(std::move(key), std::string());
+            pos = next + 1;
+        }
+        else
+        {
+            std::size_t amp = s.find('&', next + 1);
+            if (amp == std::string::npos)
+                amp = s.length();
+
+            std::string key { s.substr(pos, next - pos) };
+            inplaceUrlDecode(key);
+
+            std::string value { s.substr(next + 1, amp - (next + 1)) };
+            inplaceUrlDecode(value);
+
+            query_.emplace(std::move(key), std::move(value));
+            pos = amp + 1;
+        }
+    }
+}
+
+void inplaceUrlDecode(std::string &text)
+{
+    // Note: there is a Java-too duplicate of this function in Wt/Utils.C
+    std::size_t j = 0;
+
+    for (std::size_t i = 0; i < text.length(); ++i)
+    {
+        char c = text[i];
+
+        if (c == '+')
+        {
+            text[j++] = ' ';
+        }
+        else if (c == '%' && i + 2 < text.length())
+        {
+            std::string h = text.substr(i + 1, 2);
+            char *e = 0;
+            int hval = std::strtol(h.c_str(), &e, 16);
+
+            if (*e == 0)
+            {
+                text[j++] = (char)hval;
+                i += 2;
             }
             else
+            {
+                // not a proper %XX with XX hexadecimal format
                 text[j++] = c;
-        }
-
-        text.erase(j);
-    }
-
-    void parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
-    {
-//        std::vector<std::string_view> parse;
-//        parseStringView(s, parse);
-        for (std::size_t pos = 0; pos < s.length();)
-        {
-            std::size_t next = s.find_first_of("&=", pos);
-
-            if (next == pos && s[next] == '&')
-            {
-                // skip empty
-                pos = next + 1;
-                continue;
-            }
-
-            if (next == std::string::npos || s[next] == '&')
-            {
-                if (next == std::string::npos)
-                    next = s.length();
-                std::string key { s.substr(pos, next - pos) };
-                inplaceUrlDecode(key);
-                parameters[key].push_back(std::string());
-                pos = next + 1;
-            }
-            else
-            {
-                std::size_t amp = s.find('&', next + 1);
-                if (amp == std::string::npos)
-                    amp = s.length();
-
-                std::string key { s.substr(pos, next - pos) };
-                inplaceUrlDecode(key);
-
-                std::string value { s.substr(next + 1, amp - (next + 1)) };
-                inplaceUrlDecode(value);
-
-                parameters[key].push_back(value);
-                pos = amp + 1;
             }
         }
+        else
+            text[j++] = c;
     }
 
-    void parseFormUrlEncoded(std::string_view s)
-    {
-        for (std::size_t pos = 0; pos < s.length();)
-        {
-            std::size_t next = s.find_first_of("&=", pos);
+    text.erase(j);
+}
 
-            if (next == pos && s[next] == '&')
-            {
-                // skip empty
-                pos = next + 1;
-                continue;
-            }
+//     void parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
+//     {
+// //        std::vector<std::string_view> parse;
+// //        parseStringView(s, parse);
+//         for (std::size_t pos = 0; pos < s.length();)
+//         {
+//             std::size_t next = s.find_first_of("&=", pos);
 
-            if (next == std::string::npos || s[next] == '&')
-            {
-                if (next == std::string::npos)
-                    next = s.length();
-                std::string key { s.substr(pos, next - pos) };
-                inplaceUrlDecode(key);
-                query_.emplace(std::move(key), std::string());
-                pos = next + 1;
-            }
-            else
-            {
-                std::size_t amp = s.find('&', next + 1);
-                if (amp == std::string::npos)
-                    amp = s.length();
+//             if (next == pos && s[next] == '&')
+//             {
+//                 // skip empty
+//                 pos = next + 1;
+//                 continue;
+//             }
 
-                std::string key { s.substr(pos, next - pos) };
-                inplaceUrlDecode(key);
+//             if (next == std::string::npos || s[next] == '&')
+//             {
+//                 if (next == std::string::npos)
+//                     next = s.length();
+//                 std::string key { s.substr(pos, next - pos) };
+//                 inplaceUrlDecode(key);
+//                 parameters[key].push_back(std::string());
+//                 pos = next + 1;
+//             }
+//             else
+//             {
+//                 std::size_t amp = s.find('&', next + 1);
+//                 if (amp == std::string::npos)
+//                     amp = s.length();
 
-                std::string value { s.substr(next + 1, amp - (next + 1)) };
-                inplaceUrlDecode(value);
+//                 std::string key { s.substr(pos, next - pos) };
+//                 inplaceUrlDecode(key);
 
-                query_.emplace(std::move(key), std::move(value));
-                pos = amp + 1;
-            }
-        }
-    }
+//                 std::string value { s.substr(next + 1, amp - (next + 1)) };
+//                 inplaceUrlDecode(value);
+
+//                 parameters[key].push_back(value);
+//                 pos = amp + 1;
+//             }
+//         }
+//     }
+
+//     void parseFormUrlEncoded(std::string_view s)
+//     {
+//         for (std::size_t pos = 0; pos < s.length();)
+//         {
+//             std::size_t next = s.find_first_of("&=", pos);
+
+//             if (next == pos && s[next] == '&')
+//             {
+//                 // skip empty
+//                 pos = next + 1;
+//                 continue;
+//             }
+
+//             if (next == std::string::npos || s[next] == '&')
+//             {
+//                 if (next == std::string::npos)
+//                     next = s.length();
+//                 std::string key { s.substr(pos, next - pos) };
+//                 inplaceUrlDecode(key);
+//                 query_.emplace(std::move(key), std::string());
+//                 pos = next + 1;
+//             }
+//             else
+//             {
+//                 std::size_t amp = s.find('&', next + 1);
+//                 if (amp == std::string::npos)
+//                     amp = s.length();
+
+//                 std::string key { s.substr(pos, next - pos) };
+//                 inplaceUrlDecode(key);
+
+//                 std::string value { s.substr(next + 1, amp - (next + 1)) };
+//                 inplaceUrlDecode(value);
+
+//                 query_.emplace(std::move(key), std::move(value));
+//                 pos = amp + 1;
+//             }
+//         }
+//     }
 
     void parseFormUrlEncoded(std::vector<std::pair<std::string_view, std::string_view>>& s)
     {
-        for(auto &[keysv, valsv] : s) {
-            std::string key { keysv };
-            inplaceUrlDecode(key);
-
-            std::string val { valsv };
-            inplaceUrlDecode(val);
-            query_.emplace(std::move(key), std::move(val));
+        for(auto &[key, val] : s) {
+            query_.emplace(decode_uri(key), decode_uri(val));
         }
     }
 
@@ -344,6 +548,18 @@ public:
 
   std::string_view path() const noexcept { return path_; }
 
+  std::vector<std::string_view>& decoded_segments() noexcept {
+    if (!decoded_segments_.empty())
+      return decoded_segments_;
+
+    if(path_.empty())
+        decoded_segments_.emplace_back(std::string_view(""));
+
+    decoded_path_ = path_;
+    decoded_segments_ = inplaceDecode_split(decoded_path_);
+    return decoded_segments_;
+  }
+
   std::string_view pathInfo(std::string_view base) noexcept { if(pathInfo_.empty() && path_.size() != base.size()) pathInfo_ = path_.substr(base.size() + 1); return pathInfo_; }
   std::string_view pathInfo() const noexcept { return pathInfo_; }
 
@@ -429,7 +645,7 @@ public:
     field_ = {};
     value_ = {};
     url_ = {};
-    internalPath_.clear();
+    decoded_path_.clear();
     origin_.clear();
     href_.clear();
     path_ = {};
@@ -607,7 +823,7 @@ public:
 
     if (address.is_v4()) {
       auto v4Address = address.to_v4();
-      unsigned long ip = v4Address.to_ulong();
+      auto ip = v4Address.to_uint();
       return ((ip >= 0x0A000000 && ip <= 0x0AFFFFFF) ||
               (ip >= 0xAC100000 && ip <= 0xAC1FFFFF) ||
               (ip >= 0xC0A80000 && ip <= 0xC0A8FFFF));
@@ -622,24 +838,19 @@ public:
 
   ::int64_t postDataExceeded_{0};
  private:
-
+  //high speed url parsing
   void parse_url() {
-    urlv_= boost::url_view { url_ };
-
-    path_ = urlv_.encoded_path();
-    querystring_ = urlv_.encoded_query();
-
-//        const auto pos = url_.find('?');
-//        if (pos == std::string_view::npos) {
-//          path_ = url_;
-//        } else {
-//          path_ = url_.substr(0, pos);
-//          querystring_ = url_.substr(pos + 1, url_.length() - pos - 1);
-//          search_ = url_.substr(pos, url_.length() - pos);
-//        }
+      auto uri = ada::parse<ada::url_aggregator>(url_);
+      if(uri) {
+          urlsv_ = uri.value();
+          path_ = urlsv_.get_pathname();
+          querystring_ = urlsv_.get_search();
+      }
   }
-  void setInternalPath(std::string_view internalPath) { internalPath_ = internalPath; }
+  void setDecodedPath(std::string_view decoded_path) { decoded_path_ = decoded_path; }
 
+  //expand() : to expand the buffer size of buffer_ (vector<char>) and thus update the pointers of string_view
+  //to the new buffer location of the vector<char> after resize()
   void expand() {
     const char* data{buffer_.data()};
     buffer_offset_ = data_size_;//buffer_.size();
@@ -657,7 +868,7 @@ public:
 
     if (!url_.empty()) {
       url_ = {buffer_.data() + (url_.data() - data), url_.length()};
-      urlv_= boost::url_view { url_ };
+      //urlv_= boost::url_view { url_ };
     }
 
     if (!path_.empty()) {
@@ -693,10 +904,12 @@ public:
   unsigned minor_version_{1};
   std::string_view url_;
   boost::url_view urlv_;
-  std::string internalPath_;
+  ada::url_aggregator urlsv_;
+  std::string decoded_path_;
   mutable std::string origin_;
   mutable std::string href_;
   std::string_view path_, pathInfo_;
+  std::vector<std::string_view> decoded_segments_;
   std::string_view querystring_;
   mutable std::multimap<std::string, std::string> query_;
   std::string_view search_;

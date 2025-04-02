@@ -103,7 +103,7 @@ namespace Wt {
  */
 class WT_API WString
 {
-  class Impl;
+  struct Impl;
 public:
   /*! \brief Sets the encoding for
    *         \link Wt::CharEncoding::Default CharEncoding::Default\endlink
@@ -425,9 +425,9 @@ public:
    */
   std::string toUTF8() const;
 
-  std::string_view view() { if(formatedUtf8_.empty()) toUTF8(); return std::string_view(formatedUtf8_); }
+  //std::string_view view() { if(formatedUtf8_.empty()) toUTF8(); return std::string_view(formatedUtf8_); }
 
-  std::string_view xhtmlView() { if(formatedUtf8_.empty()) toXhtmlUTF8(); return std::string_view(formatedUtf8_); }
+  //std::string_view xhtmlView() { if(formatedUtf8_.empty()) toXhtmlUTF8(); return std::string_view(formatedUtf8_); }
 
   /*! \brief Returns the value as a UTF-8 encoded XHTML string.
    *
@@ -770,7 +770,7 @@ public:
   /*! \brief Returns the list of arguments
    */
   //const std::vector<WString>& args() const;
-  const bool args() { return fmt_args_.empty(); }
+   bool args() const { return fmt_args_.empty(); }
 
   /*! \brief Refreshes the string.
    *
@@ -812,16 +812,12 @@ private:
   WString(const char *key, bool, ::uint64_t n = -1);
 
   std::string utf8_;
+  // keep arguments alive until the actual formatting call happens allocates or creates a copy
   fmt::dynamic_format_arg_store<fmt::format_context> fmt_args_;
   mutable std::string formatedUtf8_;
-  
-  // std::vector<std::string> arguments_;
-  // std::vector<std::tm> tmarguments_;
+  mutable TextFormat format_ = TextFormat::Plain;
 
-  //using ctx = fmt::format_context;
-  //std::vector<fmt::basic_format_arg<ctx>> fmt_args_;
-  
-
+private:
   std::string resolveKey(TextFormat format) const;
 
   void makeLiteral();

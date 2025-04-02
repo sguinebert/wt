@@ -721,73 +721,73 @@ unsigned char toChar(int b) {
 std::string DomElement::urlEncodeS(const std::string& url,
                                    const std::string &allowed)
 {
-  WStringStream result;
+    WStringStream result;
 
 #ifdef WT_TARGET_JAVA
-  std::vector<unsigned char> bytes;
-  try {
-    bytes = url.getBytes("UTF-8");
-  } catch (UnsupportedEncodingException& e) {
-    // eat silly UnsupportedEncodingException
-  }
+    std::vector<unsigned char> bytes;
+    try {
+        bytes = url.getBytes("UTF-8");
+    } catch (UnsupportedEncodingException& e) {
+        // eat silly UnsupportedEncodingException
+    }
 #else
-  const std::string& bytes = url;
+    const std::string& bytes = url;
 #endif
 
-  for (unsigned i = 0; i < bytes.size(); ++i) {
-    unsigned char c = toChar(bytes[i]);
-    if (c <= 31 || c >= 127 || unsafeChars_.find(c) != std::string::npos) {
-      if (allowed.find(c) != std::string::npos) {
-        result << (char)c;
-      } else {
-        result << '%';
-	result << hexLookup(c >> 4);
-        result << hexLookup(c);
-      }
-    } else
-      result << (char)c;
-  }
+    for (unsigned i = 0; i < bytes.size(); ++i) {
+        unsigned char c = toChar(bytes[i]);
+        if (c <= 31 || c >= 127 || unsafeChars_.find(c) != std::string::npos) {
+            if (allowed.find(c) != std::string::npos) {
+                result << (char)c;
+            } else {
+                result << '%';
+                result << hexLookup(c >> 4);
+                result << hexLookup(c);
+            }
+        } else
+            result << (char)c;
+    }
 
-  return result.str();
+    return result.str();
 }
 
-std::string DomElement::urlEncodeS(const std::string& url)
+std::string DomElement::urlEncodeS(std::string_view url, const uint8_t charset[])
 {
-  return urlEncodeS(url, std::string());
+  return ada::unicode::percent_encode(url, charset);//urlEncodeS(url, std::string());
 }
 
-std::string DomElement::urlEncodeS(std::string_view url,
-                                   const std::string &allowed)
-{
-  WStringStream result;
+// std::string DomElement::urlEncodeS(std::string_view url,
+//                                    const std::string &allowed)
+// {
+//   WStringStream result;
 
-#ifdef WT_TARGET_JAVA
-  std::vector<unsigned char> bytes;
-  try {
-    bytes = url.getBytes("UTF-8");
-  } catch (UnsupportedEncodingException& e) {
-    // eat silly UnsupportedEncodingException
-  }
-#else
-  //const std::string& bytes = url;
-#endif
+// #ifdef WT_TARGET_JAVA
+//   std::vector<unsigned char> bytes;
+//   try {
+//     bytes = url.getBytes("UTF-8");
+//   } catch (UnsupportedEncodingException& e) {
+//     // eat silly UnsupportedEncodingException
+//   }
+// #else
+//   //const std::string& bytes = url;
+// #endif
 
-  for (unsigned i = 0; i < url.size(); ++i) {
-    unsigned char c = toChar(url[i]);
-    if (c <= 31 || c >= 127 || unsafeChars_.find(c) != std::string::npos) {
-      if (allowed.find(c) != std::string::npos) {
-        result << (char)c;
-      } else {
-        result << '%';
-        result << hexLookup(c >> 4);
-        result << hexLookup(c);
-      }
-    } else
-      result << (char)c;
-  }
+//   for (unsigned i = 0; i < url.size(); ++i) {
+//     unsigned char c = toChar(url[i]);
+//     if (c <= 31 || c >= 127 || unsafeChars_.find(c) != std::string::npos) {
+//       if (allowed.find(c) != std::string::npos) {
+//         result << (char)c;
+//       } else {
+//         result << '%';
+//         result << hexLookup(c >> 4);
+//         result << hexLookup(c);
+//       }
+//     } else
+//       result << (char)c;
+//   }
 
-  return result.str();
-}
+//   return result.str();
+// }
 
 void DomElement::setType(DomElementType type)
 {

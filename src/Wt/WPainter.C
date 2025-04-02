@@ -622,7 +622,7 @@ void WPainter::drawText(const WRectF& rectangle,
       s << ";" << font().cssText(false);
 
       s << "\">"
-	 << WWebWidget::escapeText(text, true).toUTF8() 
+     << WWebWidget::escapeText(text.toUTF8(), true)
 	 << "</td></tr></table>";
 
       save();

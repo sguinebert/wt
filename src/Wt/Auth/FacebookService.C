@@ -162,7 +162,7 @@ std::string FacebookService::redirectEndpointPath() const
   }
 }
 
-std::string FacebookService::authorizationEndpoint() const
+std::string_view FacebookService::authorizationEndpoint() const
 {
   return AuthUrl;
 }

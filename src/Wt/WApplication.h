@@ -56,6 +56,37 @@ class RootContainer;
 class UpdateLockImpl;
 class SoundManager;
 
+// Transparent hash functor that works with std::string_view.
+struct TransparentHash {
+    using is_transparent = void; // This tells the container that the hash is transparent.
+
+    size_t operator()(std::string_view s) const noexcept {
+        return std::hash<std::string_view>{}(s);
+    }
+
+    // Overload for std::string is optional, since std::string_view can be constructed from std::string.
+    size_t operator()(const std::string& s) const noexcept {
+        return std::hash<std::string_view>{}(s);
+    }
+};
+
+// Transparent equality functor that can compare std::string and std::string_view.
+struct TransparentEqual {
+    using is_transparent = void; // Marks the comparator as transparent.
+
+    bool operator()(std::string_view lhs, std::string_view rhs) const noexcept {
+        return lhs == rhs;
+    }
+
+    bool operator()(const std::string& lhs, std::string_view rhs) const noexcept {
+        return lhs == rhs;
+    }
+
+    bool operator()(std::string_view lhs, const std::string& rhs) const noexcept {
+        return lhs == rhs;
+    }
+};
+
 /*! \brief Typedef for a function that creates WApplication objects.
  *
  * \sa WRun()
@@ -2287,8 +2318,8 @@ private:
   };
 
 #ifndef WT_TARGET_JAVA
-  typedef std::unordered_map<std::string, EventSignalBase *> SignalMap;
-  typedef std::unordered_map<std::string, WResource*> ResourceMap;
+  typedef std::unordered_map<std::string, EventSignalBase*, TransparentHash, TransparentEqual> SignalMap;
+  typedef std::unordered_map<std::string, WResource*, TransparentHash, TransparentEqual> ResourceMap;
 #else
   typedef std::weak_value_map<std::string, EventSignalBase *> SignalMap;
   typedef std::weak_value_map<std::string, WResource*> ResourceMap;
@@ -2382,8 +2413,7 @@ private:
   void addExposedSignal(EventSignalBase* signal);
   void removeExposedSignal(EventSignalBase* signal);
   EventSignalBase  *decodeExposedSignal(const std::string& signalName) const;
-  std::string encodeSignal(const std::string& objectId,
-			   const std::string& name) const;
+  std::string encodeSignal(std::string_view objectId, std::string_view name) const;
 
   SignalMap& exposedSignals() { return exposedSignals_; }
   std::set<std::string>& justRemovedSignals() { return justRemovedSignals_; }
