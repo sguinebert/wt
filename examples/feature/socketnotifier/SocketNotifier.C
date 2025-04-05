@@ -110,13 +110,11 @@ private:
        * in a call to select, and activated() will be called whenever
        * select decides that the socket is ready for read or write.
        */
-      readNotifier_ = std::make_unique<WSocketNotifier>(socket_,
-          WSocketNotifier::Type::Read);
+      readNotifier_ = std::make_unique<WSocketNotifier>(socket_, WSocketNotifier::Type::Read);
       readNotifier_->setEnabled(false); // Linux fires this on connect, weird
-      readNotifier_->activated().connect(this, &RssReader::read);
-      writeNotifier_ = std::make_unique<WSocketNotifier>(socket_,
-          WSocketNotifier::Type::Write);
-      writeNotifier_->activated().connect(this, &RssReader::write);
+      readNotifier_->activated().connect<&RssReader::read>(this);
+      writeNotifier_ = std::make_unique<WSocketNotifier>(socket_, WSocketNotifier::Type::Write);
+      writeNotifier_->activated().connect<&RssReader::write>(this);
 
       // Set sockets to non-blocking
 #ifndef WT_WIN32

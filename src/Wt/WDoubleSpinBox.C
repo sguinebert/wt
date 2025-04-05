@@ -95,9 +95,9 @@ void WDoubleSpinBox::updateDom(DomElement& element, bool all)
 {
   if (all || changed_) {
     if (nativeControl()) {
-      element.setAttribute("min", std::to_string(min_), true);
-      element.setAttribute("max", std::to_string(max_), true);
-      element.setAttribute("step", std::to_string(step_), true);
+      element.setAttribute("min", min_);
+      element.setAttribute("max", max_);
+      element.setAttribute("step", step_);
     } else {
       /* Make sure the JavaScript validator is loaded */
       WDoubleValidator v ;

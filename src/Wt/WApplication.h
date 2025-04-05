@@ -12,6 +12,10 @@
 #include <string>
 #include <set>
 
+#include <boost/unordered/concurrent_flat_map.hpp>
+#include <boost/unordered/concurrent_flat_set.hpp>
+#define BOOST_CONCURENT_MAP
+
 // even boost/poolfwd.hpp includes <windows.h> ...
 namespace boost {
   struct default_user_allocator_new_delete;
@@ -53,7 +57,7 @@ class WText;
 
 class WebSession;
 class RootContainer;
-class UpdateLockImpl;
+//class UpdateLockImpl;
 class SoundManager;
 
 // Transparent hash functor that works with std::string_view.
@@ -1379,7 +1383,7 @@ public:
 #endif // WT_TARGET_JAVA
 
 #ifndef WT_TARGET_JAVA
-    mutable std::unique_ptr<UpdateLockImpl> impl_;
+    //mutable std::unique_ptr<UpdateLockImpl> impl_;
     bool ok_;
 #endif // !WT_TARGET_JAVA
 
@@ -2318,8 +2322,14 @@ private:
   };
 
 #ifndef WT_TARGET_JAVA
+#ifdef BOOST_CONCURENT_MAP
+  //using SignalMap = boost::unordered_flat_map<std::string, std::shared_ptr<WebSession>>;
+  typedef std::unordered_map<std::string, EventSignalBase*, TransparentHash, TransparentEqual> SignalMap;
+  using ResourceMap = boost::concurrent_flat_map<std::string, std::shared_ptr<WebSession>, TransparentHash, TransparentEqual >;
+#else
   typedef std::unordered_map<std::string, EventSignalBase*, TransparentHash, TransparentEqual> SignalMap;
   typedef std::unordered_map<std::string, WResource*, TransparentHash, TransparentEqual> ResourceMap;
+#endif
 #else
   typedef std::weak_value_map<std::string, EventSignalBase *> SignalMap;
   typedef std::weak_value_map<std::string, WResource*> ResourceMap;
@@ -2330,9 +2340,8 @@ private:
    * Basic application stuff
    */
   WebSession *session_; // session owning this application
-#ifndef WT_CNOR
+
   std::weak_ptr<WebSession> weakSession_; // used to sense destruction
-#endif // WT_CNOR
   WString title_, closeMessage_;
   bool titleChanged_, closeMessageChanged_, localeChanged_;
   std::unique_ptr<WContainerWidget> domRoot_; // main DOM root
@@ -2382,7 +2391,7 @@ private:
   ResourceMap exposedResources_; // resources that may be accessed
   ObjectMap encodedObjects_;   // objects encoded for internal purposes
                                  // like 'virtual pointers' (see D&D)
-  std::set<std::string> justRemovedSignals_;
+  std::set<std::string, TransparentEqual> justRemovedSignals_;
 
   bool exposeSignals_; // if we are currently exposing signals (see WViewWidget)
 
@@ -2412,17 +2421,17 @@ private:
    */
   void addExposedSignal(EventSignalBase* signal);
   void removeExposedSignal(EventSignalBase* signal);
-  EventSignalBase  *decodeExposedSignal(const std::string& signalName) const;
+  EventSignalBase  *decodeExposedSignal(std::string_view signalName) const;
   std::string encodeSignal(std::string_view objectId, std::string_view name) const;
 
   SignalMap& exposedSignals() { return exposedSignals_; }
-  std::set<std::string>& justRemovedSignals() { return justRemovedSignals_; }
+  auto& justRemovedSignals() { return justRemovedSignals_; }
 
   std::string resourceMapKey(WResource *resource);
   std::string addExposedResource(WResource *resource);
   bool removeExposedResource(WResource *resource);
-  WResource *decodeExposedResource(const std::string& resourceMapKey) const;
-  WResource *decodeExposedResource(const std::string& resourceMapKey,
+  WResource *decodeExposedResource(std::string_view resourceMapKey) const;
+  WResource *decodeExposedResource(std::string_view resourceMapKey,
                                    unsigned long rand) const;
 
   /*

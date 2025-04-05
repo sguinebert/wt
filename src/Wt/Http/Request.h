@@ -41,11 +41,11 @@ class WebSession;
  */
 class WT_API UploadedFile {
 public:
-  UploadedFile();
-  
-  UploadedFile(const std::string& spoolFileName,
-	       const std::string& clientFileName,
-	       const std::string& contentType);
+    UploadedFile();
+
+    UploadedFile(const std::string& spoolFileName,
+                 const std::string& clientFileName,
+                 const std::string& contentType);
 
   /*! \brief Return the spool file name.
    *

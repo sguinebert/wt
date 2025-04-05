@@ -258,10 +258,8 @@ awaitable<bool> WebController::expireSessions()
 
     LOG_INFO_S(session, "timeout: expiring");
 
-    //WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock);
-
-    WebSession::Handler handler(session, WebSession::Handler::LockOption::NoLock);
-    co_await session->takeLock(); //SEGFAULT in asio
+    WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock);
+    co_await handler.lock(); //SEGFAULT in asio
 
 
 
@@ -300,7 +298,7 @@ awaitable<bool> WebController::expireSessions()
 #endif
 
     session->expire();
-    co_await handler.destroy();
+    co_await handler.processEvents();
   }
 
   co_return result;
@@ -734,7 +732,8 @@ awaitable<bool> WebController::handleApplicationEvent(const std::shared_ptr<Appl
    */
   {
     WebSession::Handler handler(session, WebSession::Handler::LockOption::TryLock);
-    co_await handler.destroy();
+    if(co_await handler.lock(WebSession::Handler::LockOption::TryLock))
+        co_await handler.processEvents();
   }
 
   co_return true;
@@ -965,6 +964,7 @@ void WebController::handleRequest(WebRequest *request)
 
   bool handled = false;
   {
+      //lock_(session->mutex_) -> handler lock the mutex here to protect against concurrent http access
     WebSession::Handler handler(session, *request, *(WebResponse *)request);
 
     if (!session->dead()) {
@@ -988,10 +988,9 @@ void WebController::handleRequest(WebRequest *request)
 awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPoint *entryPoint)
 {
   if (!running_) {
-        std::cerr << "!! NOT RUNNING !!" <<std::endl;
+    //std::cerr << "!! NOT RUNNING !!" <<std::endl;
     context->status(500);
     context->flush();
-    //request->flush();
     co_return;
   }
 
@@ -1008,8 +1007,10 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
   //          }
   //          context->urlParams_ = std::move(match.urlParams);
   //      }
+  const static auto maxRequestSize = conf_.maxRequestSize();
+  const static auto maxFormDataSize = conf_.maxFormDataSize();
 
-  CgiParser cgi(conf_.maxRequestSize(), conf_.maxFormDataSize());
+  CgiParser cgi(maxRequestSize, maxFormDataSize);
 
   try {
     cgi.parse(context, conf_.needReadBodyBeforeResponse()
@@ -1050,7 +1051,6 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
       context->res()
           << "<title>Error occurred.</title><h2>Error occurred.</h2><p>Invalid redirect.</p>"; //<< std::endl
     }
-    //request->flush(WebResponse::ResponseState::ResponseDone);
     context->flush();
     co_return;
   }
@@ -1306,18 +1306,27 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
 //      sessions_.insert(std::move(node));
 //    }
 //  }
+  /* threadsafe with boost concurrent flat map, we find the private resource of the websession and handle request
+   *  the session is not locked, each user need take session lock before modifying widgets
+   *  it was handle in awaitable<void> WebSession::notify(const WEvent& event) before
+   */
+  if(session->resourceRequest(context))
+  {
+      if(co_await session->checkPrivateResources(context))
+          co_return;
+  }
 
   bool handled = false;
-  {
-
-    //WebSession::Handler handler(session, *request, *(WebResponse *)request);
+  {  
+    //lock_(session->mutex_) -> handler lock the mutex here to protect against concurrent http access
     WebSession::Handler handler(session, context);
+    co_await handler.lock();
 
     if (!session->dead()) {
       handled = true;
       co_await session->handleRequest(handler, entryPoint);
     }
-    co_await handler.destroy();
+    co_await handler.processEvents();
   }
 
   if (session->dead())
@@ -1350,8 +1359,8 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
 
   //WebSession::Handler handler(lock, WebSession::Handler::LockOption::TakeLock);
 
-  WebSession::Handler handler(lock, WebSession::Handler::LockOption::NoLock);
-  co_await lock->takeLock();
+  WebSession::Handler handler(lock, WebSession::Handler::LockOption::TakeLock);
+  co_await handler.lock();
 
   //  lock->handleRequest(handler, entryPoint);
 
@@ -1360,14 +1369,17 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
 
   if (!closing)
   {
-    CgiParser cgi(this->configuration().maxRequestSize(),
-                  this->configuration().maxFormDataSize());
-    try {
-      cgi.parse(message, lock->sessionId(), context, CgiParser::ReadDefault);
-    } catch (std::exception& e) {
-      LOG_ERROR("could not parse ws message: {}", e.what());
-      closing = true;
-    }
+      static auto maxRequestSize = conf_.maxRequestSize();
+      static auto maxFormDataSize = conf_.maxFormDataSize();
+
+      /*static thread_local*/ CgiParser cgi(maxRequestSize,
+                                        maxFormDataSize);
+      try {
+          cgi.parse(message, lock->sessionId(), context, CgiParser::ReadDefault);
+      } catch (std::exception& e) {
+          LOG_ERROR("could not parse ws message: {}", e.what());
+          closing = true;
+      }
   }
 //  for(auto &[key, val] : context->req().query()){
 //    std::cerr << "key : " << key << " - val: " << val << std::endl;
@@ -1403,7 +1415,7 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
         context->res() << "{}";
         context->flush();
 //      }
-      co_await handler.destroy();
+      co_await handler.processEvents();
       co_return;
     }
 
@@ -1445,7 +1457,7 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
     }
   }
 
-  co_await handler.destroy();
+  co_await handler.processEvents();
 
   /*else
     if (lock->webSocket_)

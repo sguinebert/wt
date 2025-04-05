@@ -90,7 +90,7 @@ void SimpleChatWidget::login()
       messageReceived_ = std::make_unique<Wt::WSound>("sounds/message_received.mp3");
 
     if (!startChat(name))
-      statusMsg_->setText("Sorry, name '" + escapeText(name) +
+      statusMsg_->setText("Sorry, name '" + escapeText(name.toUTF8()) +
 			  "' is already taken.");
   }
 }

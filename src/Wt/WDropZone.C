@@ -114,6 +114,7 @@ protected:
      *   - only Wt-code is executed within this lock
      */
         //  WApplication::UpdateLock lock(WApplication::instance());
+        co_await WApplication::instance()->takeLock();
 #endif // WT_TARGET_JAVA
 
         // const std::string *fileId = request.getParameter("file-id");

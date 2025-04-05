@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 #include <deque>
+#include <Wt/Containers/readerwriterqueue.h>
+namespace mc = moodycamel;
 
 #if defined(WT_THREADED) || defined(WT_TARGET_JAVA)
 #define WT_BOOST_THREADS
@@ -92,6 +94,12 @@ public:
       auto lock = co_await asyncmutex_.scoped_lock_async(use_awaitable); // SEGFAULT bad implementation
       std::cerr << ":: try take async_lock OK ::" << std::endl;
       co_return;
+  }
+  bool try_lock() {
+      return asyncmutex_.try_lock();
+  }
+  void unlock() {
+      asyncmutex_.unlock();
   }
 
   bool attachThreadToLockedHandler();
@@ -210,9 +218,57 @@ public:
     Handler(const std::shared_ptr<WebSession>& session, Wt::http::context* context);
     Handler(const std::shared_ptr<WebSession>& session, LockOption lockOption);
     Handler(WebSession *session);
-    ~Handler();
-    awaitable<void> destroy();
-    bool destroyed = false;
+    ~Handler()
+    {
+#ifndef WT_TARGET_JAVA
+        if (haveLock()) {
+            /* We should check that the session state is not dead ? */
+            //session_->processQueuedEvents(*this);
+            if (session_->triggerUpdate_)
+                session_->pushUpdates();
+            else if (response_ && session_->state_ != State::Dead)
+                session()->render(*this);
+
+            if(auto it = std::ranges::find(session_->handlers_, this); it != session_->handlers_.end())
+                session_->handlers_.erase(it);
+            session_->unlock();
+        }
+        if(!eventsProcessed_)
+            LOG_ERROR("processEvents() not called");
+
+        if (session_->handlers_.empty())
+            session_->hibernate();
+
+        attachThreadToHandler(prevHandler_);
+#endif // WT_TARGET_JAVA
+    }
+    awaitable<bool> lock(LockOption lockOption = LockOption::TakeLock)
+    {
+        switch (lockOption) {
+        case LockOption::NoLock:
+            break;
+        case LockOption::TakeLock:
+            co_await session_->takeLock();
+            lockOwner_ = std::this_thread::get_id();
+            break;
+        case LockOption::TryLock:
+            if (session_->try_lock())
+                lockOwner_ = std::this_thread::get_id();
+            else
+                co_return false;
+            break;
+        }
+        co_return true;
+    }
+    awaitable<void> processEvents()
+    {
+        if (!eventsProcessed_ && haveLock()) {
+            eventsProcessed_ = true;
+            /* We should check that the session state is not dead ? */
+            co_await session_->processQueuedEvents(*this);
+        }
+        co_return;
+    }
 
 #ifdef WT_TARGET_JAVA
     void release();
@@ -220,19 +276,61 @@ public:
 
     static Handler *instance();
 
-    bool haveLock() const;
-    void unlock();
+    bool haveLock() const
+    {
+        return lockOwner_ == std::this_thread::get_id();
+        // #ifdef WT_THREADED
+        //   return lock_.owns_lock();
+        // #else
+        // #ifdef WT_TARGET_JAVA
+        //   return session_->mutex().owns_lock();
+        // #else
+        //   return true;
+        // #endif
+        // #endif
+    }
+    void unlock()
+    {
+        if(haveLock()) {
+            if(auto it = std::ranges::find(session_->handlers_, this); it != session_->handlers_.end())
+                session_->handlers_.erase(it);
+            session_->unlock();
+        }
 
-    void flushResponse();
+        // #ifndef WT_TARGET_JAVA
+        //   if (haveLock()) {
+        //     Utils::erase(session_->handlers_, this);
+        // #ifdef WT_THREADED
+        //     lock_.unlock();
+        // #endif // WT_THREADED
+        //   }
+        // #endif // WT_TARGET_JAVA
+    }
+
+    void flushResponse()
+    {
+        if(context_->isWebSocketMessage()) {
+            session_->pushUpdates();
+        }
+        if(context_) {
+            context_->flush();
+            setRequest(nullptr, nullptr); //deprecated
+            setRequest(nullptr);
+        }
+    }
 
     WebSession *session() const { return session_; }
 
     //deprecated
     WebResponse *response() { return response_; } //deprecated
     WebRequest *request() { return request_; } //deprecated
-    void setRequest(WebRequest *request, WebResponse *response); //deprecated
+    void setRequest(WebRequest *request, WebResponse *response)//deprecated
+    {
+        request_ = request;
+        response_ = response;
+    }
 
-    void setRequest(http::context *context);
+    void setRequest(http::context *context) { context_ = context; }
     Wt::http::context *context() { return context_; }
 
     int nextSignal;
@@ -240,7 +338,7 @@ public:
 
 #ifdef WT_THREADED
     std::thread::id lockOwner() const { return lockOwner_; }
-    std::unique_lock<std::mutex>& lock() { return lock_; }
+    //std::unique_lock<std::mutex>& lock() { return lock_; }
 #endif
 
     static void attachThreadToSession(const std::shared_ptr<WebSession>& session);
@@ -267,6 +365,7 @@ public:
     WebRequest *request_;
     WebResponse *response_;
     bool killed_;
+    bool eventsProcessed_ = false;
 
     friend class WApplication;
     friend class WResource;
@@ -323,12 +422,13 @@ private:
   bool resourceRequest(const WebRequest& request) const;
   bool resourceRequest(Wt::http::context *request) const;
 
-#ifdef WT_BOOST_THREADS
-  std::mutex mutex_;
+  std::mutex mutex_; //for handlers taking lock
+#if defined(WT_BOOST_THREADS) && !defined(WT_CONCURRENT_CONTAINER)
   std::mutex eventQueueMutex_;
-#endif
-
   std::deque<std::shared_ptr<ApplicationEvent> > eventQueue_;
+#else
+  mc::ReaderWriterQueue<std::shared_ptr<ApplicationEvent>> eventQueue_{100};       // Reserve space for at least 100 elements up front
+#endif
 
   EntryPointType type_;
   std::string favicon_;
@@ -391,9 +491,9 @@ private:
 
   void pushUpdates();
   WResource *decodeResource(const std::string& resourceId);
-  EventSignalBase *decodeSignal(const std::string& signalId, bool checkExposed) const;
-  EventSignalBase *decodeSignal(const std::string& objectId,
-                                const std::string& signalName,
+  EventSignalBase *decodeSignal(std::string_view signalId, bool checkExposed) const;
+  EventSignalBase *decodeSignal(std::string_view objectId,
+                                std::string_view signalName,
                                 bool checkExposed) const;
 
   static WObject::FormData getFormData(const WebRequest& request, const std::string& name);
@@ -429,6 +529,8 @@ private:
 
   awaitable<void> processQueuedEvents(WebSession::Handler& handler);
   std::shared_ptr<ApplicationEvent> popQueuedEvent();
+
+  awaitable<bool> checkPrivateResources(http::context *context);
 
   friend class WebSocketMessage;
   friend class WebRenderer;

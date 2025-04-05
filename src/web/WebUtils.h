@@ -453,6 +453,56 @@ namespace Wt {
     extern double WT_API stod(const std::string_view v);
     extern float WT_API stof(const std::string_view v);
 
+    extern unsigned int WT_API stoui(const std::string_view v, unsigned int ifnot)
+    {
+        unsigned int cv;
+        auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+        if(answer.ec != std::errc()) { return ifnot; }
+        return cv;
+    }
+    extern long WT_API stol(const std::string_view v, long ifnot) {
+        long cv;
+        auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+        if(answer.ec != std::errc()) { return ifnot; }
+        return cv;
+    }
+    extern unsigned long WT_API stoul(const std::string_view v, unsigned long ifnot){
+        unsigned long cv;
+        auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+        if(answer.ec != std::errc()) { return ifnot; }
+        return cv;
+    }
+    extern long long WT_API stoll(const std::string_view v, long long ifnot) {
+        long long cv;
+        auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+        if(answer.ec != std::errc()) { return ifnot; }
+        return cv;
+    }
+    extern unsigned long long WT_API stoull(const std::string_view v, unsigned long long ifnot){
+        unsigned long long cv;
+        auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+        if(answer.ec != std::errc()) { return ifnot; }
+        return cv;
+    }
+    extern int WT_API stoi(const std::string_view v, int ifnot){
+        int cv;
+        auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+        if(answer.ec != std::errc()) { return ifnot; }
+        return cv;
+    }
+    extern double WT_API stod(const std::string_view v, double ifnot){
+        double cv;
+        auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+        if(answer.ec != std::errc()) { return ifnot; }
+        return cv;
+    }
+    extern float WT_API stof(const std::string_view v, float ifnot){
+        float cv;
+        auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
+        if(answer.ec != std::errc()) { return ifnot; }
+        return cv;
+    }
+
 // When parsing, rapidxml will collapse elements without content into
 // self-closing elements (eg. <div></div> into <div />), but this is not
 // always valid HTML. This function will add the closing tag if needed.

@@ -45,7 +45,7 @@ public:
 
 private:
   void readMultipartData(Wt::http::context* context, std::string_view type, ::int64_t len);
-    bool parseBody(Wt::http::context* context, const std::string boundary);
+    bool parseBody(Wt::http::context* context, std::string_view boundary);
     bool parseHead(Wt::http::context* context);
 
   void readMultipartData(WebRequest& request, const std::string type, ::int64_t len);
@@ -57,10 +57,12 @@ private:
 
   std::string currentKey_;
 
-  void readUntilBoundary(Wt::http::context* context, const std::string boundary,
+  void readUntilBoundary(std::string_view boundary,
                          int tossAtBoundary,
                          std::string *resultString,
                          std::ostream *resultFile);
+  std::string_view readUntilBoundary(std::string_view boundary,
+                                     int tossAtBoundary);
 
   void readUntilBoundary(WebRequest& request, const std::string boundary,
                          int tossAtBoundary,
@@ -76,6 +78,7 @@ private:
   int buflen_;
   unsigned offset_ = 0;
   char buf_[BUFSIZE + (int)MAXBOUND];
+  std::string_view bodypart_;
 };
 
 }

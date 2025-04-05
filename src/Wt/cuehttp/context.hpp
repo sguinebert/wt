@@ -165,7 +165,7 @@ class context final : safe_noncopyable {
 
   bool has_header(std::string_view field) const noexcept { return request_.has_header(field); }
 
-  bool has_parameter(const std::string& field) const noexcept { return request_.query().contains(field); }
+  bool has_parameter(const std::string& field) const noexcept { return request_.query().has(field); }
 
   template <typename _Body>
   void body(_Body&& body) {
@@ -175,12 +175,11 @@ class context final : safe_noncopyable {
   void body(const char* buffer, std::size_t size) { response_.body(buffer, size); }
 
   auto out() { return response_.out(); }
-
   fmt::memory_buffer& buffer() { return response_.buffer(); }
 
   //deprecated
   std::ostream &outstd() { return response_.outstd(); }
-  std::ostream& body() { return response_.outstd(); }
+  std::ostream& bodystd() { return response_.outstd(); }
 
   void reset() {
     flush_ = false;

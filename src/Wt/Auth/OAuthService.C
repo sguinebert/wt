@@ -534,118 +534,118 @@ void OAuthProcess::doParseTokenResponse(const Http::Message& response)
 
 OAuthAccessToken OAuthProcess::parseTokenResponse(const Http::Message& response)
 {
-  if (response.status() == 200 || response.status() == 400) {
-    /*
+    if (response.status() == 200 || response.status() == 400) {
+        /*
      * OAuth 2.0 states this should be application/json
      * but Facebook uses text/plain; charset=UTF-8 body
      */
-    const std::string *contenttype = response.getHeader("Content-Type");
+        const std::string *contenttype = response.getHeader("Content-Type");
 
-    if (contenttype) {
-      std::string mimetype = boost::trim_copy(*contenttype);
-      std::vector<std::string> tokens;
-      boost::split(tokens, mimetype, boost::is_any_of(";"));
-      std::string combinedType; // type/subtype
-      std::string params;
-      if (tokens.size() > 0) {
-	combinedType = tokens[0];
-	boost::trim(combinedType);
-      }
-      if (tokens.size() > 1) {
-	params = tokens[1];
-	boost::trim(params);
-      }
-      if (combinedType == "text/plain") {
-	if (boost::starts_with(params, "charset=UTF-8"))
-	  return parseUrlEncodedToken(response);
-	else
-	  throw TokenError(ERROR_MSG("badresponse"));
-      } else if (combinedType == "application/json")
-	return parseJsonToken(response);
-      else
-	throw TokenError(ERROR_MSG("badresponse"));
+        if (contenttype) {
+            std::string mimetype = boost::trim_copy(*contenttype);
+            std::vector<std::string> tokens;
+            boost::split(tokens, mimetype, boost::is_any_of(";"));
+            std::string combinedType; // type/subtype
+            std::string params;
+            if (tokens.size() > 0) {
+                combinedType = tokens[0];
+                boost::trim(combinedType);
+            }
+            if (tokens.size() > 1) {
+                params = tokens[1];
+                boost::trim(params);
+            }
+            if (combinedType == "text/plain") {
+                if (boost::starts_with(params, "charset=UTF-8"))
+                    return parseUrlEncodedToken(response);
+                else
+                    throw TokenError(ERROR_MSG("badresponse"));
+            } else if (combinedType == "application/json")
+                return parseJsonToken(response);
+            else
+                throw TokenError(ERROR_MSG("badresponse"));
+        } else
+            throw TokenError(ERROR_MSG("badresponse"));
     } else
-      throw TokenError(ERROR_MSG("badresponse"));
-  } else
-    throw TokenError(ERROR_MSG("badresponse"));
+        throw TokenError(ERROR_MSG("badresponse"));
 }
-
+#warning client is broken, need to fix
 OAuthAccessToken OAuthProcess::parseUrlEncodedToken(const Http::Message& response)
 {
-  /* Facebook style */
-  Http::ParameterMap params;
-  Http::Utils::parseFormUrlEncoded(response, params);
+    /* Facebook style */
+    Http::ParameterMap params;
+    Http::Utils::parseFormUrlEncoded(response, params);
 
-  if (response.status() == 200) {
-    const std::string *accessTokenE 
-      = Http::Utils::getParamValue(params, "access_token");
-    if (accessTokenE) {
-      std::string accessToken = *accessTokenE;
+    if (response.status() == 200) {
+        const std::string *accessTokenE
+            = Http::Utils::getParamValue(params, "access_token");
+        if (accessTokenE) {
+            std::string accessToken = *accessTokenE;
 
-      WDateTime expires;
-      const std::string *expiresE 
-	= Http::Utils::getParamValue(params, "expires");
-      if (expiresE)
-	expires = WDateTime::currentDateTime().addSecs
-	  (Wt::Utils::stoi(*expiresE));
+            WDateTime expires;
+            const std::string *expiresE
+                = Http::Utils::getParamValue(params, "expires");
+            if (expiresE)
+                expires = WDateTime::currentDateTime().addSecs
+                          (Wt::Utils::stoi(*expiresE));
 
-      // FIXME refresh token
-      
-      return OAuthAccessToken(accessToken, expires, std::string());
-    } else
-      throw TokenError(ERROR_MSG("badresponse"));
-  } else {
-    const std::string *errorE = Http::Utils::getParamValue(params, "error");
-    
-    if (errorE)
-      throw TokenError(ERROR_MSG(+ *errorE));
-    else
-      throw TokenError(ERROR_MSG("badresponse"));
-  }
+            // FIXME refresh token
+
+            return OAuthAccessToken(accessToken, expires, std::string());
+        } else
+            throw TokenError(ERROR_MSG("badresponse"));
+    } else {
+        const std::string *errorE = Http::Utils::getParamValue(params, "error");
+
+        if (errorE)
+            throw TokenError(ERROR_MSG(+ *errorE));
+        else
+            throw TokenError(ERROR_MSG("badresponse"));
+    }
 }
 
 OAuthAccessToken OAuthProcess::parseJsonToken(const Http::Message& response)
 {
-  /* OAuth 2.0 style */
-  Wt::Json::Object root;
-  Wt::Json::ParseError pe;
+    /* OAuth 2.0 style */
+    Wt::Json::Object root;
+    Wt::Json::ParseError pe;
 
 #ifndef WT_TARGET_JAVA
-  bool ok = Json::parse(response.body(), root, pe);
+    bool ok = Json::parse(response.body(), root, pe);
 #else
-  try {
-    root = (Json::Object)Json::Parser().parse(response.body());
-  } catch (Json::ParseError error) {
-    pe = error;
-  }
-  bool ok = root.isNull();
+    try {
+        root = (Json::Object)Json::Parser().parse(response.body());
+    } catch (Json::ParseError error) {
+        pe = error;
+    }
+    bool ok = root.isNull();
 #endif
 
-  if (!ok) {
-    LOG_ERROR("parseJsonToken(): {}", pe.message());
-    throw TokenError(ERROR_MSG("badjson"));
-  } else {
-    if (response.status() == 200) {
-      try {
-	std::string accessToken = root["access_token"].get_string("");
-	int secs = root["expires_in"].get_int64(-1);
-	WDateTime expires;
-	if (secs > 0)
-	  expires = WDateTime::currentDateTime().addSecs(secs);
-
-        std::string refreshToken = root.at("refresh_token").get_string("");
-        std::string idToken = root.at("id_token").get_string("");
-
-	return OAuthAccessToken(accessToken, expires, refreshToken, idToken);
-      } catch (std::exception& e) {
-	LOG_ERROR("token response error: {}", e.what());
-	throw TokenError(ERROR_MSG("badresponse"));
-      }
+    if (!ok) {
+        LOG_ERROR("parseJsonToken(): {}", pe.message());
+        throw TokenError(ERROR_MSG("badjson"));
     } else {
-      throw TokenError
-	(ERROR_MSG(+ (root["error"].get_string("missing error"))));
+        if (response.status() == 200) {
+            try {
+                std::string accessToken = root["access_token"].get_string("");
+                int secs = root["expires_in"].get_int64(-1);
+                WDateTime expires;
+                if (secs > 0)
+                    expires = WDateTime::currentDateTime().addSecs(secs);
+
+                std::string refreshToken = root.at("refresh_token").get_string("");
+                std::string idToken = root.at("id_token").get_string("");
+
+                return OAuthAccessToken(accessToken, expires, refreshToken, idToken);
+            } catch (std::exception& e) {
+                LOG_ERROR("token response error: {}", e.what());
+                throw TokenError(ERROR_MSG("badresponse"));
+            }
+        } else {
+            throw TokenError
+                (ERROR_MSG(+ (root["error"].get_string("missing error"))));
+        }
     }
-  }
 }
 
 struct OAuthService::Impl

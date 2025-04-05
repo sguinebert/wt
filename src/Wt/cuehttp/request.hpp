@@ -208,20 +208,15 @@ auto inplaceDecode_split(std::string &text) -> std::vector<std::string_view>
 static std::string decode_uri(std::string_view encoded)
 {
     std::string text {encoded};
-    // Note: there is a Java-too duplicate of this function in Wt/Utils.C
+
     std::size_t j = 0;
-    //std::size_t pos = 0;
     std::size_t first_percent = encoded.find('%');
     if (first_percent == std::string_view::npos) {
         return text;
     }
 
-    // const char* pointer = text.data() + first_percent;
-    // const char* end = text.data() + text.size();
-
     size_t lenght = text.length();
-
-    for (std::size_t i = first_percent; i < text.length(); ++i)
+    for (std::size_t i = first_percent; i < lenght; ++i)
     {
         char c = text[i];
 
@@ -231,7 +226,6 @@ static std::string decode_uri(std::string_view encoded)
                  !ada::unicode::is_ascii_hex_digit(text[j+2]))))
         {
             text[j++] = (c == '+') ? ' ' : c;
-            // pointer++;
         }
         else
         {
@@ -266,9 +260,6 @@ static void parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
         {
             if (next == std::string::npos)
                 next = s.length();
-            /*                 std::string key { s.substr(pos, next - pos) };
-                inplaceUrlDecode(key);
-                parameters[key].push_back(std::string()); */
             parameters.emplace(decode_uri(s.substr(pos, next - pos)), std::string{});
             pos = next + 1;
         }
@@ -294,6 +285,8 @@ static void parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
 
 void parseFormUrlEncoded(std::string_view s)
 {
+    auto& query = this->query();
+    bool isWtParams = false;
     for (std::size_t pos = 0; pos < s.length();)
     {
         std::size_t next = s.find_first_of("&=", pos);
@@ -309,9 +302,8 @@ void parseFormUrlEncoded(std::string_view s)
         {
             if (next == std::string::npos)
                 next = s.length();
-            std::string key { s.substr(pos, next - pos) };
-            inplaceUrlDecode(key);
-            query_.emplace(std::move(key), std::string());
+
+            query.append(decode_uri(s.substr(pos, next - pos)), std::string{});
             pos = next + 1;
         }
         else
@@ -320,13 +312,14 @@ void parseFormUrlEncoded(std::string_view s)
             if (amp == std::string::npos)
                 amp = s.length();
 
-            std::string key { s.substr(pos, next - pos) };
-            inplaceUrlDecode(key);
+            if(!isWtParams && s.substr(pos, next-pos) == "Wt-params") {
+                isWtParams = true;
+                // this is the previous sessions parameters send via "Wt-params" key
+                parseFormUrlEncoded(s.substr(next + 1, amp - (next + 1)));
+            }
 
-            std::string value { s.substr(next + 1, amp - (next + 1)) };
-            inplaceUrlDecode(value);
-
-            query_.emplace(std::move(key), std::move(value));
+            query.append(decode_uri(s.substr(pos, next - pos)),
+                         decode_uri(s.substr(next + 1, amp - (next + 1))));
             pos = amp + 1;
         }
     }
@@ -450,13 +443,13 @@ void inplaceUrlDecode(std::string &text)
 //             }
 //         }
 //     }
-
-    void parseFormUrlEncoded(std::vector<std::pair<std::string_view, std::string_view>>& s)
-    {
-        for(auto &[key, val] : s) {
-            query_.emplace(decode_uri(key), decode_uri(val));
-        }
-    }
+//deprecated (was used from CGIParser)
+    // void parseFormUrlEncoded(std::vector<std::pair<std::string_view, std::string_view>>& s)
+    // {
+    //     for(auto &[key, val] : s) {
+    //         query_.emplace(decode_uri(key), decode_uri(val));
+    //     }
+    // }
 
  public:
   request(bool https, response& res, cookies& cookies) noexcept
@@ -568,39 +561,47 @@ void inplaceUrlDecode(std::string &text)
   UploadedFileMap& files() { return files_; }
   UploadedFileMap& uploadedFiles() { return files_; }
 
-  std::multimap<std::string, std::string>& query() const noexcept {
-    if (!querystring_.empty() && query_.empty()) {
-      query_ = detail::utils::parse_query(querystring_);
+  ada::url_search_params& query() const noexcept {
+    if (!querystring_.empty() && !query_.size()) {
+          query_.reset(querystring_);
+        //query_ = detail::utils::parse_query(querystring_);
     }
     return query_;
   }
 
   std::string_view getParameter(const std::string& key) const {
     const auto& mm = query();
-    if (auto it = mm.find(key); it != mm.end()) {
-      return it->second;
-    }
-    return ""sv;
+    // if (auto it = mm.find(key); it != mm.end()) {
+    //   return it->second;
+    // }
+    return mm.get(key).value_or(""sv);
   }
 
-  mutable  std::vector<std::string> aVector; //risk of dangling reference in FormatData
-  std::vector<std::string>& getParameterValues(const std::string& key) const {
-    const auto& mm = query();
-    auto aRange = mm.equal_range(key);
-    aVector.clear();
-    std::transform(aRange.first, aRange.second,std::back_inserter(aVector), [](auto element){ return element.second;});
-    return aVector;
+  // mutable  std::vector<std::string> aVector; //risk of dangling reference in FormatData
+  // std::vector<std::string>& getParameterValues(const std::string& key) const {
+  //   const auto& mm = query();
+  //   auto aRange = mm.equal_range(key);
+  //   aVector.clear();
+  //   std::transform(aRange.first, aRange.second,std::back_inserter(aVector), [](auto element){ return element.second;});
+  //   return aVector;
+  // }
+  std::vector<std::string> getParameterValues(const std::string& key) const {
+      const auto& mm = query();
+      return mm.get_all(key);
   }
 
   ParameterMap& getParameters() {
     const auto& mm = query();
     if (!querystring_.empty() && parameters_.empty()) {
-      for (auto it = mm.begin(); it != mm.end(); ++it) {
-        auto aRange = mm.equal_range(it->first);
-        std::vector<std::string> aVector;
-        std::transform(aRange.first, aRange.second,std::back_inserter(aVector), [](auto element){ return std::string(element.second);});
-        parameters_[it->first] = aVector;
-      }
+        for (auto it = mm.begin(); it != mm.end(); ++it) {
+                parameters_[it->first].push_back(it->second);
+        }
+      // for (auto it = mm.begin(); it != mm.end(); ++it) {
+      //   auto aRange = mm.equal_range(it->first);
+      //   std::vector<std::string> aVector;
+      //   std::transform(aRange.first, aRange.second,std::back_inserter(aVector), [](auto element){ return std::string(element.second);});
+      //   parameters_[it->first] = aVector;
+      // }
     }
     return parameters_;
   }
@@ -651,7 +652,7 @@ void inplaceUrlDecode(std::string &text)
     path_ = {};
     pathInfo_ = {};
     querystring_ = {};
-    query_.clear();
+    query_.reset("");
     search_ = {};
     method_ = {};
     content_length_ = 0;
@@ -911,7 +912,8 @@ void inplaceUrlDecode(std::string &text)
   std::string_view path_, pathInfo_;
   std::vector<std::string_view> decoded_segments_;
   std::string_view querystring_;
-  mutable std::multimap<std::string, std::string> query_;
+  mutable ada::url_search_params query_;
+  //mutable std::multimap<std::string, std::string> query_;
   std::string_view search_;
   std::string_view method_;
   std::uint64_t content_length_{0};

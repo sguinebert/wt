@@ -431,7 +431,6 @@ WWebWidget *WApplication::domRoot() const
 
 void WApplication::attachThread(bool attach)
 {
-#ifndef WT_CNOR
     if (attach) {
         std::shared_ptr<WebSession> session = weakSession_.lock();
         if (session)
@@ -440,12 +439,6 @@ void WApplication::attachThread(bool attach)
             session_->attachThreadToLockedHandler();
     } else
         WebSession::Handler::attachThreadToSession(std::shared_ptr<WebSession>());
-#else
-    if (attach)
-        WebSession::Handler::attachThreadToSession(session_);
-    else
-        WebSession::Handler::attachThreadToSession(std::shared_ptr<WebSession>());
-#endif
 }
 
 std::string WApplication::relativeResourcesUrl()
@@ -852,7 +845,7 @@ void WApplication::removeExposedSignal(Wt::EventSignalBase *signal)
 }
 
 EventSignalBase *
-WApplication::decodeExposedSignal(const std::string& signalName) const
+WApplication::decodeExposedSignal(std::string_view signalName) const
 {
     if (auto i = exposedSignals_.find(signalName); i != exposedSignals_.end()) {
         return i->second;
@@ -878,7 +871,11 @@ std::string WApplication::addExposedResource(WResource *resource)
     //the map will not be modified when the client could potentially access it
     //only when the app is locked (i.e. when the client is not potentially accessing it, he's updating the app)
     //and notify app is controlled by locking app
+#ifdef BOOST_CONCURENT_MAP
+   exposedResources_.emplace(resourceMapKey(resource), resource);
+#else
     exposedResources_[resourceMapKey(resource)] = resource;
+#endif
     resource->incrementVersion();
 
     std::string fn = resource->suggestedFileName().toUTF8();
@@ -900,6 +897,12 @@ std::string WApplication::addExposedResource(WResource *resource)
 
 bool WApplication::removeExposedResource(WResource *resource)
 {
+#ifdef BOOST_CONCURENT_MAP
+    std::string key = resourceMapKey(resource);
+
+    return exposedResources_.erase_if(key,
+                                      [&](const auto& value) { return value->second == resource; });
+#else
     std::string key = resourceMapKey(resource);
 
     if (auto i = exposedResources_.find(key); (i != exposedResources_.end() && i->second == resource)) {
@@ -911,10 +914,23 @@ bool WApplication::removeExposedResource(WResource *resource)
         return true;
     } else
         return false;
+#endif
 }
 
-WResource *WApplication::decodeExposedResource(const std::string& resourceKey) const
+WResource *WApplication::decodeExposedResource(std::string_view resourceKey) const
 {
+#ifdef BOOST_CONCURENT_MAP
+    WResource *resource = nullptr;
+    exposedResources_.visit(resourceKey, [&](auto &pair) {
+        resource = pair.second;
+    });
+    if(!resource){
+        std::size_t j = resourceKey.rfind('/');
+        if (j != std::string_view::npos && j > 1)
+            return decodeExposedResource(resourceKey.substr(0, j));
+    }
+    return resource;
+#else
     if (auto i = exposedResources_.find(resourceKey); i != exposedResources_.end())
         return i->second;
     else {
@@ -924,10 +940,22 @@ WResource *WApplication::decodeExposedResource(const std::string& resourceKey) c
         else
             return nullptr;
     }
+#endif
 }
 
-WResource *WApplication::decodeExposedResource(const std::string& resourceKey, unsigned long ver) const
+WResource *WApplication::decodeExposedResource(std::string_view resourceKey, unsigned long ver) const
 {
+#ifdef BOOST_CONCURENT_MAP
+    WResource *resource = nullptr;
+    exposedResources_.visit(resourceKey, [&](auto &pair) {
+        resource = pair.second;
+        if (resource->invalidAfterChanged() && (resource->version() != ver))
+            resource = nullptr;
+    });
+    return resource;
+#else
+
+
     WResource *resource = nullptr;
     if (auto i = exposedResources_.find(resourceKey); i != exposedResources_.end())
         resource = i->second;
@@ -936,8 +964,8 @@ WResource *WApplication::decodeExposedResource(const std::string& resourceKey, u
         && resource->invalidAfterChanged()
         && (resource->version() != ver))
         resource = nullptr;
-
     return resource;
+#endif
 }
 
 std::string WApplication::encodeObject(WObject *object)
@@ -1442,10 +1470,10 @@ awaitable<void> WApplication::takeLock()
     WebSession::Handler *handler = WebSession::Handler::instance();
 
     std::shared_ptr<WebSession> appSession = this->weakSession_.lock();
-    if (handler /*&& handler->haveLock()*/ && handler->session() == appSession.get())
+    if (handler /*&& handler->haveLock()*/ && appSession && handler->session() == appSession.get())
         co_return;
 
-     if (appSession.get() && appSession->dead())
+     if (appSession && appSession->dead())
        co_return;
 
     co_return co_await appSession->takeLock();
@@ -1460,55 +1488,55 @@ WApplication::UpdateLock WApplication::getUpdateLock()
 
 #ifndef WT_TARGET_JAVA
 
-class UpdateLockImpl
-{
-public:
-    UpdateLockImpl(WApplication *app)
-        : handler_(nullptr)
-    {
-#ifdef WT_THREADED
-        handler_ = new WebSession::Handler(app->weakSession_.lock(),
-                                           WebSession::Handler::LockOption::TakeLock);
-#endif // WT_THREADED
-    }
+// class UpdateLockImpl
+// {
+// public:
+//     UpdateLockImpl(WApplication *app)
+//         : handler_(nullptr)
+//     {
+// #ifdef WT_THREADED
+//         handler_ = new WebSession::Handler(app->weakSession_.lock(),
+//                                            WebSession::Handler::LockOption::TakeLock);
+// #endif // WT_THREADED
+//     }
 
-#ifdef WT_THREADED
-    ~UpdateLockImpl() {
-        delete handler_;
-    }
-#endif // WT_THREADED
+// #ifdef WT_THREADED
+//     ~UpdateLockImpl() {
+//         delete handler_;
+//     }
+// #endif // WT_THREADED
 
-private:
-    // Handler which we created for actual lock
-    WebSession::Handler *handler_;
-};
+// private:
+//     // Handler which we created for actual lock
+//     WebSession::Handler *handler_;
+// };
 
-WApplication::UpdateLock::UpdateLock(WApplication *app)
-    : ok_(true)
-{
-#ifndef WT_THREADED
-    return;
-#else
-    /*
-   * If we are already handling this application, then we already have
-   * exclusive access, unless we are not having the lock (e.g. from a
-   * WResource::handleRequest()).
-   */
-    WebSession::Handler *handler = WebSession::Handler::instance();
+// WApplication::UpdateLock::UpdateLock(WApplication *app)
+//     : ok_(true)
+// {
+// #ifndef WT_THREADED
+//     return;
+// #else
+//     /*
+//    * If we are already handling this application, then we already have
+//    * exclusive access, unless we are not having the lock (e.g. from a
+//    * WResource::handleRequest()).
+//    */
+//     WebSession::Handler *handler = WebSession::Handler::instance();
 
-    std::shared_ptr<WebSession> appSession = app->weakSession_.lock();
-    if (handler && handler->haveLock() && handler->session() == appSession.get())
-        return;
+//     std::shared_ptr<WebSession> appSession = app->weakSession_.lock();
+//     if (handler && handler->haveLock() && handler->session() == appSession.get())
+//         return;
 
-    if (appSession.get() && !appSession->dead())
-        impl_.reset(new UpdateLockImpl(app));
-    else
-        ok_ = false;
-#endif // WT_THREADED
-}
+//     if (appSession.get() && !appSession->dead())
+//         impl_.reset(new UpdateLockImpl(app));
+//     else
+//         ok_ = false;
+// #endif // WT_THREADED
+// }
 
-WApplication::UpdateLock::~UpdateLock()
-    { }
+// WApplication::UpdateLock::~UpdateLock()
+//     { }
 
 #else
 

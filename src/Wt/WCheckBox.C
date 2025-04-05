@@ -119,7 +119,7 @@ void WCheckBox::setCheckState(CheckState state)
 void WCheckBox::updateInput(DomElement& input, bool all)
 {
   if (all)
-    input.setAttribute("type", "checkbox");
+    input.setAttribute("type", "checkbox", true);
 }
 
 }

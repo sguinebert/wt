@@ -8432,6 +8432,10 @@ struct url_search_params {
    */
   inline void append(std::string_view key, std::string_view value);
 
+  inline void append(std::string&& key,
+                     std::string&& value) {
+    params.emplace_back(std::move(key), std::move(value));
+  }
   /**
    * @see https://url.spec.whatwg.org/#dom-urlsearchparams-delete
    */
@@ -8441,12 +8445,12 @@ struct url_search_params {
   /**
    * @see https://url.spec.whatwg.org/#dom-urlsearchparams-get
    */
-  inline std::optional<std::string_view> get(std::string_view key);
+  inline std::optional<std::string_view> get(std::string_view key) const;
 
   /**
    * @see https://url.spec.whatwg.org/#dom-urlsearchparams-getall
    */
-  inline std::vector<std::string> get_all(std::string_view key);
+  inline std::vector<std::string> get_all(std::string_view key) const;
 
   /**
    * @see https://url.spec.whatwg.org/#dom-urlsearchparams-has
@@ -8637,7 +8641,7 @@ inline void url_search_params::append(const std::string_view key,
 inline size_t url_search_params::size() const noexcept { return params.size(); }
 
 inline std::optional<std::string_view> url_search_params::get(
-    const std::string_view key) {
+    const std::string_view key) const {
   auto entry = std::ranges::find_if(
       params, [&key](const auto &param) { return param.first == key; });
 
@@ -8649,7 +8653,7 @@ inline std::optional<std::string_view> url_search_params::get(
 }
 
 inline std::vector<std::string> url_search_params::get_all(
-    const std::string_view key) {
+    const std::string_view key) const {
   std::vector<std::string> out{};
 
   for (auto &param : params) {

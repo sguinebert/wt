@@ -241,15 +241,7 @@ public:
    */
   WString(const std::string& value, const std::locale &loc);
 
-  operator std::string_view() const{
-      if(impl_ && !fmt_args_.empty()) {
-          if(formatedUtf8_.empty()) {
-              formatedUtf8_ = fmt::vformat(utf8_, fmt_args_);
-          }
-          return std::string_view(formatedUtf8_.data(), formatedUtf8_.size());
-      }
-      return std::string_view(utf8_.data(), utf8_.size());
-  }
+  operator std::string_view() const;
 
   /*! \brief Destructor
    */

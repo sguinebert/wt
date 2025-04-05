@@ -683,17 +683,17 @@ WebRenderer::AckState WebRenderer::ackUpdate(unsigned int updateId)
    * If web socket request -> we assume last AJAX request got
    * delivered ?
    */
-  LOG_DEBUG("ackUpdate: expecting {}, received {}", expectedAckId_, updateId);
-  if (updateId == expectedAckId_) {
-    LOG_DEBUG("jsSynced(false) after ackUpdate okay");
-    setJSSynced(false);
-    ackErrs_ = 0;
-    return CorrectAck;
-  } else if (expectedAckId_ - updateId < 5) {
-    ++ackErrs_;
-    return ackErrs_ < 3 ? ReasonableAck : BadAck; // That's still acceptible but no longer plausible
-  } else
-    return BadAck;
+    LOG_DEBUG("ackUpdate: expecting {}, received {}", expectedAckId_, updateId);
+    if (updateId == expectedAckId_) {
+        LOG_DEBUG("jsSynced(false) after ackUpdate okay");
+        setJSSynced(false);
+        ackErrs_ = 0;
+        return CorrectAck;
+    } else if (expectedAckId_ - updateId < 5) {
+        ++ackErrs_;
+        return ackErrs_ < 3 ? ReasonableAck : BadAck; // That's still acceptible but no longer plausible
+    } else
+        return BadAck;
 }
 
 void WebRenderer::letReloadJS(WebResponse& response, bool newSession, bool embedded)
@@ -1214,7 +1214,7 @@ void WebRenderer::serveMainpage(http::context *context)
                          fmt::arg("DOCTYPE", session_.docType()),
                          fmt::arg("HTMLATTRIBUTES", htmlAttr),
                          fmt::arg("HEADDECLARATIONS", headDeclarations()),
-                         fmt::arg("TITLE", WWebWidget::escapeText(app->title())),
+                         fmt::arg("TITLE", WWebWidget::escapeText(app->title().toUTF8())),
                          fmt::arg("STYLESHEET", css),
                          fmt::arg("STYLESHEETS", std::string_view(styleSheets.data(), styleSheets.size())),
                          fmt::arg("BODYATTRIBUTES", attr));
@@ -1391,7 +1391,7 @@ void WebRenderer::serveError(int status, WebResponse& response, const std::strin
     response.out()
       << "<title>Error occurred.</title>"
       << "<h2>Error occurred.</h2>"
-      << WWebWidget::escapeText(WString(message), true).toUTF8()
+      << WWebWidget::escapeText(message, true)
       << '\n';
   } else {
     response.out() << app->javaScriptClass()

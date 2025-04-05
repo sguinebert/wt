@@ -438,8 +438,8 @@ public:
 
   void updateDom(DomElement *el, bool all) {
     if (all || sizeChanged_) {
-      el->setAttribute("width", std::to_string(renderWidth_), true);
-      el->setAttribute("height", std::to_string(renderHeight_), true);
+      el->setAttribute("width", renderWidth_);
+      el->setAttribute("height", renderHeight_);
       sizeChanged_ = false;
     }
   }
