@@ -107,7 +107,7 @@ namespace Wt {
 
         awaitable<void> executeSqlStateful(const std::string& sql)
         {
-            co_await async_mutex_.scoped_lock_async(use_nothrow_awaitable);
+            co_await async_mutex_.async_scoped_lock(use_nothrow_awaitable);
             statefulSql_.push_back(sql);
             co_await executeSql(sql);
         }
@@ -227,7 +227,7 @@ namespace Wt {
         struct Impl;
         Impl *impl_;
         //nanodbc::connection* connection_;
-        cpp20::async_mutex async_mutex_;
+        ::cpp20::async_mutex async_mutex_;
 
         friend class MSSQLServerStatement;
     };

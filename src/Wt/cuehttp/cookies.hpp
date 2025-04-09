@@ -205,6 +205,8 @@ class cookie final : safe_noncopyable {
   std::string name_;
   std::string value_;
   options options_;
+
+  friend struct fmt::formatter<cookie>;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const cookie& cookie) {
@@ -263,9 +265,88 @@ class cookies final : safe_noncopyable {
  private:
   cookie cookie_;
   std::vector<cookie> cookies_;
+
 };
 
+
 }  // namespace http
-}  // namespace cue
+}  // namespace Wt
+
+namespace fmt {
+// Specialize fmt::formatter for cookie
+template <>
+struct fmt::formatter<Wt::http::cookie> {
+    // Parse format specification (optional, here we use default)
+    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) {
+        return ctx.begin(); // No custom format spec used
+    }
+
+    // Format the cookie object
+    template <typename FormatContext>
+    constexpr auto format(const Wt::http::cookie& cookie, FormatContext& ctx) -> decltype(ctx.out()) {
+        assert(!cookie.name_.empty() && !cookie.value_.empty());
+
+        auto out = ctx.out();
+
+        // name=value
+        out = fmt::format_to(out, FMT_COMPILE("{}={}"), cookie.name_, cookie.value_);
+
+        // path
+        if (!cookie.options_.path.empty()) {
+            out = fmt::format_to(out, FMT_COMPILE("; path={}"), cookie.options_.path);
+        }
+
+        // domain
+        if (!cookie.options_.domain.empty()) {
+            out = fmt::format_to(out, FMT_COMPILE("; domain={}"), cookie.options_.domain);
+        }
+
+        // max_age
+        if (cookie.options_.max_age != -1) {
+            out = fmt::format_to(out, FMT_COMPILE("; Max-Age={}"), cookie.options_.max_age);
+            if (cookie.options_.expires.empty()) {
+                out = fmt::format_to(out, FMT_COMPILE("; expires={:%a, %d %b %Y %H:%M:%S GMT}"),
+                                     fmt::gmtime(std::time(nullptr) + cookie.options_.max_age));
+            }
+        }
+
+        // expires
+        if (!cookie.options_.expires.empty()) {
+            out = fmt::format_to(out, FMT_COMPILE("; expires={}"), cookie.options_.expires);
+        }
+
+        // secure
+        if (cookie.options_.secure) {
+            out = fmt::format_to(out, FMT_COMPILE("; secure"));
+        }
+
+        // http_only
+        if (cookie.options_.http_only) {
+            out = fmt::format_to(out, FMT_COMPILE("; HttpOnly"));
+        }
+
+        return out;
+    }
+};
+
+template <>
+struct formatter<std::vector<Wt::http::cookie>> {
+    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) {
+        return ctx.begin(); // No custom format spec used
+    }
+
+    template <typename FormatContext>
+    auto format(const std::vector<Wt::http::cookie>& cookies, FormatContext& ctx) -> decltype(ctx.out()) {
+        auto out = ctx.out();
+        for (const auto& cookie : cookies) {
+            if (cookie.valid()) {
+                out = fmt::format_to(out, FMT_COMPILE("Set-Cookie: {}\r\n"), cookie);
+            }
+        }
+        return out;
+    }
+};
+
+} //namespace fmt
 
 #endif  // CUEHTTP_COOKIES_HPP_

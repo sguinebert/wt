@@ -9,14 +9,22 @@
 
 #include <string>
 #include <vector>
-#include <map>
 #include <set>
 #include <Wt/WFlags.h>
 #include <Wt/WMessageResourceBundle.h>
 #include <Wt/WDllDefs.h>
 
-#ifdef WT_THREADED
-#include <mutex>
+//#ifdef WT_THREADED
+//#include <mutex>
+//#endif
+
+#include <boost/version.hpp>
+
+#if BOOST_VERSION > 108200
+#define BOOST_UNORDERED
+#include <boost/unordered/unordered_flat_map.hpp>
+#else
+#include <unordered_map>
 #endif
 
 namespace Wt {
@@ -45,22 +53,29 @@ public:
   std::set<std::string> keys(const WLocale& locale) const;
 
 private:
-  typedef std::map<std::string, std::vector<std::string> > KeyValuesMap;
+#ifdef BOOST_UNORDERED
+    typedef boost::unordered_flat_map<std::string, std::vector<std::string> > KeyValuesMap;
+#else
+  typedef std::unordered_map<std::string, std::vector<std::string> > KeyValuesMap;
+#endif
 
   struct Resource {
     KeyValuesMap map_;
     std::string pluralExpression_;
     unsigned pluralCount_;
   };
-
-  typedef std::map<std::string, Resource> ResourceMap;
+#ifdef BOOST_UNORDERED
+  typedef boost::unordered_flat_map<std::string, Resource> ResourceMap;
+#else
+  typedef std::unordered_map<std::string, Resource> ResourceMap;
+#endif
 
   bool loadInMemory_;
   std::string path_;
   const char *builtin_;
-#ifdef WT_THREADED
-  std::mutex resourceMutex_;
-#endif
+// #ifdef WT_THREADED
+//   std::mutex resourceMutex_;
+// #endif
   mutable ResourceMap resources_;
 
   void load(const WLocale& locale) const;

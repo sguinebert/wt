@@ -105,9 +105,11 @@ awaitable<void> WFileResource::handleRequest(http::request &request, http::respo
   auto totalsize = beyondLastByte - startByte;
   auto buffersize = bufferSize();
 
-  std::vector<char> buffer(buffersize); // Buffer for reading data
+  //std::vector<char> buffer(buffersize); // Buffer for reading data
+  auto& buffer = response.buffer();
   auto offset = startByte;
 
+  buffer.reserve(buffersize + 10);
 
 //  auto filesize = file.size();
 //  response.length(filesize);
@@ -117,7 +119,7 @@ awaitable<void> WFileResource::handleRequest(http::request &request, http::respo
 
   while(offset < beyondLastByte)
   {
-      auto [ec, nsize] = co_await file.async_read_some_at(offset, asio::buffer(buffer), use_nothrow_awaitable);
+      auto [ec, nsize] = co_await file.async_read_some_at(offset, asio::buffer(buffer.data() + 10, buffer.size() - 10), use_nothrow_awaitable);
 
       if (ec == boost::asio::error::eof) {
           break; // End of file reached, stop reading
@@ -128,7 +130,7 @@ awaitable<void> WFileResource::handleRequest(http::request &request, http::respo
       offset += nsize;
       // Send the data through HTTP response
       // std::string(buffer.data(), bytes_read);
-      response.body().write(buffer.data(), nsize);
+      //response.buffer().append(buffer.data(), nsize);
       if(totalsize > buffersize)
           co_await response.chunk_flush();
   }

@@ -59,8 +59,7 @@ awaitable<void> WSocketNotifier::notify()
     beingNotified_ = false;
 
     if (enabled_)
-      WApplication::instance()->session()->controller()
-        ->addSocketNotifier(this);
+      WApplication::instance()->session()->controller()->addSocketNotifier(this);
   }
 }
 

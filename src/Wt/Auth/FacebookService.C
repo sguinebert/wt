@@ -10,8 +10,7 @@
 
 namespace {
   const char *RedirectEndpointProperty = "facebook-oauth2-redirect-endpoint";
-  const char *RedirectEndpointPathProperty = "facebook-oauth2-redirect"
-    "-endpoint-path";
+  const char *RedirectEndpointPathProperty = "facebook-oauth2-redirect-endpoint-path";
   const char *ClientIdProperty = "facebook-oauth2-app-id";
   const char *ClientSecretProperty = "facebook-oauth2-app-secret";
 

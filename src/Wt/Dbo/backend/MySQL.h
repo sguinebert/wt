@@ -16,7 +16,7 @@
 #include <Wt/Dbo/Exception.h>
 
 #include <Wt/cpp20/date.hpp>
-#include <Wt/cpp20/async_mutex.h>
+#include <Wt/cpp20/async_mutex.hpp>
 
 #include <boost/mysql.hpp>
 
@@ -217,13 +217,13 @@ public:
 
   awaitable<void> executeSql(const std::string &sql)
   {
-        co_await async_mutex_.scoped_lock_async(use_nothrow_awaitable);
+        co_await async_mutex_.async_scoped_lock(use_nothrow_awaitable);
         std::unique_ptr<SqlStatement> s = prepareStatement(sql);
         co_await s->execute();
   }
   awaitable<void> executeSqlStateful(const std::string& sql)
   {
-        co_await async_mutex_.scoped_lock_async(use_nothrow_awaitable);
+        co_await async_mutex_.async_scoped_lock(use_nothrow_awaitable);
         statefulSql_.push_back(sql);
         co_await executeSql(sql);
   }
@@ -444,7 +444,7 @@ private:
   std::string dateType_, timeType_;
 
   mutable std::unique_ptr<boost::mysql::tcp_ssl_connection> connection_;
-  cpp20::async_mutex async_mutex_;
+  ::cpp20::async_mutex async_mutex_;
 
   MySQL_impl* impl_; // MySQL connection handle
 

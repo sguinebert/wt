@@ -11,10 +11,7 @@
 #include <Wt/Dbo/SqlConnectionBase.h>
 #include <Wt/Dbo/SqlStatement.h>
 #include <Wt/Dbo/backend/WDboSqlite3DllDefs.h>
-#include <Wt/cpp20/async_mutex.h>
-
-#include <map> //TODO move in a base class
-
+#include <Wt/cpp20/async_mutex.hpp>
 
 extern "C" {
   struct sqlite3;
@@ -148,7 +145,7 @@ public:
 
     awaitable<void> executeSql(const std::string& sql)
     {
-        co_await async_mutex_.scoped_lock_async(use_awaitable);
+        co_await async_mutex_.async_scoped_lock(use_awaitable);
         std::unique_ptr<SqlStatement> s = prepareStatement(sql);
         co_await s->execute();
         co_return;
@@ -165,7 +162,7 @@ private:
 
     std::string conn_;
     sqlite3 *db_;
-    cpp20::async_mutex async_mutex_;
+    ::cpp20::async_mutex async_mutex_;
 
     void init();
 };

@@ -143,6 +143,7 @@ namespace Wt {
   class WLogger;
   class WMatrix4x4;
   class WMediaPlayer;
+  template<bool immutable>
   class WMemoryResource;
   class WMenu;
   class WMenuItem;

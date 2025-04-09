@@ -846,7 +846,8 @@ awaitable<void> Session::createTables()
   for (auto i = classRegistry_.begin(); i != classRegistry_.end(); ++i)
     co_await createRelations(i->second, tablesCreated, nullptr);
 
-  co_await t.commit(true);
+  co_await t.commit();
+  co_return;
 }
 
 awaitable<void> Session::createTable(Impl::MappingInfo *mapping,
@@ -901,29 +902,29 @@ awaitable<void> Session::createTable(Impl::MappingInfo *mapping,
 
   std::string primaryKey;
   for (unsigned i = 0; i < mapping->fields.size(); ++i) {
-    const FieldInfo& field = mapping->fields[i];
+      const FieldInfo& field = mapping->fields[i];
 
-    if (!field.isVersionField()) {
-      if (!firstField)
-    sql << ",\n";
+      if (!field.isVersionField()) {
+          if (!firstField)
+              sql << ",\n";
 
-      std::string sqlType = field.sqlType();
-      if (field.isForeignKey() && !(field.fkConstraints() & Impl::FKNotNull)) {
-    if (sqlType.length() > 9
-        && sqlType.substr(sqlType.length() - 9) == " not null")
-      sqlType = sqlType.substr(0, sqlType.length() - 9);
+          std::string sqlType = field.sqlType();
+          if (field.isForeignKey() && !(field.fkConstraints() & Impl::FKNotNull)) {
+              if (sqlType.length() > 9
+                  && sqlType.substr(sqlType.length() - 9) == " not null")
+                  sqlType = sqlType.substr(0, sqlType.length() - 9);
+          }
+
+          sql << "  \"" << field.name() << "\" " << sqlType;
+
+          firstField = false;
+
+          if (field.isNaturalIdField()) {
+              if (!primaryKey.empty())
+                  primaryKey += ", ";
+              primaryKey += "\"" + field.name() + "\"";
+          }
       }
-
-      sql << "  \"" << field.name() << "\" " << sqlType;
-
-      firstField = false;
-
-      if (field.isNaturalIdField()) {
-    if (!primaryKey.empty())
-      primaryKey += ", ";
-    primaryKey += "\"" + field.name() + "\"";
-      }
-    }
   }
 
   if (!primaryKey.empty()) {

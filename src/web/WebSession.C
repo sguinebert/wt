@@ -1059,7 +1059,7 @@ WebSession::Handler::Handler(const std::shared_ptr<WebSession>& session, LockOpt
     sessionPtr_(session),
 #endif // WT_TARGET_JAVA
 #ifdef WT_THREADED
-    lock_(session->mutex_, std::defer_lock), //deprecated
+    //lock_(session->mutex_, std::defer_lock), //deprecated
 #endif // WT_THREADED
     prevHandler_(nullptr),
     session_(session.get()),
@@ -1096,7 +1096,7 @@ WebSession::Handler::Handler(const std::shared_ptr<WebSession>& session, LockOpt
 WebSession::Handler::Handler(WebSession *session)
   : nextSignal(-1),
 #ifdef WT_THREADED
-    lock_(session->mutex_, std::defer_lock), //deprecated
+    //lock_(session->mutex_, std::defer_lock), //deprecated
     //lock_(session->mutex_),
 #endif // WT_THREADED
     prevHandler_(nullptr),
@@ -1122,7 +1122,7 @@ WebSession::Handler::Handler(const std::shared_ptr<WebSession>& session,
     sessionPtr_(session),
 #endif // WT_TARGET_JAVA
 #ifdef WT_THREADED
-    lock_(session->mutex_),
+    //lock_(session->mutex_),
 #endif // WT_THREADED
     prevHandler_(nullptr),
     session_(session.get()),
@@ -1146,7 +1146,7 @@ WebSession::Handler::Handler(const std::shared_ptr<WebSession> &session, Wt::htt
     sessionPtr_(session),
 #endif // WT_TARGET_JAVA
 #ifdef WT_THREADED
-    lock_(session->mutex_, std::defer_lock), //deprecated
+    //lock_(session->mutex_, std::defer_lock), //deprecated
     //lock_(session->mutex_),
 #endif // WT_THREADED
     prevHandler_(nullptr),
@@ -1292,7 +1292,7 @@ awaitable<bool> WebSession::checkPrivateResources(http::context *context)
             co_await app_->requestTooLarge().emit(context->postDataExceeded());
     } catch (std::exception& e) {
         LOG_ERROR("Exception in WApplication::requestTooLarge {}", e.what());
-        throw e; //is this necessary ?
+        //throw e; //is this necessary ?
     } catch (...) {
         LOG_ERROR("Exception in WApplication::requestTooLarge");
         throw;
@@ -1338,7 +1338,6 @@ awaitable<bool> WebSession::checkPrivateResources(http::context *context)
                     co_await resource->handle(context);
                 } catch (std::exception& e) {
                     LOG_ERROR("Exception while streaming resource {}", e.what());
-                    throw e;
                 } catch (...) {
                     LOG_ERROR("Exception while streaming resource");
                     throw;

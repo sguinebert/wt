@@ -158,8 +158,8 @@ public:
 
   virtual LocalizedString resolveKey(const WLocale& locale, const std::string& key) override;
   virtual LocalizedString resolvePluralKey(const WLocale& locale,
-				const std::string& key,
-				::uint64_t amount) override;
+                                           const std::string& key,
+                                           ::uint64_t amount) override;
 
 private:
   std::vector<std::unique_ptr<WMessageResources> > messageResources_;

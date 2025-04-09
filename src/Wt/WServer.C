@@ -359,14 +359,21 @@ boost::unordered::concurrent_flat_map<std::string, WResource*> localResource_;
 #warning "big problem for local session resources in the router"
 void WServer::addResource(WResource *resource, const std::string& path)
 {
-  bool success = configuration().tryAddResource(EntryPoint(resource, prependDefaultPath(path)));
-  if (success)
-    resource->setInternalPath(path);
-  else {
-    throw WServer::Exception(fmt::format("WServer::addResource() error: a static resource was already deployed on path '{}'", path));
-  }
+    if(!server_){
+        bool success = configuration().tryAddResource(EntryPoint(resource, prependDefaultPath(path)));
+        if (success)
+            resource->setInternalPath(path);
+        else {
+            throw WServer::Exception(fmt::format("WServer::addResource() error: a static resource was already deployed on path '{}'", path));
+        }
+        return;
+    }
 
-  localResource_.try_emplace(resource->id(), resource);
+    LOG_ERROR("addResource(): server already started! - rooter is not threadsafe");
+
+    //router_.
+
+    localResource_.try_emplace(resource->id(), resource);
 
 //  router_.get(path, [this, resource] (http::context& ctx) -> awaitable<void>
 //              {

@@ -273,14 +273,6 @@ WMessageResources::WMessageResources(const std::string& path,
     builtin_(nullptr)
 { }
 
-WMessageResources::WMessageResources(const std::string_view builtin)
-    : loadInMemory_(true),
-    builtin_(builtin.data())
-{
-    std::istringstream s(builtin.data(),  std::ios::in | std::ios::binary);
-    readResourceStream(s, resources_[""], "<internal resource bundle>");
-}
-
 WMessageResources::WMessageResources(const char *builtin)
     : loadInMemory_(true),
     builtin_(builtin)
@@ -374,17 +366,23 @@ std::string WMessageResources::findCase(const std::vector<std::string> &cases,
     int c = evalPluralCase(pluralExpression, amount);
 
     if (c > (int)cases.size() - 1 || c < 0) {
-        WStringStream error;
-        error << "Expression '" << pluralExpression << "' evaluates to '"
-              << c << "' for n=" << std::to_string(amount);
 
-        if (c < 0)
-            error << " and values smaller than 0 are not allowed.";
-        else
-            error << " which is greater than the list of cases (size="
-                  << (int)cases.size() << ").";
+        auto error = c < 0 ?
+                         fmt::format("Expression '{}' evaluates to '{}' for n={} and values smaller than 0 are not allowed.",
+                                     pluralExpression, c, amount) :
+                         fmt::format("Expression '{}' evaluates to '{}' for n={} which is greater than the list of cases (size={}).",
+                                     pluralExpression, c, amount, cases.size());
+        // WStringStream error;
+        // error << "Expression '" << pluralExpression << "' evaluates to '"
+        //       << c << "' for n=" << std::to_string(amount);
 
-        throw WException(error.c_str());
+        // if (c < 0)
+        //     error << " and values smaller than 0 are not allowed.";
+        // else
+        //     error << " which is greater than the list of cases (size="
+        //           << (int)cases.size() << ").";
+
+        throw WException(error);
     }
 
     return cases[c];

@@ -44,6 +44,7 @@ namespace Wt {
  *
  * \sa WFileResource.
  */
+template<bool immutable = true>
 class WT_API WMemoryResource : public WResource
 {
     typedef std::shared_ptr< const std::vector<unsigned char> > DataPtr;
@@ -52,39 +53,100 @@ public:
    *
    * You must call setMimeType() and setData() before using the resource.
    */
-  WMemoryResource();
+    WMemoryResource()
+    {
+        create();
+    }
 
   /*! \brief Creates a new resource with given mime-type.
    *
    * You must call setData() before using the resource.
    */
-  WMemoryResource(const std::string& mimeType);
+  WMemoryResource(const std::string& mimeType)
+      : mimeType_(mimeType),
+      data_(new std::vector<unsigned char>())
+  {
+      create();
+  }
 
-  WMemoryResource(std::string_view mimeType, const std::string& path);
+  // WMemoryResource(std::string_view mimeType, const std::string& path) : mimeType_(mimeType)
+  // {
+  //     std::ifstream file(path, std::ios::binary);
+  //     if (!file) {
+  //         std::cerr << "Error: File not found or unable to open file." << std::endl;
+  //         return;
+  //     }
+  //     data_ = std::make_shared<std::vector<unsigned char>>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  //     create();
+  // }
 
-  WMemoryResource(std::string_view mimeType, DataPtr& data);
+  //WMemoryResource(std::string_view mimeType, DataPtr& data);
 
 
   /*! \brief Creates a new resource with given mime-type and data
    */
-  WMemoryResource(const std::string& mimeType, const std::vector<unsigned char>& data);
+  WMemoryResource(const std::string& mimeType, const std::vector<unsigned char>& data)
+      : mimeType_(mimeType),
+      data_(new std::vector<unsigned char>(data))
+  {
+      create();
+  }
 
-  ~WMemoryResource();
+  ~WMemoryResource()
+  {
+      beingDeleted();
+  }
 
   /*! \brief Sets new data for the resource to serve.
    */
-  awaitable<void> setData(const std::vector<unsigned char> &data);
+  awaitable<void> setData(const std::vector<unsigned char> &data) requires (!immutable)
+  {
+      {
+#ifdef WT_THREADED
+          std::unique_lock<std::mutex> lock(*dataMutex_);
+#endif // WT_THREADED
+
+          data_.reset(new std::vector<unsigned char>(data));
+      }
+
+      co_await setChanged();
+  }
 
   /*! \brief Sets new data for the resource to serve.
    *
    * Sets the data from using the first \p count bytes from the
    * C-style \p data array.
    */
-  awaitable<void> setData(const unsigned char *data, int count);
+  awaitable<void> setData(const unsigned char *data, int count) requires (!immutable)
+  {
+      {
+#ifdef WT_THREADED
+          std::unique_lock<std::mutex> l(*dataMutex_);
+#endif
+          data_.reset(new std::vector<unsigned char>(data, data + count));
+      }
+
+      co_await setChanged();
+  }
 
   /*! \brief Returns the data this resource will serve.
    */
-  const std::vector<unsigned char> data() const;
+  const std::vector<unsigned char> data() const
+  {
+      DataPtr data;
+
+      {
+#ifdef WT_THREADED
+          std::unique_lock<std::mutex> l(*dataMutex_);
+#endif
+          data = data_;
+      }
+
+      if (!data)
+          return std::vector<unsigned char>();
+      else
+          return *data;
+  }
 
   /*! \brief Returns the mime-type.
    */
@@ -92,20 +154,50 @@ public:
 
   /*! \brief Sets the mime-type.
    */
-  awaitable<void> setMimeType(const std::string& mimeType);
+  awaitable<void> setMimeType(const std::string& mimeType)
+  {
+      mimeType_ = mimeType;
+
+      co_await setChanged();
+  }
 #ifdef DEPRECATED_OK
   virtual void handleRequest(const Http::Request& request, Http::Response& response) override;
 #endif
-  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override;
+
+#warning "change the logic whith suspend if atomic_bool modifying data_"
+  virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
+  {
+      //  DataPtr data;
+      //  {
+      //#ifdef WT_THREADED
+      //    std::unique_lock<std::mutex> l(*dataMutex_);
+      //#endif
+      //    auto data = data_;
+      //  }
+
+      if (!data_)
+          co_return;
+
+      response.setContentType(mimeType_);
+
+      if (!data_->empty()) {
+          response.buffer().append(data_->data(), data_->data() + data_->size());
+      }
+  }
 
 private:
 
   std::string mimeType_;
-  DataPtr data_;
+  DataPtr data_; //    typedef std::shared_ptr< const std::vector<unsigned char> > DataPtr;
 
   std::shared_ptr<std::mutex> dataMutex_;
 
-  void create();
+  void create()
+  {
+#ifdef WT_THREADED
+      dataMutex_.reset(new std::mutex());
+#endif // WT_THREADED
+  }
 };
 
 }

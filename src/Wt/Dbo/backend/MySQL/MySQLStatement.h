@@ -14,7 +14,7 @@
 #include <Wt/WLogger.h>
 
 #include <Wt/cpp20/date.hpp>
-#include <Wt/cpp20/async_mutex.h>
+#include <Wt/cpp20/async_mutex.hpp>
 
 #include <boost/mysql.hpp>
 

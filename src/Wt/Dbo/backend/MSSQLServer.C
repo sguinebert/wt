@@ -953,7 +953,7 @@ bool MSSQLServer::connect(const std::string &connectionString)
 
 awaitable<void> MSSQLServer::executeSql(const std::string &sql)
 {
-  co_await async_mutex_.scoped_lock_async(use_nothrow_awaitable);
+  co_await async_mutex_.async_scoped_lock(use_nothrow_awaitable);
 
   if (showQueries()) {
     LOG_INFO("{}", sql);

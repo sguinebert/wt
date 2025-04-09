@@ -625,6 +625,8 @@ public:
    * By default, this endpoint is configured whenever it's necessary,
    * but one may also configure it in advance, for example in a
    * multi-process deployment (FastCGI).
+   * this medthod should be called before the server is started. We need to configure all derived OAuthService
+   * before starting the server (the router is not thread safe).
    */
   void configureRedirectEndpoint() const;
 

@@ -521,20 +521,20 @@ public:
 
         }
 
-        //    app.get("/*", [this, config, streply](auto *res, auto *req)
-        //            {
-        //                //auto streponse = streply->get(http::server::Reply::status_type::not_found);
-        //                // req->lastStaticReply_.reset(new http::server::StaticReply(req, *this->impl_->serverConfiguration_));
-        //                // std::cerr << "test cdc " << req->lastWtReply_ << std::endl;
+           // router_.add({"get", "post"}, "/*", [this, config](auto *res, auto *req)
+           //         {
+           //             //auto streponse = streply->get(http::server::Reply::status_type::not_found);
+           //             // req->lastStaticReply_.reset(new http::server::StaticReply(req, *this->impl_->serverConfiguration_));
+           //             // std::cerr << "test cdc " << req->lastWtReply_ << std::endl;
 
-        //                // boost::asio::buffer dc;
-        //                streply->send(res, http::server::Reply::status_type::not_found);
-        //                //  res->writeHeader("Content-Type", "text")
-        //                //      ->writeHeader("Server", "Wt")
-        //                //      ->end(streponse);
-        //                //this->impl_->server_->request_handler_.handleRequest(req, )
-        //                //res->end("");
-        //            });
+           //             // boost::asio::buffer dc;
+           //             //streply->send(res, http::server::Reply::status_type::not_found);
+           //             //  res->writeHeader("Content-Type", "text")
+           //             //      ->writeHeader("Server", "Wt")
+           //             //      ->end(streponse);
+           //             //this->impl_->server_->request_handler_.handleRequest(req, )
+           //             //res->end("");
+           //         });
         //std::string docRoot = config->docRoot();
 
         server_->use(router_);

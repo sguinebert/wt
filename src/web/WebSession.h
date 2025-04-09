@@ -36,7 +36,7 @@ namespace mc = moodycamel;
 #include "Wt/WEnvironment.h"
 #include "Wt/WLogger.h"
 
-#include "Wt/cpp20/async_mutex.h"
+#include "Wt/cpp20/async_mutex.hpp"
 
 #ifdef WT_THREADED
 #include <atomic>
@@ -87,13 +87,12 @@ public:
 
   static WebSession *instance();
 
-  cpp20::async_mutex asyncmutex_;
-  awaitable<void> takeLock() {
+  ::cpp20::async_mutex asyncmutex_;
+  awaitable<::cpp20::async_mutex_lock> takeLock() {
       //async_mutex aquire lock or suspend coroutine
       std::cerr << ":: try take async_lock ::" << std::endl;
-      auto lock = co_await asyncmutex_.scoped_lock_async(use_awaitable); // SEGFAULT bad implementation
+      co_return co_await asyncmutex_.async_scoped_lock(use_awaitable); // SEGFAULT bad implementation
       std::cerr << ":: try take async_lock OK ::" << std::endl;
-      co_return;
   }
   bool try_lock() {
       return asyncmutex_.try_lock();
@@ -248,7 +247,7 @@ public:
         case LockOption::NoLock:
             break;
         case LockOption::TakeLock:
-            co_await session_->takeLock();
+            lock_ = co_await session_->takeLock();
             lockOwner_ = std::this_thread::get_id();
             break;
         case LockOption::TryLock:
@@ -338,6 +337,7 @@ public:
 
 #ifdef WT_THREADED
     std::thread::id lockOwner() const { return lockOwner_; }
+    ::cpp20::async_mutex_lock& getLock() { return lock_; }
     //std::unique_lock<std::mutex>& lock() { return lock_; }
 #endif
 
@@ -351,7 +351,8 @@ public:
     std::shared_ptr<WebSession> sessionPtr_;
 #endif
 #ifdef WT_THREADED
-    std::unique_lock<std::mutex> lock_;
+    //std::unique_lock<std::mutex> lock_;
+    ::cpp20::async_mutex_lock lock_;
     std::thread::id lockOwner_;
 
     Handler(const Handler&);

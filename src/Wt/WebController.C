@@ -172,7 +172,7 @@ void WebController::sessionDeleted()
 //#ifdef WT_THREADED
 //  std::unique_lock<std::recursive_mutex> lock(mutex_);
 //#endif // WT_THREADED
-  --zombieSessions_;
+  zombieSessions_.fetch_sub(1, std::memory_order_relaxed);
 }
 
 Configuration& WebController::configuration()
@@ -182,7 +182,7 @@ Configuration& WebController::configuration()
 
 int WebController::sessionCount() const
 {
-#ifdef WT_THREADED
+#if defined(WT_THREADED) && !defined(BOOST_CONCURENT_MAP)
   std::unique_lock<std::recursive_mutex> lock(mutex_);
 #endif
   return sessions_.size();

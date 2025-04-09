@@ -95,6 +95,44 @@ struct gzip final : safe_noncopyable {
         return deflateEnd(&stream) == Z_OK;
     }
 
+    static bool compress(std::string_view src, fmt::memory_buffer& buffer, int level = 8) {
+        z_stream stream;
+        stream.zalloc = Z_NULL;
+        stream.zfree = Z_NULL;
+        stream.opaque = Z_NULL;
+        stream.avail_in = 0;
+        stream.next_in = Z_NULL;
+
+        // The windowBits parameter: 15+16 instructs zlib to use gzip encoding.
+        constexpr int windowBits{15 + 16};
+        if (deflateInit2(&stream, level, Z_DEFLATED, windowBits, 9, Z_DEFAULT_STRATEGY) != Z_OK) {
+            return false;
+        }
+
+        stream.next_in = (unsigned char*)src.data();
+        stream.avail_in = static_cast<unsigned int>(src.length());
+
+        int ret_code = Z_OK;
+        do {
+            std::array<Bytef, 4096> temp;
+            stream.next_out  = temp.data();
+            stream.avail_out = static_cast<uInt>(temp.size());
+
+            ret_code = deflate(&stream, Z_FINISH);
+            if (ret_code == Z_STREAM_ERROR) {
+                deflateEnd(&stream);
+                return false;
+            }
+
+            // Calculate number of bytes written into the temporary buffer.
+            const std::size_t have = temp.size() - stream.avail_out;
+            // Append the compressed data to the fmt::memory_buffer.
+            buffer.append(std::span<unsigned char>(temp.data(), have));
+        } while (ret_code != Z_STREAM_END);
+
+        return deflateEnd(&stream) == Z_OK;
+    }
+
     bool inflate(unsigned char* in, size_t size, unsigned char out[], bool& hasMore)
     {
         z_stream zInState_;

@@ -802,10 +802,11 @@ std::string OAuthService::decodeState(std::string_view state) const
 std::string OAuthService::redirectEndpointPath() const
 {
   /* Compute deployment path for static resource */
-  Http::Client::URL parsedUrl;
-  Http::Client::parseUrl(redirectEndpoint(), parsedUrl);
+  auto url = ada::parse<ada::url_aggregator>(redirectEndpoint());
+  // Http::Client::URL parsedUrl;
+  // Http::Client::parseUrl(redirectEndpoint(), parsedUrl);
 
-  std::string path = parsedUrl.path;
+  auto path = url ? url.value().get_pathname() : std::string_view();// parsedUrl.path;
 
 #ifndef WT_TARGET_JAVA
     /* Compute absolute URL for dynamic resource */
@@ -814,20 +815,20 @@ std::string OAuthService::redirectEndpointPath() const
     if (app) {
         // Attempt to equalize the path with our deployment configuration,
         // in case we are deployed using a reverse proxy
-        std::string publicDeployPath = app->environment().deploymentPath();
-        std::string deployPath = app->session()->deploymentPath();
+        std::string_view publicDeployPath = app->environment().deploymentPath();
+        std::string_view deployPath = app->session()->deploymentPath();
 
         if (deployPath != publicDeployPath) {
             int diff = (int)publicDeployPath.length() - deployPath.length();
             if (diff > 0) {
-                std::string prefix = publicDeployPath.substr(0, diff);
+                auto prefix = publicDeployPath.substr(0, diff);
                 if (boost::starts_with(path, prefix))
                     path = path.substr(prefix.length());
             }
         }
     }
 #endif
-    return path;
+    return std::string(path);
 }
 
 void OAuthService::configureRedirectEndpoint() const
@@ -848,7 +849,7 @@ void OAuthService::configureRedirectEndpoint() const
             else
                 server = WServer::instance();
 
-            server->addResource(r.get(), path);
+            server->addResource(r.get(), path); // this is called before the server is started
 
             impl_->redirectResource_ = std::move(r);
         }
