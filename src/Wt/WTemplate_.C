@@ -279,9 +279,9 @@ void WTemplate_::bindString(const std::string& varName, const WString& value, Te
 
   if (textFormat == TextFormat::XHTML && v.literal()) {
     if (!removeScript(v))
-      v = escapeText(v, true);
+      v = escapeText(v.toUTF8(), true);
   } else if (textFormat == TextFormat::Plain)
-    v = escapeText(v, true);
+    v = escapeText(v.toUTF8(), true);
 
   StringMap::const_iterator i = strings_.find(varName);
 
@@ -515,7 +515,7 @@ bool WTemplate_::renderTemplateText(std::ostream& result, const WString& templat
   for(auto &[key, widget]: widgets_) {
 
       if(auto w = widget.get(); w != nullptr) {
-          fmt_args_.push_back(fmt::arg(key.c_str(), widget));
+          //fmt_args_.push_back(fmt::arg(key.c_str(), widget));
           // w->setParentWidget(this);
 
           // if (previouslyRendered_
@@ -534,7 +534,7 @@ bool WTemplate_::renderTemplateText(std::ostream& result, const WString& templat
       fmt_args_.push_back(fmt::arg(key.c_str(), wstring));
   }
   for(auto &[key, func]: functions_) {
-      fmt_args_.push_back(fmt::arg(key.c_str(), func));
+      //fmt_args_.push_back(fmt::arg(key.c_str(), func));
   }
   fmt::vformat_to(out, text, fmt_args_);
 

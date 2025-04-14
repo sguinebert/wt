@@ -901,7 +901,7 @@ bool WApplication::removeExposedResource(WResource *resource)
     std::string key = resourceMapKey(resource);
 
     return exposedResources_.erase_if(key,
-                                      [&](const auto& value) { return value->second == resource; });
+                                      [&](const auto& value) { return value.second == resource; });
 #else
     std::string key = resourceMapKey(resource);
 
@@ -1470,13 +1470,15 @@ awaitable<void> WApplication::takeLock()
     WebSession::Handler *handler = WebSession::Handler::instance();
 
     std::shared_ptr<WebSession> appSession = this->weakSession_.lock();
-    if (handler /*&& handler->haveLock()*/ && appSession && handler->session() == appSession.get())
+    if (handler && handler->haveLock() && appSession && handler->session() == appSession.get())
         co_return;
 
      if (appSession && appSession->dead())
        co_return;
 
-    co_return co_await appSession->takeLock();
+#warning "TODO: implement correctly WApplication::takeLock()"
+     co_await handler->lock();
+    //co_return co_await appSession->takeLock();
 }
 
 #ifdef WT_TARGET_JAVA
@@ -1567,19 +1569,7 @@ void WApplication::UpdateLock::close()
 
 #endif // WT_TARGET_JAVA
 
-void WApplication::doJavaScript(std::string_view javascript, bool afterLoaded)
-{
-    if (afterLoaded) {
-        fmt::format_to(std::back_inserter(afterLoadJavaScript_), "{}\n", javascript);
-        // afterLoadJavaScript_ += '\n';
-    } else {
-        fmt::format_to(std::back_inserter(beforeLoadJavaScript_), "{}\n", javascript);
 
-        // beforeLoadJavaScript_ += javascript;
-        // beforeLoadJavaScript_ += '\n';
-        newBeforeLoadJavaScript_ += javascript.length() + 1;
-    }
-}
 
 void WApplication::addAutoJavaScript(const std::string& javascript)
 {

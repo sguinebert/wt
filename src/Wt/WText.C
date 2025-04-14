@@ -61,10 +61,10 @@ std::string WText::RichText::formattedText() const
     if (removeScript(copy)) {
       return copy.toXhtmlUTF8();
     } else {
-      return escapeText(text, true).toUTF8();
+      return escapeText(text.toXhtmlUTF8(), true);
     }
   } else if (format == TextFormat::Plain)
-    return escapeText(text, true).toUTF8();
+    return escapeText(text.toUTF8(), true);
   else
     return text.toXhtmlUTF8();
 }
@@ -294,21 +294,21 @@ WLength WText::padding(Side side) const
 
 std::string WText::formattedText() const
 {
-  if (text_.format == TextFormat::Plain)
-    return escapeText(text_.text, true).toUTF8();
-  else {
-    WApplication *app = WApplication::instance();
-    if (flags_.test(BIT_ENCODE_INTERNAL_PATHS)
-	|| app->session()->hasSessionIdInUrl()) {
-      WFlags<RefEncoderOption> options;
-      if (flags_.test(BIT_ENCODE_INTERNAL_PATHS))
-	options |= EncodeInternalPaths;
-      if (app->session()->hasSessionIdInUrl())
-	options |= EncodeRedirectTrampoline;
-      return EncodeRefs(text_.text, options).toXhtmlUTF8();
-    } else
-      return text_.text.toXhtmlUTF8();
-  }
+    if (text_.format == TextFormat::Plain)
+        return escapeText(text_.text.toUTF8(), true);
+    else {
+        WApplication *app = WApplication::instance();
+        if (flags_.test(BIT_ENCODE_INTERNAL_PATHS)
+            || app->session()->hasSessionIdInUrl()) {
+            WFlags<RefEncoderOption> options;
+            if (flags_.test(BIT_ENCODE_INTERNAL_PATHS))
+                options |= EncodeInternalPaths;
+            if (app->session()->hasSessionIdInUrl())
+                options |= EncodeRedirectTrampoline;
+            return EncodeRefs(text_.text, options).toXhtmlUTF8();
+        } else
+            return text_.text.toXhtmlUTF8();
+    }
 }
 
 DomElementType WText::domElementType() const

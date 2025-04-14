@@ -36,9 +36,9 @@ namespace Wt {
  *
  * \ingroup json
  */
-  WT_API extern Value parse(const std::string& input, bool valideUTF8, bool allow_trailing_commas = false, bool allow_comments = false);
+  WT_API extern Value parse(std::string_view input, bool valideUTF8, bool allow_trailing_commas = false, bool allow_comments = false);
 
-  //WT_API extern Value parse(const std::string& input);
+  //WT_API extern Value parse(std::string_view input);
 
   /*! \brief Parse function
  *
@@ -55,10 +55,10 @@ namespace Wt {
  * \ingroup json
  */
 
-  WT_API extern Value parse(const std::string& input,
+  WT_API extern Value parse(std::string_view input,
                             ParseError& error, bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
 
-  //WT_API extern Value parse(const std::string& input, Value& result, ParseError& error);
+  //WT_API extern Value parse(std::string_view input, Value& result, ParseError& error);
 
   /*! \brief Parse function
  *
@@ -73,10 +73,10 @@ namespace Wt {
  *
  * \ingroup json
  */
-  WT_API extern void parse(const std::string& input, Object& result,
+  WT_API extern void parse(std::string_view input, Object& result,
                            bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
 
-  //WT_API extern void parse(const std::string& input, Object& result);
+  //WT_API extern void parse(std::string_view input, Object& result);
 
   /*! \brief Parse function
  *
@@ -93,7 +93,7 @@ namespace Wt {
  * \ingroup json
  */
 
-  WT_API extern bool parse(const std::string& input, Object& result,
+  WT_API extern bool parse(std::string_view input, Object& result,
                            ParseError& error, bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
 
   /*! \brief Parse function
@@ -110,9 +110,9 @@ namespace Wt {
  * \ingroup json
  */
 
-  //WT_API extern void parse(const std::string& input, Array& result);
+  //WT_API extern void parse(std::string_view input, Array& result);
 
-  WT_API extern void parse(const std::string& input, Array& result,
+  WT_API extern void parse(std::string_view input, Array& result,
                            bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
 
   /*! \brief Parse function
@@ -130,12 +130,12 @@ namespace Wt {
  * \ingroup json
  */
 
-  WT_API extern bool parse(const std::string& input, Array& result,
+  WT_API extern bool parse(std::string_view input, Array& result,
                            ParseError& error, bool valideUTF8 = true, bool allow_trailing_commas = false, bool allow_comments = false);
 
 #ifdef WT_TARGET_JAVA
     class Parser {
-      Object parse(const std::string& input, bool validateUTF8 = true);
+      Object parse(std::string_view input, bool validateUTF8 = true);
     };
 #endif
 

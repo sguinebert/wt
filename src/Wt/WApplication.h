@@ -34,6 +34,8 @@ namespace boost {
 #include <Wt/WSignal.h>
 #include <Wt/WString.h>
 
+#include <Wt/WLength.h>
+
 namespace Wt {
 
 #ifndef WT_TARGET_JAVA
@@ -78,6 +80,11 @@ struct TransparentHash {
 struct TransparentEqual {
     using is_transparent = void; // Marks the comparator as transparent.
 
+    template <typename T, typename U>
+    requires (std::is_convertible_v<T, std::string_view> && std::is_convertible_v<U, std::string_view>)
+    bool operator()(T&& lhs, U&& rhs) const noexcept {
+        return std::forward<T>(lhs) == std::forward<U>(rhs);
+    }
     bool operator()(std::string_view lhs, std::string_view rhs) const noexcept {
         return lhs == rhs;
     }
@@ -1444,37 +1451,87 @@ public:
    *
    * \sa WWidget::doJavaScript(), declareJavaScriptFunction()
    */
-  void doJavaScript(std::string_view javascript, bool afterLoaded = true);
+  void doJavaScript(std::string_view javascript, bool afterLoaded = true)
+  {
+      if (afterLoaded) {
+          fmt::format_to(std::back_inserter(afterLoadJavaScript_), FMT_COMPILE("{}\n"), javascript);
+          // afterLoadJavaScript_ += '\n';
+      } else {
+          fmt::format_to(std::back_inserter(beforeLoadJavaScript_), FMT_COMPILE("{}\n"), javascript);
+
+          // beforeLoadJavaScript_ += javascript;
+          // beforeLoadJavaScript_ += '\n';
+          newBeforeLoadJavaScript_ += javascript.length() + 1;
+      }
+  }
 
   auto& afterLoadJavaScript() { return afterLoadJavaScript_; }
   auto& beforeLoadJavaScript() { return beforeLoadJavaScript_; }
 
+  // template<bool afterLoaded = true, typename... Args>
+  // void doJavaScript(fmt::format_string<typename fmtlogdetail::UnrefPtr<fmt::remove_cvref_t<Args>>::type...> javascript, Args&&... args) {
+  //     if constexpr (afterLoaded) {
+  //         fmt::vformat_to(std::back_inserter(afterLoadJavaScript_), javascript, fmt::make_format_args(std::forward<Args>(args)...));
+  //         afterLoadJavaScript_.push_back('\n');
+  //     } else {
+  //         auto presize = beforeLoadJavaScript_.size();
+  //         fmt::vformat_to(std::back_inserter(beforeLoadJavaScript_), javascript, fmt::make_format_args(std::forward<Args>(args)...));
+  //         //beforeLoadJavaScript_ += javascript;
+  //         beforeLoadJavaScript_.push_back('\n');
+  //         newBeforeLoadJavaScript_ += beforeLoadJavaScript_.size() - presize;
+  //     }
+  // }
+/* runtime string template */
   template<bool afterLoaded = true, typename... Args>
-  void doJavaScript(fmt::format_string<Args...> javascript, Args&&... args) {
+  void doJavaScript(
+      fmt::format_string<Args...> javascript,
+      Args&&... args
+      ) {
       if constexpr (afterLoaded) {
-          fmt::format_to(std::back_inserter(afterLoadJavaScript_), javascript, fmt::make_format_args(std::forward<Args>(args)...));
+          fmt::vformat_to(std::back_inserter(afterLoadJavaScript_), javascript,
+                          fmt::make_format_args(std::forward<Args>(args)...));
           afterLoadJavaScript_.push_back('\n');
       } else {
           auto presize = beforeLoadJavaScript_.size();
-          fmt::format_to(std::back_inserter(beforeLoadJavaScript_), javascript, fmt::make_format_args(std::forward<Args>(args)...));
-          //beforeLoadJavaScript_ += javascript;
+          fmt::vformat_to(std::back_inserter(beforeLoadJavaScript_), javascript,
+                          fmt::make_format_args(std::forward<Args>(args)...));
           beforeLoadJavaScript_.push_back('\n');
           newBeforeLoadJavaScript_ += beforeLoadJavaScript_.size() - presize;
       }
   }
+/* compile string template */
+  template<bool afterLoaded = true, typename Format, typename... Args>
+  requires(std::is_base_of_v<fmt::detail::compiled_string, std::remove_cv_t<Format>>)
+  void doJavaScript(
+      Format&& javascript,
+      Args&&... args
+      ) {
+      if constexpr (afterLoaded) {
+          fmt::format_to(std::back_inserter(afterLoadJavaScript_), std::forward<Format>(javascript),
+                         std::forward<Args>(args)...);
+          afterLoadJavaScript_.push_back('\n');
+      } else {
+          auto presize = beforeLoadJavaScript_.size();
+          fmt::format_to(std::back_inserter(beforeLoadJavaScript_), std::forward<Format>(javascript),
+                         std::forward<Args>(args)...);
+          beforeLoadJavaScript_.push_back('\n');
+          newBeforeLoadJavaScript_ += beforeLoadJavaScript_.size() - presize;
+      }
+  }
+
   // Compile-time version with FMT_COMPILE
-  template<bool afterLoaded = true, typename... Args>
-  void doJavaScript(const char* javascript, Args&&... args) {
-      if constexpr (afterLoaded) {
-          fmt::format_to(std::back_inserter(afterLoadJavaScript_), FMT_COMPILE(javascript), std::forward<Args>(args)...);
-          afterLoadJavaScript_.push_back('\n');
-      } else {
-          auto presize = beforeLoadJavaScript_.size();
-          fmt::format_to(std::back_inserter(beforeLoadJavaScript_), FMT_COMPILE(javascript), std::forward<Args>(args)...);
-          beforeLoadJavaScript_.push_back('\n');
-          newBeforeLoadJavaScript_ += beforeLoadJavaScript_.size() - presize;
-      }
-  }
+  // template<bool afterLoaded = true, typename... Args>
+  // void doJavaScript(std::string_view javascript, Args&&... args) {
+  //     if constexpr (afterLoaded) {
+  //         fmt::format_to(std::back_inserter(afterLoadJavaScript_), (javascript), std::forward<Args>(args)...);
+  //         afterLoadJavaScript_.push_back('\n');
+  //     } else {
+  //         auto presize = beforeLoadJavaScript_.size();
+  //         fmt::format_to(std::back_inserter(beforeLoadJavaScript_), (javascript), std::forward<Args>(args)...);
+  //         beforeLoadJavaScript_.push_back('\n');
+  //         newBeforeLoadJavaScript_ += beforeLoadJavaScript_.size() - presize;
+  //     }
+  // }
   /*! \brief Adds JavaScript statements that should be run continuously.
    *
    * This is an internal method.
@@ -2325,7 +2382,7 @@ private:
 #ifdef BOOST_CONCURENT_MAP
   //using SignalMap = boost::unordered_flat_map<std::string, std::shared_ptr<WebSession>>;
   typedef std::unordered_map<std::string, EventSignalBase*, TransparentHash, TransparentEqual> SignalMap;
-  using ResourceMap = boost::concurrent_flat_map<std::string, std::shared_ptr<WebSession>, TransparentHash, TransparentEqual >;
+  using ResourceMap = boost::concurrent_flat_map<std::string, WResource*, TransparentHash, TransparentEqual >;
 #else
   typedef std::unordered_map<std::string, EventSignalBase*, TransparentHash, TransparentEqual> SignalMap;
   typedef std::unordered_map<std::string, WResource*, TransparentHash, TransparentEqual> ResourceMap;

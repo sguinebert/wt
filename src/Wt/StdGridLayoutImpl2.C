@@ -27,7 +27,7 @@ namespace fmt {
 
 // Specialize formatter for std::vector<Impl::Grid::Section>
 template <>
-struct formatter<Wt::StdGridLayoutImpl2*> {
+struct formatter<Wt::StdGridLayoutImpl2> {
     char type = 'r'; // Default to 'r' if no specifier is given
 
     // Parse method to handle 'c' or 'r'
@@ -47,8 +47,8 @@ struct formatter<Wt::StdGridLayoutImpl2*> {
     }
     // Format method
     template <typename FormatContext>
-    auto format(const Wt::StdGridLayoutImpl2* grid, FormatContext& ctx) const {
-        const auto& sections = type == 'r' ? grid->grid_.rows_ : grid->grid_.columns_;
+    auto format(const Wt::StdGridLayoutImpl2& grid, FormatContext& ctx) const {
+        const auto& sections = type == 'r' ? grid.grid_.rows_ : grid.grid_.columns_;
         auto out = ctx.out();
 
         // Retrieve the WApplication instance at runtime
@@ -57,7 +57,7 @@ struct formatter<Wt::StdGridLayoutImpl2*> {
         out = fmt::format_to(out, "[");
         for(unsigned i = 0; i < sections.size(); ++i) {
             auto& section = sections[i];
-            auto minsize = type == 'r' ? grid->minimumHeightForRow(i) : grid->minimumWidthForColumn(i);
+            auto minsize = type == 'r' ? grid.minimumHeightForRow(i) : grid.minimumWidthForColumn(i);
 
             if(section.resizable_) {
                 SizeHandle::loadJavaScript(app);
@@ -72,7 +72,7 @@ struct formatter<Wt::StdGridLayoutImpl2*> {
                 out = fmt::format_to(out, "[{},0,{}]", section.stretch_, minsize);
 
             if(i != sections.size() - 1)
-                out = fmt::format_to(out, ',');
+                out = fmt::format_to(out, ",");
         }
         out = fmt::format_to(out, "[");
         return out;
@@ -189,17 +189,24 @@ StdGridLayoutImpl2::StdGridLayoutImpl2(WLayout *layout, Impl::Grid& grid)
     LOAD_JAVASCRIPT(app, THIS_JS, "StdLayout2", wtjs1);
     LOAD_JAVASCRIPT(app, THIS_JS, "layouts2", appjs1);
 
-    app->doJavaScript(app->javaScriptClass() + ".layouts2.scheduleAdjust();");
-    app->doJavaScript("(function(){"
-                      "var f=function(){"
-                      + app->javaScriptClass() + ".layouts2.scheduleAdjust();"
-                                                 "};"
-                                                 "window.addEventListener('load',f);"
-                                                 "})();");
+    // app->doJavaScript(app->javaScriptClass() + ".layouts2.scheduleAdjust();");
+    // app->doJavaScript("(function(){"
+    //                   "var f=function(){"
+    //                   + app->javaScriptClass() + ".layouts2.scheduleAdjust();"
+    //                                              "};"
+    //                                              "window.addEventListener('load',f);"
+    //                                              "})();");
+    app->doJavaScript(FMT_COMPILE("{}.layouts2.scheduleAdjust();"
+                      "(function(){{"
+                      ""    "var f=function(){{{}.layouts2.scheduleAdjust();}};"
+                      ""    "window.addEventListener('load',f);"
+                      "}})();"), app->javaScriptClass(), app->javaScriptClass());
 
-    WApplication::instance()->addAutoJavaScript
-      ("if(" + app->javaScriptClass() + ".layouts2) "
-       + app->javaScriptClass() + ".layouts2.adjustNow();");
+    auto j2 = fmt::format(FMT_COMPILE("if({}.layouts2){}.scheduleAdjust();"), app->javaScriptClass(), app->javaScriptClass());
+    WApplication::instance()->addAutoJavaScript(j2);
+    // WApplication::instance()->addAutoJavaScript
+    //   ("if(" + app->javaScriptClass() + ".layouts2) "
+    //    + app->javaScriptClass() + ".layouts2.adjustNow();");
   }
 }
 
@@ -609,7 +616,7 @@ void StdGridLayoutImpl2::streamConfig(WStringStream& js, WApplication *app)
 
 void StdGridLayoutImpl2::streamConfig(fmt::memory_buffer &js, WApplication */*app*/, std::string_view closing)
 {
-    fmt::format_to(std::back_inserter(js), "{{ rows:{:r}, cols:{:c}, items: [{}]}}{}", this, this, grid_, closing);
+    fmt::format_to(std::back_inserter(js), FMT_COMPILE("{{ rows:{:r}, cols:{:c}, items: [{}]}}{}"), *this, *this, grid_, closing);
 }
 
 int StdGridLayoutImpl2::pixelSize(const WLength& size)

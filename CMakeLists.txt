@@ -581,6 +581,71 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 INSTALL_FILES(/include/Wt FILES ${WCONFIG_H_PATH})
 
 
+# add_custom_target(InstallGulpPackages ALL
+#   COMMAND npm install --save-dev gulp gulp-cli
+#   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+#   COMMENT "Installing gulp and gulp-cli locally via npm..."
+# )
+# if(NOT EXISTS "${CMAKE_SOURCE_DIR}/node_modules")
+#   message(STATUS "node_modules directory not found. Running npm install to install gulp and gulp-cli...")
+#   execute_process(
+#     COMMAND npm install --save-dev gulp gulp-cli
+#     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+#     RESULT_VARIABLE NPM_RESULT
+#     OUTPUT_VARIABLE NPM_OUTPUT
+#     ERROR_VARIABLE NPM_ERROR
+#     OUTPUT_STRIP_TRAILING_WHITESPACE
+#     ERROR_STRIP_TRAILING_WHITESPACE
+#   )
+#   if(NOT NPM_RESULT EQUAL 0)
+#     message(FATAL_ERROR "npm install failed with error: ${NPM_ERROR}")
+#   else()
+#     message(STATUS "npm install succeeded: ${NPM_OUTPUT}")
+#   endif()
+# endif()
+
+
+
+# set(LOCAL_GULP "${CMAKE_SOURCE_DIR}/node_modules/.bin/gulp")
+# if(WIN32)
+#   set(LOCAL_GULP "${CMAKE_SOURCE_DIR}/node_modules/.bin/gulp.cmd")
+# endif()
+
+# if(EXISTS "${LOCAL_GULP}")
+#   set(GULP_EXECUTABLE "${LOCAL_GULP}")
+# else()
+#   message(WARNING_ERROR "Local gulp executable not found in ${CMAKE_SOURCE_DIR}/node_modules/.bin. Please install gulp locally using: npm install --save-dev gulp gulp-cli")
+# endif()
+
+# message(STATUS "Using local gulp: ${GULP_EXECUTABLE}")
+
+# # Set the working directory for gulp tasks
+# set(GULP_WORKING_DIR "${CMAKE_SOURCE_DIR}/src/js")  # Adjust as needed
+
+# # Custom target to run the gulp task, which depends on package installation
+# add_custom_target(GulpMinify
+#   COMMAND ${GULP_EXECUTABLE} js
+#   WORKING_DIRECTORY ${GULP_WORKING_DIR}
+#   COMMENT "Running gulp minification task (gulp js)..."
+#   DEPENDS InstallGulpPackages
+# )
+
+
+# Check if gulp is installed
+# if(EXISTS "${PROJECT_SOURCE_DIR}/js/node_modules/.bin/gulp")
+#   set(GULP_EXECUTABLE "${CMAKE_SOURCE_DIR}/node_modules/.bin/gulp")
+# else()
+#   find_program(GULP_EXECUTABLE gulp)
+# endif()
+
+# find_program(GULP_EXECUTABLE gulp)
+# if(NOT GULP_EXECUTABLE)
+#   message(FATAL_ERROR "Gulp not found. Please install gulp-cli globally (npm install --global gulp-cli) or ensure it is in your PATH.")
+# else()
+#   message(STATUS "Found gulp at: ${GULP_EXECUTABLE}")
+# endif()
+
+
 # Generate wt_config.xml from wt_config.xml.in
 CONFIGURE_FILE(
   ${WT_SOURCE_DIR}/wt_config.xml.in

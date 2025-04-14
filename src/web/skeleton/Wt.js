@@ -26,7 +26,6 @@
   _$_STRICTLY_SERIALIZED_EVENTS_$_
   _$_UGLY_INTERNAL_PATHS_$_
   _$_WEB_SOCKETS_$_
-  _$_$endif_$_
   delayClick
   delayedClicks
   google

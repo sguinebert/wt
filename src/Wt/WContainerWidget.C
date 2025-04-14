@@ -664,7 +664,7 @@ void WContainerWidget::updateDomChildren(DomElement& parent, WApplication *app)
 	  if (pos + (addedCount - insertCount) == totalCount)
 	    parent.addChild(c);
 	  else
-	    parent.insertChildAt(c, pos + firstChildIndex());
+        parent.insertChildAt(std::move(c), pos + firstChildIndex());
 
 	  ++insertCount;
 	}

@@ -22,9 +22,9 @@
 namespace Wt {
 
 LOGGER("WWidgetItem");
-
+#warning "attention au type (à corriger)"
 StdWidgetItemImpl::StdWidgetItemImpl(WWidgetItem *item)
-  : item_(item)
+    : StdLayoutItemImpl(StdGridLayout2), item_(item)
 { }
 
 StdWidgetItemImpl::~StdWidgetItemImpl()

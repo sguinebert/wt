@@ -1787,7 +1787,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
             } else if (requestE != "page") {
                 LOG_INFO("Not serving this: request of type '{}' in a brand new session (probably coming from an old session)", requestE);
                 context->setContentType("text/html");
-                context->buffer().append("<html><head></head><body></body></html>");
+                context->res() << ("<html><head></head><body></body></html>");
 
                 kill();
                 break;
@@ -1842,12 +1842,12 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
             auto resourceE = request.get("resource");
             if (resourceE == "blank") {
                 context->type("text/html");
-                context->buffer().append("<html><head><title>bhm</title></head>"
+                context->res() << ("<html><head><title>bhm</title></head>"
                                          "<body></body></html>");
             } else {
                 LOG_INFO("not starting session for unexpected request type.");
                 context->type("text/html");
-                context->buffer().append("<html><head></head><body></body></html>");
+                context->res() << ("<html><head></head><body></body></html>");
             }
 
             kill();
@@ -2012,7 +2012,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
           else if (requestForResource && resourceE == "blank")
           {
             handler.context()->type("text/html");
-            handler.context()->buffer().append("<html><head><title>bhm</title></head><body></body></html>");
+              handler.context()->res() << ("<html><head><title>bhm</title></head><body></body></html>");
             break;
           }
           else
@@ -2037,7 +2037,7 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
                     setState(State::Loaded, conf.bootstrapTimeout());
                 } else {
                     handler.context()->type("text/html");
-                    handler.context()->buffer().append("<html><head></head><body></body></html>");
+                    handler.context()->res() << ("<html><head></head><body></body></html>");
 //                        "<html><body><h1>Refusing to respond.</h1></body></html>";
                 }
 

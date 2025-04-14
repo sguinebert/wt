@@ -78,7 +78,7 @@ namespace Wt
       template <>
       struct SocketData<false>
       {
-        SocketData(asio::io_service &io_service, bool verifyCerts)
+        SocketData(asio::io_context &io_service, bool verifyCerts)
             : socket_(io_service)
         {
           (void)verifyCerts;
@@ -90,7 +90,7 @@ namespace Wt
       template <>
       struct SocketData<true>
       {
-        SocketData(asio::io_service &io_service, bool verifyCerts)
+        SocketData(asio::io_context &io_service, bool verifyCerts)
             : ssl_ctx_(Ssl::createSslContext(io_service.get_executor(), verifyCerts)),
               stream_(io_service, ssl_ctx_),
               encrypted_(false)
@@ -104,7 +104,7 @@ namespace Wt
 #endif // WT_WITH_SSL
 
     }
-
+#warning "not async : modernize !"
     template <bool ssl>
     class Client::Impl : public Client::BaseImpl
     {
@@ -117,13 +117,12 @@ namespace Wt
         // Get a list of endpoints corresponding to the server name.
         tcp::resolver resolver(io_service_);
 
-        tcp::resolver::query query(host, std::to_string(port));
-        tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-        tcp::resolver::iterator end;
+        auto endpoints = resolver.resolve(host, std::to_string(port));
+        auto endpoint_iterator = endpoints.begin();
 
         // Try each endpoint until we successfully establish a connection.
         AsioWrapper::error_code error = asio::error::host_not_found;
-        while (error && endpoint_iterator != end)
+        while (error && endpoint_iterator != endpoints.end())
         {
           close();
           socket().connect(*endpoint_iterator++, error);
@@ -336,7 +335,7 @@ namespace Wt
       const tcp::socket &socket() const;
 
     private:
-      asio::io_service io_service_;
+      asio::io_context io_service_;
       SocketData<ssl> data_;
     };
 
@@ -447,7 +446,8 @@ namespace Wt
       {
         data_.stream_.set_verify_mode(ssl::verify_peer);
         LOG_DEBUG("verifying that peer is {}", hostName);
-        data_.stream_.set_verify_callback(ssl::rfc2818_verification(hostName));
+        //data_.stream_.set_verify_callback(ssl::rfc2818_verification(hostName));
+        data_.stream_.set_verify_callback(asio::ssl::host_name_verification(hostName));
       }
       data_.stream_.handshake(ssl::stream_base::client);
     }

@@ -122,7 +122,7 @@ void WebController::shutdown()
 {
 #ifdef BOOST_CONCURENT_MAP
     sessions_.visit_all([&] (auto &it){
-        std::shared_ptr<WebSession> session = it->second;
+        std::shared_ptr<WebSession> session = it.second;
         WebSession::Handler handler(session, WebSession::Handler::LockOption::TakeLock); //general shutdown : block the thread is ok
         session->expire();
     });
@@ -195,8 +195,8 @@ std::vector<std::string> WebController::sessions(bool onlyRendered)
 
 #ifdef BOOST_CONCURENT_MAP
   sessions_.visit_all([&] (auto &it){
-      if (!onlyRendered || it->second->app() != nullptr)
-          sessionIds.push_back(it->first);
+      if (!onlyRendered || it.second->app() != nullptr)
+          sessionIds.push_back(it.first);
   });
 #else
 #ifdef WT_THREADED
@@ -335,7 +335,7 @@ void WebController::removeSession(const std::string& sessionId)
 #ifdef BOOST_CONCURENT_MAP
   sessions_.visit(sessionId, [&](auto& s) {
       zombieSessions_.fetch_add(1, std::memory_order_relaxed);
-      if (s->second->env().ajax())
+      if (s.second->env().ajax())
           ajaxSessions_.fetch_sub(1, std::memory_order_relaxed);
       else
           plainHtmlSessions_.fetch_sub(1, std::memory_order_relaxed);
@@ -706,9 +706,9 @@ awaitable<bool> WebController::handleApplicationEvent(const std::shared_ptr<Appl
 
 
 #ifdef BOOST_CONCURENT_MAP
-    sessions_.visit(event->sessionId, [&session](const std::shared_ptr<WebSession>& s) {
-        if(!s->dead())
-            session = s;
+    sessions_.visit(event->sessionId, [&session](const auto& it) {
+        if(!it.second->dead())
+            session = it.second;
     });
 #else
 #ifdef WT_THREADED
@@ -1106,8 +1106,8 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
     }
 
 #ifdef BOOST_CONCURENT_MAP
-    auto size = sessions_.visit(sessionId, [&](auto& value){
-        session = value;
+    auto size = sessions_.visit(sessionId, [&](auto& it){
+        session = it.second;
         context->websession(session);
     });
     Configuration::SessionTracking sessionTracking = configuration().sessionTracking();

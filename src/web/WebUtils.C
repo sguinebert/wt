@@ -358,9 +358,9 @@ char *round_js_str(double d, int digits, char *buf) {
 #endif
 }
 
-std::string urlEncode(const std::string& url, const std::string& allowed)
+std::string urlEncode(const std::string& url, const uint8_t charset[])
 {
-  return DomElement::urlEncodeS(url, allowed);
+  return DomElement::urlEncodeS(url, charset);
 }
 
 std::string dataUrlDecode(const std::string &url,

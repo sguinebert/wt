@@ -143,6 +143,8 @@ private:
   void drawPlainPath(WStringStream& s, const WPainterPath& path);
 
   void streamResourceData(std::ostream& stream);
+  void streamResourceData(fmt::memory_buffer& out);
+
 };
 
 }

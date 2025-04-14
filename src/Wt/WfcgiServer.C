@@ -117,7 +117,7 @@ void WfcgiServer::setAppRoot(const std::string& path)
     configuration_->setAppRoot(path);
 }
 
-std::string WfcgiServer::appRoot() const
+std::string_view WfcgiServer::appRoot() const
 {
   // FIXME we should const-correct Configuration too
   return const_cast<WfcgiServer *>(this)->configuration().appRoot();

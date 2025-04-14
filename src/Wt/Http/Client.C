@@ -144,21 +144,28 @@ public:
     if (method == Http::Method::Post || method == Http::Method::Put || method == Http::Method::Delete || method == Http::Method::Patch)
       request_stream << request_.body();
 
-    tcp::resolver::query query(server, std::to_string(port));
+    //tcp::resolver::query query(server, std::to_string(port));
 
     //startTimer();
     co_spawn(executor_, watchdog(deadline_), detached);
 
-    auto [ec, endpoint_iterator] = co_await resolver_.async_resolve(query, use_nothrow_awaitable);
-
+    //auto [ec, endpoint_iterator] = co_await resolver_.async_resolve(query, use_nothrow_awaitable);
+    auto [ec, endpoints] = co_await resolver_.async_resolve(server,                    // Host (formerly query's first arg)
+                                                            std::to_string(port),      // Service/port (formerly query's second arg)
+                                                            use_nothrow_awaitable
+                                                            );
     //    handleResolve(ec, endpoint);
     cancelTimer();
+
+    //connect(socket(), endpoints, ec);
 
     if (!ec && !aborted_) {
       // Attempt a connection to the first endpoint in the list.
       // Each endpoint will be tried until we successfully establish
       // a connection.
+      auto endpoint_iterator = endpoints.begin();
       tcp::endpoint endpoint = *endpoint_iterator;
+
 
       //startTimer();
 
@@ -226,7 +233,7 @@ public:
             }
 
 
-        } else if (endpoint_iterator != tcp::resolver::iterator()) {
+        } else if (endpoint_iterator != endpoints.end()) {
             // The connection failed. Try the next endpoint in the list.
             socket().close();
 
@@ -978,7 +985,7 @@ protected:
     if (verifyEnabled_) {
       socket_.set_verify_mode(asio::ssl::verify_peer);
       LOG_DEBUG("verifying that peer is {}", hostName_);
-      socket_.set_verify_callback(asio::ssl::rfc2818_verification(hostName_));
+      socket_.set_verify_callback(asio::ssl::host_name_verification(hostName_));//DEPRECATED : socket_.set_verify_callback(asio::ssl::rfc2818_verification(hostName_));
     }
     auto [ec] = co_await socket_.async_handshake(asio::ssl::stream_base::client, use_nothrow_awaitable);
     co_return ec;

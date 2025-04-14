@@ -2,9 +2,19 @@ SUBDIRS(web Wt)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_C_STANDARD 23)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") # -fconstexpr-steps=100000000 -ftemplate-depth=40960
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+set(CMAKE_C_COMPILER "clang-20")
+set(CMAKE_CXX_COMPILER "clang++-20")
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-steps=100000000 -ftemplate-depth=40960") # -fconstexpr-steps=100000000 -ftemplate-depth=40960
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-literal-operator -march=native")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mssse3")
+
+
+set_source_files_properties(
+    WebRenderer.C
+    PROPERTIES
+        COMPILE_OPTIONS "-fconstexpr-steps=100000000;-ftemplate-depth=40960"
+)
 
 #BE CAREFULL with flags and asio : if the flags are not exported correctly you will face kind of 2 differents versions of asio (undefind behavior, segfault etc...)
 
@@ -89,6 +99,7 @@ add_custom_target(embed_files
 
     web/skeleton/Wt.js
     web/skeleton/Wt.min.js
+    web/skeleton/es6.boot.js
     web/skeleton/Boot.js
     web/skeleton/Boot.min.js
 
@@ -634,7 +645,8 @@ ENDIF(WIN32)
 ADD_LIBRARY(wt ${libsources}
     Wt/cuehttp/deps/ada.cpp Wt/cuehttp/deps/ada.h
     Wt/WTemplate_.C Wt/WTemplate_.h
-    Wt/cpp20/async_mutex.hpp)
+    Wt/cpp20/async_mutex.hpp
+    Wt/cpp23/embed.hpp)
 
 
 

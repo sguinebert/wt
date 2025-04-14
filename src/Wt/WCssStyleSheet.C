@@ -11,10 +11,7 @@
 #include "DomElement.h"
 #include "EscapeOStream.h"
 #include "WebUtils.h"
-#include "Wt/fmt/core.h"
-#include "Wt/fmt/ranges.h"
-#include "Wt/fmt/ostream.h"
-#include <ranges>
+#include "Wt/fmt/format.h"
 
 namespace fmt {
 template <>
@@ -25,9 +22,9 @@ struct fmt::formatter<std::vector<Wt::WCssRule*>> {    // format specification s
     }
     // format a value using stored specification:
     template <typename FormatContext>
-    auto format(const std::vector<Wt::WCssRule*> rule, FormatContext& ctx) const {
+    auto format(const std::vector<Wt::WCssRule*>& rules, FormatContext& ctx) const {
         auto out = ctx.out();
-        for(auto& r : rule) {
+        for(auto& r : rules) {
             out = fmt::format_to(ctx.out(), "{} {{ {} }}\n", r->selector(), r->declarations());
         }
         return out;

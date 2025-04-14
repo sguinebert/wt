@@ -42,7 +42,7 @@ enum class UserAgent {
   Safari = 4100,              //!< Safari 2 or older
   Safari3 = 4103,             //!< Safari 3
   Safari4 = 4104,             //!< Safari 4 or later
-  Chrome0 = 4200,             //!< Chrome 0
+  Chrome = 4200,             //!< Chrome 0
   Chrome1 = 4201,             //!< Chrome 1
   Chrome2 = 4202,             //!< Chrome 2
   Chrome3 = 4203,             //!< Chrome 3
@@ -592,7 +592,7 @@ public:
     return static_cast<unsigned int>(agent_) >= 
       static_cast<unsigned int>(UserAgent::Safari) &&  
       static_cast<unsigned int>(agent_) < 
-	static_cast<unsigned int>(UserAgent::Chrome0);
+    static_cast<unsigned int>(UserAgent::Chrome);
   }
 
   /*! \brief Returns whether the user agent is Chrome.
@@ -601,7 +601,7 @@ public:
    */
   bool agentIsChrome() const {
     return static_cast<unsigned int>(agent_) >= 
-      static_cast<unsigned int>(UserAgent::Chrome0) &&  
+      static_cast<unsigned int>(UserAgent::Chrome) &&
       static_cast<unsigned int>(agent_) < 
 	static_cast<unsigned int>(UserAgent::Konqueror);
   }
@@ -688,6 +688,8 @@ protected:
   bool        doesCookies_;
   bool        internalPathUsingFragments_;
   UserAgent   agent_;
+  int        agentVersion_ = -1;
+  bool es6_ = false;
   int         screenWidth_;
   int         screenHeight_;
   double      dpiScale_;

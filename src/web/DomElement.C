@@ -392,7 +392,7 @@ public:
 };
 
 template <>
-struct fmt::formatter<const Wt::DomElement*> {    // format specification storage
+struct fmt::formatter<Wt::DomElement> {    // format specification storage
     char presentation_ = 's';
     bool onlystyle_ = false;
 public:
@@ -410,29 +410,29 @@ public:
     }
     // format a value using stored specification:
     template <typename FormatContext>
-    auto format(const Wt::DomElement* domElement, FormatContext& ctx) const {
+    auto format(const Wt::DomElement& domElement, FormatContext& ctx) const {
         using namespace Wt;
 
         auto out = ctx.out();
 
         if(presentation_ == 's') {
-            auto& properties = domElement->properties_;
+            auto& properties = domElement.properties_;
 
-            if(onlystyle_ && (domElement->hasCssRules_ || domElement->isDefaultInline()))
-                out = fmt::format_to(out, FMT_COMPILE(" style=\"{}{:s}\""), domElement->isDefaultInline() ? "display: block;" : "", fmt::join(properties, ""));
+            if(onlystyle_ && (domElement.hasCssRules_ || domElement.isDefaultInline()))
+                out = fmt::format_to(out, FMT_COMPILE(" style=\"{}{:s}\""), domElement.isDefaultInline() ? "display: block;" : "", fmt::join(properties, ""));
 
             if (auto i = properties.find(Property::Disabled); (i != properties.end()) && (i->second=="true"))
                 out = fmt::format_to(out," disabled=\"disabled\"");
 
-            if (auto j = domElement->attributes_.find("title"); j != domElement->attributes_.end())
+            if (auto j = domElement.attributes_.find("title"); j != domElement.attributes_.end())
             {
                 out = fmt::format_to(out, FMT_COMPILE(" title=\"{:h}\""),  j->second);
             }
 
         } else if(presentation_ == 'a') {
-            auto& attributes = domElement->attributes_;
-            if (!domElement->id_.empty()) {
-                out = fmt::format_to(out, FMT_COMPILE(" id=\"{}\""), domElement->id_);
+            auto& attributes = domElement.attributes_;
+            if (!domElement.id_.empty()) {
+                out = fmt::format_to(out, FMT_COMPILE(" id=\"{}\""), domElement.id_);
             }
 
             for (auto i = attributes.begin(); i != attributes.end(); ++i)
@@ -442,12 +442,12 @@ public:
         // }
         // else if(presentation_ == 'p') {
             using Escaper = MixedRules<RuleSet::HtmlAttribute>;
-            auto& properties = domElement->properties_;
+            auto& properties = domElement.properties_;
             for (auto &[prop, value] : properties) {
                 switch (prop) {
                 case Property::InnerHTML:
                     //innerHTML += value;
-                    Escaper::escape(value, domElement->innerHTML_);
+                    Escaper::escape(value, domElement.innerHTML_);
                     break;
                 case Property::Disabled:
                     if (value == "true")
@@ -470,7 +470,7 @@ public:
                     break;
                 case Property::SelectedIndex:
                     if (value == "-1") {
-                        DomElement *self = const_cast<DomElement *>(domElement);
+                        DomElement *self = const_cast<DomElement *>(&domElement);
                         self->callMethod("selectedIndex=-1");
                     }
                     break;
@@ -486,17 +486,17 @@ public:
                     break;
                 case Property::Indeterminate:
                     if (value == "true") {
-                        DomElement *self = const_cast<DomElement *>(domElement);
+                        DomElement *self = const_cast<DomElement *>(&domElement);
                         self->callMethod("indeterminate=" + value);
                     }
                     break;
                 case Property::Value:
-                    if (domElement->type_ != DomElementType::TEXTAREA) {
+                    if (domElement.type_ != DomElementType::TEXTAREA) {
                         out = fmt::format_to(out, FMT_COMPILE(" value=\"{}\""), value);
                     } else {
                         std::string v = value;
-                        domElement->innerHTML_ = WWebWidget::escapeText(v, false);
-                        //fmt::format_to(std::back_inserter(domElement->innerHTML_), "{}\n", value);
+                        domElement.innerHTML_ = WWebWidget::escapeText(v, false);
+                        //fmt::format_to(std::back_inserter(domElement.innerHTML_), "{}\n", value);
                     }
                     break;
                 case Property::Src:
@@ -523,7 +523,7 @@ public:
             }
             // style
             auto app = WApplication::instance();
-            if(!domElement->needButtonWrap_)
+            if(!domElement.needButtonWrap_)
                 out = fmt::format_to(out, FMT_COMPILE(" style=\"{}{:s}\""), app->environment().agent() != UserAgent::Konqueror
                                                                        && !app->environment().agentIsWebKit()
                                                                        && !app->environment().agentIsIE() ? "margin: 0px -3px -2px -3px;" : "", fmt::join(properties, ""));
@@ -535,10 +535,10 @@ public:
         }
         // else if(presentation_ == 'd') {
         //     auto app = WApplication::instance();
-        //     if(!domElement->needButtonWrap_)
+        //     if(!domElement.needButtonWrap_)
         //         out = fmt::format_to(out, " style=\"{}{:s}\"", app->environment().agent() != UserAgent::Konqueror
         //                                                                && !app->environment().agentIsWebKit()
-        //                                                                && !app->environment().agentIsIE() ? "margin: 0px -3px -2px -3px;" : "", ctx.out(), domElement->properties_);
+        //                                                                && !app->environment().agentIsIE() ? "margin: 0px -3px -2px -3px;" : "", ctx.out(), domElement.properties_);
         //     else if(app->environment().agent() != UserAgent::Konqueror
         //              && !app->environment().agentIsWebKit()
         //              && !app->environment().agentIsIE())
@@ -718,38 +718,38 @@ unsigned char toChar(int b) {
 }
 #endif
 
-std::string DomElement::urlEncodeS(const std::string& url,
-                                   const std::string &allowed)
-{
-    WStringStream result;
+// std::string DomElement::urlEncodeS(const std::string& url,
+//                                    const std::string &allowed)
+// {
+//     WStringStream result;
 
-#ifdef WT_TARGET_JAVA
-    std::vector<unsigned char> bytes;
-    try {
-        bytes = url.getBytes("UTF-8");
-    } catch (UnsupportedEncodingException& e) {
-        // eat silly UnsupportedEncodingException
-    }
-#else
-    const std::string& bytes = url;
-#endif
+// #ifdef WT_TARGET_JAVA
+//     std::vector<unsigned char> bytes;
+//     try {
+//         bytes = url.getBytes("UTF-8");
+//     } catch (UnsupportedEncodingException& e) {
+//         // eat silly UnsupportedEncodingException
+//     }
+// #else
+//     const std::string& bytes = url;
+// #endif
 
-    for (unsigned i = 0; i < bytes.size(); ++i) {
-        unsigned char c = toChar(bytes[i]);
-        if (c <= 31 || c >= 127 || unsafeChars_.find(c) != std::string::npos) {
-            if (allowed.find(c) != std::string::npos) {
-                result << (char)c;
-            } else {
-                result << '%';
-                result << hexLookup(c >> 4);
-                result << hexLookup(c);
-            }
-        } else
-            result << (char)c;
-    }
+//     for (unsigned i = 0; i < bytes.size(); ++i) {
+//         unsigned char c = toChar(bytes[i]);
+//         if (c <= 31 || c >= 127 || unsafeChars_.find(c) != std::string::npos) {
+//             if (allowed.find(c) != std::string::npos) {
+//                 result << (char)c;
+//             } else {
+//                 result << '%';
+//                 result << hexLookup(c >> 4);
+//                 result << hexLookup(c);
+//             }
+//         } else
+//             result << (char)c;
+//     }
 
-    return result.str();
-}
+//     return result.str();
+// }
 
 std::string DomElement::urlEncodeS(std::string_view url, const uint8_t charset[])
 {
@@ -1111,11 +1111,11 @@ void DomElement::setName(const std::string& name)
   setAttribute("name", name);
 }
 
-void DomElement::insertChildAt(DomElement &child, int pos)
+void DomElement::insertChildAt(DomElement &&child, int pos)
 {
   ++numManipulations_;
 
-  childrenToAdd_.push_back(ChildInsertion(pos, std::move(child)));
+  childrenToAdd_.emplace_back(ChildInsertion(pos, std::move(child)));
 }
 
 void DomElement::insertBefore(DomElement *sibling)
@@ -1206,8 +1206,7 @@ void DomElement::fastJsStringLiteral(EscapeOStream& outRaw,
   outRaw << '\'';
 }
 
-void DomElement::jsStringLiteral(EscapeOStream& out, const std::string& s,
-				 char delimiter)
+void DomElement::jsStringLiteral(EscapeOStream& out, const std::string& s, char delimiter)
 {
   out << delimiter;
 
@@ -1499,12 +1498,12 @@ void DomElement::asHTML(fmt::memory_buffer &out, fmt::memory_buffer &javaScript,
             PropertyMap& map = const_cast<PropertyMap&>(properties_);
             //auto node = map.extract(Property::Class);
             auto node = properties_.find(Property::Class);
-            fmt::format_to(std::back_inserter(out), FMT_STRING("<button type=\"submit\" name=\"signal={:h}\" class=\"Wt-wrap {}\"{:s} ><{}{:a}{}{}</button>"),
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("<button type=\"submit\" name=\"signal={:h}\" class=\"Wt-wrap {}\"{:s} ><{}{:a}{}{}</button>"),
                            JsString(clickEvent->second.signalName),
                            node != properties_.end() ? node->second : "",
-                           this,
+                           *this,
                            elementNames_[static_cast<unsigned int>(renderedType)],
-                           this,
+                           *this,
                            openingTagOnly || !isSelfClosingTag(renderedType) ? ">" : "",
                            tuple);
 
@@ -1566,9 +1565,9 @@ void DomElement::asHTML(fmt::memory_buffer &out, fmt::memory_buffer &javaScript,
     //                    openingTagOnly || !isSelfClosingTag(renderedType) ? ">" : "",
     //                    ccc);
     } else /*if (renderedType == DomElementType::OTHER)*/  // Custom DomElementType
-        fmt::format_to(std::back_inserter(out), FMT_STRING("<{}{:a}{}{}"),
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("<{}{:a}{}{}"),
                        renderedType == DomElementType::OTHER ? elementTagName_ : elementNames_[static_cast<unsigned int>(renderedType)],
-                       this,
+                       *this,
                        openingTagOnly || !isSelfClosingTag(renderedType) ? ">" : "",
                        tuple);
     // else
@@ -3291,19 +3290,15 @@ void DomElement::setJavaScriptAttributes(EscapeOStream& out) const
          i != attributes_.end(); ++i) {
         declare(out);
 
-        if (i->first == "style") {
-            out << var_ << ".style.cssText = ";
-            jsStringLiteral(out, i->second, '\'');
-            out << ';' << '\n';
-        } else {
-            out << var_ << ".setAttribute('" << i->first << "',";
-            jsStringLiteral(out, i->second, '\'');
-            out << ");\n";
-
-            //in one line & fmt optimized for the backend
-            //auto cc = fmt::format(FMT_COMPILE("let opt={};Object.keys(opt).forEach(key=>{{if(key==='style'){input}.style.cssText=opt[key];else {input}.setAttribute(key, opt[key]);}});"), attributes_, fmt::arg("input", var_));
-
-        }
+        // if (i->first == "style") {
+        //     out << var_ << ".style.cssText = ";
+        //     jsStringLiteral(out, i->second, '\'');
+        //     out << ';' << '\n';
+        // } else {
+        //     out << var_ << ".setAttribute('" << i->first << "',";
+        //     jsStringLiteral(out, i->second, '\'');
+        //     out << ");\n";
+        // }
     }
 
     for (AttributeSet::const_iterator i = removedAttributes_.begin();

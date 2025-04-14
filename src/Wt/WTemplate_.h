@@ -32,20 +32,20 @@ public:
         auto w = const_cast<Wt::WWidget*>(widget);
         // note: we can't use ternary operator '?:' in a constexpr
         std::stringstream result;
-        if (w) {
-            //w->setParentWidget(parent);
+        // if (w) {
+        //     //w->setParentWidget(parent);
 
-            if (previouslyRendered_
-                && previouslyRendered_->find(w) != previouslyRendered_->end()) {
-                //result << "<span id=\"" << w->id() << "\"> </span>";
-                format_to(ctx.out(), "<span id=\"{}\"> </span>", w->id());
-            } else {
-                w->htmlText(result);
-            }
+        //     if (parent->previouslyRendered_
+        //         && parent->previouslyRendered_->find(w) != parent->previouslyRendered_->end()) {
+        //         //result << "<span id=\"" << w->id() << "\"> </span>";
+        //         format_to(ctx.out(), "<span id=\"{}\"> </span>", w->id());
+        //     } else {
+        //         w->htmlText(result);
+        //     }
 
-            if (newlyRendered_)
-                newlyRendered_->push_back(w);
-        }
+        //     if (parent->newlyRendered_)
+        //         parent->newlyRendered_->push_back(w);
+        // }
     }
 
     std::size_t parseargs(std::string_view text)

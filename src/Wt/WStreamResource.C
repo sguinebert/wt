@@ -183,7 +183,8 @@ awaitable<void> WStreamResource::handleRequestPiecewise(const http::request &req
 
     input.read(buf.get(), pieceSize);
     std::streamsize actualPieceSize = input.gcount();
-    response.out().write(buf.get(), actualPieceSize);
+
+    response.write(buf.get(), actualPieceSize);
 
     co_await response.chunk_flush();
 

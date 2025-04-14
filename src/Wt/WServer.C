@@ -15,7 +15,6 @@
 #endif // !_WIN32
 
 #include <boost/algorithm/string.hpp>
-#include <boost/url/src.hpp>
 
 #include "Wt/WIOService.h"
 #include "Wt/WResource.h"

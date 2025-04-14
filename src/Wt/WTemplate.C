@@ -481,9 +481,9 @@ void WTemplate::setTemplateText(const WString& text, TextFormat textFormat)
 
     if (textFormat == TextFormat::XHTML && text_.literal()) {
         if (!removeScript(text_))
-            text_ = escapeText(text_, true);
+            text_ = escapeText(text_.toUTF8(), true);
     } else if (textFormat == TextFormat::Plain)
-        text_ = escapeText(text_, true);
+        text_ = escapeText(text_.toUTF8(), false);
 
     changed_ = true;
     repaint(RepaintFlag::SizeAffected);

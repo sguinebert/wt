@@ -44,7 +44,7 @@ namespace Wt {
  *
  * \sa WFileResource.
  */
-template<bool immutable = true>
+//template<bool immutable = true>
 class WT_API WMemoryResource : public WResource
 {
     typedef std::shared_ptr< const std::vector<unsigned char> > DataPtr;
@@ -99,7 +99,7 @@ public:
 
   /*! \brief Sets new data for the resource to serve.
    */
-  awaitable<void> setData(const std::vector<unsigned char> &data) requires (!immutable)
+  awaitable<void> setData(const std::vector<unsigned char> &data) /*requires (!immutable)*/
   {
       {
 #ifdef WT_THREADED
@@ -117,7 +117,7 @@ public:
    * Sets the data from using the first \p count bytes from the
    * C-style \p data array.
    */
-  awaitable<void> setData(const unsigned char *data, int count) requires (!immutable)
+  awaitable<void> setData(const unsigned char *data, int count) /*requires (!immutable)*/
   {
       {
 #ifdef WT_THREADED

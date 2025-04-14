@@ -330,7 +330,7 @@ namespace Wt {
     extern void replaceAll(std::string &v, char from, char to);
 
     extern WT_API std::string urlEncode(const std::string &url,
-                                        const std::string &allowed);
+                                        const uint8_t charset[]);
 
     extern std::string dataUrlDecode(const std::string &url,
                                      std::vector<unsigned char> &data);
@@ -453,50 +453,50 @@ namespace Wt {
     extern double WT_API stod(const std::string_view v);
     extern float WT_API stof(const std::string_view v);
 
-    extern unsigned int WT_API stoui(const std::string_view v, unsigned int ifnot)
+    static inline unsigned int WT_API stoui(const std::string_view v, unsigned int ifnot)
     {
         unsigned int cv;
         auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
         if(answer.ec != std::errc()) { return ifnot; }
         return cv;
     }
-    extern long WT_API stol(const std::string_view v, long ifnot) {
+    static inline long WT_API stol(const std::string_view v, long ifnot) {
         long cv;
         auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
         if(answer.ec != std::errc()) { return ifnot; }
         return cv;
     }
-    extern unsigned long WT_API stoul(const std::string_view v, unsigned long ifnot){
+    static inline unsigned long WT_API stoul(const std::string_view v, unsigned long ifnot){
         unsigned long cv;
         auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
         if(answer.ec != std::errc()) { return ifnot; }
         return cv;
     }
-    extern long long WT_API stoll(const std::string_view v, long long ifnot) {
+    static inline long long WT_API stoll(const std::string_view v, long long ifnot) {
         long long cv;
         auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
         if(answer.ec != std::errc()) { return ifnot; }
         return cv;
     }
-    extern unsigned long long WT_API stoull(const std::string_view v, unsigned long long ifnot){
+    static inline unsigned long long WT_API stoull(const std::string_view v, unsigned long long ifnot){
         unsigned long long cv;
         auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
         if(answer.ec != std::errc()) { return ifnot; }
         return cv;
     }
-    extern int WT_API stoi(const std::string_view v, int ifnot){
+    static inline int WT_API stoi(const std::string_view v, int ifnot){
         int cv;
         auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
         if(answer.ec != std::errc()) { return ifnot; }
         return cv;
     }
-    extern double WT_API stod(const std::string_view v, double ifnot){
+    static inline double WT_API stod(const std::string_view v, double ifnot){
         double cv;
         auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
         if(answer.ec != std::errc()) { return ifnot; }
         return cv;
     }
-    extern float WT_API stof(const std::string_view v, float ifnot){
+    static inline float WT_API stof(const std::string_view v, float ifnot){
         float cv;
         auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
         if(answer.ec != std::errc()) { return ifnot; }

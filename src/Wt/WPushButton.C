@@ -215,7 +215,7 @@ void WPushButton::updateDom(DomElement& element, bool all)
 
         image.setProperty(Property::Src, icon_.resolveUrl(WApplication::instance()));
         image.setId("im" + formName());
-        element.insertChildAt(image, 0);
+        element.insertChildAt(std::move(image), 0);
         flags_.set(BIT_ICON_RENDERED);
         flags_.reset(BIT_ICON_CHANGED);
     }

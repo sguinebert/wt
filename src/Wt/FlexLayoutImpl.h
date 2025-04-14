@@ -50,20 +50,20 @@ private:
 
   int minimumHeightForRow(int row) const;
   int minimumWidthForColumn(int column) const;
-  constexpr DomElement createElement(Orientation orientation, unsigned index, int totalStretch, WApplication *app);
-  constexpr Orientation getOrientation() const;
-  constexpr LayoutDirection getDirection() const;
-  constexpr std::string_view styleDisplay() const;
-  constexpr std::string_view styleFlex() const;
+  DomElement createElement(Orientation orientation, unsigned index, int totalStretch, WApplication *app);
+  Orientation getOrientation() const;
+  LayoutDirection getDirection() const;
+  std::string_view styleDisplay() const;
+  std::string_view styleFlex() const;
 
-  constexpr std::string marginProperty(Orientation orientation, unsigned index) const;
+  std::string marginProperty(Orientation orientation, unsigned index) const;
 
   int count(Orientation orientation) const;
   int indexOf(WLayoutItem *item, Orientation orientation);
   int getTotalStretch(Orientation orientation);
 
   Impl::Grid::Item& item(Orientation orientation, int i) const;
-  constexpr Impl::Grid::Section& section(Orientation orientation, int i);
+  Impl::Grid::Section& section(Orientation orientation, int i);
 
 };
 

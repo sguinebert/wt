@@ -85,7 +85,7 @@ struct formatter<Baseurl> {
     constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const Baseurl& f, FormatContext& ctx) {
+    auto format(const Baseurl& f, FormatContext& ctx) const {
         auto out = ctx.out();
         if(f.url.empty())
             return out;
@@ -100,7 +100,7 @@ struct formatter<HtmlAttribute> {
     constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const HtmlAttribute& a, FormatContext& ctx) {
+    auto format(const HtmlAttribute& a, FormatContext& ctx) const {
         auto out = ctx.out();
         if(a.value.empty())
             return out;
@@ -118,7 +118,7 @@ struct formatter<Wt::MetaHeader> {
     constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const Wt::MetaHeader& m, FormatContext& ctx) {
+    auto format(const Wt::MetaHeader& m, FormatContext& ctx) const {
         auto out = ctx.out();
 
         std::string_view attribute;
@@ -482,18 +482,18 @@ static constexpr char JQuery_js[] = {
   static inline constexpr std::string_view Hybrid_template1(Hybrid_template.second.begin(), Hybrid_template.second.end());
 
 
-  //constexpr size_t N = compute_output_size(Wt_js_sv);
-  constexpr auto Wt_js_t = TO_LITERAL(Wt_js_sv);
+  constexpr size_t N = compute_output_size(Wt_js_sv);
+  constexpr auto Wt_js_t = build_output_array<N>(Wt_js_sv);
   static inline constexpr std::string_view Wt_js_template(Wt_js_t.begin(), Wt_js_t.end());
 
   constexpr size_t cc = compute_output_size(Boot_js_sv);
   constexpr auto Boot_js_t = build_output_array<cc>(Boot_js_sv);
   static inline constexpr std::string_view Boot_js_template(Boot_js_t.begin(), Boot_js_t.end());
-
+  // static inline constexpr auto boot_compile_string = FMT_COMPILE(Boot_js_template);
 
   constexpr std::array<std::string_view, 2> delimiters = {"{BOOT_JS}", "{HTML}"};
 
-  constexpr auto bootparts = split_template<count_splits(Boot_template, delimiters)>(Boot_template, delimiters);
+  //constexpr auto bootparts = split_template<count_splits(Boot_template, delimiters)>(Boot_template, delimiters);
 
   constexpr auto hibridparts0 = split_template<count_splits(Hybrid_template0, delimiters)>(Hybrid_template0, delimiters);
   constexpr auto hibridparts1 = split_template<count_splits(Hybrid_template1, delimiters)>(Hybrid_template1, delimiters);
@@ -2595,8 +2595,8 @@ void WebRenderer::serveMainAjax(fmt::memory_buffer &out)
     if (widgetset) {
         const std::string* historyE = app->environment().getParameter("Wt-history");
         if (historyE) {
-            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.history.initialize('{}', '{}', '');\n"),
-                           WT_CLASS, (*historyE)[0] + "-field", (*historyE)[0] + "-iframe");
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.history.initialize('{}-field', '{}-iframe', '');\n"),
+                           WT_CLASS, *historyE, *historyE);
         }
     }
 
@@ -2841,7 +2841,66 @@ void WebRenderer::serveMainscript(http::context *context)
   }
   // script.setVar("PARAMS", params);
 
-  fmt::format_to(std::back_inserter(out), FMT_COMPILE(skeletons::Wt_js_template),
+  static auto const quitmessage = WString::tr("Wt.QuittedMessage").jsStringLiteral();
+
+  fmt::format_to(std::back_inserter(out), FMT_COMPILE("if(!window.{})"
+                                                      "window.{}="
+                                                      "new WtConstructor({{"
+                                                      "ACK_UPDATE_ID:{},"        // Number
+                                                      "APP_CLASS:\"{}\","        // String
+                                                      "CLOSE_CONNECTION:{},"     // Boolean
+                                                      "DEPLOY_PATH:'{:s}',"      // String
+                                                      "IDLE_TIMEOUT:{},"         // Number
+                                                      "INDICATOR_TIMEOUT:{},"    // Number
+                                                      "INNER_HTML:\"{}\","       // String
+                                                      "KEEP_ALIVE:{},"           // Boolean
+                                                      "MAX_FORMDATA_SIZE:{},"    // Number
+                                                      "MAX_PENDING_EVENTS:{},"   // Number
+                                                      "QUITTED_STR:\"{}\","      // String
+                                                      "SERVER_PUSH_TIMEOUT:{},"  // Number
+                                                      "SESSION_URL:'{:s}',"      // String
+                                                      "WS_ID:\"{}\","            // String
+                                                      "WS_PATH:'{:s}',"          // String
+                                                      "WT_CLASS:\"{}\","         // String
+                                                      "CATCH_ERROR:{},"          // Boolean
+                                                      "SHOW_ERROR:{},"           // Boolean
+                                                      "STRICTLY_SERIALIZED_EVENTS:{}," // Boolean
+                                                      "UGLY_INTERNAL_PATHS:{},"  // Boolean
+                                                      "WEB_SOCKETS:{},"          // Boolean
+                                                      "delayClick:{},"           // Number
+                                                      "delayedClicks:[],"        // Empty array
+                                                      "google:null,"            // Null
+                                                      "hideLoadingIndicator:'{:s}'," // Function as string
+                                                      "showLoadingIndicator:'{:s}'"  // Function as string
+                                                      "}});"),
+                 app->javaScriptClass(), app->javaScriptClass(),
+                 expectedAckId_,
+                 app->javaScriptClass(),
+                 false,
+                 JsString(deployPath),
+                 conf.idleTimeout(),
+                 conf.indicatorTimeout(),
+                 innerHtml,
+                 conf.keepAlive(),
+                 conf.maxFormDataSize(),
+                 conf.maxPendingEvents(),
+                 quitmessage,
+                 conf.serverPushTimeout() * 1000,
+                 JsString(sessionUrl()),
+                 "",
+                 JsString(deployPath),
+                 WT_CLASS,
+                 conf.errorReporting() != Configuration::NoErrors,
+                 conf.errorReporting() == Configuration::ErrorMessage,
+                 conf.serializedEvents(),
+                 session_.useUglyInternalPaths(),
+                 conf.webSockets(),
+                 conf.delayClick(),
+                 JsString(app->hideLoadingIndicator_.javaScript()),
+                 JsString(app->showLoadingIndicator_.javaScript()));
+
+
+  fmt::format_to(std::back_inserter(out), /*FMT_COMPILE*/(skeletons::Wt_js_template),
                  fmt::arg("WT_CLASS", WT_CLASS),
                  fmt::arg("APP_CLASS", app->javaScriptClass()),
                  fmt::arg("INNER_HTML", innerHtml),
@@ -2853,7 +2912,7 @@ void WebRenderer::serveMainscript(http::context *context)
                  fmt::arg("DEPLOY_PATH", WWebWidget::jsStringLiteral(deployPath)),
                  fmt::arg("WS_PATH", WWebWidget::jsStringLiteral(deployPath)),
                  fmt::arg("WS_ID", WWebWidget::jsStringLiteral(std::string(""))),
-                 fmt::arg("KEEP_ALIVE", std::to_string(conf.keepAlive())),
+                 fmt::arg("KEEP_ALIVE", (conf.keepAlive())),
                  fmt::arg("IDLE_TIMEOUT", conf.idleTimeout() != -1 ? std::to_string(conf.idleTimeout()) : std::string("null")),
                  fmt::arg("INDICATOR_TIMEOUT", conf.indicatorTimeout()),
                  fmt::arg("SERVER_PUSH_TIMEOUT", conf.serverPushTimeout() * 1000),

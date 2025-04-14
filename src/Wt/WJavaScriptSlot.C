@@ -68,17 +68,26 @@ void JSlot::create()
 {
   std::stringstream ss;
 
-  if (widget_) {
-    WApplication *app = WApplication::instance();
-    if (app) {
-      ss << WApplication::instance()->javaScriptClass() << "."
-	 << jsFunctionName() << "(o,e";
-      for (int i = 1; i <= nbArgs_; ++i) {
-	ss << ",a" << i;
-      }
-      ss << ");";
+    if (widget_) {
+        WApplication *app = WApplication::instance();
+        if (app) {
+            // if(nbArgs_) {
+            //     imp_ = new WStatelessSlotImpl(widget_, nullptr, fmt::format(FMT_COMPILE("{}.{}(o,e,a{});"),
+            //                                                                 app->javaScriptClass(),
+            //                                                                 jsFunctionName(),
+            //                                                                 fmt::join(std::vector<int>(nbArgs_), ",a")));
+            // }
+            // else {
+            //     imp_ = new WStatelessSlotImpl(widget_, nullptr, fmt::format(FMT_COMPILE("{}.{}(o,e);"), app->javaScriptClass(), jsFunctionName()));
+            // }
+            ss << WApplication::instance()->javaScriptClass() << "."
+               << jsFunctionName() << "(o,e";
+            for (int i = 1; i <= nbArgs_; ++i) {
+                ss << ",a" << i;
+            }
+            ss << ");";
+        }
     }
-  }
 
   imp_ = new WStatelessSlotImpl(widget_, nullptr, ss.str());
 }
@@ -90,9 +99,9 @@ JSlot::~JSlot()
 
 std::string JSlot::jsFunctionName() const
 {
-  return "sf" + std::to_string(fid_);
+  return fmt::format(FMT_COMPILE("sf{}"), fid_);
 }
-
+#warning "enhance via fmt"
 void JSlot::setJavaScript(const std::string& js, int nbArgs)
 {
   if (nbArgs < 0 || nbArgs > 6) {
@@ -103,6 +112,8 @@ void JSlot::setJavaScript(const std::string& js, int nbArgs)
   if (widget_ && app)
     WApplication::instance()->declareJavaScriptFunction(jsFunctionName(), js);
   else {
+      // std::array<int, 7> arr = {1, 2, 3, 4, 5, 6, 7};
+      // fmt::print("{{var f={}f(o,e,a{});}}\n", js, fmt::join(arr, ",a"));
     std::stringstream ss;
     ss << "{var f=" << js << ";f(o,e";
     for (int i = 1; i <= nbArgs; ++i) {

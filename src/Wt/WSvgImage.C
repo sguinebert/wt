@@ -920,13 +920,7 @@ awaitable<void> WSvgImage::handleRequest(http::request &request, http::response 
 {
   response.setContentType("image/svg+xml");
 
-#ifndef WT_TARGET_JAVA
-  std::ostream& o = response.out();
-#else
-  std::ostream o(response.out());
-#endif // WT_TARGET_JAVA
-
-  streamResourceData(o);
+  streamResourceData(response.buffer());
   co_return;
 }
 
@@ -947,6 +941,19 @@ void WSvgImage::streamResourceData(std::ostream& stream)
       " height=\"" << height().cssText() << "\">"
 	   << "<" SVG "g><" SVG "g>" << shapes_.str()
 	   << "</" SVG "g></" SVG "g></" SVG "svg>";
+}
+
+void WSvgImage::streamResourceData(fmt::memory_buffer &out)
+{
+    finishPath();
+
+    if (paintUpdate_)
+        fmt::format_to(fmt::appender(out), FMT_COMPILE("<g xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g><g>{}</g></g></g>"), shapes_.str());
+    else
+        fmt::format_to(fmt::appender(out), FMT_COMPILE("<g xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" version=\"1.1\" baseProfile=\"full\" width=\"{:s}\" height=\"{:s}\"><g><g>{}</g></g></g>"),
+                       width(),
+                       height(),
+                       shapes_.str());
 }
 
 }

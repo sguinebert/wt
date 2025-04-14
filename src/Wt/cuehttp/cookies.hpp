@@ -275,7 +275,7 @@ class cookies final : safe_noncopyable {
 namespace fmt {
 // Specialize fmt::formatter for cookie
 template <>
-struct fmt::formatter<Wt::http::cookie> {
+struct formatter<Wt::http::cookie> {
     // Parse format specification (optional, here we use default)
     constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) {
         return ctx.begin(); // No custom format spec used

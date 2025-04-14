@@ -179,10 +179,15 @@ void WTimeEdit::defineJavaScript()
 {
   WApplication *app = WApplication::instance();
   LOAD_JAVASCRIPT(app, "js/WTimeEdit.js", "WTimeEdit", wtjs1);
-  std::string jsObj = "new " WT_CLASS ".WTimeEdit("
-                      + app->javaScriptClass() + "," + jsRef() + ","
-		      + jsStringLiteral(popup_->id()) + ");";
-  setJavaScriptMember(" WTimeEdit", jsObj);
+  // std::string jsObj = "new " WT_CLASS ".WTimeEdit("
+  //                     + app->javaScriptClass() + "," + jsRef() + ","
+        //       + jsStringLiteral(popup_->id()) + ");";
+
+
+  setJavaScriptMember(" WTimeEdit", fmt::format(FMT_COMPILE("new " WT_CLASS ".WTimeEdit({},{},{})"),
+                                                app->javaScriptClass(),
+                                                jsRef(),
+                                                jsStringLiteral(popup_->id())));
 #ifdef WT_CNOR
   EventSignalBase& b = mouseMoved();
   EventSignalBase& c = keyWentDown();

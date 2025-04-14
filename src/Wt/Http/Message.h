@@ -8,6 +8,7 @@
 #define WT_HTTP_MESSAGE_H_
 
 #include <Wt/WStringStream.h>
+#include <Wt/fmt/format.h>
 
 namespace Wt {
   namespace Http {
@@ -84,7 +85,7 @@ public:
    */
   Message(std::vector<Header> headers);
 
-  /*! \brief Copy constructor.
+  /*! \brief Copy constructor. TODO suppress copy
    */
   Message(const Message& message);
 
@@ -97,7 +98,8 @@ public:
         // Assuming 'message' is a member variable of type std::string
         status_ = other.status_;
         headers_ = other.headers_;
-        body_ << other.body_.str();
+        //body_ << other.body_.str();
+        body_.append(other.body_);
     }
     return *this;
   }
@@ -155,12 +157,17 @@ public:
    *
    * Returns the body text.
    */
-  std::string body() const;
+  std::string_view body() const;
+
+  auto out() {
+    return fmt::appender(body_);
+  }
 
 private:
   int status_;
   std::vector<Header> headers_;
-  WStringStream body_;
+  //WStringStream body_;
+  fmt::memory_buffer body_;
 
   friend class Client;
 };

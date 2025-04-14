@@ -29,7 +29,7 @@
 #include <cpuid.h>   // GCC / Clang
 #endif
 
-bool hasAVX512() {
+static inline bool hasAVX512() {
     int info[4] = {0};
 
 #ifdef _MSC_VER
@@ -40,7 +40,7 @@ bool hasAVX512() {
 
     return (info[1] & (1 << 16)) != 0;  // Check AVX-512F (bit 16 of EBX)
 }
-bool hasAVX2() {
+static inline bool hasAVX2() {
     int info[4] = {0};
 
 #ifdef _MSC_VER
@@ -214,11 +214,11 @@ template <RuleSet... RS>
 struct MixedRules {
 
     template <RuleSet T>
-    static constexpr auto contains() {
+    static consteval auto contains() {
         return ((RS == T) || ...);
     }
 
-    static constexpr auto Htmlfirst() {
+    static consteval auto Htmlfirst() {
         if(!contains<RuleSet::JsStringLiteralSQuote>() && !contains<RuleSet::JsStringLiteralDQuote>())
             return true;
         constexpr RuleSet rules[] = { RS... };
@@ -226,18 +226,18 @@ struct MixedRules {
     }
 
     // Compute combined bitset by OR-ing individual bitsets
-    static constexpr std::bitset<256> computeMixedBitset() {
+    static consteval std::bitset<256> computeMixedBitset() {
         std::bitset<256> bs;
         ([&] { bs |= getBitset<RS>(); }(), ...);
         return bs;
     }
 
     // Compute combined escape mappings (later rules override earlier ones)
-    static constexpr auto computeMixedEntries() {
-        std::array<std::pair<char, std::string>, 256> mapping{};
+    static consteval auto computeMixedEntries() {
+        std::array<std::pair<char, std::string_view>, 256> mapping{};
         ([&] {
             for (const auto& e : getEntries<RS>()) {
-                mapping[static_cast<unsigned char>(e.c)] = {e.c, std::string(e.s)};
+                mapping[static_cast<unsigned char>(e.c)] = {e.c, std::string_view(e.s)};
             }
         }(), ...);
         return mapping;
@@ -426,7 +426,7 @@ struct MixedRules {
             }
         }
 #else
-#warning "AVX2 not available or compiler flag not present -> with CMAKE : add set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+#warning "AVX2 not available or compiler flag not present -> with CMAKE : add set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -march=native\")"
 #endif
 
         // Scalar fallback for remaining bytes

@@ -17,6 +17,7 @@
 #include "Wt/WTemplate.h"
 #include "Wt/WText.h"
 #include "Wt/WTextArea.h"
+#include "web/DomElement.h"
 
 #include "WebUtils.h"
 
@@ -27,24 +28,15 @@
 namespace {
   std::string instantiateStdMatcher(const Wt::WSuggestionPopup::Options&
 				    options) {
-    Wt::WStringStream s;
-    
-    s << "new " WT_CLASS ".WSuggestionPopupStdMatcher("
-      << Wt::WWebWidget::jsStringLiteral(options.highlightBeginTag) << ", "
-      << Wt::WWebWidget::jsStringLiteral(options.highlightEndTag) << ", ";
-
-    if (options.listSeparator)
-      s << Wt::WWebWidget::jsStringLiteral
-	(std::string() + options.listSeparator);
-    else
-      s << "null";
-
-    s << ", " << Wt::WWebWidget::jsStringLiteral(options.whitespace) << ", "
-      << Wt::WWebWidget::jsStringLiteral(options.wordSeparators) << ", "
-      << Wt::WWebWidget::jsStringLiteral(options.wordStartRegexp) << ", "
-      << Wt::WWebWidget::jsStringLiteral(options.appendReplacedText) << ")";
-
-    return s.str();
+      return fmt::format(FMT_COMPILE("new {}.WSuggestionPopupStdMatcher('{:s}','{:s}',{},'{:s}','{:s}','{:s}','{:s}')"),
+                         WT_CLASS,
+                         JsString(options.highlightBeginTag),
+                         JsString(options.highlightEndTag),
+                         options.listSeparator ? Wt::WWebWidget::jsStringLiteral(std::string() + options.listSeparator) : "null",
+                         JsString(options.whitespace),
+                         JsString(options.wordSeparators),
+                         JsString(options.wordStartRegexp),
+                         JsString(options.appendReplacedText));
   }
 }
 
@@ -124,17 +116,14 @@ void WSuggestionPopup::defineJavaScript()
   LOAD_JAVASCRIPT(app, THIS_JS, "WSuggestionPopup", wtjs1);
   LOAD_JAVASCRIPT(app, THIS_JS, "WSuggestionPopupStdMatcher", wtjs2);
 
-  std::string ddUnfiltered = isDropDownIconUnfiltered_ ? "true" : "false";
-  std::string autoSelect = isAutoSelectEnabled_ ? "true" : "false";
-  setJavaScriptMember(" WSuggestionPopup",
-		      "new " WT_CLASS ".WSuggestionPopup("
-		      + app->javaScriptClass() + "," + jsRef() + ","
-		      + replacerJS_ + "," + matcherJS_ + ","
-		      + std::to_string(std::max(0, filterLength_)) + ","
-		      + std::to_string(partialResults()) + ","
-                      + std::to_string(defaultValue_) + ","
-                      + ddUnfiltered + ","
-		      + autoSelect + ");");
+  // std::string ddUnfiltered = isDropDownIconUnfiltered_ ? "true" : "false";
+  // std::string autoSelect = isAutoSelectEnabled_ ? "true" : "false";
+  setJavaScriptMember(" WSuggestionPopup",fmt::format(FMT_COMPILE("new " WT_CLASS ".WSuggestionPopup({}, {}, {}, {}, {}, {}, {}, {}, {});"),
+                                                       app->javaScriptClass(), jsRef(),
+                                                       replacerJS_, matcherJS_,
+                                                       std::max(0, filterLength_), partialResults(),
+                                                       defaultValue_, isDropDownIconUnfiltered_,
+                                                       isAutoSelectEnabled_));
 }
 
 void WSuggestionPopup::render(WFlags<RenderFlag> flags)
@@ -148,8 +137,7 @@ void WSuggestionPopup::render(WFlags<RenderFlag> flags)
   WPopupWidget::render(flags);
 }
 
-void WSuggestionPopup::connectObjJS(EventSignalBase& s, 
-				     const std::string& methodName)
+void WSuggestionPopup::connectObjJS(EventSignalBase& s, const std::string& methodName)
 {
   std::string jsFunction = 
     "function(obj, event) {"

@@ -64,7 +64,7 @@ void WColorPicker::updateDom(DomElement& element, bool all)
   }
 
   if (colorChanged_ || all) {
-    element.setProperty(Property::Value, Color::colorToHex(color_), true);
+    element.setProperty(Property::Value, Color::colorToHex(color_));
     colorChanged_ = false;
   }
 

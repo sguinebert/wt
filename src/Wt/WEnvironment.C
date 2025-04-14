@@ -677,128 +677,159 @@ void WEnvironment::init(http::context *context)
 
 void WEnvironment::setUserAgent(std::string_view userAgent)
 {
-  userAgent_ = userAgent;
+    userAgent_ = userAgent;
 
-  Configuration& conf = session_->controller()->configuration();
+    Configuration& conf = session_->controller()->configuration();
 
-  agent_ = UserAgent::Unknown;
+    auto extractVersion = [](std::string_view ua, std::size_t pos) {
+        pos += marker.length();
+        size_t end = ua.find_first_of(". ", pos);
+        if (end == std::string_view::npos) end = ua.length();
+        return Wt::Utils::stoi(ua.substr(pos, end - pos), -1);
+    };
 
-  /* detecting MSIE is as messy as their browser */
-  if (userAgent_.find("Trident/4.0") != std::string::npos) {
-    agent_ = UserAgent::IE8; return;
-  } if (userAgent_.find("Trident/5.0") != std::string::npos) {
-    agent_ = UserAgent::IE9; return;
-  } else if (userAgent_.find("Trident/6.0") != std::string::npos) {
-    agent_ = UserAgent::IE10; return;
-  } else if (userAgent_.find("Trident/") != std::string::npos) {
-    agent_ = UserAgent::IE11; return;
-  } else if (userAgent_.find("MSIE 2.") != std::string::npos
-      || userAgent_.find("MSIE 3.") != std::string::npos
-      || userAgent_.find("MSIE 4.") != std::string::npos
-      || userAgent_.find("MSIE 5.") != std::string::npos
-      || userAgent_.find("IEMobile") != std::string::npos)
-    agent_ = UserAgent::IEMobile;
-  else if (userAgent_.find("MSIE 6.") != std::string::npos)
-    agent_ = UserAgent::IE6;
-  else if (userAgent_.find("MSIE 7.") != std::string::npos)
-    agent_ = UserAgent::IE7;
-  else if (userAgent_.find("MSIE 8.") != std::string::npos)
-    agent_ = UserAgent::IE8;
-  else if (userAgent_.find("MSIE 9.") != std::string::npos)
-    agent_ = UserAgent::IE9;
-  else if (userAgent_.find("MSIE") != std::string::npos)
-    agent_ = UserAgent::IE10;
+    agent_ = UserAgent::Unknown;
 
-  if (userAgent_.find("Opera") != std::string::npos) {
-    agent_ = UserAgent::Opera;
-
-    std::size_t t = userAgent_.find("Version/");
-    if (t != std::string::npos) {
-      std::string vs = userAgent_.substr(t + 8);
-      t = vs.find(' ');
-      if (t != std::string::npos)
-	vs = vs.substr(0, t);
-      try {
-	double v = Utils::stod(vs);
-	if (v >= 10)
-	  agent_ = UserAgent::Opera10;
-      } catch (std::exception& e) { }
+    // Check for Chrome
+    if (auto pos = userAgent_.find("Chrome"); pos != std::string_view::npos) {
+        agentVersion_ = extractVersion(userAgent_, pos + 7);
+        if (agentVersion_ != -1) {
+            if (agentVersion_ >= 58) {
+                es6_ = true;
+                agent_ = UserAgent::Chrome5;
+            } else {
+                if (agentVersion_ == 0)
+                    agent_ = UserAgent::Chrome;
+                else if (agentVersion_ == 1)
+                    agent_ = UserAgent::Chrome1;
+                else if (agentVersion_ == 2)
+                    agent_ = UserAgent::Chrome2;
+                else if (agentVersion_ == 3)
+                    agent_ = UserAgent::Chrome3;
+                else if (agentVersion_ == 4)
+                    agent_ = UserAgent::Chrome4;
+                else
+                    agent_ = UserAgent::Chrome5;
+            }
+        }
     }
-  }
 
-  if (userAgent_.find("Chrome") != std::string::npos) {
-    if (userAgent_.find("Android") != std::string::npos)
-      agent_ = UserAgent::MobileWebKitAndroid;
-    else if (userAgent_.find("Chrome/0.") != std::string::npos)
-      agent_ = UserAgent::Chrome0;
-    else if (userAgent_.find("Chrome/1.") != std::string::npos)
-      agent_ = UserAgent::Chrome1;
-    else if (userAgent_.find("Chrome/2.") != std::string::npos)
-      agent_ = UserAgent::Chrome2;
-    else if (userAgent_.find("Chrome/3.") != std::string::npos)
-      agent_ = UserAgent::Chrome3;
-    else if (userAgent_.find("Chrome/4.") != std::string::npos)
-      agent_ = UserAgent::Chrome4;
-    else
-      agent_ = UserAgent::Chrome5;
-  } else if (userAgent_.find("Safari") != std::string::npos) {
-    if (userAgent_.find("iPhone") != std::string::npos
-	|| userAgent_.find("iPad") != std::string::npos) {
-      agent_ = UserAgent::MobileWebKitiPhone;
-    } else if (userAgent_.find("Android") != std::string::npos) {
-      agent_ = UserAgent::MobileWebKitAndroid;
-    } else if (userAgent_.find("Mobile") != std::string::npos) {
-      agent_ = UserAgent::MobileWebKit;
-    } else if (userAgent_.find("Version") == std::string::npos) {
-      if (userAgent_.find("Arora") != std::string::npos)
-	agent_ = UserAgent::Arora;
-      else
-	agent_ = UserAgent::Safari;
-    } else if (userAgent_.find("Version/3") != std::string::npos)
-      agent_ = UserAgent::Safari3;
-    else
-      agent_ = UserAgent::Safari4;
-  } else if (userAgent_.find("WebKit") != std::string::npos) {
-    if (userAgent_.find("iPhone") != std::string::npos)
-      agent_ = UserAgent::MobileWebKitiPhone;
-    else
-      agent_ = UserAgent::WebKit;
-  } else if (userAgent_.find("Konqueror") != std::string::npos)
-    agent_ = UserAgent::Konqueror;
-  else if (userAgent_.find("Gecko") != std::string::npos)
-    agent_ = UserAgent::Gecko;
+    /* detecting MSIE is as messy as their browser */
+    if (userAgent_.find("Trident/4.0") != std::string::npos) {
+        agent_ = UserAgent::IE8; return;
+    } if (userAgent_.find("Trident/5.0") != std::string::npos) {
+        agent_ = UserAgent::IE9; return;
+    } else if (userAgent_.find("Trident/6.0") != std::string::npos) {
+        agent_ = UserAgent::IE10; return;
+    } else if (userAgent_.find("Trident/") != std::string::npos) {
+        agent_ = UserAgent::IE11; return;
+    } else if (userAgent_.find("MSIE 2.") != std::string::npos
+               || userAgent_.find("MSIE 3.") != std::string::npos
+               || userAgent_.find("MSIE 4.") != std::string::npos
+               || userAgent_.find("MSIE 5.") != std::string::npos
+               || userAgent_.find("IEMobile") != std::string::npos)
+        agent_ = UserAgent::IEMobile;
+    else if (userAgent_.find("MSIE 6.") != std::string::npos)
+        agent_ = UserAgent::IE6;
+    else if (userAgent_.find("MSIE 7.") != std::string::npos)
+        agent_ = UserAgent::IE7;
+    else if (userAgent_.find("MSIE 8.") != std::string::npos)
+        agent_ = UserAgent::IE8;
+    else if (userAgent_.find("MSIE 9.") != std::string::npos)
+        agent_ = UserAgent::IE9;
+    else if (userAgent_.find("MSIE") != std::string::npos)
+        agent_ = UserAgent::IE10;
 
-  if (userAgent_.find("Firefox") != std::string::npos) {
-    if (userAgent_.find("Firefox/0.") != std::string::npos)
-      agent_ = UserAgent::Firefox;
-    else if (userAgent_.find("Firefox/1.") != std::string::npos)
-      agent_ = UserAgent::Firefox;
-    else if (userAgent_.find("Firefox/2.") != std::string::npos)
-      agent_ = UserAgent::Firefox;
-    else {
-      if (userAgent_.find("Firefox/3.0") != std::string::npos)
-	agent_ = UserAgent::Firefox3_0;
-      else if (userAgent_.find("Firefox/3.1") != std::string::npos)
-	agent_ = UserAgent::Firefox3_1;
-      else if (userAgent_.find("Firefox/3.1b") != std::string::npos)
-	agent_ = UserAgent::Firefox3_1b;
-      else if (userAgent_.find("Firefox/3.5") != std::string::npos)
-	agent_ = UserAgent::Firefox3_5;
-      else if (userAgent_.find("Firefox/3.6") != std::string::npos)
-	agent_ = UserAgent::Firefox3_6;
-      else if (userAgent_.find("Firefox/4.") != std::string::npos)
-	agent_ = UserAgent::Firefox4_0;
-      else
-	agent_ = UserAgent::Firefox5_0;
+    if (userAgent_.find("Opera") != std::string::npos) {
+        agent_ = UserAgent::Opera;
+
+        std::size_t t = userAgent_.find("Version/");
+        if (t != std::string::npos) {
+            std::string vs = userAgent_.substr(t + 8);
+            t = vs.find(' ');
+            if (t != std::string::npos)
+                vs = vs.substr(0, t);
+            try {
+                double v = Utils::stod(vs);
+                if (v >= 10)
+                    agent_ = UserAgent::Opera10;
+            } catch (std::exception& e) { }
+        }
     }
-  }
 
-  if (userAgent_.find("Edge/") != std::string::npos) {
-    agent_ = UserAgent::Edge;
-  }
+    if (userAgent_.find("Chrome") != std::string::npos) {
+        if (userAgent_.find("Android") != std::string::npos)
+            agent_ = UserAgent::MobileWebKitAndroid;
+        else if (userAgent_.find("Chrome/0.") != std::string::npos)
+            agent_ = UserAgent::Chrome;
+        else if (userAgent_.find("Chrome/1.") != std::string::npos)
+            agent_ = UserAgent::Chrome1;
+        else if (userAgent_.find("Chrome/2.") != std::string::npos)
+            agent_ = UserAgent::Chrome2;
+        else if (userAgent_.find("Chrome/3.") != std::string::npos)
+            agent_ = UserAgent::Chrome3;
+        else if (userAgent_.find("Chrome/4.") != std::string::npos)
+            agent_ = UserAgent::Chrome4;
+        else
+            agent_ = UserAgent::Chrome5;
+    } else if (userAgent_.find("Safari") != std::string::npos) {
+        if (userAgent_.find("iPhone") != std::string::npos
+            || userAgent_.find("iPad") != std::string::npos) {
+            agent_ = UserAgent::MobileWebKitiPhone;
+        } else if (userAgent_.find("Android") != std::string::npos) {
+            agent_ = UserAgent::MobileWebKitAndroid;
+        } else if (userAgent_.find("Mobile") != std::string::npos) {
+            agent_ = UserAgent::MobileWebKit;
+        } else if (userAgent_.find("Version") == std::string::npos) {
+            if (userAgent_.find("Arora") != std::string::npos)
+                agent_ = UserAgent::Arora;
+            else
+                agent_ = UserAgent::Safari;
+        } else if (userAgent_.find("Version/3") != std::string::npos)
+            agent_ = UserAgent::Safari3;
+        else
+            agent_ = UserAgent::Safari4;
+    } else if (userAgent_.find("WebKit") != std::string::npos) {
+        if (userAgent_.find("iPhone") != std::string::npos)
+            agent_ = UserAgent::MobileWebKitiPhone;
+        else
+            agent_ = UserAgent::WebKit;
+    } else if (userAgent_.find("Konqueror") != std::string::npos)
+        agent_ = UserAgent::Konqueror;
+    else if (userAgent_.find("Gecko") != std::string::npos)
+        agent_ = UserAgent::Gecko;
 
-  if (conf.agentIsBot(userAgent_))
-    agent_ = UserAgent::BotAgent;
+    if (userAgent_.find("Firefox") != std::string::npos) {
+        if (userAgent_.find("Firefox/0.") != std::string::npos)
+            agent_ = UserAgent::Firefox;
+        else if (userAgent_.find("Firefox/1.") != std::string::npos)
+            agent_ = UserAgent::Firefox;
+        else if (userAgent_.find("Firefox/2.") != std::string::npos)
+            agent_ = UserAgent::Firefox;
+        else {
+            if (userAgent_.find("Firefox/3.0") != std::string::npos)
+                agent_ = UserAgent::Firefox3_0;
+            else if (userAgent_.find("Firefox/3.1") != std::string::npos)
+                agent_ = UserAgent::Firefox3_1;
+            else if (userAgent_.find("Firefox/3.1b") != std::string::npos)
+                agent_ = UserAgent::Firefox3_1b;
+            else if (userAgent_.find("Firefox/3.5") != std::string::npos)
+                agent_ = UserAgent::Firefox3_5;
+            else if (userAgent_.find("Firefox/3.6") != std::string::npos)
+                agent_ = UserAgent::Firefox3_6;
+            else if (userAgent_.find("Firefox/4.") != std::string::npos)
+                agent_ = UserAgent::Firefox4_0;
+            else
+                agent_ = UserAgent::Firefox5_0;
+        }
+    }
+
+    if (userAgent_.find("Edge/") != std::string::npos) {
+        agent_ = UserAgent::Edge;
+    }
+
+    if (conf.agentIsBot(userAgent_))
+        agent_ = UserAgent::BotAgent;
 }
 
 bool WEnvironment::agentSupportsAjax() const

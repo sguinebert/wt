@@ -281,9 +281,11 @@ void WFileDropWidget::setup()
   LOAD_JAVASCRIPT(app, "js/WFileDropWidget.js", "WFileDropWidget", wtjs1);
 
   std::string maxFileSize = std::to_string(WApplication::instance()->maximumRequestSize());
-  setJavaScriptMember(" WFileDropWidget", "new " WT_CLASS ".WFileDropWidget("
-                      + app->javaScriptClass() + "," + jsRef() + ","
-                      + maxFileSize + ");");
+
+  setJavaScriptMember(" WFileDropWidget", fmt::format(FMT_COMPILE("new " WT_CLASS ".WFileDropWidget({}, {}, {});"),
+                                                      app->javaScriptClass(),
+                                                      jsRef(),
+                                                      maxFileSize));
 
 
   dropSignal_.connect<&WFileDropWidget::handleDrop>(this);

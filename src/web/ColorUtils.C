@@ -156,7 +156,7 @@ WColor parseCssColor(const std::string &name)
 #ifndef WT_TARGET_JAVA
 std::string colorToHex(const Wt::WColor &color)
 {
-    return fmt::format("#{:02X}{:02X}{:02X}", color.red(), color.green(), color.blue());
+    return fmt::format(FMT_COMPILE("#{:02X}{:02X}{:02X}"), color.red(), color.green(), color.blue());
   // std::ostringstream ss;
   // ss.imbue(std::locale::classic());
   // ss << '#'

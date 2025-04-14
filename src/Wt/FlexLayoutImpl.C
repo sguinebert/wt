@@ -76,13 +76,13 @@ void FlexLayoutImpl::updateDom(DomElement& parent)
   for (unsigned i = 0; i < orderedInserts.size(); ++i) {
     int pos = orderedInserts[i];
     DomElement el = createElement(orientation, pos, totalStretch, app);
-    div.insertChildAt(el, pos);
+    div.insertChildAt(std::move(el), pos);
   }
 
   addedItems_.clear();
 
   for (unsigned i = 0; i < removedItems_.size(); ++i)
-    div.callJavaScript<true>(WT_CLASS ".remove('{}');", removedItems_[i]);
+    div.callJavaScript<true>(/*WT_CLASS*/ ".remove('{}');", removedItems_[i]);
 
   removedItems_.clear();
 
@@ -190,7 +190,7 @@ int FlexLayoutImpl::count(Orientation orientation) const
   return grid_.rows_.size() * grid_.columns_.size();
 }
 
-constexpr Impl::Grid::Section& FlexLayoutImpl::section(Orientation orientation, int i)
+Impl::Grid::Section& FlexLayoutImpl::section(Orientation orientation, int i)
 {
   if (orientation == Orientation::Horizontal)
     return grid_.columns_[i];
@@ -407,12 +407,12 @@ DomElement FlexLayoutImpl::createDomElement(DomElement *parent,
     return result;
 }
 
-constexpr std::string_view FlexLayoutImpl::styleDisplay() const
+std::string_view FlexLayoutImpl::styleDisplay() const
 {
   return container()->isInline() ? "inline-flex" : "flex";
 }
 
-constexpr std::string_view FlexLayoutImpl::styleFlex() const
+std::string_view FlexLayoutImpl::styleFlex() const
 {
   switch (getDirection()) {
   case LayoutDirection::LeftToRight:
@@ -454,7 +454,7 @@ int FlexLayoutImpl::indexOf(WLayoutItem *it, Orientation orientation)
   return -1;
 }
 
-constexpr LayoutDirection FlexLayoutImpl::getDirection() const
+LayoutDirection FlexLayoutImpl::getDirection() const
 {
   WBoxLayout *boxLayout = dynamic_cast<WBoxLayout *>(layout());
   if (boxLayout)
@@ -463,7 +463,7 @@ constexpr LayoutDirection FlexLayoutImpl::getDirection() const
     return LayoutDirection::LeftToRight;
 }
 
-constexpr Orientation FlexLayoutImpl::getOrientation() const
+Orientation FlexLayoutImpl::getOrientation() const
 {
   switch (getDirection()) {
   case LayoutDirection::LeftToRight:
@@ -476,7 +476,7 @@ constexpr Orientation FlexLayoutImpl::getOrientation() const
   return Orientation::Horizontal;
 }
 
-constexpr DomElement FlexLayoutImpl::createElement(Orientation orientation,
+DomElement FlexLayoutImpl::createElement(Orientation orientation,
                                                    unsigned index,
                                                    int totalStretch,
                                                    WApplication *app)
@@ -671,16 +671,22 @@ constexpr DomElement FlexLayoutImpl::createElement(Orientation orientation,
                                       std::move(el),
                                       initlist, attribs, id);
                 }
-                else {
-                    DomElement el(DomElement::Mode::Create, DomElementType::DIV, impl->createDomElement(nullptr, true, true, app));
-                    el.setProperty(Property::StyleFlex, "0 0 auto");
-                    auto id = "w" + el.id();
-                    return DomElement(DomElement::Mode::Create, DomElementType::DIV,
-                                      std::move(el),
-                                      initlist, attribs, id);
-                }
+                // else {
+                //     DomElement el(DomElement::Mode::Create, DomElementType::DIV, impl->createDomElement(nullptr, true, true, app));
+                //     el.setProperty(Property::StyleFlex, "0 0 auto");
+                //     auto id = "w" + el.id();
+                //     return DomElement(DomElement::Mode::Create, DomElementType::DIV,
+                //                       std::move(el),
+                //                       initlist, attribs, id);
+                // }
             }
         }
+        DomElement el(DomElement::Mode::Create, DomElementType::DIV, impl->createDomElement(nullptr, true, true, app));
+        el.setProperty(Property::StyleFlex, "0 0 auto");
+        auto id = "w" + el.id();
+        return DomElement(DomElement::Mode::Create, DomElementType::DIV,
+                          std::move(el),
+                          initlist, {{"flg", "0"}}, id);
     //}
 
 
@@ -828,7 +834,7 @@ constexpr DomElement FlexLayoutImpl::createElement(Orientation orientation,
     //return el;
 }
 
-constexpr std::string FlexLayoutImpl::marginProperty(Orientation orientation, unsigned index) const
+std::string FlexLayoutImpl::marginProperty(Orientation orientation, unsigned index) const
 {
     Impl::Grid::Item& it = item(orientation, index);
 

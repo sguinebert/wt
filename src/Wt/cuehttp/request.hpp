@@ -32,7 +32,6 @@
 #include "deps/ada.h"
 
 #include <Wt/Http/Request.h>
-#include <boost/url.hpp>
 #include <boost/spirit/home/x3.hpp>
 //#include <Wt/Configuration.h>
 
@@ -260,7 +259,9 @@ static void parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
         {
             if (next == std::string::npos)
                 next = s.length();
-            parameters.emplace(decode_uri(s.substr(pos, next - pos)), std::string{});
+            //parameters.emplace(decode_uri(s.substr(pos, next - pos)), std::string{});
+            parameters[decode_uri(s.substr(pos, next - pos))].emplace_back(std::string{});
+
             pos = next + 1;
         }
         else
@@ -276,8 +277,9 @@ static void parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
             //inplaceUrlDecode(value);
 
             //parameters[key].push_back(value);
-            parameters.emplace(decode_uri(s.substr(pos, next - pos)),
-                               decode_uri(s.substr(next + 1, amp - (next + 1))));
+            parameters[decode_uri(s.substr(pos, next - pos))].emplace_back(decode_uri(s.substr(next + 1, amp - (next + 1))));
+            // parameters.emplace(decode_uri(s.substr(pos, next - pos)),
+            //                    decode_uri(s.substr(next + 1, amp - (next + 1))));
             pos = amp + 1;
         }
     }
@@ -517,7 +519,7 @@ void inplaceUrlDecode(std::string &text)
 
   std::string_view url() const noexcept { return url_; }
 
-  boost::url_view& urlv() noexcept { return urlv_; }
+  //boost::url_view& urlv() noexcept { return urlv_; }
 
   std::string_view origin() const noexcept {
     if (origin_.empty()) {
@@ -904,7 +906,7 @@ void inplaceUrlDecode(std::string &text)
   std::string_view value_;
   unsigned minor_version_{1};
   std::string_view url_;
-  boost::url_view urlv_;
+  //boost::url_view urlv_;
   ada::url_aggregator urlsv_;
   std::string decoded_path_;
   mutable std::string origin_;

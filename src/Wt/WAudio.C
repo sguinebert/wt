@@ -12,7 +12,7 @@ using namespace Wt;
 WAudio::WAudio()
 { }
 
-DomElement *WAudio::createMediaDomElement()
+DomElement WAudio::createMediaDomElement()
 {
   return DomElement::createNew(DomElementType::AUDIO);
 }

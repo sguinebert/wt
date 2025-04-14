@@ -37,19 +37,18 @@ namespace {
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-    asio::io_service io_service;
+    asio::io_context io_service;
 
     // Get a list of endpoints corresponding to the server name.
     tcp::resolver resolver(io_service);
 
-    tcp::resolver::query query(host, port);
-    tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-    tcp::resolver::iterator end;
+    auto endpoints = resolver.resolve(host, port);
+    auto endpoint_iterator = endpoints.begin();
 
     // Try each endpoint until we successfully establish a connection.
     tcp::socket socket(io_service);
     Wt::AsioWrapper::error_code error = asio::error::host_not_found;
-    while (error && endpoint_iterator != end) {
+    while (error && endpoint_iterator != endpoints.end()) {
       socket.close();
       socket.connect(*endpoint_iterator++, error);
     }

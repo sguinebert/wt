@@ -618,6 +618,7 @@ protected:
   friend class WViewWidget;
   friend class WWidget;
   friend class WTemplate;
+  friend class WTemplate_;
   friend class WWidgetItem;
   friend class FlexLayoutImpl;
 };

@@ -153,8 +153,7 @@ void WStackedWidget::defineJavaScript()
 
     LOAD_JAVASCRIPT(app, "js/WStackedWidget.js", "WStackedWidget", wtjs1);
 
-    setJavaScriptMember(" WStackedWidget", "new " WT_CLASS ".WStackedWidget("
-			+ app->javaScriptClass() + "," + jsRef() + ");");
+    setJavaScriptMember(" WStackedWidget",fmt::format(FMT_COMPILE("new " WT_CLASS ".WStackedWidget({},{});"), app->javaScriptClass(),  jsRef()));
 
     setJavaScriptMember(WT_RESIZE_JS,
 			jsRef() + ".wtObj.wtResize");

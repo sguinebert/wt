@@ -705,20 +705,22 @@ void WInteractWidget::setDraggable(const std::string& mimeType,
 
   if (!dragSlot_) {
     dragSlot_.reset(new JSlot());
-    dragSlot_->setJavaScript("function(o,e){" + app->javaScriptClass()
-			     + "._p_.dragStart(o,e);" + "}");
+    // dragSlot_->setJavaScript("function(o,e){" + app->javaScriptClass()
+             //     + "._p_.dragStart(o,e);" + "}");
+    dragSlot_->setJavaScript(fmt::format(FMT_COMPILE("function(o,e){{{}._p_.dragStart(o,e);}}"), app->javaScriptClass()));
   }
 
   if (!dragTouchSlot_) {
     dragTouchSlot_.reset(new JSlot());
-    dragTouchSlot_->setJavaScript("function(o,e){" + app->javaScriptClass()
-				+ "._p_.touchStart(o,e);" + "}");
+    // dragTouchSlot_->setJavaScript("function(o,e){" + app->javaScriptClass()
+                // + "._p_.touchStart(o,e);" + "}");
+    dragTouchSlot_->setJavaScript(fmt::format(FMT_COMPILE("function(o,e){{{}._p_.touchStart(o,e);}}"), app->javaScriptClass()));
+
   }
 
   if (!dragTouchEndSlot_) {
     dragTouchEndSlot_.reset(new JSlot());
-    dragTouchEndSlot_->setJavaScript("function(){" + app->javaScriptClass()
-				+ "._p_.touchEnded();" + "}");
+    dragTouchEndSlot_->setJavaScript(fmt::format(FMT_COMPILE("function(){{{}._p_.touchEnded();}}"), app->javaScriptClass()));
   }
 
   voidEventSignal(DRAGSTART_SIGNAL, true)->preventDefaultAction(true);

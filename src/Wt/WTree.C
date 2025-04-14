@@ -123,7 +123,8 @@ awaitable<void> WTree::setTreeRoot(std::unique_ptr<WTreeNode> node)
   if (treeRoot_)
     co_await sentinelRoot_->removeChildNode(treeRoot_);
   treeRoot_ = node.get();
-  co_await sentinelRoot_->addChildNode(std::move(node));
+  /*co_await*/ sentinelRoot_->addChildNode(std::move(node));
+  co_return;
 }
 
 awaitable<void> WTree::setSelectionMode(SelectionMode mode)

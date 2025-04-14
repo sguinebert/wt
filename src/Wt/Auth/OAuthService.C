@@ -460,11 +460,11 @@ void OAuthProcess::requestToken(std::string_view authorizationCode)
     std::string url = service_.tokenEndpoint();
     Http::Method m = service_.tokenRequestMethod();
 
-    WStringStream ss;
-    ss << "grant_type=authorization_code"
-       << "&redirect_uri="
-       << Wt::Utils::urlEncode(service_.generateRedirectEndpoint())
-       << "&code=" << authorizationCode;
+    // WStringStream ss;
+    // ss << "grant_type=authorization_code"
+    //    << "&redirect_uri="
+    //    << Wt::Utils::urlEncode(service_.generateRedirectEndpoint())
+    //    << "&code=" << authorizationCode;
 
     httpClient_.reset(new Http::Client());
     httpClient_->setTimeout(std::chrono::seconds(15));
@@ -474,30 +474,40 @@ void OAuthProcess::requestToken(std::string_view authorizationCode)
     std::string clientSecret = Wt::Utils::urlEncode(service_.clientSecret());
 
     if (m == Http::Method::Get) {
+        fmt::format_to(std::back_inserter(url), FMT_COMPILE("{}grant_type=authorization_code&redirect_uri={}&code={}"),
+                       (url.find('?') != std::string::npos ? '&' : '?'),
+                       Wt::Utils::urlEncode(service_.generateRedirectEndpoint()),
+                       Wt::Utils::urlEncode(authorizationCode));
+
         std::vector<Http::Message::Header> headers;
         if (service_.clientSecretMethod() == HttpAuthorizationBasic) {
             headers.push_back(Http::Message::Header("Authorization",
                                                     "Basic " + Wt::Utils::base64Encode(clientId + ":" + clientSecret, false)));
         } else if (service_.clientSecretMethod() == PlainUrlParameter) {
-            ss << "&client_id=" << clientId << "&client_secret=" << clientSecret;
+            //ss << "&client_id=" << clientId << "&client_secret=" << clientSecret;
+            fmt::format_to(std::back_inserter(url), FMT_COMPILE("&client_id={}&client_secret={}"), clientId, clientSecret);
         }
 
-        bool hasQuery = url.find('?') != std::string::npos;
-        url += (hasQuery ? '&' : '?') + ss.str();
+        // bool hasQuery = url.find('?') != std::string::npos;
+        // url += (hasQuery ? '&' : '?') + ss.str();
 
         httpClient_->get(url, headers, detached);
     } else {
         Http::Message post;
         post.setHeader("Content-Type", "application/x-www-form-urlencoded");
+        fmt::format_to(post.out(), FMT_COMPILE("grant_type=authorization_code&redirect_uri={}&code={}"),
+                       Wt::Utils::urlEncode(service_.generateRedirectEndpoint()),
+                       Wt::Utils::urlEncode(authorizationCode));
         if (service_.clientSecretMethod() == HttpAuthorizationBasic) {
             post.setHeader("Authorization",
                            "Basic " + Wt::Utils::base64Encode(clientId + ":" + clientSecret,
                                                               false));
         } else if (service_.clientSecretMethod() == RequestBodyParameter) {
-            ss << "&client_id=" << clientId
-               << "&client_secret=" << clientSecret;
+            // ss << "&client_id=" << clientId
+            //    << "&client_secret=" << clientSecret;
+            fmt::format_to(post.out(), FMT_COMPILE("&client_id={}&client_secret={}"), clientId, clientSecret);
         }
-        post.addBodyText(ss.str());
+        //post.addBodyText(ss.str());
         httpClient_->post(url, post, detached);
     }
 }

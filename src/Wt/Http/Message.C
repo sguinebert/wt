@@ -51,7 +51,8 @@ Message::Message(const Message& other)
   : status_(other.status_),
     headers_(other.headers_)
 {
-  body_ << other.body_.str();
+  //body_ << other.body_.str();
+    body_.append(other.body_);
 }
 
 void Message::setStatus(int status)
@@ -87,12 +88,12 @@ const std::string *Message::getHeader(const std::string& name) const
 
 void Message::addBodyText(const std::string& text)
 {
-  body_ << text;
+  body_.append(text);
 }
 
-std::string Message::body() const
+std::string_view Message::body() const
 {
-  return body_.str();
+  return std::string_view(body_.begin(), body_.end());
 }
 
   }

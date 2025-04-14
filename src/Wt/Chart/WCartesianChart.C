@@ -5316,7 +5316,9 @@ void WCartesianChart::loadTooltip(double x, double y)
             if (c) {
                 WString tooltip = barTooltips_[btt].series->model()->toolTip(barTooltips_[btt].yRow, barTooltips_[btt].yColumn);
                 if (!tooltip.empty()) {
-                    doJavaScript(cObjJsRef() + ".updateTooltip(" + escapeText(tooltip, false).jsStringLiteral() + ");");
+                    auto js = fmt::format(FMT_COMPILE("{}.updateTooltip('{:s}');"), cObjJsRef(), JsString(escapeText(tooltip.toUTF8(), false)));
+                    doJavaScript(js);
+                    //doJavaScript(cObjJsRef() + ".updateTooltip(" + escapeText(tooltip.toUTF8(), false).jsStringLiteral() + ");");
                 }
                 return;
             }

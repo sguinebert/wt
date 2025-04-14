@@ -112,7 +112,7 @@ awaitable<void> OidcUserInfoEndpoint::handleRequest(http::request &request, http
 #ifdef WT_TARGET_JAVA
   try {
 #endif
-    response.out() << Json::serialize(generateUserInfo(user, scopeSet)) << std::endl;
+    response << Json::serialize(generateUserInfo(user, scopeSet));
     LOG_INFO("Response sent for {}({})", user.id(), db_->email(user));
 #ifdef WT_TARGET_JAVA
   } catch (std::io_exception ioe) {

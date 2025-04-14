@@ -28,10 +28,6 @@
 #include "detail/common.hpp"
 #include "detail/noncopyable.hpp"
 
-#include <boost/url.hpp>
-
-namespace urls = boost::urls;
-
 namespace Wt {
 namespace http {
 

@@ -63,7 +63,7 @@ class WCssTextRule;
  * use when the widget is not inserted into a layout manager.
  */
 
-#include "magic_enum/magic_enum.hpp"
+//#include "magic_enum/magic_enum.hpp"
 
 enum WidgetType {
   first,
@@ -71,7 +71,6 @@ enum WidgetType {
   third,
   _COUNT //insert your types before this one
 };
-enum class Color  { RED = -10, BLUE = 0, GREEN = 10 };
 
 template<WidgetType T>
 class Base;
@@ -89,14 +88,14 @@ template <typename Enum, std::size_t... Is>
 struct MakeEnumTupleHelper<Enum, std::index_sequence<Is...>> {
     using type = typename MakeEnumTuple<Enum, Is...>::type;
 };
-#ifdef MAGIC_ENUM_SUPPORTED
-auto cc = static_cast<std::size_t>(WidgetType::third)+1;
-constexpr std::size_t cccvvbb = magic_enum::enum_count<WidgetType>();
-#endif
+// #ifdef MAGIC_ENUM_SUPPORTED
+// auto cc = static_cast<std::size_t>(WidgetType::third)+1;
+// constexpr std::size_t cccvvbb = magic_enum::enum_count<WidgetType>();
+// #endif
 
 template<typename Enum>
 using EnumTuple = typename MakeEnumTupleHelper<Enum, std::make_index_sequence<Enum::_COUNT>>::type;
-
+/* experimental for pure widget function calls (vs virtual calls to childs)*/
 template<WidgetType T>
 class Base
 {
@@ -1453,7 +1452,7 @@ private:
   static const int BIT_GLOBAL_WIDGET = 7;
   std::bitset<8> flags_;
 
-#warning "For a type of 88 bytes, storing it directly in a std::vector<T> is usually the cleanest and most efficient approach"
+//#warning "For a type of 88 bytes, storing it directly in a std::vector<T> is usually the cleanest and most efficient approach"
   EventSignalList eventSignals_;
   std::vector<EventSignalBase*> jsignals_;
 
@@ -1481,6 +1480,7 @@ private:
   friend class WPaintedWidget;
   friend class WPopupWidget;
   friend class WTemplate;
+  friend class WTemplate_;
   friend class WViewWidget;
   friend class WWebWidget;
   friend class WWidgetItem;

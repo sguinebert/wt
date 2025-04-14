@@ -324,7 +324,7 @@ DomElement WTable::createRowDomElement(int row, bool withIds, WApplication *app)
             if (col < headerColumnCount_ || row < headerRowCount_)
                 tr.addChild(td);
             else
-                tr.insertChildAt(td, col - spanCounter);
+                tr.insertChildAt(std::move(td), col - spanCounter);
 
             for (int i = 0; i < cell->rowSpan(); ++i)
                 for (int j = 0; j < cell->columnSpan(); ++j)

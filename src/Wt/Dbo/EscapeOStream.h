@@ -10,7 +10,7 @@
 #include "StringStream.h"
 
 #define WT_DBO_ESCAPEOSTREAM
-#include "Wt/EscapeOStream.h"
+#include "web/EscapeOStream.h"
 #undef WT_DBO_ESCAPEOSTREAM
 
 #endif // WT_DBO_ESCAPE_OSTREAM_H_

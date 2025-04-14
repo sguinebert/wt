@@ -9,10 +9,10 @@
 #include <charconv>
 
 #include "Wt/WStringStream.h"
+#include <Wt/fmt/format.h>
 
 #ifndef WT_DBO_STRINGSTREAM
 #include <Wt/AsioWrapper/asio.hpp>
-
 #include "WebUtils.h"
 #endif // WT_DBO_STRINGSTREAM
 

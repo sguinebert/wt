@@ -1857,7 +1857,7 @@ void WWebWidget::updateDom(DomElement& element, bool all)
                                    isScrollVisible());
             flags_.set(BIT_SCROLL_VISIBILITY_LOADED);
         } else if (flags_.test(BIT_SCROLL_VISIBILITY_LOADED)) {
-            element.callJavaScript(WT_CLASS ".scrollVisibility.remove({'{}'});", id());
+            element.callJavaScript(FMT_COMPILE("{}.scrollVisibility.remove({{'{}'}});"), WT_CLASS, id());
             flags_.reset(BIT_SCROLL_VISIBILITY_LOADED);
         }
         flags_.reset(BIT_SCROLL_VISIBILITY_CHANGED);

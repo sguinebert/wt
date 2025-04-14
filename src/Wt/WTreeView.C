@@ -1085,14 +1085,14 @@ void WTreeView::defineJavaScript()
     return;
 
   LOAD_JAVASCRIPT(app, "js/WTreeView.js", "WTreeView", wtjs1);
-
-  setJavaScriptMember(" WTreeView", "new " WT_CLASS ".WTreeView("
-		      + app->javaScriptClass() + "," + jsRef() + ","
-		      + contentsContainer_->jsRef() + ","
-		      + headerContainer_->jsRef() + ","
-		      + std::to_string(rowHeaderCount())+ ",'"
-		      + WApplication::instance()->theme()->activeClass()
-		      + "');");
+  ;
+  setJavaScriptMember(" WTreeView", fmt::format(FMT_COMPILE("new " WT_CLASS ".WTreeView({},{},{},{},'{}')"),
+                                                app->javaScriptClass(),
+                                                jsRef(),
+                                                contentsContainer_->jsRef(),
+                                                headerContainer_->jsRef(),
+                                                rowHeaderCount(),
+                                                WApplication::instance()->theme()->activeClass()));
 
   setJavaScriptMember(WT_RESIZE_JS,
                       "function(self,w,h,s) {"

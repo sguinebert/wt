@@ -145,16 +145,10 @@ protected:
     response.addHeader("Expires", "Sun, 14 Jun 2020 00:00:00 GMT");
     response.addHeader("Cache-Control", "max-age=315360000");
 
-#ifndef WT_TARGET_JAVA
-    std::ostream& o = response.out();
-#else
-    std::ostream o(response.out());
-#endif // WT_TARGET_JAVA
-
-    o << "<!DOCTYPE html>"
-         "<html>\n"
-         "<head><script type=\"text/javascript\">\n"
-         "function load() { ";
+    // o << "<!DOCTYPE html>"
+    //      "<html>\n"
+    //      "<head><script type=\"text/javascript\">\n"
+    //      "function load() { ";
 
     if (triggerUpdate || request.postDataExceeded()) {
       UserAgent agent = WApplication::instance()->environment().agent();
@@ -165,17 +159,27 @@ protected:
         // postMessage does not work for IE6,7
         if (agent == UserAgent::IE6 ||
             agent == UserAgent::IE7){
-          o << "window.parent."
-            << WApplication::instance()->javaScriptClass()
-            << "._p_.update(null, '"
-            << fileUpload_->uploaded().encodeCmd() << "', null, true);";
+            fmt::format_to(response.out(), FMT_COMPILE("<!DOCTYPE html><html>\n<head><script type=\"text/javascript\">\nfunction load(){{"
+                                                       ""   "window.parent.{}._p_.update(null, '{}', null, true);"
+                                                       "}}\n</script></head><body onload=\"load();\"></body></html>"),
+                           WApplication::instance()->javaScriptClass(),
+                           fileUpload_->uploaded().encodeCmd());
+          // o << "window.parent."
+          //   << WApplication::instance()->javaScriptClass()
+          //   << "._p_.update(null, '"
+          //   << fileUpload_->uploaded().encodeCmd() << "', null, true);";
         } else {
-          o << "window.parent.postMessage("
-            << "JSON.stringify({ fu: '" << fileUpload_->id() << "',"
-            << "  signal: '"
-            << fileUpload_->uploaded().encodeCmd()
-            << "',type: 'upload'"
-            << "}), '*');";
+            fmt::format_to(response.out(), FMT_COMPILE("<!DOCTYPE html><html>\n<head><script type=\"text/javascript\">\nfunction load(){{"
+                                                       ""   "window.parent.postMessage(JSON.stringify({{ fu: '{}', signal: '{}',type: 'upload'}}), '*');"
+                                                       "}}\n</script></head><body onload=\"load();\"></body></html>"),
+                           fileUpload_->id(),
+                           fileUpload_->uploaded().encodeCmd());
+          // o << "window.parent.postMessage("
+          //   << "JSON.stringify({ fu: '" << fileUpload_->id() << "',"
+          //   << "  signal: '"
+          //   << fileUpload_->uploaded().encodeCmd()
+          //   << "',type: 'upload'"
+          //   << "}), '*');";
         }
       }
       else if (request.postDataExceeded())
@@ -189,23 +193,27 @@ protected:
         // postMessage does not work for IE6,7
         if (agent == UserAgent::IE6 ||
             agent == UserAgent::IE7) {
-#ifndef WT_TARGET_JAVA
-          o << fileUpload_->fileTooLarge().createCall({s});
-#else
-          o << fileUpload_->fileTooLarge().createCall(s);
-#endif
+            fmt::format_to(response.out(), FMT_COMPILE("<!DOCTYPE html><html>\n<head><script type=\"text/javascript\">\nfunction load(){{"
+                                                       ""   "{}"
+                                                       "}}\n</script></head><body onload=\"load();\"></body></html>"),
+                           fileUpload_->fileTooLarge().createCall({s}));
         } else
-          o << " window.parent.postMessage("
-            << "JSON.stringify({" << "fileTooLargeSize: '" << s
-            << "',type: 'file_too_large'" << "'}), '*');";
+            fmt::format_to(response.out(), FMT_COMPILE("<!DOCTYPE html><html>\n<head><script type=\"text/javascript\">\nfunction load(){{"
+                                                       ""   "window.parent.postMessage(JSON.stringify({{ fileTooLargeSize: '{}',type: 'file_too_large'}}), '*');"
+                                                       "}}\n</script></head><body onload=\"load();\"></body></html>"),
+                           s);
+
+          // o << " window.parent.postMessage("
+          //   << "JSON.stringify({" << "fileTooLargeSize: '" << s
+          //   << "',type: 'file_too_large'" << "'}), '*');";
       }
     } else {
       LOG_DEBUG("Resource handleRequest(): no signal");
     }
 
-    o << "}\n"
-         "</script></head>"
-         "<body onload=\"load();\"></body></html>";
+    // o << "}\n"
+    //      "</script></head>"
+    //      "<body onload=\"load();\"></body></html>";
 
     if (/*!request.tooLarge() &&*/ !files.empty())
       fileUpload_->setFiles(files);

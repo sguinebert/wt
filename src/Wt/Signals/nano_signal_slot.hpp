@@ -59,7 +59,7 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     template <typename L>
     Observer<MT_Policy>::Connection make_Connection(L* function)
     {
-        Delegate_Key key = function::template bind(function);
+        Delegate_Key key = function::template bind<L>(function);
         return Observer<MT_Policy>::Connection(key, this);
     }
 
@@ -68,7 +68,7 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     template <typename L>
     void connect(L* instance)
     {
-        observer::insert(function::template bind(instance), this);
+        observer::insert(function::template bind<L>(instance), this);
     }
     /* connect to a lambda or std::bind callable object passed by r or l-value */
     template <typename L>
@@ -78,7 +78,7 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
         /* it is a reference to a functor (example a lambda passed by ref) - you need to watch the lifetime of the lambda */
         if constexpr(std::is_lvalue_reference_v<L>) {
             connect(std::addressof(instance));
-            return typename observer::Connection(function::template bind(std::addressof(instance)), this);
+            return typename observer::Connection(function::template bind<std::remove_reference_t<L>>(std::addressof(instance)), this);
         }
         /* the size of the object L is less or equal than the size of a pointer : rational -> if the size is a pointer then no internal state present in the lambda so no save needed on the heap */
 //        else if constexpr (sizeof(std::remove_pointer_t<L>) <= sizeof(void*))
@@ -92,8 +92,8 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
             //auto shrd = std::shared_ptr<f_type>(new f_type(std::move(instance)));
             auto shrd = std::make_shared<f_type>(std::move(instance));
             //std::cerr << "test rvalue lambda store and call " << std::addressof(*shrd) << " // " << shrd.get() << std::endl;
-            observer::insert(function::template bind(shrd.get()), this, std::move(shrd));
-            return typename observer::Connection(function::template bind(shrd.get()), this);
+            observer::insert(function::template bind<f_type>(shrd.get()), this, std::move(shrd));
+            return typename observer::Connection(function::template bind<f_type>(shrd.get()), this);
         }
     }
     template <typename L, typename T>
@@ -103,7 +103,7 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
         /* it is a reference to a functor (example a lambda passed by ref) - you need to watch the lifetime of the lambda */
         if constexpr(std::is_lvalue_reference_v<L>) {
             insert_sfinae<T>(function::template bind<std::addressof(func)>(instance), instance);
-            return typename observer::Connection(function::template bind(std::addressof(func)), this);
+            return typename observer::Connection(function::template bind<L>(std::addressof(func)), this);
             //return connect(std::addressof(func), instance);
         }
         /* the size of the object L is less than the size of a pointer */
@@ -121,7 +121,7 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
             //std::cerr << "test rvalue lambda store and call " << std::addressof(*shrd) << " // " << shrd.get() << std::endl;
             insert_sfinae<T>(function::template bind<shrd.get()>(instance), instance);
             //return observer::insert(function::template bind(shrd.get()), this, std::move(shrd));
-            return typename observer::Connection(function::template bind(shrd.get()), this);
+            return typename observer::Connection(function::template bind<f_type>(shrd.get()), this);
         }
     }
 
@@ -179,7 +179,7 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     template <typename L>
     void disconnect(L* instance)
     {
-        observer::remove(function::template bind(instance));
+        observer::remove(function::template bind<decltype(instance)>(instance));
     }
     template <typename L>
     void disconnect(L& instance)

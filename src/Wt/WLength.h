@@ -9,6 +9,8 @@
 
 #include <string>
 #include <Wt/WDllDefs.h>
+#include <Wt/fmt/format.h>
+#include <Wt/fmt/compile.h>
 
 namespace Wt {
 
@@ -148,6 +150,8 @@ private:
 
   void setUnit(LengthUnit unit);
   void parseCssString(const char *str);
+
+  friend struct fmt::formatter<Wt::WLength>;
 };
 
 inline Wt::WLength operator*(const Wt::WLength &l, double s)
@@ -165,6 +169,62 @@ inline Wt::WLength operator/(const Wt::WLength &l, double s)
   return l * (1/s);
 }
 
-}
+}// namespace Wt
+
+namespace fmt {
+
+template<>
+struct formatter<Wt::WLength> {
+    char presentation = 'u';
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx) {
+        auto it = ctx.begin(), end = ctx.end();
+        if (it != end && *it == 's') {
+            presentation = 's';
+            ++it;
+        }
+        if (it != end && *it == 'i') {
+            presentation = 'i';
+            ++it;
+        }
+        return it;
+    }
+
+    template<typename FormatContext>
+    auto format(const Wt::WLength& l, FormatContext& ctx) const {
+        using namespace Wt;
+        if (presentation == 's') {
+            if (l.auto_) {
+                 return fmt::format_to(ctx.out(), "auto");
+            } else {
+                // Simplified: always use "vmin" for ViewportMin (no browser check)
+                switch (l.unit_) {
+                case LengthUnit::FontEm: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}em"), l.value_);
+                case LengthUnit::FontEx: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}ex"), l.value_);
+                case LengthUnit::Pixel: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}px"), l.value_);// result = std::string(std::to_string(l.value_)) + "px"; break;
+                case LengthUnit::Inch: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}in"), l.value_);//result = std::string(std::to_string(l.value_)) + "in"; break;
+                case LengthUnit::Centimeter: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}cm"), l.value_);//result = std::string(std::to_string(l.value_)) + "cm"; break;
+                case LengthUnit::Millimeter: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}mm"), l.value_);//result = std::string(std::to_string(l.value_)) + "mm"; break;
+                case LengthUnit::Point: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}pt"), l.value_);//result = std::string(std::to_string(l.value_)) + "pt"; break;
+                case LengthUnit::Pica: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}pc"), l.value_);//result = std::string(std::to_string(l.value_)) + "pc"; break;
+                case LengthUnit::Percentage: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}%"), l.value_);//result = std::string(std::to_string(l.value_)) + "%"; break;
+                case LengthUnit::ViewportWidth: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}vw"), l.value_);//result = std::string(std::to_string(l.value_)) + "vw"; break;
+                case LengthUnit::ViewportHeight: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}vh"), l.value_);//result = std::string(std::to_string(l.value_)) + "vh"; break;
+                case LengthUnit::ViewportMin: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}vmin"), l.value_);//result = std::string(std::to_string(l.value_)) + "vmin"; break;
+                case LengthUnit::ViewportMax: return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}vmax"), l.value_);//result = std::string(std::to_string(value_)) + "vmax"; break;
+                default: break;
+                }
+                return fmt::format_to(ctx.out(), "auto");
+            }
+        }
+        else if(presentation == 'i')
+            return fmt::format_to(ctx.out(), FMT_COMPILE("{:d}"), static_cast<int>(l.value_));
+
+        return fmt::format_to(ctx.out(), FMT_COMPILE("{:.2}"), l.value_);
+    }
+};
+
+
+}// namespace fmt
 
 #endif // WLENGTH_H_

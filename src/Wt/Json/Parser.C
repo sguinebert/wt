@@ -15,7 +15,7 @@ static constexpr int MAX_RECURSION_DEPTH = 1000;
 
 
 
-Value parse(const std::string& input, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
+Value parse(std::string_view input, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
 {
     parse_options opt; // all extensions default to off
     opt.allow_comments = allow_comments;                          // permit C and C++ style comments to appear in whitespace
@@ -24,7 +24,7 @@ Value parse(const std::string& input, bool valideUTF8, bool allow_trailing_comma
     return Wt::Json::parse(input, storage_ptr(), opt);
 }
 
-Value parse(const std::string& input, ParseError &error, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
+Value parse(std::string_view input, ParseError &error, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
 {
     parse_options opt; // all extensions default to off
     opt.allow_comments = allow_comments;                          // permit C and C++ style comments to appear in whitespace
@@ -33,7 +33,7 @@ Value parse(const std::string& input, ParseError &error, bool valideUTF8, bool a
     return Wt::Json::parse(input, error, storage_ptr(), opt);
 }
 
-void parse(const std::string& input, Object& result, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
+void parse(std::string_view input, Object& result, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
 {
     auto value = parse(input, valideUTF8, allow_trailing_commas, allow_comments);
 
@@ -42,7 +42,7 @@ void parse(const std::string& input, Object& result, bool valideUTF8, bool allow
     parsedObject.swap(result);
 }
 
-bool parse(const std::string& input, Object& result, ParseError& error, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
+bool parse(std::string_view input, Object& result, ParseError& error, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
 {
     auto value = parse(input, error, valideUTF8, allow_trailing_commas, allow_comments);
 
@@ -55,7 +55,7 @@ bool parse(const std::string& input, Object& result, ParseError& error, bool val
 }
 
 
-void parse(const std::string& input, Array& result, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
+void parse(std::string_view input, Array& result, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
 {
     auto value = parse(input, valideUTF8, allow_trailing_commas, allow_comments);
 
@@ -64,7 +64,7 @@ void parse(const std::string& input, Array& result, bool valideUTF8, bool allow_
     parsedObject.swap(result);
 }
 
-bool parse(const std::string& input, Array& result, ParseError& error, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
+bool parse(std::string_view input, Array& result, ParseError& error, bool valideUTF8, bool allow_trailing_commas, bool allow_comments)
 {
     auto value = parse(input, error, valideUTF8, allow_trailing_commas, allow_comments);
 

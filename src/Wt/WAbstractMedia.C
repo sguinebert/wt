@@ -159,7 +159,7 @@ void WAbstractMedia::renderSource(DomElement* element,
     if (isLast && alternative_) {
         // Last element -> add error handler for unsupported content
         element->setAttribute("onerror",
-                              /*CONSTEXPR_JS_ESCAPED*/("""var media = this.parentNode;"
+                              CONSTEXPR_JS_ESCAPED("""var media = this.parentNode;"
                               """if(media){"
                               ""  "while (media && media.children.length)"
                               ""    "if (" WT_CLASS ".hasTag(media.firstChild,'SOURCE')){"
@@ -179,7 +179,7 @@ void WAbstractMedia::updateMediaDom(DomElement& element, bool all)
     // Only if not IE
     if (all && alternative_) {
         element.setAttribute("onerror",
-                             /*CONSTEXPR_JS_ESCAPED*/("""if(event.target.error && event.target.error.code=="
+                             CONSTEXPR_JS_ESCAPED("""if(event.target.error && event.target.error.code=="
                              ""   "event.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED){"
                              ""  "while (this.hasChildNodes())"
                              ""    "if (" WT_CLASS ".hasTag(this.firstChild,'SOURCE')){"

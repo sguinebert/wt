@@ -119,7 +119,8 @@ private:
   void streamConfig(fmt::memory_buffer& js, WApplication *app, std::string_view closing = "");
   DomElement createElement(WLayoutItem *item, WApplication *app);
 
-  friend struct fmt::formatter<Wt::StdGridLayoutImpl2*>;
+  friend struct fmt::formatter<Wt::StdGridLayoutImpl2>;
+  friend struct fmt::formatter<const Wt::StdGridLayoutImpl2>;
 };
 
 }

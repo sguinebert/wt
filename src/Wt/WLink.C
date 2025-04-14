@@ -161,34 +161,36 @@ std::string WLink::resolveUrl(WApplication *app) const
 }
 
 JSlot *WLink::manageInternalPathChange(WApplication *app,
-				       WInteractWidget *widget,
-				       JSlot *slot) const
+                                       WInteractWidget *widget,
+                                       JSlot *slot) const
 {
-  if (type_ == LinkType::InternalPath) {
-    if (app->environment().ajax()) {
-      if (!slot) {
-        slot = new JSlot();
-        widget->clicked().connect(*slot);
-        widget->clicked().preventDefaultAction();
-      }
+    if (type_ == LinkType::InternalPath) {
+        if (app->environment().ajax()) {
+            if (!slot) {
+                slot = new JSlot();
+                widget->clicked().connect(*slot);
+                widget->clicked().preventDefaultAction();
+            }
 
-      slot->setJavaScript
-	("function(){" +
-	 app->javaScriptClass() + "._p_.setHash("
-	 + WWebWidget::jsStringLiteral(internalPath()) + ",true);"
-	 "}");
+            slot->setJavaScript(fmt::format("function(){{{}._p_.setHash('{:s}',true);}}", app->javaScriptClass(), internalPath().toUTF8()));
+
+            // slot->setJavaScript
+            //     ("function(){" +
+            //      app->javaScriptClass() + "._p_.setHash("
+            //      + WWebWidget::jsStringLiteral(internalPath()) + ",true);"
+            //                                                      "}");
 
 #ifdef WT_TARGET_JAVA
-      widget->clicked().senderRepaint();
+            widget->clicked().senderRepaint();
 #endif // WT_TARGET_JAVA
 
-      return slot;
+            return slot;
+        }
     }
-  }
 
-  delete slot;
+    delete slot;
 
-  return 0;
+    return 0;
 }
 
 }

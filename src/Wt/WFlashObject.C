@@ -180,8 +180,8 @@ void WFlashObject::updateDom(DomElement& element, bool all)
       obj.addChild(param);
     }
     if (variables_.size() > 0) {
-
-      auto variables = fmt::format("{}", fmt::join(variables_, "&"));
+#warning "TODO add formatter specialization for std::pair<std::string, WString>"
+      //auto variables = fmt::format("{}", fmt::join(variables_, "&"));
       std::stringstream ss;
       for (auto i = variables_.begin(); i != variables_.end(); ++i)
       {
@@ -243,10 +243,10 @@ void WFlashObject::getDomChanges(std::vector<DomElement>& result, WApplication *
     //   ""    "v.setAttribute('width', '" << toString(width()) << "');"
     //   ""    "v.setAttribute('height', '" << toString(height()) << "');"
     //   ""  "}";
-    WApplication::instance()->doJavaScript("var v={};if(v){{v.setAttribute('width', '{}');v.setAttribute('height', '{}');}}",
+    WApplication::instance()->doJavaScript(FMT_COMPILE("var v={};if(v){{v.setAttribute('width', '{}');v.setAttribute('height', '{}');}}"),
                                            jsFlashRef(),
-                                           width(),
-                                           height());
+                                           width().value(),
+                                           height().value());
 
     sizeChanged_ = false;
   }

@@ -506,22 +506,27 @@ void WLineEdit::defineJavaScript()
 
   std::u32string space;
   space += spaceChar_;
-  std::string jsObj = "new " WT_CLASS ".WLineEdit("
-    + app->javaScriptClass() + "," + jsRef() + "," +
-      WWebWidget::jsStringLiteral(mask_) + "," +
-      WWebWidget::jsStringLiteral(raw_) +  "," +
-      WWebWidget::jsStringLiteral(displayContent_) +  "," +
-      WWebWidget::jsStringLiteral(case_) + "," +
-      WWebWidget::jsStringLiteral(space) + "," +
-    (inputMaskFlags_.test(InputMaskFlag::KeepMaskWhileBlurred) ? "0x1" : "0x0")
-    + ");";
+  // std::string jsObj = "new " WT_CLASS ".WLineEdit("
+  //   + app->javaScriptClass() + "," + jsRef() + "," +
+  //     WWebWidget::jsStringLiteral(mask_) + "," +
+  //     WWebWidget::jsStringLiteral(raw_) +  "," +
+  //     WWebWidget::jsStringLiteral(displayContent_) +  "," +
+  //     WWebWidget::jsStringLiteral(case_) + "," +
+  //     WWebWidget::jsStringLiteral(space) + "," +
+  //   (inputMaskFlags_.test(InputMaskFlag::KeepMaskWhileBlurred) ? "0x1" : "0x0")
+  //   + ");";
+#warning "not sure about that"
+  std::string jsObj = fmt::format(FMT_COMPILE("new " WT_CLASS ".WLineEdit({},{},'{}',{},'{}','{}',{},0x{:x});"),
+                                  app->javaScriptClass(),
+                                  jsRef(),
+                                  JsString(mask_),
+                                  WWebWidget::jsStringLiteral(raw_),
+                                  JsString(displayContent_),
+                                  JsString(case_),
+                                  WWebWidget::jsStringLiteral(space),
+                                  inputMaskFlags_.test(InputMaskFlag::KeepMaskWhileBlurred));
 
   setJavaScriptMember(" WLineEdit", jsObj);
-
-#ifdef WT_CNOR
-  EventSignalBase& b = mouseMoved();
-  EventSignalBase& c = keyWentDown();
-#endif
 
   connectJavaScript(keyWentDown(), "keyDown");
   connectJavaScript(keyPressed(), "keyPressed");

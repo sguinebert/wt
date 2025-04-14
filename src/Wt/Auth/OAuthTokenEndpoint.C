@@ -259,7 +259,7 @@ awaitable<void> OAuthTokenEndpoint::handleRequest(http::request &request, http::
 
   if (code.empty() || clientId.empty() || clientSecret.empty() || grantType.empty() || redirectUri.empty()) {
     response.status(400);
-    response.out() << "{\"error\": \"invalid_request\"}" << std::endl;
+    response << "{\"error\": \"invalid_request\"}";
     LOG_INFO("{{\"error\": \"invalid_request\"}}: code: {} clientId: {} clientSecret: {} grantType: {} redirectUri: {}",
              (!code.empty() ? code : "NULL"),
              clientId,
@@ -279,7 +279,7 @@ awaitable<void> OAuthTokenEndpoint::handleRequest(http::request &request, http::
         response.addHeader("WWW-Authenticate",
                            methodToString(client.authMethod()));
     }
-    response.out() << "{\n\"error\": \"invalid_client\"\n}" << std::endl;
+    response << "{\n\"error\": \"invalid_client\"\n}";
     LOG_INFO("{{\"error\": \"invalid_client\"}}: id: {} client: {} secret: {} method: {}",
              clientId,
              (client.checkValid() ? "valid" : "not valid"),
@@ -290,7 +290,7 @@ awaitable<void> OAuthTokenEndpoint::handleRequest(http::request &request, http::
   }
   if (grantType != GRANT_TYPE) {
     response.status(400);
-    response.out() << "{\n\"error\": \"unsupported_grant_type\"\n}" << std::endl;
+    response << "{\n\"error\": \"unsupported_grant_type\"\n}";
     LOG_INFO("{{\"error\": \"unsupported_grant_type\"}}: id: {} grantType: {}", clientId, grantType);
     co_return;
   }
@@ -298,7 +298,7 @@ awaitable<void> OAuthTokenEndpoint::handleRequest(http::request &request, http::
   if (!authCode.checkValid() || authCode.redirectUri() != redirectUri
       || WDateTime::currentDateTime() > authCode.expirationTime()) {
     response.status(400);
-    response.out() << "{\n\"error\": \"invalid_grant\"\n}" << std::endl;
+    response << "{\n\"error\": \"invalid_grant\"\n}";
     LOG_INFO("{{\"error\": \"invalid_grant\"}}: id:{} code: {} authcode: {} redirectUri: {}{} timestamp: {}{}",
              clientId,
              code,
@@ -342,7 +342,7 @@ awaitable<void> OAuthTokenEndpoint::handleRequest(http::request &request, http::
 #endif // WT_TARGET_JAVA
     root["id_token"] = Json::Value(header + "." + payload + "." + signature);
   }
-  response.out() << Json::serialize(root);
+  response << Json::serialize(root);
 
   LOG_INFO("success: {}, {}, {}", clientId, user.id(), db_->email(user));
 

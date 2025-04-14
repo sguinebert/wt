@@ -345,7 +345,7 @@ public:
    * Ownership of the child is transferred to this element, and the child
    * should not be manipulated after the call.
    */
-  void insertChildAt(DomElement &child, int pos);
+  void insertChildAt(DomElement &&child, int pos);
 
   /*! \brief Saves an existing child.
    *
@@ -370,7 +370,7 @@ public:
   void setAttribute(const std::string& attribute, T&& value, bool isEscaped = false) {
       if constexpr (StringLiteral<T>) { //literal char[]
           ++numManipulations_;
-          attributes_.emplace(attribute, EscapedString(CONSTEXPR_JS_ESCAPED(value)));
+          attributes_.emplace(attribute, EscapedString(/*CONSTEXPR_JS_ESCAPED*/(value)));
           removedAttributes_.erase(attribute);
       } else {
           ++numManipulations_;
@@ -378,13 +378,35 @@ public:
           removedAttributes_.erase(attribute);
       }
   }
-
-  // void setAttribute(const std::string& attribute, EscapedString&& value)
-  // {
+  // template<std::size_t N>
+  // void setAttribute(const std::string& attribute, const char (&value)[N]) {
   //     ++numManipulations_;
-  //     attributes_.emplace(attribute, std::move(value));
+  //     attributes_.emplace(attribute, EscapedString(CONSTEXPR_JS_ESCAPED(value)));
   //     removedAttributes_.erase(attribute);
   // }
+
+
+  // template <StringLiteral T>
+  // void setAttribute(const std::string& attribute, T&& value, bool isEscaped = false) {
+  //     ++numManipulations_;
+  //     attributes_.emplace(attribute, EscapedString(CONSTEXPR_JS_ESCAPED(std::forward<T>(value))));
+  //     removedAttributes_.erase(attribute);
+  // }
+
+  // Overload for std::string
+  // template <StdString T>
+  // void setAttribute(const std::string& attribute, T&& value, bool isEscaped = false) {
+  //     ++numManipulations_;
+  //     attributes_.emplace(attribute, EscapedString(std::forward<T>(value), isEscaped));
+  //     removedAttributes_.erase(attribute);
+  // }
+
+  void setAttribute(const std::string& attribute, EscapedString&& value)
+  {
+      ++numManipulations_;
+      attributes_.emplace(attribute, std::move(value));
+      removedAttributes_.erase(attribute);
+  }
 
   template<typename T>
   requires std::is_arithmetic_v<T>
@@ -394,7 +416,7 @@ public:
       // else {
       //     setAttribute(attribute, fmt::format("{:.2}", value), true);
       // }
-      setAttribute(attribute, fmt::format("{}", std::forward<T>(value)), true);
+      setAttribute(attribute, fmt::format(FMT_COMPILE("{}"), std::forward<T>(value)), true);
   }
 
   /*! \brief Returns an attribute value set.
@@ -525,16 +547,48 @@ public:
 
   void callMethod(std::string_view method);
 
-  template <typename... Args>
-  FMT_INLINE void callMethod(fmt::format_string<Args...> method, Args&&... args) {
+  // template <typename... Args>
+  // FMT_INLINE void callMethod(fmt::format_string<typename fmtlogdetail::UnrefPtr<fmt::remove_cvref_t<Args>>::type...> method, Args&&... args) {
+  //     ++numManipulations_;
+
+  //     if (var_.empty())
+  //         fmt::format_to(std::back_inserter(javaScript_), "{}.$('{}').", WT_CLASS, id_);
+  //     else
+  //         fmt::format_to(std::back_inserter(javaScript_), "{}.", var_);
+
+  //     fmt::vformat_to(std::back_inserter(javaScript_), method, fmt::make_format_args(FMT_FORWARD(args)...));
+  //     fmt::format_to(std::back_inserter(javaScript_), ";\n");
+  // }
+  template<typename... Args>
+  void callMethod(
+      fmt::format_string<Args...> method,
+      Args&&... args
+      ) {
       ++numManipulations_;
 
       if (var_.empty())
-          fmt::format_to(std::back_inserter(javaScript_), "{}.$('{}').", WT_CLASS, id_, method);
+          fmt::format_to(std::back_inserter(javaScript_), "{}.$('{}').", WT_CLASS, id_);
       else
-          fmt::format_to(std::back_inserter(javaScript_), "{}.", var_, method);
+          fmt::format_to(std::back_inserter(javaScript_), "{}.", var_);
 
-      fmt::format_to(std::back_inserter(javaScript_), method, std::forward<Args...>(args...));
+      fmt::vformat_to(std::back_inserter(javaScript_), method, fmt::make_format_args(FMT_FORWARD(args)...));
+      fmt::format_to(std::back_inserter(javaScript_), ";\n");
+  }
+  /* compile string template */
+  template<typename Format, typename... Args>
+  requires(std::is_base_of_v<fmt::detail::compiled_string, std::remove_cv_t<Format>>)
+  void callMethod(
+      Format&& method,
+      Args&&... args
+      ) {
+      ++numManipulations_;
+
+      if (var_.empty())
+          fmt::format_to(std::back_inserter(javaScript_), "{}.$('{}').", WT_CLASS, id_);
+      else
+          fmt::format_to(std::back_inserter(javaScript_), "{}.", var_);
+
+      fmt::format_to(std::back_inserter(javaScript_), std::forward<Format>(method), std::forward<Args>(args)...);
       fmt::format_to(std::back_inserter(javaScript_), ";\n");
   }
 
@@ -542,25 +596,44 @@ public:
    */
   void callJavaScript(const std::string& javascript, bool evenWhenDeleted = false);
 
-  template<bool evenWhenDeleted = false, typename... Args>
-  void callJavaScript(fmt::format_string<Args...> javascript, Args&&... args) {
+  // template<bool evenWhenDeleted = false, typename... Args>
+  // void callJavaScript(fmt::format_string<typename fmtlogdetail::UnrefPtr<fmt::remove_cvref_t<Args>>::type...> format, Args&&... args) {
+  //     ++numManipulations_;
+  //     if constexpr (!evenWhenDeleted) {
+  //         fmt::vformat_to(std::back_inserter(javaScript_), format, fmt::make_format_args(FMT_FORWARD(args)...));
+  //         fmt::format_to(std::back_inserter(javaScript_), "\n");
+  //     }
+  //     else
+  //         fmt::vformat_to(std::back_inserter(javaScriptEvenWhenDeleted_), format, fmt::make_format_args(FMT_FORWARD(args)...));
+  // }
+  /* runtime string template */
+  template<bool evenWhenDeleted = true, typename... Args>
+  void callJavaScript(
+      fmt::format_string<Args...> format,
+      Args&&... args
+      ) {
       ++numManipulations_;
       if constexpr (!evenWhenDeleted) {
-          fmt::format_to(std::back_inserter(javaScript_), javascript, fmt::make_format_args(args...));
+          fmt::vformat_to(std::back_inserter(javaScript_), format, fmt::make_format_args(FMT_FORWARD(args)...));
           fmt::format_to(std::back_inserter(javaScript_), "\n");
       }
       else
-          fmt::format_to(std::back_inserter(javaScriptEvenWhenDeleted_), javascript, fmt::make_format_args(args...));
+          fmt::vformat_to(std::back_inserter(javaScriptEvenWhenDeleted_), format, fmt::make_format_args(FMT_FORWARD(args)...));
   }
-  template<bool evenWhenDeleted = false, typename... Args>
-  void callJavaScript(const char* javascript, Args&&... args) {
+  /* compile string template */
+  template<bool evenWhenDeleted = true, typename Format, typename... Args>
+  requires(std::is_base_of_v<fmt::detail::compiled_string, std::remove_cv_t<Format>>)
+  void callJavaScript(
+      Format&& format,
+      Args&&... args
+      ) {
       ++numManipulations_;
       if constexpr (!evenWhenDeleted) {
-          fmt::format_to(std::back_inserter(javaScript_), FMT_COMPILE(javascript), std::forward<Args...>(args...));
+          fmt::format_to(std::back_inserter(javaScript_), std::forward<Format>(format), std::forward<Args>(args)...);
           fmt::format_to(std::back_inserter(javaScript_), "\n");
       }
       else
-          fmt::format_to(std::back_inserter(javaScriptEvenWhenDeleted_), javascript, std::forward<Args...>(args...));
+          fmt::format_to(std::back_inserter(javaScriptEvenWhenDeleted_), std::forward<Format>(format), std::forward<Args>(args)...);
   }
 
   /*! \brief Returns the id.
@@ -860,7 +933,8 @@ private:
 #endif
 
   friend class WCssDecorationStyle;
-  friend struct fmt::formatter<const Wt::DomElement*>;
+  friend struct fmt::formatter<Wt::DomElement>;
+  friend struct fmt::formatter<const Wt::DomElement>;
   friend struct fmt::formatter<std::tuple<const std::vector<Wt::DomElement::ChildInsertion>&, fmt::memory_buffer&, fmt::memory_buffer&, std::vector<Wt::DomElement::TimeoutEvent>&>>;
   friend struct fmt::formatter<std::tuple<const Wt::DomElement&, fmt::memory_buffer&, fmt::memory_buffer&, std::vector<Wt::DomElement::TimeoutEvent>&>>;
 };
@@ -921,12 +995,12 @@ struct fmt::formatter<JsString> {
             if(jstype == 's') {
                 using Escaper = MixedRules<RuleSet::JsStringLiteralSQuote>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(out, "\'{}\'", escaped);
+                return fmt::format_to(out, "{}", escaped);
             }
             else {
                 using Escaper = MixedRules<RuleSet::JsStringLiteralDQuote>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(out, "\'{}\'", escaped);
+                return fmt::format_to(out, "{}", escaped);
             }
         }
         else if(htmltype && !jstype) {

@@ -65,8 +65,9 @@ void WTreeTable::defineJavaScript()
 
   LOAD_JAVASCRIPT(app, "js/WTreeTable.js", "WTreeTable", wtjs1);
 
-  setJavaScriptMember(" WTreeTable", "new " WT_CLASS ".WTreeTable("
-		      + app->javaScriptClass() + "," + jsRef() + ");");
+  setJavaScriptMember(" WTreeTable", fmt::format(FMT_COMPILE("new " WT_CLASS ".WTreeTable({},{})"),
+                                                 app->javaScriptClass(),
+                                                 jsRef()));
 }
 
 void WTreeTable::render(WFlags<RenderFlag> flags)

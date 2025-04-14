@@ -191,7 +191,7 @@ EscapeOStream& EscapeOStream::operator<< (const std::string& s)
 
   return *this;
 }
-EscapeOStream &EscapeOStream::operator<<(std::string_view s)
+EscapeOStream& EscapeOStream::operator<<(std::string_view s)
 {
     append(s, *this);
 

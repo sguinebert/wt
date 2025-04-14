@@ -151,19 +151,19 @@ std::string WLength::cssText() const {
     } else {
         // Simplified: always use "vmin" for ViewportMin (no browser check)
         switch (unit_) {
-        case LengthUnit::FontEm: return fmt::format("{:.2}em", value_);
-        case LengthUnit::FontEx: return fmt::format("{:.2}ex", value_);
-        case LengthUnit::Pixel: return fmt::format("{:.2}px", value_);// result = std::string(std::to_string(value_)) + "px"; break;
-        case LengthUnit::Inch: return fmt::format("{:.2}in", value_);//result = std::string(std::to_string(value_)) + "in"; break;
-        case LengthUnit::Centimeter: return fmt::format("{:.2}cm", value_);//result = std::string(std::to_string(value_)) + "cm"; break;
-        case LengthUnit::Millimeter: return fmt::format("{:.2}mm", value_);//result = std::string(std::to_string(value_)) + "mm"; break;
-        case LengthUnit::Point: return fmt::format("{:.2}pt", value_);//result = std::string(std::to_string(value_)) + "pt"; break;
-        case LengthUnit::Pica: return fmt::format("{:.2}pc", value_);//result = std::string(std::to_string(value_)) + "pc"; break;
-        case LengthUnit::Percentage: return fmt::format("{:.2}%", value_);//result = std::string(std::to_string(value_)) + "%"; break;
-        case LengthUnit::ViewportWidth: return fmt::format("{:.2}vw", value_);//result = std::string(std::to_string(value_)) + "vw"; break;
-        case LengthUnit::ViewportHeight: return fmt::format("{:.2}vh", value_);//result = std::string(std::to_string(value_)) + "vh"; break;
-        case LengthUnit::ViewportMin: return fmt::format("{:.2}vmin", value_);//result = std::string(std::to_string(value_)) + "vmin"; break;
-        case LengthUnit::ViewportMax: return fmt::format("{:.2}vmax", value_);//result = std::string(std::to_string(value_)) + "vmax"; break;
+        case LengthUnit::FontEm: return fmt::format(FMT_COMPILE("{:.2}em"), value_);
+        case LengthUnit::FontEx: return fmt::format(FMT_COMPILE("{:.2}ex"), value_);
+        case LengthUnit::Pixel: return fmt::format(FMT_COMPILE("{:.2}px"), value_);// result = std::string(std::to_string(value_)) + "px"; break;
+        case LengthUnit::Inch: return fmt::format(FMT_COMPILE("{:.2}in"), value_);//result = std::string(std::to_string(value_)) + "in"; break;
+        case LengthUnit::Centimeter: return fmt::format(FMT_COMPILE("{:.2}cm"), value_);//result = std::string(std::to_string(value_)) + "cm"; break;
+        case LengthUnit::Millimeter: return fmt::format(FMT_COMPILE("{:.2}mm"), value_);//result = std::string(std::to_string(value_)) + "mm"; break;
+        case LengthUnit::Point: return fmt::format(FMT_COMPILE("{:.2}pt"), value_);//result = std::string(std::to_string(value_)) + "pt"; break;
+        case LengthUnit::Pica: return fmt::format(FMT_COMPILE("{:.2}pc"), value_);//result = std::string(std::to_string(value_)) + "pc"; break;
+        case LengthUnit::Percentage: return fmt::format(FMT_COMPILE("{:.2}%"), value_);//result = std::string(std::to_string(value_)) + "%"; break;
+        case LengthUnit::ViewportWidth: return fmt::format(FMT_COMPILE("{:.2}vw"), value_);//result = std::string(std::to_string(value_)) + "vw"; break;
+        case LengthUnit::ViewportHeight: return fmt::format(FMT_COMPILE("{:.2}vh"), value_);//result = std::string(std::to_string(value_)) + "vh"; break;
+        case LengthUnit::ViewportMin: return fmt::format(FMT_COMPILE("{:.2}vmin"), value_);//result = std::string(std::to_string(value_)) + "vmin"; break;
+        case LengthUnit::ViewportMax: return fmt::format(FMT_COMPILE("{:.2}vmax"), value_);//result = std::string(std::to_string(value_)) + "vmax"; break;
         default: break;
         }
         return "auto";

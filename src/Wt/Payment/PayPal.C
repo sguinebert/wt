@@ -98,11 +98,6 @@ public:
 #endif
   virtual awaitable<void> handleRequest(http::request& request, http::response& response) override
   {
-#ifndef WT_TARGET_JAVA
-    std::ostream& o = response.out();
-#else
-    std::ostream o(response.out());
-#endif // WT_TARGET_JAVA
 
     auto result = request.getParameter("result");
     auto payerId = request.getParameter("PayerID");
@@ -119,23 +114,25 @@ public:
      */
 
     WApplication *app = WApplication::instance();
-    std::string appJs = app->javaScriptClass();
+    auto appJs = app->javaScriptClass();
 
-    o <<
-        "<!DOCTYPE html>"
-        "<html lang=\"en\" dir=\"ltr\">\n"
-        "<head><title></title>\n"
-        "<script type=\"text/javascript\">\n"
-        "function load() { "
-        """if (window.opener." << appJs << ") {"
-                  ""  "var " << appJs << "= window.opener." << appJs << ";"
-      <<  checkout_->redirected().createCall({"-1"}) << ";"
-                                                       ""  "window.closedAfterRedirect=true;"
-                                                       ""  "window.close();"
-                                                       "}\n"
-                                                       "}\n"
-                                                       "</script></head>"
-                                                       "<body onload=\"load();\"></body></html>";
+    fmt::format_to(response.out(),
+                   FMT_COMPILE("<!DOCTYPE html>"
+                   "<html lang=\"en\" dir=\"ltr\">\n"
+                   "<head><title></title>\n"
+                   "<script type=\"text/javascript\">\n"
+                   "function load() {{ "
+                   """if (window.opener.{}) {{"
+                   ""  "var {}=window.opener.{};"
+                   ""  "{};"
+                   ""  "window.closedAfterRedirect=true;"
+                   ""  "window.close();"
+                   """}}\n"
+                   "}}\n"
+                   "</script></head>"
+                   "<body onload=\"load();\"></body></html>"),
+                   appJs, appJs, appJs,
+                   checkout_->redirected().createCall({"-1"}));
     co_return;
   }
 

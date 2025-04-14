@@ -53,6 +53,7 @@ enum class ResponseType {
 
 static inline constexpr std::string_view chunked_head = "\0\0\0\0\0\0\0\0\0\0";
 static inline constexpr std::string_view chunked_end = "0\r\n\r\n";
+static inline constexpr std::string_view CRLF = "\r\n";
 
 static thread_local std::chrono::steady_clock::time_point last_time_{std::chrono::steady_clock::now()};
 static thread_local std::string last_gmt_date_str_ {64, '\0'};
@@ -215,6 +216,10 @@ class response final : safe_noncopyable {
   auto buffer() -> fmt::memory_buffer& {
     return body_buffer_;
   }
+
+  void write(char* data, std::size_t size) {
+    body_buffer_.append(data, data + size);
+  }
   /*cancel*/
 
   /* flush data manually for chunked transfers
@@ -252,7 +257,7 @@ class response final : safe_noncopyable {
       }
       else {
         //ostream_  << "\r\n";
-        body_buffer_.append("\r\n"); //CRLF append
+        body_buffer_.append(CRLF); //CRLF append
 
         auto chunk_sv = prefixed_body();
         corr = corrected(chunk_sv);
@@ -277,7 +282,7 @@ class response final : safe_noncopyable {
     }
     else {
       //ostream_  << "\r\n";
-      body_buffer_.append("\r\n"); //CRLF append
+      body_buffer_.append(CRLF); //CRLF append
 
       auto chunk_sv = prefixed_body();
       auto corr = corrected(chunk_sv);
@@ -378,7 +383,7 @@ class response final : safe_noncopyable {
     if (is_chunked_) { //close the chunked response
       if(content_length_) { //if for any reason after chunk calls the body_buffer_ is not empty, we need to send the last chunk
         //ostream_  << "\r\n";
-        body_buffer_.append("\r\n");
+        body_buffer_.append(CRLF);
         auto chunk_sv = prefixed_body();
 
         if(content_length_ > detail::threshold) {
@@ -456,7 +461,7 @@ class response final : safe_noncopyable {
 
     if (is_chunked_) { //close the chunked response
       if(content_length_) { //if for any reason after chunk calls the body_buffer_ is not empty, we need to send the last chunk
-          body_buffer_.append("\r\n");
+          body_buffer_.append(CRLF);
           auto chunk_sv = prefixed_body();
 
           if(content_length_ > detail::threshold) {
@@ -502,7 +507,7 @@ class response final : safe_noncopyable {
         fmt::format_to(std::back_inserter(fmtbuffer), FMT_COMPILE("Content-Length: {}\r\n\r\n"), content_length_);
     } else {
       // chunked
-      fmtbuffer.append("\r\n");
+      fmtbuffer.append(CRLF);
     }
 
     if(content_length_ > detail::threshold) {

@@ -10668,10 +10668,7 @@ ada_really_inline constexpr bool is_alnum_plus(const char c) noexcept {
   // return (std::isalnum(c) || c == '+' || c == '-' || c == '.');
 }
 
-ada_really_inline constexpr bool is_ascii_hex_digit(const char c) noexcept {
-  return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') ||
-         (c >= 'a' && c <= 'f');
-}
+
 
 ada_really_inline constexpr bool is_ascii_digit(const char c) noexcept {
   // An ASCII digit is a code point in the range U+0030 (0) to U+0039 (9),
@@ -10754,13 +10751,13 @@ ada_really_inline constexpr bool is_lowercase_hex(const char c) noexcept {
   return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
 }
 
-constexpr static char hex_to_binary_table[] = {
-    0,  1,  2,  3,  4, 5, 6, 7, 8, 9, 0, 0,  0,  0,  0,  0,  0, 10, 11,
-    12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,  0, 0,  0,
-    0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 10, 11, 12, 13, 14, 15};
-unsigned constexpr convert_hex_to_binary(const char c) noexcept {
-  return hex_to_binary_table[c - '0'];
-}
+// constexpr static char hex_to_binary_table[] = {
+//     0,  1,  2,  3,  4, 5, 6, 7, 8, 9, 0, 0,  0,  0,  0,  0,  0, 10, 11,
+//     12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,  0, 0,  0,
+//     0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 10, 11, 12, 13, 14, 15};
+// unsigned constexpr convert_hex_to_binary(const char c) noexcept {
+//   return hex_to_binary_table[c - '0'];
+// }
 
 std::string percent_decode(const std::string_view input, size_t first_percent) {
   // next line is for safety only, we expect users to avoid calling

@@ -417,7 +417,7 @@ public:
    *
    * \sa WApplication::appRoot()
    */
-  WT_API std::string appRoot() const;
+  WT_API std::string_view appRoot() const;
 
   /*! \brief Returns the docroot (if using wthttp)
    *

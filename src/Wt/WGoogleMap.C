@@ -132,22 +132,22 @@ WGoogleMap::~WGoogleMap()
   delete mouseMoved_;
 }
 
-void WGoogleMap::streamJSListener(const JSignal<Coordinate> &signal, 
-				  std::string signalName,
-				  Wt::WStringStream &strm) 
+void WGoogleMap::streamJSListener(const JSignal<Coordinate> &signal,
+                                  std::string signalName,
+                                  Wt::WStringStream &strm)
 {
-  strm <<
-    """google.maps.event.addListener(map, \"" << signalName << "\", "
-    ""                              "function(event) {"
-    ""  "if (event && event.latLng) {"
+    strm <<
+        """google.maps.event.addListener(map, \"" << signalName << "\", "
+                          ""                              "function(event) {"
+                          ""  "if (event && event.latLng) {"
 #ifndef WT_TARGET_JAVA
          << signal.createCall({"event.latLng.lat() +' '+ event.latLng.lng()"})
 #else
          << signal.createCall("event.latLng.lat() +' '+ event.latLng.lng()")
 #endif
- << ";"
-    ""  "}"
-    """});";
+         << ";"
+            ""  "}"
+            """});";
 }
 
 JSignal<WGoogleMap::Coordinate>& WGoogleMap::mouseMoved()
@@ -157,14 +157,13 @@ JSignal<WGoogleMap::Coordinate>& WGoogleMap::mouseMoved()
 
   return *mouseMoved_;
 }
-
+#warning "enhance via fmt"
 void WGoogleMap::render(WFlags<RenderFlag> flags)
 {
   if (flags.test(RenderFlag::Full)) {
     WApplication *app = WApplication::instance();
 
-    std::string initFunction = 
-      app->javaScriptClass() + ".init_google_maps_" + id();
+    auto initFunction = fmt::format(FMT_COMPILE("{}.init_google_maps_{}"), app->javaScriptClass(), id());
 
     // initialize the map
     WStringStream strm;

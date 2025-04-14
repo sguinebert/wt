@@ -11,6 +11,7 @@
 #include "Wt/WJavaScriptHandle.h"
 
 #include "fmt/format.h"
+#include <Wt/fmt/compile.h>
 #include <string>
 
 
@@ -46,7 +47,7 @@ public:
 private:
   template<typename T>
   friend class WJavaScriptHandle;
-    friend struct fmt::formatter<Wt::WJavaScriptObjectStorage*>;
+  friend struct fmt::formatter<Wt::WJavaScriptObjectStorage>;
 
   int doAddObject(WJavaScriptExposableObject *o);
 
@@ -60,7 +61,7 @@ private:
 namespace fmt {
 
 template <>
-struct formatter<Wt::WJavaScriptObjectStorage*> {
+struct formatter<Wt::WJavaScriptObjectStorage> {
     bool all = false;
 
     template <typename ParseContext>
@@ -77,13 +78,13 @@ struct formatter<Wt::WJavaScriptObjectStorage*> {
     }
 
     template <typename FormatContext>
-    auto format(const Wt::WJavaScriptObjectStorage* jes, FormatContext &ctx)
+    auto format(const Wt::WJavaScriptObjectStorage& jes, FormatContext &ctx) const
     {
         auto out = ctx.out();
-        for (std::size_t i = 0; i < jes->jsValues_.size(); ++i) {
-            if (jes->dirty_[i] || all) {
-                out = format_to(ctx.out(), "{}.setJsValue({},{});", jes->jsRef(), i, jes->jsValues_[i]->jsValue());
-                const_cast<Wt::WJavaScriptObjectStorage*>(jes)->dirty_[i] = false;
+        for (std::size_t i = 0; i < jes.jsValues_.size(); ++i) {
+            if (jes.dirty_[i] || all) {
+                out = format_to(ctx.out(), FMT_COMPILE("{}.setJsValue({},{});"), jes.jsRef(), i, jes.jsValues_[i]->jsValue());
+                const_cast<Wt::WJavaScriptObjectStorage&>(jes).dirty_[i] = false;
             }
         }
         return out;

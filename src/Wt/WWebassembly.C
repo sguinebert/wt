@@ -41,11 +41,11 @@ WWebassembly::WWebassembly(std::string_view name, std::string_view path, std::st
 
 void WWebassembly::addStaticResource(const std::string &path, const std::string &internalpath)
 {
-    auto wasmresource = new WMemoryResource("application/wasm", path + ".wasm");
-    WServer::instance()->addResource(wasmresource, internalpath + ".wasm");
+    // auto wasmresource = new WMemoryResource("application/wasm", path + ".wasm");
+    // WServer::instance()->addResource(wasmresource, internalpath + ".wasm");
 
-    auto jsresource = new WMemoryResource("application/javascript", path + ".js");
-    WServer::instance()->addResource(jsresource, internalpath + ".js");
+    // auto jsresource = new WMemoryResource("application/javascript", path + ".js");
+    // WServer::instance()->addResource(jsresource, internalpath + ".js");
 //    if(!wasmresource_) {
 //        wasmresource_ = std::make_unique<WMemoryResource>("application/wasm", path + ".wasm");
 //        WServer::instance()->addResource(wasmresource_.get(), internalpath + ".wasm");
