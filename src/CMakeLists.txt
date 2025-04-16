@@ -100,6 +100,7 @@ add_custom_target(embed_files
     web/skeleton/Wt.js
     web/skeleton/Wt.min.js
     web/skeleton/es6.boot.js
+    web/skeleton/es6.Wt.js
     web/skeleton/Boot.js
     web/skeleton/Boot.min.js
 

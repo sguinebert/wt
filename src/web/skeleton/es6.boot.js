@@ -14,15 +14,16 @@
 */
 window.onresize = function() {};
 
-/* eslint-disable-next-line no-implicit-globals */
+
+export function createScript(url, onError) {
+  var script = document.createElement('script');
+  script.src = url;
+  script.async = true;
+  script.onerror = onError || function() { console.error('Failed to load ' + url); };
+  document.head.appendChild(script);
+}
+
 function loadScripts(url) {
-  function createScript(url, onError) {
-    var script = document.createElement('script');
-    script.src = url;
-    script.async = true;
-    script.onerror = onError || function() { console.error('Failed to load ' + url); };
-    document.head.appendChild(script);
-  }
   /*
 // Wt.js
 window.WtReady = new Promise(resolve => {
@@ -136,38 +137,4 @@ window.WtReady = new Promise(resolve => {
 
   // Load the script
   loadScripts(scriptUrl);
-})();
-
-
-(function() {
-  function doLoad() {
-
-
-    let needSessionInUrl = !no_replace || !ajax;
-
-    if (needSessionInUrl) {
-      if (getParameter("wtd") === "_$_SESSION_ID_$_") {
-        needSessionInUrl = false;
-      }
-    }
-
-
-
-    if (needSessionInUrl) {
-        setUrl(createUrl("wtd", "_$_SESSION_ID_$_"));
-
-    } else  {
-      let canonicalUrl = _$_AJAX_CANONICAL_URL_$_;
-      let hashInfo = "";
-      if (hash.length > 1 && hash.charAt(0) === "/") {
-        hashInfo = "&_=" + encodeURIComponent(hash);
-      }
-
-        const allInfo = hashInfo + otherInfo + htmlHistoryInfo + deployPathInfo;
-        loadScript(selfUrl + allInfo + "&request=script&rand=" + rand());
-      }
-    }
-  }
-
-  setTimeout(doLoad, 0);
 })();

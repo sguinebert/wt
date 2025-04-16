@@ -801,7 +801,7 @@ if (!window._$_WT_CLASS_$_) {
       return { x: posX, y: posY };
     };
 
-    this.windowCoordinates = function(e) {
+    this.windowCoordinates = function(e) { //deprecated not used anywhere
       const p = WT.pageCoordinates(e);
       const cx = p.x - document.body.scrollLeft - document.documentElement.scrollLeft;
       const cy = p.y - document.body.scrollTop - document.documentElement.scrollTop;
@@ -1129,7 +1129,7 @@ if (!window._$_WT_CLASS_$_) {
       }
     };
 
-    this.eventRepeat = function(fun, startDelay, repeatInterval) {
+    this.eventRepeat = function(fun, startDelay, repeatInterval) { //deprecated not used anymore
       WT.stopRepeat();
 
       startDelay = startDelay || 500;
@@ -1144,7 +1144,7 @@ if (!window._$_WT_CLASS_$_) {
       }, startDelay);
     };
 
-    this.stopRepeat = function() {
+    this.stopRepeat = function() { //deprecated not used anymore
       if (repeatT) {
         clearTimeout(repeatT);
         repeatT = null;
@@ -1318,7 +1318,7 @@ if (!window._$_WT_CLASS_$_) {
     this.show = function(o, s) {
       WT.getElement(o).style.display = s;
     };
-
+/* capture events */
     let captureElement = null;
     this.firedTarget = null;
 
@@ -1515,6 +1515,7 @@ if (!window._$_WT_CLASS_$_) {
         this.capture(null);
       }
     };
+    /* capture events */
 
     this.getElementsByClassName = function(className, parentElement) {
       if (document.getElementsByClassName) {
