@@ -1895,7 +1895,7 @@ void WWebWidget::declareJavaScriptMember(DomElement& element,
             //              << WApplication::instance()->javaScriptClass()
             //              << "._p_.propagateSize";
             //fmt::memory_buffer combined;
-            if (value.length() > 1) {
+            if (value.length() > 1) {//first send to server new size and recompute layout client side (via value)
                 element.callMethod("{}=function(s,w,h){{{}._p_.propagateSize(s,w,h);({})(s,w,h);}}", name, WApplication::instance()->javaScriptClass(), value);
 
             } else {
@@ -1904,7 +1904,7 @@ void WWebWidget::declareJavaScriptMember(DomElement& element,
             //element.callMethod(std::string_view(combined));
 
         } else {
-            if (value.length() > 0)
+            if (value.length() > 0)//[name]=[value, i.e. function(p,e){...}]
                 element.callMethod("{}={}", name, value);
             else
                 element.callMethod("{}=null", name);

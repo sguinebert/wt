@@ -1,29 +1,21 @@
-/* global
-  _$_AJAX_CANONICAL_URL_$_
-  _$_INTERNAL_PATH_$_
-  _$_PATH_INFO_$_
-  _$_RANDOMSEED_$_
-  _$_RELOAD_IS_NEWSESSION_$_
-  _$_SCRIPT_ID_$_
-  _$_SELF_URL_$_
-  _$_USE_COOKIES_$_
-  _$_COOKIE_CHECKS_$_
-  _$_HYBRID_$_
-  _$_PROGRESS_$_
-  _$_WEBGL_DETECT_$_
-*/
+
+
 window.onresize = function() {};
 
 
-export function createScript(url, onError) {
+/* export function createScript(url, onError) {
   var script = document.createElement('script');
   script.src = url;
   script.async = true;
   script.onerror = onError || function() { console.error('Failed to load ' + url); };
   document.head.appendChild(script);
-}
+} */
 
-function loadScripts(url) {
+async function loadScripts(url) {
+
+  await import(url).catch((error) => { //import './es6.Wt.js';
+    console.error('Error loading script:', error);
+  });
   /*
 // Wt.js
 window.WtReady = new Promise(resolve => {
@@ -37,8 +29,8 @@ window.WtReady = new Promise(resolve => {
   console.log('main.js running, Wt class available:', window.Wt);
 })();
 */
-  createScript('/Wt.js?v=_$_version_$_');
-  createScript(url);
+/*   createScript('/Wt.js?v=_$_version_$_');
+  createScript(url);  */
 }
 
 // Boot process in an IIFE

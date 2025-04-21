@@ -1,4 +1,130 @@
-class WtCore {
+// ------------- Utilities that work in every evergreen browser -------------
+const graphemes = str => [...str];              // code‑point / grapheme array
+const toUnits = (str, cpIndex) => graphemes(str).slice(0, cpIndex).join('').length;
+const toPoints = (str, cuIndex) => graphemes(str.slice(0, cuIndex)).length;
+
+// class PositionManager {
+//   constructor() {
+//     this.elements = new Map();
+//   }
+  
+//   position(element, anchor, options = {}) {
+//     // Remove any existing observers
+//     this.untrack(element);
+    
+//     // 1. Calculate initial position using getBoundingClientRect
+//     const initialPosition = this.calculateOptimalPosition(element, anchor, options);
+    
+//     // 2. Apply position with transforms
+//     this.applyPosition(element, initialPosition);
+    
+//     // 3. Setup observers for reactivity
+//     const cleanup = this.setupObservers(element, anchor, options);
+    
+//     // Store cleanup function
+//     this.elements.set(element, cleanup);
+    
+//     return initialPosition;
+//   }
+  
+//   calculateOptimalPosition(element, anchor, options) {
+//     // Get accurate measurements
+//     const anchorRect = anchor.getBoundingClientRect();
+//     const elementRect = element.getBoundingClientRect();
+//     const viewport = {
+//       width: window.innerWidth,
+//       height: window.innerHeight
+//     };
+    
+//     // Calculate various possible positions
+//     const positions = {
+//       right: { x: anchorRect.right, y: anchorRect.top },
+//       bottom: { x: anchorRect.left, y: anchorRect.bottom },
+//       left: { x: anchorRect.left - elementRect.width, y: anchorRect.top },
+//       top: { x: anchorRect.left, y: anchorRect.top - elementRect.height }
+//     };
+    
+//     // Find first position that fits in viewport
+//     for (const [name, pos] of Object.entries(positions)) {
+//       if (
+//         pos.x >= 0 && 
+//         pos.x + elementRect.width <= viewport.width &&
+//         pos.y >= 0 && 
+//         pos.y + elementRect.height <= viewport.height
+//       ) {
+//         return { position: name, ...pos };
+//       }
+//     }
+    
+//     // If no perfect position, use preferred or fallback
+//     const preferred = options.preferred || 'right';
+//     return { position: preferred, ...positions[preferred] };
+//   }
+  
+//   applyPosition(element, position) {
+//     // Use transform for better performance
+//     element.style.position = 'fixed';
+//     element.style.top = '0';
+//     element.style.left = '0';
+//     element.style.willChange = 'transform';
+    
+//     element.style.transform = `translate(${position.x}px, ${position.y}px)`;
+    
+//     // Reset will-change after the operation
+//     requestAnimationFrame(() => {
+//       element.style.willChange = 'auto';
+//     });
+//   }
+  
+//   setupObservers(element, anchor, options) {
+//     // Intersection Observer for visibility
+//     const intersectionObserver = new IntersectionObserver(entries => {
+//       if (!entries[0].isIntersecting) {
+//         const newPosition = this.calculateOptimalPosition(element, anchor, {
+//           ...options,
+//           preferred: this.getOppositePosition(options.preferred)
+//         });
+//         this.applyPosition(element, newPosition);
+//       }
+//     }, { threshold: 0.1 });
+    
+//     intersectionObserver.observe(element);
+    
+//     // Resize Observer for size changes
+//     const resizeObserver = new ResizeObserver(() => {
+//       const newPosition = this.calculateOptimalPosition(element, anchor, options);
+//       this.applyPosition(element, newPosition);
+//     });
+    
+//     resizeObserver.observe(element);
+//     resizeObserver.observe(anchor);
+    
+//     // Return cleanup function
+//     return () => {
+//       intersectionObserver.disconnect();
+//       resizeObserver.disconnect();
+//     };
+//   }
+  
+//   getOppositePosition(position) {
+//     const opposites = {
+//       right: 'left',
+//       left: 'right',
+//       top: 'bottom',
+//       bottom: 'top'
+//     };
+//     return opposites[position] || 'right';
+//   }
+  
+//   untrack(element) {
+//     if (this.elements.has(element)) {
+//       this.elements.get(element)();
+//       this.elements.delete(element);
+//     }
+//   }
+// }
+
+export class WtCore {
   constructor(config = {}) {
     this.config = config;
     this.buttons = 0;
@@ -8,8 +134,26 @@ class WtCore {
     this.firedTarget = null;
     this.timers = new Map(); // Store timers for cleanup
     this.initBrowserDetection();
+
+    //window.history.scrollRestoration = "auto";
+    window.history.scrollRestoration = "manual";
+    window.addEventListener("scroll", debounce(() => {
+      if (history.state) {
+        const newState = {...history.state};
+        newState.scrollX = window.pageXOffset;
+        newState.scrollY = window.pageYOffset;
+        history.replaceState(newState, document.title);
+      }
+    }, 100));
+    window.addEventListener('popstate', () => {
+      const {scrollX = 0, scrollY = 0 } = history.state || {};
+      window.scrollTo(scrollX, scrollY);
+    });
   }
 
+  scrollHistory() {
+    window.scrollTo(window.history.state?.pageXOffset || 0, window.history.state?.pageYOffset || 0);
+  }
   // Utility method to simulate document.ready
   ready(cb) {
     const ready = cb => document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', cb) : cb();
@@ -19,29 +163,29 @@ class WtCore {
     return Object.keys(obj).length === 0;
   }
 
-  button(event) {
-    const type = event.type;
-    if (!['mouseup', 'mousedown', 'click', 'dblclick'].includes(type)) return 0;
-    return { 0: 1, 1: 2, 2: 4 }[event.button] || 0;
-  }
+  // button(event) {
+  //   const type = event.type;
+  //   if (!['mouseup', 'mousedown', 'click', 'dblclick'].includes(type)) return 0;
+  //   return { 0: 1, 1: 2, 2: 4 }[event.button] || 0;
+  // }
 
-  mouseDown(event) {
-    this.buttons |= this.button(event);
-  }
+  // mouseDown(event) {
+  //   this.buttons |= this.button(event);
+  // }
 
-  mouseUp(event) {
-    this.lastButtonUp = this.button(event);
-    this.buttons &= ~this.lastButtonUp;
-    setTimeout(() => { this.mouseDragging = 0; }, 5);
-  }
+  // mouseUp(event) {
+  //   this.lastButtonUp = this.button(event);
+  //   this.buttons &= ~this.lastButtonUp;
+  //   setTimeout(() => { this.mouseDragging = 0; }, 5);
+  // }
 
-  dragged() {
+  dragged() { //only used in winteractwidget.cpp
     return this.mouseDragging > 2;
   }
 
-  drag() {
-    this.mouseDragging += 1;
-  }
+  // drag() {
+  //   this.mouseDragging += 1;
+  // }
 
   arrayRemove(array, from, to) {
     //return array.splice(from, (to ?? from) - from + 1); //ES11
@@ -62,48 +206,49 @@ class WtCore {
     this.isIOS = /iphone|ipad|ipod/.test(agent);
   }
 
-  initAjaxComm(url, handler) {
-    const crossDomain = url.includes('://') && new URL(url).host !== window.location.host;
+  // initAjaxComm(url, handler) {
+  //   const crossDomain = url.includes('://') && new URL(url).host !== window.location.host;
 
-    const createRequest = async (method, url) => {
-      const response = await fetch(url, {
-        method,
-        credentials: crossDomain ? 'include' : 'same-origin',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      });
-      return response;
-    };
+  //   const createRequest = async (method, url) => {
+  //     const response = await fetch(url, {
+  //       method,
+  //       credentials: crossDomain ? 'include' : 'same-origin',
+  //       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  //     });
+  //     return response;
+  //   };
 
-    return {
-      async sendUpdate(data, userData, _id, _timeout, isPoll) {
-        try {
-          const response = await createRequest('POST', url);
-          if (response.ok && response.headers.get('Content-Type')?.startsWith('text/javascript')) {
-            handler(0, await response.text(), userData); // OK
-          } else if (isPoll && response.status === 504) {
-            handler(2, null, userData); // Timeout
-          } else {
-            handler(1, null, userData); // Error
-          }
-        } catch {
-          handler(1, null, userData); // Error
-        }
-      },
-      responseReceived: () => {},
-      cancel: () => {url = null;},
-      setUrl: (newUrl) => { url = newUrl; },
-    };
-  }
+  //   return {
+  //     async sendUpdate(data, userData, _id, _timeout, isPoll) {
+  //       try {
+  //         const response = await createRequest('POST', url);
+  //         if (response.ok && response.headers.get('Content-Type')?.startsWith('text/javascript')) {
+  //           handler(0, await response.text(), userData); // OK
+  //         } else if (isPoll && response.status === 504) {
+  //           handler(2, null, userData); // Timeout
+  //         } else {
+  //           handler(1, null, userData); // Error
+  //         }
+  //       } catch {
+  //         handler(1, null, userData); // Error
+  //       }
+  //     },
+  //     responseReceived: () => {},
+  //     cancel: () => {url = null;},
+  //     setUrl: (newUrl) => { url = newUrl; },
+  //   };
+  // }
 
   setHtml(element, html, append = false) {
     if(append) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(`<div>${html}</div>`, 'application/xhtml+xml');
-      const div = doc.documentElement;
-      const fragment = document.createDocumentFragment();
-      Array.from(div.childNodes).forEach(node => fragment.appendChild(node.cloneNode(true)));
-      //if (!append) element.innerHTML = '';
-      element.appendChild(fragment);
+      element.insertAdjacentHTML('beforeend', html);
+      // const parser = new DOMParser();
+      // const doc = parser.parseFromString(`<div>${html}</div>`, 'application/xhtml+xml');
+      // const div = doc.documentElement;
+      // const fragment = document.createDocumentFragment();
+      // Array.from(div.childNodes).forEach(node => fragment.appendChild(node.cloneNode(true)));
+      // //if (!append) element.innerHTML = '';
+      // element.appendChild(fragment);
     }
     else element.innerHTML = html;
   }
@@ -125,9 +270,9 @@ class WtCore {
 
   filter(edit, tokens) { // vs onbeforeinput="event.data && !/^[0-9]$/.test(event.data) && event.preventDefault()">
     const regex = new RegExp(tokens); // Create RegExp once
-    element.addEventListener('beforeinput', (event) => {
-      if (event.data && !regex.test(event.data))
-        event.preventDefault();
+    edit.addEventListener('beforeinput', (e) => {
+      if (e.data && !regex.test(e.data))
+        e.preventDefault();
     });
   }
 
@@ -155,66 +300,38 @@ class WtCore {
     return { x: e.pageX || 0, y: e.pageY || 0 };
   }
 
-  wheelDelta(e){return e.deltaY;}
+  wheelDelta(e){return Math.sign(e.deltaY);} //only used in WGLWidget.js
 
-  normalizeWheel(e) { //!!!only used in WCarteseianChart
-    const [L, P] = [40, 800], {deltaX = 0, deltaY = 0, deltaMode = 0} = e;
-    const x = deltaMode === 1 ? deltaX * L : deltaMode === 2 ? deltaX * P : deltaX, y = deltaMode === 1 ? deltaY * L : deltaMode === 2 ? deltaY * P : deltaY;
-    return {spinX: x ? Math.sign(x) : 0, spinY: y ? Math.sign(y) : 0, pixelX: x, pixelY: y};
-  }
+  // normalizeWheel(e) { //!!!only used in WCarteseianChart
+  //   const [L, P] = [40, 800], {deltaX = 0, deltaY = 0, deltaMode = 0} = e;
+  //   const x = deltaMode === 1 ? deltaX * L : deltaMode === 2 ? deltaX * P : deltaX, y = deltaMode === 1 ? deltaY * L : deltaMode === 2 ? deltaY * P : deltaY;
+  //   return {spinX: x ? Math.sign(x) : 0, spinY: y ? Math.sign(y) : 0, pixelX: x, pixelY: y};
+  // }
 
-
-  //    window.history.scrollRestoration = "auto";
-  window.history.scrollRestoration = "manual";
-  scrollHistory() {
-    window.scrollTo(window.history.state?.pageXOffset || 0, window.history.state?.pageYOffset || 0);
-  }
   debounce(callback, wait = 100){
     let timeout;
     return (...args) => {
       clearTimeout(timeout);
       timeout = setTimeout(() => callback(...args), wait);
     };
-  };
-  window.addEventListener("scroll", debounce(() => {
-    if (history.state) {
-      const newState = {...history.state};
-      newState.scrollX = window.pageXOffset;
-      newState.scrollY = window.pageYOffset;
-      history.replaceState(newState, document.title);
-    }
-  }, 100));
-  window.addEventListener('popstate', () => {
-    const {scrollX = 0, scrollY = 0 } = history.state || {};
-    window.scrollTo(scrollX, scrollY);
-  });
-  setUnicodeSelectionRange(elem, start, end) {
-    const value = elem.value;
-    let newStart = start, newEnd = end;
-    for (let i = 0, count = 0; i < value.length && count < end; i++) {
-      if (count < start) newStart++;
-      if (count < end) newEnd++;
-      count++;
-      if (value.codePointAt(i) > 0xFFFF) count++; // Surrogate pair
-    }
-    setSelectionRange(elem, newStart, newEnd);
   }
-  getUnicodeSelectionRange(elem) {
-    const value = elem.value;
-    let start = elem.selectionStart;
-    let end = elem.selectionEnd;
-    for (let i = 0; i < value.length && i < end; i++) {
-      if (value.codePointAt(i) > 0xFFFF) { // Surrogate pair
-        if (i < start) start--;
-        if (i < end) end--;
-      }
-    }
-    return { start, end };
+
+  setUnicodeSelectionRange(elem, start, end) {
+    const startCU = toUnits(el.value, start);
+    const endCU = toUnits(el.value, end);
+    el.setSelectionRange(startCU, endCU, dir);      // built‑in API
+  }
+  getUnicodeSelectionRange(el) {
+    return {
+      start: toPoints(el.value, el.selectionStart),
+      end: toPoints(el.value, el.selectionEnd)
+    };
   }
   getSelectionRange(elem) {
     return { start: elem.selectionStart, end: elem.selectionEnd };
   }
   setSelectionRange(elem, start, end) {
+    //setSelectionCP(elem, start, end);
     start = Math.max(0, Math.min(start, elem.value.length));
     end = Math.max(start, Math.min(end, elem.value.length));
     elem.focus();
@@ -289,26 +406,193 @@ class WtCore {
   //   document.head.appendChild(link);
   //   return link;
   // }
-  fitToWindow(e, x, y) {
-    e.style.position = 'absolute';
-    e.style.left = e.style.right = e.style.top = e.style.bottom = '';
-    e.style.left = `${x}px`;
-    e.style.top = `${y}px`;
-    const rect = e.getBoundingClientRect();
-    if (rect.right > window.innerWidth) e.style.right = '0px', e.style.left = '';
-    if (rect.bottom > window.innerHeight) e.style.bottom = '0px', e.style.top = '';
+  positionAtWidget(id, atId, orientation, delta = 0) {
+    const w = WT.getElement(id);
+    const atw = WT.getElement(atId);
+    if (!atw || !w) return;
+
+    const { x: atX, y: atY } = WT.widgetPageCoordinates(atw);
+    let x, y, rightx, bottomy;
+
+    w.style.position = "absolute";
+    if (WT.css(w, "display") === "none") w.style.display = "block";
+
+    if (orientation === WT.Horizontal) {
+      x = atX + atw.offsetWidth;
+      y = atY + delta;
+      rightx = atX;
+      bottomy = atY + atw.offsetHeight - delta;
+    } else {
+      x = atX;
+      y = atY + atw.offsetHeight;
+      rightx = atX + atw.offsetWidth;
+      bottomy = atY;
+    }
+
+    let p = atw.parentNode;
+    while (!p.classList.contains("Wt-domRoot")) {
+      if (p.wtReparentBarrier) break;
+      if (
+        WT.css(p, "display") !== "inline" &&
+        p.clientHeight > 100 &&
+        (["scroll", "auto"].includes(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight ||
+         ["scroll", "auto"].includes(getComputedStyle(p).overflowX) && p.scrollWidth > p.clientWidth)
+      ) break;
+      p = p.parentNode;
+    }
+
+    const posP = WT.css(p, "position");
+    if (!["absolute", "relative"].includes(posP)) p.style.position = "relative";
+
+    w.parentNode.removeChild(w);
+    p.appendChild(w);
+    w.classList.add("wt-reparented");
+
+    WT.fitToWindow(w, x, y, rightx, bottomy);
+    w.style.visibility = "";
   }
+  fitToWindow = (element, x, y, rightx, bottomy) => {
+    // Reset positioning styles
+    element.style.left = element.style.right = element.style.top = element.style.bottom = 'auto';
+    
+    // Get element dimensions
+    const dimensions = {
+      width: element.offsetWidth,
+      height: element.offsetHeight
+    };
+    
+    // Consider max dimensions for dynamic widgets
+    if (!element.classList.contains("Wt-tooltip")) {
+      dimensions.width = WT.px(element, "maxWidth") || dimensions.width;
+      dimensions.height = WT.px(element, "maxHeight") || dimensions.height;
+    }
+    
+    // Get parent and viewport information
+    const offsetParent = element.offsetParent;
+    if (!offsetParent) return;
+    
+    const parentCoords = WT.widgetPageCoordinates(offsetParent);
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY
+    };
+  
+    // Determine horizontal positioning
+    let hside = 0; // 0 = left, 1 = right
+    if (dimensions.width > viewport.width) {
+      // Wider than viewport - align with left edge
+      x = viewport.scrollX;
+    } else if (x + dimensions.width > viewport.scrollX + viewport.width) {
+      // Too far right - position left from rightx
+      const scrollX = offsetParent === document.body ? window.scrollX : offsetParent.scrollLeft;
+      
+      rightx = rightx - parentCoords.x + scrollX;
+      x = offsetParent.clientWidth - (rightx + WT.px(element, "marginRight"));
+      hside = 1;
+    } else {
+      // Fits to right of x - adjust for parent offset
+      const scrollX = offsetParent === document.body ? 0 : offsetParent.scrollLeft;
+      x = x - parentCoords.x + scrollX - WT.px(element, "marginLeft");
+    }
+  
+    // Determine vertical positioning
+    let vside = 0; // 0 = top, 1 = bottom
+    if (dimensions.height > viewport.height) {
+      // Taller than viewport - align with top edge
+      y = viewport.scrollY;
+    } else if (y + dimensions.height > viewport.scrollY + viewport.height) {
+      // Too far below - position above bottomy
+      if (bottomy > viewport.scrollY + viewport.height) {
+        bottomy = viewport.scrollY + viewport.height;
+      }
+      
+      const scrollY = offsetParent === document.body ? window.scrollY : offsetParent.scrollTop;
+      
+      bottomy = bottomy - parentCoords.y + scrollY;
+      y = offsetParent.clientHeight - 
+          (bottomy + WT.px(element, "marginBottom") + WT.px(element, "borderBottomWidth"));
+      vside = 1;
+    } else {
+      // Fits below y - adjust for parent offset
+      const scrollY = offsetParent === document.body ? 0 : offsetParent.scrollTop;
+      y = y - parentCoords.y + scrollY - 
+          WT.px(element, "marginTop") + WT.px(element, "borderTopWidth");
+    }
+  
+    // Apply final positioning
+    const sides = [['left', 'right'], ['top', 'bottom']];
+    element.style[sides[0][hside]] = `${x}px`;
+    element.style[sides[1][vside]] = `${y}px`;
+  }
+  ensureVisibility = (element) => {
+    // Create the observer
+    const observer = new IntersectionObserver((entries) => {
+      // Process visibility changes
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) {
+          // Element is outside viewport, adjust position
+          const rect = entry.boundingClientRect;
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          
+          // Calculate new position to bring into view
+          const x = Math.max(0, Math.min(rect.x, viewportWidth - rect.width));
+          const y = Math.max(0, Math.min(rect.y, viewportHeight - rect.height));
+          
+          // Apply new position with transform
+          element.style.transform = `translate(${x}px, ${y}px)`;
+        }
+      });
+    }, {
+      threshold: 0.1, // 10% visibility threshold
+      root: null,     // Use viewport as root
+      rootMargin: '0px' // No margin
+    });
+    
+    // Start observing
+    observer.observe(element);
+    
+    // Return cleanup function
+    return () => observer.disconnect();
+  };
+  positionWithTransforms = (id, x, y, rightx, bottomy) => {
+    const element = WT.getElement(id);
+    if (!element) return;
+    
+    // Set base positioning styles
+    element.style.position = 'absolute';
+    element.style.top = '0';
+    element.style.left = '0';
+    
+    // Apply transform-based positioning
+    this.fitToWindow(element, x, y, rightx, bottomy);
+    
+    // Ensure visibility with IntersectionObserver
+    const cleanup = this.ensureVisibility(element);
+    
+    // Store cleanup for later
+    this.observers = this.observers || new Map();
+    if (this.observers.has(id)) {
+      this.observers.get(id)(); // Call previous cleanup
+    }
+    this.observers.set(id, cleanup);
+    
+    // Make element visible
+    element.style.visibility = 'visible';
+  };
   positionXY(id, x, y) {
     const w = WT.getElement(id);
 
     if (!WT.isHidden(w)) {
       w.style.display = "block";
-      WT.fitToWindow(w, x, y, x, y);
+      WT.fitToWindow(w, x, y);
     }
-  };
+  }
 
-  toggleClass(element, className, enable) {
-    element.classList.toggle(className, enable);
+  toggleClass(el, className, enable) {
+    el.classList.toggle(className, enable);
   }
   /* END - style methods */
 
@@ -348,70 +632,12 @@ class WtCore {
   //   return this.firedTarget || event.target || event.srcElement || null;
   // }
 
-  // Improved addTimerEvent
-  addTimerEvent({ id, delay, repeat = -1, callback, context = null }) {
-    // Validate inputs
-    if (!id || typeof delay !== 'number' || delay < 0) {
-      throw new Error('Invalid parameters for addTimerEvent: id and delay are required');
-    }
-
-    // Retrieve element if id is provided
-    const element = id ? this.getElement(id) : null;
-
-    // Use provided callback or default to element's onclick
-    const action = callback || (element && element.onclick ? element.onclick.bind(element) : () => {});
-
-    // Clear existing timer for this id, if any
-    this.clearTimer(id);
-
-    // Create a timer handler
-    const handler = () => {
-      try {
-        action.call(context || element || this, element);
-        if (repeat === -1) {
-          this.timers.delete(id); // Clean up one-shot timer
-        }
-      } catch (error) {
-        console.error(`Error in timer event for ${id}:`, error);
-      }
-    };
-
-    // Schedule the timer
-    const timerId = repeat === -1
-      ? setTimeout(handler, delay)
-      : setInterval(handler, repeat > 0 ? repeat : delay);
-
-    // Store timer metadata
-    this.timers.set(id, { timerId, repeat, handler });
-
-    return timerId; // Allow external cleanup if needed
-  }
-
-  // Helper to clear a specific timer
-  clearTimer(id) {
-    const timerData = this.timers.get(id);
-    if (timerData) {
-      if (timerData.repeat === -1) {
-        clearTimeout(timerData.timerId);
-      } else {
-        clearInterval(timerData.timerId);
-      }
-      this.timers.delete(id);
-    }
-  }
-
-  // Clean up all timers (e.g., on app shutdown)
-  clearAllTimers() {
-    this.timers.forEach((_, id) => this.clearTimer(id));
-  }
 
   // Replacement for enableInternalPaths
   enableInternalPaths(initialPath) {
-    // Set the initial path without adding a history entry
     window.history.replaceState({ path: initialPath }, "", initialPath);
     this.currentPath = initialPath;
 
-    // Listen for back/forward navigation
     window.addEventListener("popstate", (event) => {
       const newPath = window.location.pathname;
       this.currentPath = newPath;
@@ -419,7 +645,6 @@ class WtCore {
     });
   }
 
-  // Helper method to navigate programmatically
   navigate(newPath) {
     window.history.pushState({ path: newPath }, "", newPath);
     this.currentPath = newPath;
@@ -428,8 +653,285 @@ class WtCore {
 
 }
 
-class WtApp {
+export class GlobalEventManager {
+  #handlers = new WeakMap();
+
+  constructor() {
+    ['keydown', 'keyup'].forEach(event =>
+      document.addEventListener(event, e => this.#handleEvent(event, e), { capture: true })
+    );
+  }
+
+  bind(event, id, handler) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    this.#handlers.set(el, (this.#handlers.get(el) ?? new Map()).set(event, handler));
+  }
+
+  #handleEvent(eventType, event) {
+    if (!event.target || ['DIV', 'BODY', 'HTML'].includes(event.target.tagName)) {
+      for (const el of this.#handlers.keys()) {
+        if (document.contains(el)) {
+          this.#handlers.get(el)?.get(eventType)?.(event);
+        }
+      }
+    }
+  }
+
+  cleanup(id) {
+    const el = document.getElementById(id);
+    if (el) this.#handlers.delete(el);
+  }
+}
+/* connection.js ----------------------------------------------------------- */
+export class Connection {
+  #url;                // URL for the connection
+  #socket;              // WebSocket or null
+  #sse;                 // EventSource or null
+  #tries = 0;
+  #readyResolve;
+  #keepAlive;
+  #lastPong;
+  #onMsg; // callback for incoming messages
+  ready = new Promise(res => { this.#readyResolve = res; });
+
+  constructor(baseUrl, onMsg) {
+    this.heartbeat = 30_000; // heartbeat interval in ms
+    this.#url = baseUrl;   // store URL
+    this.#onMsg = onMsg;        // store callback
+    this.#openWebSocket(baseUrl);
+    this.crossDomain = baseUrl.includes('://') && new URL(baseUrl).host !== window.location.host;
+  }
+
+  /* ---------- public API ----------- */
+  async send(data, timeout = 30000, method = 'POST') {
+    if (this.#socket?.readyState === 1)
+      return this.#socket.send(data); // WebSocket is open
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(this.#url, {
+        method,
+        credentials: this.crossDomain ? 'include' : 'same-origin',
+        headers: { 'Content-Type': 'text/json' },
+        signal: controller.signal,
+        body: data,
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok && response.headers.get('Content-Type')?.startsWith('text/javascript')) {
+        this.#onMsg(0, await response.text()); // OK
+      } else {
+        this.#onMsg(1, null); // Error
+      }
+    } catch {
+      this.#onMsg(1, null); // Error
+    }
+  }
+  send(data)            { this.#socket?.send(data); }
+  close()               { this.#socket?.close(); this.#sse?.close(); this.#keepAlive && clearInterval(this.#keepAlive); }
+
+  /* ---------- internals ------------ */
+  #openWebSocket(baseUrl) {
+    const url = new URL(baseUrl);
+    url.protocol = url.protocol.replace('http', 'ws');
+    url.searchParams.set('request', 'ws');
+
+    try {
+      this.#socket = new WebSocket(url);
+    } catch (e) {
+      console.warn('WS ctor failed:', e);
+      return this.#openSSE(baseUrl);
+    }
+
+    this.#socket.onopen    = () => { this.#tries = 0; this.#readyResolve(); this.#startHeartbeat(); };
+    this.#socket.onmessage = e  => this.#onMsg(0,e.data);
+    this.#socket.onerror   = this.#socket.onclose = () => this.#reconnect(baseUrl);
+  }
+  #startHeartbeat() {
+    this.#keepAlive && clearInterval(this.#keepAlive);
+    this.#lastPong = Date.now();
+    this.#keepAlive = setInterval(() => {
+      if (this.#socket?.readyState !== WebSocket.OPEN) {
+        clearInterval(this.#keepAlive);
+        this.#keepAlive = null;
+        return;
+      }
+      this.#socket.ping();
+      if (Date.now() - this.#lastPong > this.heartbeat * 1.5) this.#socket.close();
+    }, this.heartbeat);
+  }
+
+  #openSSE(baseUrl) {
+    this.#sse = new EventSource(`${baseUrl}&signal=sse`);
+    this.#sse.onopen    = () => { this.#readyResolve(); };
+    this.#sse.onmessage = e  => this.#onMsg(0, e.data);
+    this.#sse.onerror   = () => this.#reconnect(baseUrl);
+  }
+
+  #reconnect(baseUrl) {
+    this.#socket?.close(); this.#socket = null;
+    this.#sse?.close();    this.#sse    = null;
+
+    const delay = Math.min(2 ** ++this.#tries * 500, 120_000);
+    console.log('reconnect in', delay, 'ms');
+    setTimeout(() => this.#openWebSocket(baseUrl), delay);
+  }
+}
+
+export class EventQueue {
+  #buf = [];
+  #maxBytes;
+  #delay;
+  #timer;
+  #conn;
+  constructor(conn, {maxBytes = 10_000, delay = 40} = {}) {
+    this.#conn = conn; this.#maxBytes = maxBytes; this.#delay = delay;
+  }
+  push(evt) {
+    this.#buf.push(JSON.stringify(evt));
+    if (this.#buf.join('&').length > this.#maxBytes)
+      throw new Error('too many pending events');
+    this.#scheduleFlush();
+  }
+  #scheduleFlush() {
+    if (!this.#timer) this.#timer = setTimeout(() => this.flush(), this.#delay);
+  }
+  async flush() {
+    clearTimeout(this.#timer); this.#timer = null;
+    if (!this.#buf.length) return;
+
+    const payload = this.#buf.join('&');
+    this.#buf.length = 0;
+
+    await this.#conn.ready;
+    this.#conn.send(payload);
+  }
+  hasUnsent() { return this.#buf.length > 0; }
+}
+
+// class EventBus {
+//   constructor() { this.listeners = {}; }
+//   on(event, fn) { this.listeners[event] = this.listeners[event] || []; this.listeners[event].push(fn); }
+//   emit(event, ...args) { (this.listeners[event] || []).forEach(fn => fn(...args)); }
+// }
+
+// export class WsConnection {
+//   #socket = null;
+//   #state = 'unknown';
+//   #reconnectTries = 0;
+//   #pending = {};
+//   #nextId = 0;
+//   #keepAlive = null;
+//   #lastPong = Date.now();
+//   #bus = new EventBus();
+
+//   constructor(url, { maxTries = 5, baseDelay = 500, maxDelay = 120_000, heartbeat = 30_000, ackId = 0 } = {}) {
+//     this.url = url;
+//     this.maxTries = maxTries;
+//     this.baseDelay = baseDelay;
+//     this.maxDelay = maxDelay;
+//     this.heartbeat = heartbeat;
+//     this.ackId = ackId;
+//   }
+
+//   async connect() {
+//     if (this.#state === 'connecting' || this.#state === 'working') return;
+//     this.#state = 'connecting';
+//     this.#socket = new WebSocket(this.url);
+
+//     this.#socket.onopen = () => {
+//       this.#state = 'working';
+//       this.#reconnectTries = 0;
+//       this.#startHeartbeat();
+//       this.#bus.emit('connected', this.ackId);
+//     };
+//     this.#socket.onmessage = ({ data }) => {
+//       data === 'connect' ? this.#bus.emit('ackConnect', this.ackId) : this.#bus.emit('message', data);
+//     };
+//     this.#socket.onpong = () => { this.#lastPong = Date.now(); };
+//     this.#socket.onerror = () => {
+//       this.#state = 'error';
+//       this.#bus.emit('error', new Error('WebSocket error'));
+//       this.#reconnect();
+//     };
+//     this.#socket.onclose = () => {
+//       this.#state = 'closed';
+//       this.#bus.emit('close');
+//       this.#reconnect();
+//     };
+
+//     await new Promise((r) => this.#socket.addEventListener('open', r, { once: true }));
+//   }
+
+//   async #reconnect() {
+//     if (this.#reconnectTries >= this.maxTries) {
+//       this.#state = 'unavailable';
+//       this.#bus.emit('unavailable');
+//       return;
+//     }
+//     await new Promise((r) => setTimeout(r, Math.min(this.maxDelay, Math.exp(this.#reconnectTries++) * this.baseDelay)));
+//     this.connect();
+//   }
+
+//   #startHeartbeat() {
+//     this.#keepAlive && clearInterval(this.#keepAlive);
+//     this.#lastPong = Date.now();
+//     this.#keepAlive = setInterval(() => {
+//       if (this.#socket?.readyState !== WebSocket.OPEN) {
+//         clearInterval(this.#keepAlive);
+//         this.#keepAlive = null;
+//         return;
+//       }
+//       this.#socket.ping();
+//       if (Date.now() - this.#lastPong > this.heartbeat * 1.5) this.#socket.close();
+//     }, this.heartbeat);
+//   }
+
+//   send(data) {
+//     if (this.#state !== 'working') throw new Error('WebSocket not connected');
+//     const id = this.#nextId++;
+//     this.#pending[id] = { data, time: Date.now() };
+//     this.#socket.send(`${data}&wsRqId=${id}`);
+//     return id;
+//   }
+
+//   async sendUpdate(data) {
+//     try {
+//       const id = this.send(data);
+//       await new Promise((r, j) => {
+//         const t = setTimeout(() => j(new Error('Request timeout')), 5000);
+//         this.#bus.on('ack', (ackId) => ackId === id && (clearTimeout(t), delete this.#pending[id], r()));
+//       });
+//     } catch (e) {
+//       this.#bus.emit('sendError', e);
+//     }
+//   }
+
+//   on(event, fn) {
+//     this.#bus.on(event, fn);
+//   }
+
+//   close() {
+//     this.#socket?.close();
+//     this.#keepAlive && clearInterval(this.#keepAlive);
+//   }
+// }
+
+export default class WtApp {
+  #wevt = new GlobalEventManager();
+  #conn = new Connection(this.config.sessionUrl, this.#handleResponse);
+  #queue = new EventQueue(this.#conn);
+  #libraryPromises = new Map(); // Tracks loading Promises by path
+  #loadingLibraries = new Set(); // Tracks currently loading libraries
+  #updatePending = false; // Debounces sendUpdate calls
+  #hasQuit = false;
+  #downX = 0;
+  #downY = 0;
   constructor(config = {}) {
+    this.id='app';
     this.config = {
       deployPath: config.deployPath || '',
       sessionUrl: config.sessionUrl || '',
@@ -443,11 +945,14 @@ class WtApp {
       ...config,
     };
     this.wt = new WtCore(this.config);
-    this.comm = this.wt.initAjaxComm(this.config.sessionUrl, this.handleResponse.bind(this));
-    this.pendingEvents = [];
-    this.sentEvents = [];
-    this.hasQuit = false;
+    //this.wt.initAjaxComm(this.config.sessionUrl, this.handleResponse.bind(this));
+    // this.pendingEvents = [];
+    // this.sentEvents = [];
+    this.activePointers = new Map();
     this.load();
+
+    //this.images = new Map(); // Stores preloaded images by URI
+    //this.arrbuf = new Map(); // Stores preloaded array buffers by URI
   }
 
   // trackPointer(element, onMove) {
@@ -459,16 +964,260 @@ class WtApp {
   //     if (startPos) onMove({ x: e.pageX - startPos.x, y: e.pageY - startPos.y });
   //   });
   // }
+  async preload(uris, type = 'image') {
+    const promises = uris.map(uri => (type === 'image' ? 
+      new Promise(r => { const img = new Image(); img.onload = () => r(img); img.onerror = () => r(null); img.src = uri; }) :
+      fetch(uri).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null)
+    ));
+    return (await Promise.allSettled(promises)).map(r => r.value).filter(v => v);
+  }
+  
+  // Example usage
+  async loadResources(uris, type) {
+    try {
+      const data = await preload(uris, type);
+      console.log('data:', data);
+    } catch (e) {
+      console.error('Unexpected error:', e);
+    }
+  }
+
+
+
+/**
+ * Schedules a debounced server update to notify Wt server.
+ */
+/* function scheduleUpdate() {
+  if (!updatePending) {
+    updatePending = true;
+    setTimeout(() => {
+      sendUpdate(); // Sends WebSocket/HTTP/2 message
+      updatePending = false;
+    }, 50); // Debounce to avoid flooding server
+  }
+} */
+
+  /**
+   * Checks if a global symbol (e.g., 'google.maps') is defined.
+   * @param {string} symbol - The symbol to check.
+   * @returns {boolean} True if defined, false otherwise.
+   */
+  isSymbolDefined = symbol => !!symbol && !!symbol.split('.').reduce((o, p) => o?.[p], window);
+/*   isSymbolDefined(symbol) {
+    if (!symbol) return false;
+    try {
+      return symbol.split('.').reduce((obj, part) => obj && obj[part], window) !== undefined;
+    } catch {
+      return false;
+    }
+  } */
+
+  /**
+   * Checks if a script is already loaded or pushed (e.g., via HTTP/2).
+   * @param {string} path - The script URL.
+   * @returns {boolean} True if the script is in the DOM.
+   */
+  isScriptLoaded(path) {
+    return !!document.querySelector(`script[src="${path}"]`);
+  }
+
+  /**
+   * Loads a script via <script> tag with retries, reusing HTTP cache.
+   * @param {string} path - The script URL.
+   * @param {string} [symbol] - Optional global symbol to check.
+   * @param {number} [tries=2] - Retry attempts.
+   * @returns {Promise<void>} Resolves when loaded, rejects on failure.
+   */
+  async loadScript(path, symbol, tries = 2) {
+    if (symbol && isSymbolDefined(symbol)) return;
+    if (isScriptLoaded(path)) return;
+
+    for (let attempt = 1; attempt <= tries; attempt++) {
+      try {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = path;
+          script.async = true;
+          script.crossOrigin = 'anonymous'; // Match import() CORS for cache reuse
+
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error(`Failed to load script: ${path}`));
+
+          document.head.appendChild(script);
+        });
+        return;
+      } catch (error) {
+        if (attempt === tries) throw error;
+        await new Promise(resolve => setTimeout(resolve, 100 * 2 ** (attempt - 1))); // Exponential backoff
+      }
+    }
+  }
+
+  /**
+   * Loads a JavaScript library with ES Modules or <script> fallback.
+   * Checks for existing loads, symbols, or pushed scripts to avoid redundancy.
+   * @param {string} path - The library URL (e.g., 'https://maps.googleapis.com/maps/api/js').
+   * @param {string} [symbol] - Optional global symbol (e.g., 'google.maps').
+   * @param {number} [tries=2] - Retry attempts for <script>.
+   * @returns {Promise<void>} Resolves when loaded, rejects on failure.
+   */
+  async loadLibrary(path, symbol, tries = 2) {
+    // Check for existing load
+    if (this.#libraryPromises.has(path)) {
+      return this.#libraryPromises.get(path);
+    }
+
+    // Check if script is already loaded or symbol is defined
+    if (this.isScriptLoaded(path) || (symbol && this.isSymbolDefined(symbol))) {
+      //scheduleUpdate();
+      return Promise.resolve();
+    }
+
+    this.#loadingLibraries.add(path);
+    const promise = (async () => {
+      try {
+        try {
+          // Try ES Module; browser caches response in HTTP cache
+          await import(path);
+        } catch (e) {
+          // Fallback to <script> for non-modules, reusing HTTP cache
+          if (e instanceof SyntaxError && e.message.includes('Unexpected token')) {
+            await this.loadScript(path, symbol, tries);
+          } else {
+            throw e; // Rethrow network/CORS errors
+          }
+        }
+        this.#loadingLibraries.delete(path);
+        if (this.#loadingLibraries.size === 0) scheduleUpdate();
+      } catch (error) {
+        this.#loadingLibraries.delete(path);
+        if (this.#loadingLibraries.size === 0) scheduleUpdate();
+        const err = { 'error-description': `Fatal error: failed loading ${path}` };
+        sendError?.(err, err['error-description']);
+        quit?.(null);
+        throw error;
+      }
+    })();
+
+    this.#libraryPromises.set(path, promise);
+    return promise;
+  }
+
+  #doJavaScript(js){
+    if (js) new Function(js)(); // vs eval(js); //!!!eval 
+    this === appInstance && appInstance?._p_?.doAutoJavaScript();
+  }
+  
+  trackPointer(element) {
+    element.addEventListener('pointerdown', e => {
+      this.#downX = e.pageX;
+      this.#downY = e.pageY;
+      this.activePointers.set(e.pointerId, {
+        id: e.pointerId,
+        type: e.pointerType,
+        isPrimary: e.isPrimary,
+        pressure: e.pressure || 0,
+        position: {
+          client: { x: Math.round(e.clientX), y: Math.round(e.clientY) },
+          page: { x: Math.round(e.pageX), y: Math.round(e.pageY) },
+          screen: { x: Math.round(e.screenX), y: Math.round(e.screenY) }
+        },
+        target: e.target,
+        timestamp: Date.now()
+      });
+      // Ensure we capture pointer events even if they move outside the element
+      if (element.setPointerCapture) {
+        element.setPointerCapture(e.pointerId);
+      }
+    });
+    // Update pointer position when it moves
+    element.addEventListener('pointermove', e => {
+      if (this.activePointers.has(e.pointerId)) {
+        const pointer = this.activePointers.get(e.pointerId);
+        pointer.position.client = { x: Math.round(e.clientX), y: Math.round(e.clientY) };
+        pointer.position.page = { x: Math.round(e.pageX), y: Math.round(e.pageY) };
+        pointer.position.screen = { x: Math.round(e.screenX), y: Math.round(e.screenY) };
+        pointer.pressure = e.pressure || 0;
+        pointer.timestamp = Date.now();
+      }
+    });
+    // Remove pointer when it's lifted or canceled
+    const removePointer = e => {
+      if (element.releasePointerCapture) {
+        try {
+          element.releasePointerCapture(e.pointerId);
+        } catch (err) {
+          // Ignore errors if pointer was already released
+        }
+      }
+      this.activePointers.delete(e.pointerId);
+    };
+    
+    element.addEventListener('pointerup', removePointer);
+    element.addEventListener('pointercancel', removePointer);
+    element.addEventListener('pointerleave', removePointer);
+  }
+
 
   setPath(path) {
     history.pushState(null, '', path);
   }
 
   load() {
-    document.addEventListener('mousedown', this.wt.mouseDown.bind(this.wt));
-    document.addEventListener('mouseup', this.wt.mouseUp.bind(this.wt));
+    // document.addEventListener('mousedown', this.wt.mouseDown.bind(this.wt));
+    // document.addEventListener('mouseup', this.wt.mouseUp.bind(this.wt));
     this.keepAliveTimer = setInterval(() => this.update(null, 'keepAlive', null, false), this.config.keepAlive * 1000);
   }
+
+  addTimerEvent({ id, delay, repeat = -1, callback, context = null }) {
+    if (!id || typeof delay !== 'number' || delay < 0 || (repeat !== -1 && (typeof repeat !== 'number' || repeat <= 0))) {
+      throw new Error('Invalid parameters: id, delay (non-negative number), and repeat (either -1 or positive number) are required');
+    }
+  
+    const element = this.getElement(id);
+    const action = callback || (element?.onclick?.bind(element) ?? (() => {}));
+  
+    this.clearTimer(id);
+  
+    const handler = () => {
+      try {
+        action.call(context ?? element ?? this, element);
+        if (repeat === -1) this.timers.delete(id);
+      } catch (error) {
+        console.error(`Error in timer event for ${id}:`, error);
+      }
+    };
+  
+    const timerId = repeat === -1 ? setTimeout(handler, delay) : setInterval(handler, repeat);
+    this.timers.set(id, { timerId, repeat, handler });
+  
+    return timerId;
+  }
+  
+  clearTimer(id) {
+    const timerData = this.timers.get(id);
+    if (timerData) {
+      (timerData.repeat === -1 ? clearTimeout : clearInterval)(timerData.timerId);
+      this.timers.delete(id);
+    }
+  }
+  
+  clearAllTimers() {
+    this.timers.forEach((_, id) => this.clearTimer(id));
+  }
+  propagateSize = (element, width, height) => {
+    width = width === -1 ? element.offsetWidth : width;
+    height = height === -1 ? element.offsetHeight : height;  
+    if ((element.wtWidth !== width) || (element.wtHeight !== height)) {
+      element.wtWidth = width;
+      element.wtHeight = height;
+      
+      // Only send valid dimensions
+      if (width >= 0 && height >= 0) {
+        this.emit(element, "resized", Math.round(width), Math.round(height));
+      }
+    }
+  };
 
   update(element, signalName, event, feedback) {
     const eventData = {
@@ -478,11 +1227,27 @@ class WtApp {
       feedback,
       evAckId: this.ackUpdateId || 0,
     };
-    this.pendingEvents.push(this.encodeEvent(eventData));
-    this.scheduleUpdate();
+    this.#queue.push(this.encodeEvent(eventData)); 
+    this.#queue.scheduleUpdate(); 
+    //this.pendingEvents.push(this.encodeEvent(eventData));
+    //this.scheduleUpdate();
   }
 
-  encodeEvent(event) {
+  emit(obj, config, ...Args) {
+    const userEvent = {
+      signal: 'user',
+      id: obj.id ?? obj,
+      name: config.name  ?? config,
+      object: config.eventObject ?? null,
+      event: config.event        ?? null,
+      args: Args.map(a => a?.toDateString?.() ?? a),
+      feedback : true,
+      evAckId: this.ackUpdateId
+    };
+    this.#queue.push(this.encodeEvent(userEvent));
+    this.#queue.flush();                       // prompt flush (like scheduleUpdate)
+  }
+/*   encodeEvent(event) {
     // const mods = ['altKey', 'ctrlKey', 'metaKey', 'shiftKey']
     //   .filter(k => event[k])
     //   .map(k => `${k}=1`);
@@ -490,77 +1255,329 @@ class WtApp {
     if (event.object?.id) result.push(`id=${event.object.id}`);
     return { data: result, feedback: event.feedback, evAckId: event.evAckId };
   }
-
-  scheduleUpdate() {
-    if (this.hasQuit || this.responsePending) return;
-    clearTimeout(this.updateTimeout);
-    this.updateTimeout = setTimeout(() => this.sendUpdate(), 51);
+ */
+  /**
+ * Encodes event information for server communication using modern Pointer Events API
+ * 
+ * @param {Object} event - The event to encode
+ * @returns {Object} The modified event with payload property
+ */
+encodeEvent(event) {
+  // Create structured JSON payload
+  const payload = {
+    signal: event.signal,
+    evAckId: event.evAckId
+  };
+  
+  // Add widget info if present
+  if (event.id) {
+    payload.widget = {
+      id: event.id,
+      name: event.name,
+      args: event.args || []
+    };
   }
-
-  async sendUpdate() {
-    if (this.pendingEvents.length === 0) return;
-    const { result } = this.encodePendingEvents(this.config.maxFormDataSize);
-    this.responsePending = true;
-    await this.comm.sendUpdate(`request=jsupdate${result}`, null, this.ackUpdateId, -1, false);
-    this.responsePending = false;
-  }
-
-  encodePendingEvents(maxLength) {
-    let result = '';
-    let feedback = false;
-    let i = 0;
-    for (; i < this.pendingEvents.length; i++) {
-      const eventData = this.pendingEvents[i].data.join('&');
-      if (result.length + eventData.length < maxLength) {
-        result += (i > 0 ? '&e' + i : '&') + eventData;
-        feedback = feedback || this.pendingEvents[i].feedback;
-      } else break;
+  
+  // Process form data
+  if (formObjects.length > 0) {
+    for (const formId of formObjects) {
+      const el = document.getElementById(formId);
+      if (!el) continue;
+      
+      const value = getFormElementValue(el);
+      if (value !== undefined) {
+        payload.formData[formId] = value;
+      }
     }
-    this.sentEvents = this.sentEvents.concat(this.pendingEvents.slice(0, i));
-    this.pendingEvents = this.pendingEvents.slice(i);
-    return { feedback, result };
+  }
+  
+  // Track active element
+  if (document.activeElement?.id) {
+    payload.focus = document.activeElement.id;
+  }
+  
+  // Add internal path data
+  if (currentHash) {
+    payload.path = currentHash;
+  }
+  
+  // If no DOM event, return early
+  if (!event.event) {
+    event.payload = payload;
+    return event;
+  }
+  
+  // Add DOM event data
+  const e = event.event;
+  const eventData = payload.eventData = {};
+  
+  // Event metadata
+  if (e.type) eventData.type = e.type;
+  
+  // Find target with ID
+  const target = findTargetWithId(e.target);
+  if (target?.id) eventData.targetId = target.id;
+  
+  // Only handle pointer events (no fallback for older browsers)
+  if (e.pointerId !== undefined) {
+    eventData.pointer = {
+      id: e.pointerId,
+      type: e.pointerType,
+      isPrimary: e.isPrimary,
+      pressure: e.pressure || 0,
+      position: {
+        client: { x: Math.round(e.clientX), y: Math.round(e.clientY) },
+        page: { x: Math.round(e.pageX), y: Math.round(e.pageY) },
+        screen: { x: Math.round(e.screenX), y: Math.round(e.screenY) }
+      },
+      button: e.button || 0,
+      buttons: e.buttons || 0
+    };
+    
+    // Calculate widget-relative coordinates if needed
+    if (event.object && event.object.nodeType !== 9) {
+      const rect = event.object.getBoundingClientRect();
+      eventData.pointer.position.widget = {
+        x: Math.round(e.clientX - rect.left),
+        y: Math.round(e.clientY - rect.top)
+      };
+      
+      // Add scroll information if available
+      if ('scrollLeft' in event.object) {
+        eventData.scroll = {
+          x: Math.round(event.object.scrollLeft),
+          y: Math.round(event.object.scrollTop),
+          width: Math.round(event.object.clientWidth),
+          height: Math.round(event.object.clientHeight)
+        };
+      }
+    }
+    
+    // Multi-touch data (similar to TouchList API)
+    const allPointers = Array.from(this.activePointers.values());
+    
+    // All active touches (equivalent to e.touches)
+    eventData.touches = allPointers.map(p => ({
+      identifier: p.id,
+      type: p.type,
+      isPrimary: p.isPrimary,
+      position: p.position,
+      pressure: p.pressure
+    }));
+    
+    // Touches on the target element (equivalent to e.targetTouches)
+    if (target) {
+      eventData.targetTouches = allPointers
+        .filter(p => this.findTargetWithId(p.target) === target)
+        .map(p => ({
+          identifier: p.id,
+          type: p.type,
+          isPrimary: p.isPrimary,
+          position: p.position,
+          pressure: p.pressure
+        }));
+    }
+    
+    // Just the current touch (equivalent to e.changedTouches)
+    eventData.changedTouches = [{
+      identifier: e.pointerId,
+      type: e.pointerType,
+      isPrimary: e.isPrimary,
+      position: {
+        client: { x: Math.round(e.clientX), y: Math.round(e.clientY) },
+        page: { x: Math.round(e.pageX), y: Math.round(e.pageY) },
+        screen: { x: Math.round(e.screenX), y: Math.round(e.screenY) }
+      },
+      pressure: e.pressure || 0
+    }];
+    
+    // Add information for common multi-touch gestures
+    if (eventData.touches.length >= 2) {
+      const points = eventData.touches.map(t => t.position.page);
+      
+      // Calculate pinch/zoom info
+      if (points.length >= 2) {
+        const dx = points[0].x - points[1].x;
+        const dy = points[0].y - points[1].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        eventData.gesture = {
+          pointerCount: points.length,
+          distance: distance,
+          // Can add more gesture data as needed
+        };
+      }
+    }
+    
+    // Drag information
+    eventData.drag = {
+      dx: Math.round(e.pageX - this.#downX),
+      dy: Math.round(e.pageY - this.#downY)
+    };
+    
+    // Wheel information
+    if (e.deltaY !== undefined) {
+      eventData.wheel = { 
+        deltaY: Math.round(e.deltaY),
+        deltaMode: e.deltaMode
+      };
+    }
+  }
+  
+  // Keyboard information
+  if (e.key) {
+    eventData.keyboard = {
+      key: e.key,
+      code: e.code,
+      modifiers: {
+        alt: e.altKey || false,
+        ctrl: e.ctrlKey || false,
+        meta: e.metaKey || false,
+        shift: e.shiftKey || false
+      }
+    };
+  }
+  
+  // Store payload
+  event.payload = payload;
+  return event;
+}
+/**
+ * Gets form element value based on type
+ */
+getFormElementValue(el) {
+  // Custom value encoder
+  if (el.wtEncodeValue)
+    return el.wtEncodeValue(el);
+  
+  // Handle different element types
+  switch(el.type) {
+    case 'select-multiple':
+      return [...el.selectedOptions].map(opt => opt.value);
+      
+    case 'checkbox':
+    case 'radio':
+      return el.indeterminate || el.style.opacity === '0.5' ? 'indeterminate' : el.checked ? el.value : undefined;
+      
+    case 'file':
+      return undefined;
+      
+    default:
+      // Handle text inputs
+      if (el.classList.contains('Wt-edit-emptyText'))
+        return '';
+      
+      // Handle WTextEdit
+      el.ed?.save();
+      
+      const value = el.value;
+      
+      // Add selection information if focused
+      if (document.activeElement === el) {
+        return {
+          value,
+          selection: {
+            start: el.selectionStart,
+            end: el.selectionEnd
+          }
+        };
+      }
+      
+      return value;
+  }
+}
+// button(e) {
+//   if (e.button === 0) return 1; // Left
+//   if (e.button === 1) return 2; // Middle
+//   if (e.button === 2) return 4; // Right
+// }
+/**
+ * Finds nearest parent with ID
+ */
+findTargetWithId(target) {
+  while (target && !target.id && target.parentNode) {
+    target = target.parentNode;
+  }
+  return target;
+}
+
+  // scheduleUpdate() {
+  //   if (this.hasQuit || this.responsePending) return;
+  //   clearTimeout(this.updateTimeout);
+  //   this.updateTimeout = setTimeout(() => this.sendUpdate(), 51);
+  // }
+
+  // async sendUpdate() {
+  //   if (this.pendingEvents.length === 0) return;
+  //   const { result } = this.encodePendingEvents(this.config.maxFormDataSize);
+  //   this.responsePending = true;
+  //   await this.comm.sendUpdate(`request=jsupdate${result}`, null, this.ackUpdateId, -1, false);
+  //   this.responsePending = false;
+  // }
+
+  // encodePendingEvents(maxLength) {
+  //   let result = '';
+  //   let feedback = false;
+  //   let i = 0;
+  //   for (; i < this.pendingEvents.length; i++) {
+  //     const eventData = this.pendingEvents[i].data.join('&');
+  //     if (result.length + eventData.length < maxLength) {
+  //       result += (i > 0 ? '&e' + i : '&') + eventData;
+  //       feedback = feedback || this.pendingEvents[i].feedback;
+  //     } else break;
+  //   }
+  //   this.sentEvents = this.sentEvents.concat(this.pendingEvents.slice(0, i));
+  //   this.pendingEvents = this.pendingEvents.slice(i);
+  //   return { feedback, result };
+  // }
+
+  #handleResponse(status, msg) {
+    if (status === 0 && msg)             
+      try {
+        this.#doJavaScript(msg); //eval(msg); // Simplified for brevity
+      } catch (e) {
+        const err = {
+          exception_code: e.code || "unknown",
+          exception_description: e.message || "No description",
+          exception_js: msg,
+          stack: e.stack || "No stack trace"
+        };
+        sendError(err, `Wt internal error; code: ${e.code || "unknown"}, description: ${e.message || "No description"}`);
+        throw e;
+      }
   }
 
-  handleResponse(status, msg) {
-    if (status === 0 && msg) eval(msg); // Simplified for brevity
-    this.sentEvents = [];
-    this.responsePending = false;
-    if (this.pendingEvents.length > 0) this.sendUpdate();
-  }
 
-  emit(object, config, ...args) {
-    this.update(object, 'user', null, true);
-  }
 
   /*  */
-  startKeepAlive() {
-    this.timers.keepAlive = setInterval(() =>
-      fetch('/api/ping'), this.config.keepAliveInterval //update(null, "keepAlive", null, false);
-    );
-  }
+  // startKeepAlive() {
+  //   this.timers.keepAlive = setInterval(() =>
+  //     fetch('/api/ping'), this.config.keepAliveInterval //update(null, "keepAlive", null, false);
+  //   );
+  // }
 
   startIdleTimeout() {
     const reset = () => {
       clearTimeout(this.timers.idle);
+      const logout   = () => this.#conn.send('{"signal":"user", "id": "Wt-idleTimeout"}');
       this.timers.idle = setTimeout(() =>
-        fetch('/api/logout'), this.config.idleTimeout
+        logout, this.config.idleTimeout
       );
     };
-    ['wheel', 'pointerdown', 'keydown'].forEach(e =>
-      document.addEventListener(e, reset, { passive: true })
+    ['wheel', 'pointerdown', 'keydown', 'visibilitychange'].forEach(e =>
+      document.addEventListener(e, reset, { passive: true/* , signal: aborter.signal */ })
     );
     reset();
   }
 
   quit() {
     Object.values(this.timers).forEach(clearTimeout);
-    fetch('/api/logout');
+    //fetch('/api/logout');
   }
 
   setTitle(title) {
     document.title = title;
   }
-
 }
 
 // Usage

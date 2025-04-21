@@ -917,7 +917,7 @@ WT_DECLARE_WT_MEMBER_BIG(
       if (matchedXAxis === -1 && matchedYAxis === -1 && !inRect) {
         return;
       }
-      const w = WT.normalizeWheel(event);
+      const w = /* WT.normalizeWheel(event) || */ {spinX:Math.sign(event.deltaX),spinY:Math.sign(event.deltaY),pixelX:event.deltaX,pixelY:event.deltaY};
       if (inRect && modifiers === 0 && curveManipulation()) {
         // Scale the curve around its middle
         const curve = configSelectedCurve();
