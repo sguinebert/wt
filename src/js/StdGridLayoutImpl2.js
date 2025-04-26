@@ -1825,7 +1825,7 @@ WT_DECLARE_WT_MEMBER(
       const otherw = WT.getElement(layout.getId());
 
       if (thisw && otherw) {
-        return WT.contains(thisw, otherw);
+        return thisw.contains(otherw);
       } else {
         return false;
       }
@@ -1882,7 +1882,7 @@ WT_DECLARE_APP_MEMBER(
       for (const ll of layout.descendants) {
         if (itemWidget) {
           const lw = layout.WT.getElement(ll.getId());
-          if (lw && !layout.WT.contains(itemWidget, lw)) {
+          if (lw && !itemWidget.contains(lw)) {
             continue;
           }
         }

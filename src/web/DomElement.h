@@ -677,7 +677,7 @@ public:
    * another element, to provide more interactivity in the absense of
    * JavaScript.
    */
-  void unwrap();
+  //void unwrap();
 
   /*! \brief Enumeration for an update rendering phase.
    */

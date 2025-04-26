@@ -192,11 +192,11 @@ WT_DECLARE_WT_MEMBER(
 
       const timings = ["ease", "linear", "ease-in", "ease-out", "ease-in-out"],
         inverseTiming = [0, 1, 3, 2, 4, 5],
-        prefix = WT.vendorPrefix(WT.styleAttribute("animation-duration"));
+        //prefix = WT.vendorPrefix(WT.styleAttribute("animation-duration"));
 
-      const animationEventEnd = prefix === "Webkit" ?
-        "webkitAnimationEnd" :
-        "animationend";
+      // const animationEventEnd = prefix === "Webkit" ?
+      //   "webkitAnimationEnd" :
+      //   "animationend";
 
       /*
       * We only need to implement the show() -- we hide the currently

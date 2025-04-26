@@ -62,26 +62,15 @@ WGLWidget::WGLWidget()
     contextRestored_(this, "contextRestored"),
     restoringContext_(false),
     valueChanged_(false),
-    mouseWentDownSlot_("function(o, e){" + this->glObjJsRef() 
-		       + ".mouseDown(o, e);}", this),
-    mouseWentUpSlot_("function(o, e){" + this->glObjJsRef() 
-		     + ".mouseUp(o, e);}", this),
-    mouseDraggedSlot_("function(o, e){" + this->glObjJsRef() 
-		      + ".mouseDrag(o, e);}", this),
-    mouseMovedSlot_("function(o, e){" + this->glObjJsRef() 
-		    + ".mouseMove(o, e);}", this),
-    mouseWheelSlot_("function(o, e){" + this->glObjJsRef() 
-		    + ".mouseWheel(o, e);}", this),
-    touchStarted_("function(o, e){" + this->glObjJsRef() 
-		  + ".touchStart(o, e);}", this),
-    touchEnded_("function(o, e){" + this->glObjJsRef()
-		+ ".touchEnd(o, e);}", this),
-    touchMoved_("function(o, e){" + this->glObjJsRef() 
-		+ ".touchMoved(o, e);}", this),
-    repaintSlot_("function() {"
-		 "var o = " + this->glObjJsRef() + ";"
-		 "if(o.ctx) o.paintGL();"
-		 "}", this)
+    mouseWentDownSlot_("function(o, e){" + this->glObjJsRef() + ".mouseDown(o, e);}", this),
+    mouseWentUpSlot_("function(o, e){" + this->glObjJsRef() + ".mouseUp(o, e);}", this),
+    mouseDraggedSlot_("function(o, e){" + this->glObjJsRef() + ".mouseDrag(o, e);}", this),
+    mouseMovedSlot_("function(o, e){" + this->glObjJsRef() + ".mouseMove(o, e);}", this),
+    mouseWheelSlot_("function(o, e){" + this->glObjJsRef() + ".mouseWheel(o, e);}", this),
+    touchStarted_("function(o, e){" + this->glObjJsRef() + ".touchStart(o, e);}", this),
+    touchEnded_("function(o, e){" + this->glObjJsRef() + ".touchEnd(o, e);}", this),
+    touchMoved_("function(o, e){" + this->glObjJsRef() + ".touchMoved(o, e);}", this),
+    repaintSlot_("function() {var o = " + this->glObjJsRef() + "if(o.ctx) o.paintGL();}", this)
 {
   setInline(false);
   setLayoutSizeAware(true);

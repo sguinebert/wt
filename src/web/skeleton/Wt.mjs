@@ -1,152 +1,8 @@
-// ------------- Utilities that work in every evergreen browser -------------
+//import {computePosition} from './popper.min.js';
+
 const graphemes = str => [...str];              // code‑point / grapheme array
 const toUnits = (str, cpIndex) => graphemes(str).slice(0, cpIndex).join('').length;
 const toPoints = (str, cuIndex) => graphemes(str.slice(0, cuIndex)).length;
-
-// class PositionManager {
-//   constructor() {
-//     this.elements = new Map();
-//   }
-  
-//   position(element, anchor, options = {}) {
-//     // Remove any existing observers
-//     this.untrack(element);
-    
-//     // 1. Calculate initial position using getBoundingClientRect
-//     const initialPosition = this.calculateOptimalPosition(element, anchor, options);
-    
-//     // 2. Apply position with transforms
-//     this.applyPosition(element, initialPosition);
-    
-//     // 3. Setup observers for reactivity
-//     const cleanup = this.setupObservers(element, anchor, options);
-    
-//     // Store cleanup function
-//     this.elements.set(element, cleanup);
-    
-//     return initialPosition;
-//   }
-  
-//   calculateOptimalPosition(element, anchor, options) {
-//     // Get accurate measurements
-//     const anchorRect = anchor.getBoundingClientRect();
-//     const elementRect = element.getBoundingClientRect();
-//     const viewport = {
-//       width: window.innerWidth,
-//       height: window.innerHeight
-//     };
-    
-//     // Calculate various possible positions
-//     const positions = {
-//       right: { x: anchorRect.right, y: anchorRect.top },
-//       bottom: { x: anchorRect.left, y: anchorRect.bottom },
-//       left: { x: anchorRect.left - elementRect.width, y: anchorRect.top },
-//       top: { x: anchorRect.left, y: anchorRect.top - elementRect.height }
-//     };
-    
-//     // Find first position that fits in viewport
-//     for (const [name, pos] of Object.entries(positions)) {
-//       if (
-//         pos.x >= 0 && 
-//         pos.x + elementRect.width <= viewport.width &&
-//         pos.y >= 0 && 
-//         pos.y + elementRect.height <= viewport.height
-//       ) {
-//         return { position: name, ...pos };
-//       }
-//     }
-    
-//     // If no perfect position, use preferred or fallback
-//     const preferred = options.preferred || 'right';
-//     return { position: preferred, ...positions[preferred] };
-//   }
-  
-//   applyPosition(element, position) {
-//     // Use transform for better performance
-//     //element.style.position = 'fixed';
-//     element.style.position = 'absolute';
-//     element.style.top = '0';
-//     element.style.left = '0';
-//     element.style.willChange = 'transform';
-//     //element.style.transform = `translate3d(${position.x}px, ${position.y}px, 0)`;
-//     element.style.transform = `translate(${position.x}px, ${position.y}px)`;
-    
-//     // Reset will-change after the operation
-//     requestAnimationFrame(() => {
-//       element.style.willChange = 'auto';
-//     });
-//   }
-  
-//   setupObservers(element, anchor, options) {
-//     // Intersection Observer for visibility
-//     const intersectionObserver = new IntersectionObserver(entries => {
-//       if (!entries[0].isIntersecting) {
-//         const newPosition = this.calculateOptimalPosition(element, anchor, {
-//           ...options,
-//           preferred: this.getOppositePosition(options.preferred)
-//         });
-//         this.applyPosition(element, newPosition);
-//       }
-//     }, { threshold: 0.1 });
-    
-//     intersectionObserver.observe(element);
-    
-//     // Resize Observer for size changes
-//     const resizeObserver = new ResizeObserver(() => {
-//       const newPosition = this.calculateOptimalPosition(element, anchor, options);
-//       this.applyPosition(element, newPosition);
-//     });
-    
-//     resizeObserver.observe(element);
-//     resizeObserver.observe(anchor);
-
-//     // Only monitor offsetParent for scroll events
-//     const offsetParent = element.offsetParent;
-//     if (offsetParent && offsetParent !== document.body) {
-//       const handleScroll = () => {
-//         const newPosition = this.calculateOptimalPosition(element, anchor, options);
-//         this.applyPosition(element, newPosition);
-//       };
-      
-//       // Add scroll listener just to offsetParent
-//       offsetParent.addEventListener('scroll', handleScroll, { passive: true });
-      
-//       // Always listen to window scroll
-//       //window.addEventListener('scroll', handleScroll, { passive: true });
-      
-//       // Return enhanced cleanup function
-//       return () => {
-//         intersectionObserver.disconnect();
-//         resizeObserver.disconnect();
-//         offsetParent.removeEventListener('scroll', handleScroll);
-//         //window.removeEventListener('scroll', handleScroll);
-//       };
-//     }
-    
-//     // Return cleanup function
-//     return () => {
-//       intersectionObserver.disconnect();
-//       resizeObserver.disconnect();
-//     };
-//   }
-  
-//   getOppositePosition(position) {
-//     const opposites = {
-//       right: 'left',
-//       left: 'right',
-//       top: 'bottom',
-//       bottom: 'top'
-//     };
-//     return opposites[position] || 'right';
-//   }
-  
-//   untrack(element) {
-//     if (this.elements.has(element)) {
-//       this.elements.get(element)();
-//       this.elements.delete(element);
-//     }
-//   }
-// }
 
 export class WtCore {
   constructor(config = {}) {
@@ -155,7 +11,7 @@ export class WtCore {
     this.lastButtonUp = 0;
     this.mouseDragging = 0;
     this.captureElement = null;
-    this.firedTarget = null;
+    //this.firedTarget = null;
     this.timers = new Map(); // Store timers for cleanup
     this.initBrowserDetection();
 
@@ -187,29 +43,9 @@ export class WtCore {
     return Object.keys(obj).length === 0;
   }
 
-  // button(event) {
-  //   const type = event.type;
-  //   if (!['mouseup', 'mousedown', 'click', 'dblclick'].includes(type)) return 0;
-  //   return { 0: 1, 1: 2, 2: 4 }[event.button] || 0;
-  // }
-
-  // mouseDown(event) {
-  //   this.buttons |= this.button(event);
-  // }
-
-  // mouseUp(event) {
-  //   this.lastButtonUp = this.button(event);
-  //   this.buttons &= ~this.lastButtonUp;
-  //   setTimeout(() => { this.mouseDragging = 0; }, 5);
-  // }
-
   dragged() { //only used in winteractwidget.cpp
     return this.mouseDragging > 2;
   }
-
-  // drag() {
-  //   this.mouseDragging += 1;
-  // }
 
   arrayRemove(array, from, to) {
     //return array.splice(from, (to ?? from) - from + 1); //ES11
@@ -230,38 +66,6 @@ export class WtCore {
     this.isIOS = /iphone|ipad|ipod/.test(agent);
   }
 
-  // initAjaxComm(url, handler) {
-  //   const crossDomain = url.includes('://') && new URL(url).host !== window.location.host;
-
-  //   const createRequest = async (method, url) => {
-  //     const response = await fetch(url, {
-  //       method,
-  //       credentials: crossDomain ? 'include' : 'same-origin',
-  //       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  //     });
-  //     return response;
-  //   };
-
-  //   return {
-  //     async sendUpdate(data, userData, _id, _timeout, isPoll) {
-  //       try {
-  //         const response = await createRequest('POST', url);
-  //         if (response.ok && response.headers.get('Content-Type')?.startsWith('text/javascript')) {
-  //           handler(0, await response.text(), userData); // OK
-  //         } else if (isPoll && response.status === 504) {
-  //           handler(2, null, userData); // Timeout
-  //         } else {
-  //           handler(1, null, userData); // Error
-  //         }
-  //       } catch {
-  //         handler(1, null, userData); // Error
-  //       }
-  //     },
-  //     responseReceived: () => {},
-  //     cancel: () => {url = null;},
-  //     setUrl: (newUrl) => { url = newUrl; },
-  //   };
-  // }
   fitToWindow(element, x, y, rightx, bottomy){
     // Reset positioning styles
     element.style.left = element.style.right = element.style.top = element.style.bottom = 'auto';
@@ -337,21 +141,79 @@ export class WtCore {
     element.style[sides[0][hside]] = `${x}px`;
     element.style[sides[1][vside]] = `${y}px`;
   }
-
+  //replace a dom element with a new one or just append its innerHTML
   setHtml(element, html, append = false) {
-    if(append) {
+    if(append)
       element.insertAdjacentHTML('beforeend', html);
-      // const parser = new DOMParser();
-      // const doc = parser.parseFromString(`<div>${html}</div>`, 'application/xhtml+xml');
-      // const div = doc.documentElement;
-      // const fragment = document.createDocumentFragment();
-      // Array.from(div.childNodes).forEach(node => fragment.appendChild(node.cloneNode(true)));
-      // //if (!append) element.innerHTML = '';
-      // element.appendChild(fragment);
+    else if (!html.includes('<') && !html.includes('&') && element.childNodes.length === 1 && element.firstChild.nodeType === Node.TEXT_NODE)
+        element.firstChild.textContent = html; // Update text node directly (more efficient +30%)
+    else {
+        //WT.saveReparented(element);
+        element.innerHTML = html;
     }
-    else element.innerHTML = html;
   }
+  // If a modern codebase now renders all those overlays directly 
+  // to a stable root node (a React/Vue portal, document.body, or .Wt‑domRoot) 
+  // and never leaves them inside volatile layout sub‑trees, you can drop both the class and saveReparented().
+  saveReparented = el => { //deprecated ?
+    const root = document.querySelector('.Wt-domRoot') ?? document.body;
+    el.querySelectorAll('.wt-reparented').forEach(node => root.append(node)); // append() moves, no manual remove needed
+  };
+  remove(id) {
+    const e = WT.getElement(id);
+    if (e) {
+      //WT.saveReparented(e);
+      e.parentNode.removeChild(e);
+    }
+  }
+  replaceWith(w1Id, w2) {
+    WT.$(w1Id).replaceWith(w2);
 
+    /* Reapply client-side validation, bootstrap applys validation classes
+       also outside the element into its ancestors */
+    if (w2.wtValidate && WT.validate) {
+      setTimeout(function() {
+        WT.validate(w2);
+      }, 0);
+    }
+  }
+  unstub(from, to, methodDisplay = 0){
+    const fs = from.style;
+    const ts = to.style;
+    if (methodDisplay === 1) {
+      fs.display && (ts.display = fs.display);
+    } else {
+      ['position', 'left', 'visibility'].forEach(p => ts[p] = fs[p]);
+    }
+    ['height', 'width'].forEach(p => fs[p] && (ts[p] = fs[p]));
+    ts.boxSizing = fs.boxSizing || getComputedStyle(from).boxSizing;
+  };
+  navigateInternalPath = (e, path) => {
+    const ev = e || window.event;
+    if (ev.ctrlKey || ev.metaKey || ev.button > 0) return;   // let “open‑in‑new‑tab” etc. through
+    history.pushState({path}, '', path);                     // update URL bar
+    ev.preventDefault();                                     // stop full reload
+    ev.stopPropagation();                                    // bubble no further
+    // TODO: invoke your own router/render logic here
+  };
+  
+  ajaxInternalPaths = (basePath = '/') => {
+    const base = new URL(basePath, document.baseURI);        // absolute base once
+    document.querySelectorAll('a.Wt-ip').forEach(a => {
+      // 1. strip any “wtd” tracking parameter
+      const rawHref = (a.getAttribute('href') ?? '')
+                        .replace(/([?&])wtd.*$/, '');
+      // 2. resolve …/../ and relatives with URL
+      const abs  = new URL(rawHref, base);
+      let  path  = abs.pathname + abs.search;                // internal path only
+      path = path.replace(/^\/?_=/, '/');                    // kill “ugly” /?_=
+      // 3. hydrate anchor & hook click
+      a.href = abs.href;                                     // normalised <a href="">
+      a.addEventListener('click', ev => navigateInternalPath(ev, path), {passive:false});
+      a.classList.remove('Wt-ip');
+    });
+  };
+  
   getElement(id) {
     return document.getElementById(id) || Array.from(window.frames)
       .map(frame => frame.document.getElementById(id))
@@ -445,11 +307,13 @@ export class WtCore {
   px(element, prop) {
     return parseFloat(css(element)[prop]) || 0;
   }
-
+  pxSelf  = (el, prop) => px(el, prop); //deprecated 
+  pctSelf = (el, prop) => this.px(el, prop); //deprecated 
+  styleAttribute = prop => prop; //deprecated 
   inlinePx(element, prop) {
     return parseFloat(element.style[prop]) || 0;
   }
-  isBorderBox(element) {
+  boxSizing(element) {
     return css(element).boxSizing === 'border-box';
   }
   isHidden(el) {
@@ -473,6 +337,7 @@ export class WtCore {
   show(o, s) {
     WT.getElement(o).style.display = s;
   };
+  target = e => e?.target || null;
 
   addCss(selector, style) { //not sure it is correct
     if (!this.styleSheet) {
@@ -495,16 +360,7 @@ export class WtCore {
       } catch (e) {}
     });
   }
-  // addStyleSheet(uri, media = '') {
-  //   const link = document.createElement('link');
-  //   link.rel = 'stylesheet';
-  //   link.href = uri;
-  //   if (media && media !== 'all') {
-  //     link.media = media;
-  //   }
-  //   document.head.appendChild(link);
-  //   return link;
-  // }
+
   positionAtWidget(id, atId, orientation, delta = 0) {
     const w = WT.getElement(id);
     const atw = WT.getElement(atId);
@@ -551,63 +407,6 @@ export class WtCore {
     w.style.visibility = "";
   }
   
-  // ensureVisibility = (element) => {
-  //   // Create the observer
-  //   const observer = new IntersectionObserver((entries) => {
-  //     // Process visibility changes
-  //     entries.forEach(entry => {
-  //       if (!entry.isIntersecting) {
-  //         // Element is outside viewport, adjust position
-  //         const rect = entry.boundingClientRect;
-  //         const viewportWidth = window.innerWidth;
-  //         const viewportHeight = window.innerHeight;
-          
-  //         // Calculate new position to bring into view
-  //         const x = Math.max(0, Math.min(rect.x, viewportWidth - rect.width));
-  //         const y = Math.max(0, Math.min(rect.y, viewportHeight - rect.height));
-          
-  //         // Apply new position with transform
-  //         element.style.transform = `translate(${x}px, ${y}px)`;
-  //       }
-  //     });
-  //   }, {
-  //     threshold: 0.1, // 10% visibility threshold
-  //     root: null,     // Use viewport as root
-  //     rootMargin: '0px' // No margin
-  //   });
-    
-  //   // Start observing
-  //   observer.observe(element);
-    
-  //   // Return cleanup function
-  //   return () => observer.disconnect();
-  // };
-  // positionWithTransforms = (id, x, y, rightx, bottomy) => {
-  //   const element = WT.getElement(id);
-  //   if (!element) return;
-    
-  //   // Set base positioning styles
-  //   element.style.position = 'absolute';
-  //   element.style.top = '0';
-  //   element.style.left = '0';
-    
-  //   // Apply transform-based positioning
-  //   this.fitToWindow(element, x, y, rightx, bottomy);
-    
-  //   // Ensure visibility with IntersectionObserver
-  //   const cleanup = this.ensureVisibility(element);
-    
-  //   // Store cleanup for later
-  //   this.observers = this.observers || new Map();
-  //   if (this.observers.has(id)) {
-  //     this.observers.get(id)(); // Call previous cleanup
-  //   }
-  //   this.observers.set(id, cleanup);
-    
-  //   // Make element visible
-  //   element.style.visibility = 'visible';
-  // };
-
   positionXY(id, x, y) {
     const w = WT.getElement(id);
 
@@ -621,43 +420,33 @@ export class WtCore {
     el.classList.toggle(className, enable);
   }
   /* END - style methods */
-
-
   /* this block is probably deprecated - we could use simpler widget logic */
+  capture(e){}
+  releaseCapture(e){}
 
-  capture(element, handlers = {}) {
-    if (!element) return;
-    const events = [
-      ['pointermove', handlers.move],
-      ['pointerup', handlers.up]
-      //, ['pointerleave', handlers.leave] // Optional, for mouse-out cases
-    ];
-    events.forEach(([type, handler]) => {
-      if (handler) {
-        element.addEventListener(type, handler, { capture: true });
-      }
-    });
-    element.classList.add('unselectable');
-  }
-
-  releaseCapture(element) {
-    element.classList.remove('unselectable');
+  startPointerCapture(el, downEvent, onMove, onEnd) {
+    const id = downEvent.pointerId;
+    el.setPointerCapture(id);                  // native capture
+  
+    //document.body.classList.add('dragging');   // CSS disables selection
+  
+    const move = e => {if(e.pointerId === id) onMove(e);};
+    const up   = e => {
+      if (e.pointerId !== id) return;
+      el.releasePointerCapture(id);
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup',   up);
+      //document.body.classList.remove('dragging');
+      onEnd?.(e);
+    };
+  
+    el.addEventListener('pointermove', move, {passive:false});
+    el.addEventListener('pointerup', up, {passive:false});
   }
 
   getByClass(className, parent = document) {
     return parent.querySelectorAll(`.${className}`);
   }
-
-  // capture(element) {
-  //   this.captureElement = element;
-  //   document.body.classList.toggle('unselectable', !!element);
-  //   document.body.onselectstart = element ? () => false : null;
-  // }
-
-  // target(event) {
-  //   return this.firedTarget || event.target || event.srcElement || null;
-  // }
-
 
   // Replacement for enableInternalPaths
   enableInternalPaths(initialPath) {
@@ -838,114 +627,6 @@ export class EventQueue {
   hasUnsent() { return this.#buf.length > 0; }
 }
 
-// class EventBus {
-//   constructor() { this.listeners = {}; }
-//   on(event, fn) { this.listeners[event] = this.listeners[event] || []; this.listeners[event].push(fn); }
-//   emit(event, ...args) { (this.listeners[event] || []).forEach(fn => fn(...args)); }
-// }
-
-// export class WsConnection {
-//   #socket = null;
-//   #state = 'unknown';
-//   #reconnectTries = 0;
-//   #pending = {};
-//   #nextId = 0;
-//   #keepAlive = null;
-//   #lastPong = Date.now();
-//   #bus = new EventBus();
-
-//   constructor(url, { maxTries = 5, baseDelay = 500, maxDelay = 120_000, heartbeat = 30_000, ackId = 0 } = {}) {
-//     this.url = url;
-//     this.maxTries = maxTries;
-//     this.baseDelay = baseDelay;
-//     this.maxDelay = maxDelay;
-//     this.heartbeat = heartbeat;
-//     this.ackId = ackId;
-//   }
-
-//   async connect() {
-//     if (this.#state === 'connecting' || this.#state === 'working') return;
-//     this.#state = 'connecting';
-//     this.#socket = new WebSocket(this.url);
-
-//     this.#socket.onopen = () => {
-//       this.#state = 'working';
-//       this.#reconnectTries = 0;
-//       this.#startHeartbeat();
-//       this.#bus.emit('connected', this.ackId);
-//     };
-//     this.#socket.onmessage = ({ data }) => {
-//       data === 'connect' ? this.#bus.emit('ackConnect', this.ackId) : this.#bus.emit('message', data);
-//     };
-//     this.#socket.onpong = () => { this.#lastPong = Date.now(); };
-//     this.#socket.onerror = () => {
-//       this.#state = 'error';
-//       this.#bus.emit('error', new Error('WebSocket error'));
-//       this.#reconnect();
-//     };
-//     this.#socket.onclose = () => {
-//       this.#state = 'closed';
-//       this.#bus.emit('close');
-//       this.#reconnect();
-//     };
-
-//     await new Promise((r) => this.#socket.addEventListener('open', r, { once: true }));
-//   }
-
-//   async #reconnect() {
-//     if (this.#reconnectTries >= this.maxTries) {
-//       this.#state = 'unavailable';
-//       this.#bus.emit('unavailable');
-//       return;
-//     }
-//     await new Promise((r) => setTimeout(r, Math.min(this.maxDelay, Math.exp(this.#reconnectTries++) * this.baseDelay)));
-//     this.connect();
-//   }
-
-//   #startHeartbeat() {
-//     this.#keepAlive && clearInterval(this.#keepAlive);
-//     this.#lastPong = Date.now();
-//     this.#keepAlive = setInterval(() => {
-//       if (this.#socket?.readyState !== WebSocket.OPEN) {
-//         clearInterval(this.#keepAlive);
-//         this.#keepAlive = null;
-//         return;
-//       }
-//       this.#socket.ping();
-//       if (Date.now() - this.#lastPong > this.heartbeat * 1.5) this.#socket.close();
-//     }, this.heartbeat);
-//   }
-
-//   send(data) {
-//     if (this.#state !== 'working') throw new Error('WebSocket not connected');
-//     const id = this.#nextId++;
-//     this.#pending[id] = { data, time: Date.now() };
-//     this.#socket.send(`${data}&wsRqId=${id}`);
-//     return id;
-//   }
-
-//   async sendUpdate(data) {
-//     try {
-//       const id = this.send(data);
-//       await new Promise((r, j) => {
-//         const t = setTimeout(() => j(new Error('Request timeout')), 5000);
-//         this.#bus.on('ack', (ackId) => ackId === id && (clearTimeout(t), delete this.#pending[id], r()));
-//       });
-//     } catch (e) {
-//       this.#bus.emit('sendError', e);
-//     }
-//   }
-
-//   on(event, fn) {
-//     this.#bus.on(event, fn);
-//   }
-
-//   close() {
-//     this.#socket?.close();
-//     this.#keepAlive && clearInterval(this.#keepAlive);
-//   }
-// }
-
 export default class WtApp {
   #wevt = new GlobalEventManager();
   #conn = new Connection(this.config.sessionUrl, this.#handleResponse);
@@ -973,11 +654,8 @@ export default class WtApp {
     };
     this._p_ = this;
     this.wt = new WtCore(this.config);
-    //this.wt.initAjaxComm(this.config.sessionUrl, this.handleResponse.bind(this));
-    // this.pendingEvents = [];
-    // this.sentEvents = [];
     this.activePointers = new Map();
-    this.load();
+    //this.load();
 
     window.addEventListener('beforeunload', () => {
       if (this.#hasQuit) return;
@@ -990,17 +668,9 @@ export default class WtApp {
       this.#hasQuit = true;
       this.quit();
     }, { capture: true, once: true });
+    this.keepAliveTimer = setInterval(() => this.update(null, 'keepAlive', null, false), this.config.keepAlive * 1000);
   }
 
-  // trackPointer(element, onMove) {
-  //   let startPos;
-  //   element.addEventListener('pointerdown', e => {
-  //     startPos = { x: e.pageX, y: e.pageY };
-  //   });
-  //   element.addEventListener('pointermove', e => {
-  //     if (startPos) onMove({ x: e.pageX - startPos.x, y: e.pageY - startPos.y });
-  //   });
-  // }
   async preload(uris, type = 'image') {
     const promises = uris.map(uri => (type === 'image' ? 
       new Promise(r => { const img = new Image(); img.onload = () => r(img); img.onerror = () => r(null); img.src = uri; }) :
@@ -1008,63 +678,13 @@ export default class WtApp {
     ));
     return (await Promise.allSettled(promises)).map(r => r.value).filter(v => v);
   }
-  
-  // Example usage
-  async loadResources(uris, type) {
-    try {
-      const data = await preload(uris, type);
-      console.log('data:', data);
-    } catch (e) {
-      console.error('Unexpected error:', e);
-    }
-  }
 
-
-
-/**
- * Schedules a debounced server update to notify Wt server.
- */
-/* function scheduleUpdate() {
-  if (!updatePending) {
-    updatePending = true;
-    setTimeout(() => {
-      sendUpdate(); // Sends WebSocket/HTTP/2 message
-      updatePending = false;
-    }, 50); // Debounce to avoid flooding server
-  }
-} */
-
-  /**
-   * Checks if a global symbol (e.g., 'google.maps') is defined.
-   * @param {string} symbol - The symbol to check.
-   * @returns {boolean} True if defined, false otherwise.
-   */
   isSymbolDefined = symbol => !!symbol && !!symbol.split('.').reduce((o, p) => o?.[p], window);
-/*   isSymbolDefined(symbol) {
-    if (!symbol) return false;
-    try {
-      return symbol.split('.').reduce((obj, part) => obj && obj[part], window) !== undefined;
-    } catch {
-      return false;
-    }
-  } */
 
-  /**
-   * Checks if a script is already loaded or pushed (e.g., via HTTP/2).
-   * @param {string} path - The script URL.
-   * @returns {boolean} True if the script is in the DOM.
-   */
   isScriptLoaded(path) {
     return !!document.querySelector(`script[src="${path}"]`);
   }
 
-  /**
-   * Loads a script via <script> tag with retries, reusing HTTP cache.
-   * @param {string} path - The script URL.
-   * @param {string} [symbol] - Optional global symbol to check.
-   * @param {number} [tries=2] - Retry attempts.
-   * @returns {Promise<void>} Resolves when loaded, rejects on failure.
-   */
   async loadScript(path, symbol, tries = 2) {
     if (symbol && isSymbolDefined(symbol)) return;
     if (isScriptLoaded(path)) return;
@@ -1090,14 +710,6 @@ export default class WtApp {
     }
   }
 
-  /**
-   * Loads a JavaScript library with ES Modules or <script> fallback.
-   * Checks for existing loads, symbols, or pushed scripts to avoid redundancy.
-   * @param {string} path - The library URL (e.g., 'https://maps.googleapis.com/maps/api/js').
-   * @param {string} [symbol] - Optional global symbol (e.g., 'google.maps').
-   * @param {number} [tries=2] - Retry attempts for <script>.
-   * @returns {Promise<void>} Resolves when loaded, rejects on failure.
-   */
   async loadLibrary(path, symbol, tries = 2) {
     // Check for existing load
     if (this.#libraryPromises.has(path)) {
@@ -1199,13 +811,6 @@ export default class WtApp {
   setPath(path) {
     history.pushState(null, '', path);
   }
-
-  load() {
-    // document.addEventListener('mousedown', this.wt.mouseDown.bind(this.wt));
-    // document.addEventListener('mouseup', this.wt.mouseUp.bind(this.wt));
-    this.keepAliveTimer = setInterval(() => this.update(null, 'keepAlive', null, false), this.config.keepAlive * 1000);
-  }
-
   addTimerEvent({ id, delay, repeat = -1, callback, context = null }) {
     if (!id || typeof delay !== 'number' || delay < 0 || (repeat !== -1 && (typeof repeat !== 'number' || repeat <= 0))) {
       throw new Error('Invalid parameters: id, delay (non-negative number), and repeat (either -1 or positive number) are required');
@@ -1266,8 +871,6 @@ export default class WtApp {
     };
     this.#queue.push(this.encodeEvent(eventData)); 
     this.#queue.scheduleUpdate(); 
-    //this.pendingEvents.push(this.encodeEvent(eventData));
-    //this.scheduleUpdate();
   }
 
   emit(obj, config, ...Args) {
@@ -1284,21 +887,7 @@ export default class WtApp {
     this.#queue.push(this.encodeEvent(userEvent));
     this.#queue.flush();                       // prompt flush (like scheduleUpdate)
   }
-/*   encodeEvent(event) {
-    // const mods = ['altKey', 'ctrlKey', 'metaKey', 'shiftKey']
-    //   .filter(k => event[k])
-    //   .map(k => `${k}=1`);
-    const result = [`signal=${event.signal}`];
-    if (event.object?.id) result.push(`id=${event.object.id}`);
-    return { data: result, feedback: event.feedback, evAckId: event.evAckId };
-  }
- */
-  /**
- * Encodes event information for server communication using modern Pointer Events API
- * 
- * @param {Object} event - The event to encode
- * @returns {Object} The modified event with payload property
- */
+
 encodeEvent(event) {
   // Create structured JSON payload
   const payload = {
@@ -1523,50 +1112,16 @@ getFormElementValue(el) {
       return value;
   }
 }
-// button(e) {
-//   if (e.button === 0) return 1; // Left
-//   if (e.button === 1) return 2; // Middle
-//   if (e.button === 2) return 4; // Right
-// }
-/**
- * Finds nearest parent with ID
- */
-findTargetWithId(target) {
-  while (target && !target.id && target.parentNode) {
-    target = target.parentNode;
-  }
-  return target;
-}
 
-  // scheduleUpdate() {
-  //   if (this.hasQuit || this.responsePending) return;
-  //   clearTimeout(this.updateTimeout);
-  //   this.updateTimeout = setTimeout(() => this.sendUpdate(), 51);
-  // }
-
-  // async sendUpdate() {
-  //   if (this.pendingEvents.length === 0) return;
-  //   const { result } = this.encodePendingEvents(this.config.maxFormDataSize);
-  //   this.responsePending = true;
-  //   await this.comm.sendUpdate(`request=jsupdate${result}`, null, this.ackUpdateId, -1, false);
-  //   this.responsePending = false;
-  // }
-
-  // encodePendingEvents(maxLength) {
-  //   let result = '';
-  //   let feedback = false;
-  //   let i = 0;
-  //   for (; i < this.pendingEvents.length; i++) {
-  //     const eventData = this.pendingEvents[i].data.join('&');
-  //     if (result.length + eventData.length < maxLength) {
-  //       result += (i > 0 ? '&e' + i : '&') + eventData;
-  //       feedback = feedback || this.pendingEvents[i].feedback;
-  //     } else break;
-  //   }
-  //   this.sentEvents = this.sentEvents.concat(this.pendingEvents.slice(0, i));
-  //   this.pendingEvents = this.pendingEvents.slice(i);
-  //   return { feedback, result };
-  // }
+    /**
+     * Finds nearest parent with ID
+     */
+    findTargetWithId(target) {
+        while (target && !target.id && target.parentNode) {
+            target = target.parentNode;
+        }
+        return target;
+    }
 
   #handleResponse(status, msg) {
     if (status === 0 && msg)             
@@ -1584,15 +1139,6 @@ findTargetWithId(target) {
       }
   }
 
-
-
-  /*  */
-  // startKeepAlive() {
-  //   this.timers.keepAlive = setInterval(() =>
-  //     fetch('/api/ping'), this.config.keepAliveInterval //update(null, "keepAlive", null, false);
-  //   );
-  // }
-
   startIdleTimeout() {
     const reset = () => {
       clearTimeout(this.timers.idle);
@@ -1609,21 +1155,7 @@ findTargetWithId(target) {
 
   quit() {
     Object.values(this.timers).forEach(clearTimeout);
-    //fetch('/api/logout');
     this.#hasQuit = true;
-    quitStr = hasQuitMessage;
-    // if (keepAliveTimer) {
-    //   clearInterval(keepAliveTimer);
-    //   keepAliveTimer = null;
-    // }
-    // if (idleTimeoutTimer) {
-    //   clearTimeout(idleTimeoutTimer);
-    //   idleTimeoutTimer = null;
-    // }
-    // if (pollTimer) {
-    //   clearTimeout(pollTimer);
-    //   pollTimer = null;
-    // }
     this.#conn.cancel();
     const tr = WT.$("Wt-timers");
     if (tr) {
@@ -1635,19 +1167,3 @@ findTargetWithId(target) {
     document.title = title;
   }
 }
-
-// Usage
-const config = {
-  deployPath: '/app',
-  sessionUrl: '/session',
-  keepAlive: 60,
-  maxFormDataSize: 1024 * 1024,
-  idleTimeout: 3600,
-  indicatorTimeout: 500,
-  serverPushTimeout: 30000,
-  wsPath: '/ws',
-  wsId: 'unique-id',
-  innerHtml: true,
-};
-const app = new WtApp(config);
-window.Wt = app;

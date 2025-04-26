@@ -497,7 +497,7 @@ if (!window._$_WT_CLASS_$_) {
       }
     };
 
-    this.contains = function(w1, w2) {
+    this.contains = function(w1, w2) { //depprecated
       let p = w2.parentNode;
 
       while (p && !WT.hasTag(p, "BODY")) {
@@ -543,7 +543,7 @@ if (!window._$_WT_CLASS_$_) {
       });
     };
 
-    this.changeTag = function(e, type) {
+    this.changeTag = function(e, type) { //deprecated (used in unwrap)
       const n = document.createElement(type);
 
       /* For some reason fails on 'a' */
@@ -602,7 +602,7 @@ if (!window._$_WT_CLASS_$_) {
       }
     };
 
-    this.ajaxInternalPaths = function(basePath) {
+    this.ajaxInternalPaths = function(basePath) { //WApplication::enableAjax()
       document.querySelectorAll(".Wt-ip").forEach(function(elem) {
         let href = elem.getAttribute("href"), wtd = href.lastIndexOf("?wtd");
         if (wtd === -1) {
@@ -1233,7 +1233,7 @@ if (!window._$_WT_CLASS_$_) {
       return toCamelCase(cssProp);
     };
 
-    this.vendorPrefix = function(attr) {
+    this.vendorPrefix = function(attr) { //deprecated in modern browsers
       const prefixes = ["Moz", "Webkit", "O", "Ms"];
       for (let i = 0, il = prefixes.length; i < il; ++i) {
         if (attr.search(prefixes[i]) !== -1) {
@@ -1330,7 +1330,7 @@ if (!window._$_WT_CLASS_$_) {
       }
     };
 
-    function delegateCapture(e) {
+    function delegateCapture(e) { //deprecated in modern browsers (native API)
       if (captureElement === null) {
         return null;
       }
@@ -1365,7 +1365,7 @@ if (!window._$_WT_CLASS_$_) {
       }
     }
 
-    function mouseMove(e) {
+    function mouseMove(e) { //deprecated in modern browsers (native API)
       const d = delegateCapture(e);
 
       if (d && !delegating) {
@@ -1381,7 +1381,7 @@ if (!window._$_WT_CLASS_$_) {
       }
     }
 
-    function mouseUp(e) {
+    function mouseUp(e) { //deprecated in modern browsers (native API)
       const d = delegateCapture(e);
       WT.capture(null);
 
@@ -1400,7 +1400,7 @@ if (!window._$_WT_CLASS_$_) {
       }
     }
 
-    function touchMove(e) {
+    function touchMove(e) { //deprecated in modern browsers (native API)
       const d = delegateCapture(e);
 
       if (d && !delegating) {
@@ -1416,7 +1416,7 @@ if (!window._$_WT_CLASS_$_) {
       }
     }
 
-    function touchEnd(e) {
+    function touchEnd(e) { //deprecated in modern browsers (native API)
       const d = delegateCapture(e);
       WT.capture(null);
 
@@ -1436,7 +1436,7 @@ if (!window._$_WT_CLASS_$_) {
     }
     let captureInitialized = false;
 
-    function attachMouseHandlers(el) {
+    function attachMouseHandlers(el) { //deprecated in modern browsers (native API)
       el.addEventListener("mousemove", mouseMove, true);
       el.addEventListener("mouseup", mouseUp, true);
 
@@ -1452,12 +1452,12 @@ if (!window._$_WT_CLASS_$_) {
       }
     }
 
-    function attachTouchHandlers(el) {
+    function attachTouchHandlers(el) { //deprecated in modern browsers (native API)
       el.addEventListener("touchmove", touchMove, true);
       el.addEventListener("touchend", touchEnd, true);
     }
 
-    function initCapture() {
+    function initCapture() { //deprecated in modern browsers (native API)
       if (captureInitialized) {
         return;
       }
@@ -1469,7 +1469,7 @@ if (!window._$_WT_CLASS_$_) {
       attachTouchHandlers(db);
     }
 
-    this.capture = function(obj) {
+    this.capture = function(obj) { //deprecated in modern browsers (native API)
       initCapture();
 
       if (captureElement && obj) {

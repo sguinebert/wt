@@ -577,7 +577,7 @@ if (!window._$_WT_CLASS_$_) {
       }
     };
 
-    this.saveReparented = function(el) {
+    this.saveReparented = function(el) { //used in setHtml & DomElement
       el.querySelectorAll(".wt-reparented").forEach(function(elem) {
         const domRoot = document.querySelector(".Wt-domRoot");
         domRoot.appendChild(elem.parentNode.removeChild(elem));

@@ -114,12 +114,11 @@ bool WText::setText(const WString& text)
 
 void WText::autoAdjustInline()
 {
-  if (text_.format != TextFormat::Plain && isInline()) {
+  if (text_.format != TextFormat::Plain && isInline())
+  {
     std::string t = text_.text.toUTF8();
     boost::trim_left(t);
-    if (   boost::istarts_with(t, "<div")
-	|| boost::istarts_with(t, "<p")
-	|| boost::istarts_with(t, "<h"))
+    if (boost::istarts_with(t, "<div") || boost::istarts_with(t, "<p") || boost::istarts_with(t, "<h"))
       setInline(false);
   }
 }
@@ -162,33 +161,35 @@ AlignmentFlag WText::textAlignment() const
     return AlignmentFlag::Left; // perhaps take into account RLT setting?
 }
 
-void WText::updateDom(DomElement& element, bool all)
+void WText::updateDom(DomElement &element, bool all)
 {
-  if (flags_.test(BIT_TEXT_CHANGED) || all) {
+  if (flags_.test(BIT_TEXT_CHANGED) || all)
+  {
     std::string text = formattedText();
     if (flags_.test(BIT_TEXT_CHANGED) || !text.empty())
       element.setProperty(Wt::Property::InnerHTML, text);
     flags_.reset(BIT_TEXT_CHANGED);
   }
 
-  if (flags_.test(BIT_WORD_WRAP_CHANGED) || all) {
+  if (flags_.test(BIT_WORD_WRAP_CHANGED) || all)
+  {
     if (!all || !flags_.test(BIT_WORD_WRAP))
       element.setProperty(Wt::Property::StyleWhiteSpace,
-			  flags_.test(BIT_WORD_WRAP) ? "normal" : "nowrap");
+                          flags_.test(BIT_WORD_WRAP) ? "normal" : "nowrap");
     flags_.reset(BIT_WORD_WRAP_CHANGED);
   }
 
-  if (flags_.test(BIT_PADDINGS_CHANGED)
-      || (all && padding_ &&
-          !(   padding_[0].isAuto() && padding_[1].isAuto()
-            && padding_[2].isAuto() && padding_[3].isAuto()))) {
+  if (flags_.test(BIT_PADDINGS_CHANGED) || (all && padding_ &&
+                                            !(padding_[0].isAuto() && padding_[1].isAuto() && padding_[2].isAuto() && padding_[3].isAuto())))
+  {
 
-    if ((padding_[0] == padding_[1]) && (padding_[0] == padding_[2])
-        && (padding_[0] == padding_[3]))
+    if ((padding_[0] == padding_[1]) && (padding_[0] == padding_[2]) && (padding_[0] == padding_[3]))
       element.setProperty(Property::StylePadding, padding_[0].cssText());
-    else {
+    else
+    {
       WStringStream s;
-      for (unsigned i = 0; i < 4; ++i) {
+      for (unsigned i = 0; i < 4; ++i)
+      {
         if (i != 0)
           s << ' ';
         s << (padding_[i].isAuto() ? "0" : padding_[i].cssText());
@@ -199,7 +200,8 @@ void WText::updateDom(DomElement& element, bool all)
     flags_.reset(BIT_PADDINGS_CHANGED);
   }
 
-  if (flags_.test(BIT_TEXT_ALIGN_CHANGED) || all) {
+  if (flags_.test(BIT_TEXT_ALIGN_CHANGED) || all)
+  {
     if (flags_.test(BIT_TEXT_ALIGN_CENTER))
       element.setProperty(Property::StyleTextAlign, "center");
     else if (flags_.test(BIT_TEXT_ALIGN_RIGHT))

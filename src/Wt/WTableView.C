@@ -378,10 +378,11 @@ std::unique_ptr<WWidget> WTableView::renderWidget(WWidget* widget, const WModelI
      * state (we do not actually check if it is an old editor, but we could
      * now with stateSaved)
      */
-    if (renderFlags.test(ViewItemRenderFlag::Editing)) {
+    if (renderFlags.test(ViewItemRenderFlag::Editing))
+    {
       cpp17::any state = editState(index);
       if (cpp17::any_has_value(state))
-	itemDelegate->setEditState(widget, index, state);
+        itemDelegate->setEditState(widget, index, state);
     }
   }
 
@@ -838,13 +839,6 @@ void WTableView::defineJavaScript()
   
     connectObjJS(canvas_->mouseWentDown(), "mouseDown");
     connectObjJS(canvas_->mouseWentUp(), "mouseUp");
-
-#ifdef WT_CNOR
-    // workaround because cnor is a bit dumb and does not understand that it
-    // can convert EventSignal<TouchEvent>& to EventSignalBase&
-    EventSignalBase& a = canvas_->touchStarted();
-#endif
-
     connectObjJS(canvas_->touchStarted(), "touchStart");
     connectObjJS(canvas_->touchMoved(), "touchMove");
     connectObjJS(canvas_->touchEnded(), "touchEnd");
@@ -915,30 +909,32 @@ void WTableView::render(WFlags<RenderFlag> flags)
   }
 
   if (model())
-    while (renderState_ != RenderState::RenderOk) {
+    while (renderState_ != RenderState::RenderOk)
+    {
       RenderState s = renderState_;
       renderState_ = RenderState::RenderOk;
 
-      switch (s) {
+      switch (s)
+      {
       case RenderState::NeedRerender:
-	resetGeometry();
-	rerenderHeader();
-	rerenderData();
-	break;
+        resetGeometry();
+        rerenderHeader();
+        rerenderData();
+        break;
       case RenderState::NeedRerenderHeader:
-	rerenderHeader();
-	break;
+        rerenderHeader();
+        break;
       case RenderState::NeedRerenderData:
-	rerenderData();
-	break;
+        rerenderData();
+        break;
       case RenderState::NeedUpdateModelIndexes:
-	updateModelIndexes();
+        updateModelIndexes();
         /* fallthrough */
       case RenderState::NeedAdjustViewPort:
-	adjustToViewport();
-	break;
+        adjustToViewport();
+        break;
       default:
-	break;
+        break;
       }
     }
 
@@ -1013,33 +1009,32 @@ void WTableView::rerenderData()
 
       std::string cl = WApplication::instance()->theme()->activeClass();
 
-      if (selectionBehavior() == SelectionBehavior::Rows
-	  && isSelected(model()->index(i, 0, rootIndex()))) {
-	WTableRow *row = plainTable_->rowAt(renderedRow + 1);
-	row->setStyleClass(cl);
+      if (selectionBehavior() == SelectionBehavior::Rows && isSelected(model()->index(i, 0, rootIndex())))
+      {
+        WTableRow *row = plainTable_->rowAt(renderedRow + 1);
+        row->setStyleClass(cl);
       }
 
-      for (int j = firstColumn(); j <= lastColumn(); ++j) {
-	int renderedCol = j - firstColumn();
+      for (int j = firstColumn(); j <= lastColumn(); ++j)
+      {
+        int renderedCol = j - firstColumn();
 
-	const WModelIndex index = model()->index(i, j, rootIndex());
-	std::unique_ptr<WWidget> w = renderWidget(nullptr, index);
-	WTableCell *cell = plainTable_->elementAt
-	  (renderedRow + 1, renderedCol);
-	if (columnInfo(j).hidden)
-	  cell->hide();
+        const WModelIndex index = model()->index(i, j, rootIndex());
+        std::unique_ptr<WWidget> w = renderWidget(nullptr, index);
+        WTableCell *cell = plainTable_->elementAt(renderedRow + 1, renderedCol);
+        if (columnInfo(j).hidden)
+          cell->hide();
 
-	WInteractWidget *wi = dynamic_cast<WInteractWidget *>(w.get());
-	if (wi && !isEditing(index))
-	  wi->clicked().connect
-	    (this, std::bind(&WTableView::handleClick, this, index,
-			     std::placeholders::_1));
+        WInteractWidget *wi = dynamic_cast<WInteractWidget *>(w.get());
+        if (wi && !isEditing(index))
+          wi->clicked().connect(this, std::bind(&WTableView::handleClick, this, index,
+                                                std::placeholders::_1));
 
-	if (selectionBehavior() == SelectionBehavior::Items &&
-	    isSelected(index))
-	  cell->setStyleClass(cl);
+        if (selectionBehavior() == SelectionBehavior::Items &&
+            isSelected(index))
+          cell->setStyleClass(cl);
 
-	cell->addWidget(std::move(w));
+        cell->addWidget(std::move(w));
       }
     }
   }
@@ -1050,23 +1045,28 @@ void WTableView::rerenderHeader()
 {
   saveExtraHeaderWidgets();
 
-  if (ajaxMode()) {
+  if (ajaxMode())
+  {
     headers_->clear();
     headerColumnsHeaderContainer_->clear();
 
-    for (int i = 0; i < columnCount(); ++i) {
+    for (int i = 0; i < columnCount(); ++i)
+    {
       std::unique_ptr<WWidget> w = createHeaderWidget(i);
       w->setFloatSide(Side::Left);
       w->setWidth(columnInfo(i).width.toPixels() + 1);
       if (columnInfo(i).hidden)
-	w->hide();
+        w->hide();
       if (i < rowHeaderCount())
-	headerColumnsHeaderContainer_->addWidget(std::move(w));
+        headerColumnsHeaderContainer_->addWidget(std::move(w));
       else
-	headers_->addWidget(std::move(w));
+        headers_->addWidget(std::move(w));
     }
-  } else { // Plain HTML mode
-    for (int i = 0; i < columnCount(); ++i) {
+  }
+  else
+  { // Plain HTML mode
+    for (int i = 0; i < columnCount(); ++i)
+    {
       std::unique_ptr<WWidget> w = createHeaderWidget(i);
       WTableCell *cell = plainTable_->elementAt(0, i);
       cell->clear();
@@ -1074,7 +1074,7 @@ void WTableView::rerenderHeader()
       w->setWidth(columnInfo(i).width.toPixels() + 1);
       cell->resize(columnInfo(i).width.toPixels() + 1, w->height());
       if (columnInfo(i).hidden)
-	cell->hide();
+        cell->hide();
       cell->addWidget(std::move(w));
     }
   }
@@ -1082,40 +1082,44 @@ void WTableView::rerenderHeader()
 
 void WTableView::setColumnHidden(int column, bool hidden)
 {
-  if (columnInfo(column).hidden != hidden) {
+  if (columnInfo(column).hidden != hidden)
+  {
     WAbstractItemView::setColumnHidden(column, hidden);
 
     int delta = static_cast<int>(columnInfo(column).width.toPixels()) + 7;
     if (hidden)
       delta = -delta;
 
-    if (ajaxMode()) {
+    if (ajaxMode())
+    {
       headers_->setWidth(headers_->width().toPixels() + delta);
       canvas_->setWidth(canvas_->width().toPixels() + delta);
 
       if (isColumnRendered(column))
-	updateColumnOffsets();
-      else
-	if (column < firstColumn())
-	  setSpannerCount(Side::Left, spannerCount(Side::Left));
+        updateColumnOffsets();
+      else if (column < firstColumn())
+        setSpannerCount(Side::Left, spannerCount(Side::Left));
 
       if (static_cast<unsigned int>(renderState_) >=
-	  static_cast<unsigned int>(RenderState::NeedRerenderHeader))
-	return;
+          static_cast<unsigned int>(RenderState::NeedRerenderHeader))
+        return;
 
       WWidget *hc = headerWidget(column, false);
       hc->setHidden(hidden);
-    } else {
+    }
+    else
+    {
       if (static_cast<unsigned int>(renderState_) <
-	  static_cast<unsigned int>(RenderState::NeedRerenderData)) {
-	for (int i = 0; i < plainTable_->rowCount(); ++i)
-	  plainTable_->elementAt(i, column)->setHidden(hidden);
+          static_cast<unsigned int>(RenderState::NeedRerenderData))
+      {
+        for (int i = 0; i < plainTable_->rowCount(); ++i)
+          plainTable_->elementAt(i, column)->setHidden(hidden);
       }
     }
   }
 }
 
-void WTableView::setColumnWidth(int column, const WLength& width)
+void WTableView::setColumnWidth(int column, const WLength &width)
 {
   WLength rWidth = WLength(round(width.value()), width.unit());
   double delta = rWidth.toPixels() - columnInfo(column).width.toPixels();
@@ -1124,19 +1128,19 @@ void WTableView::setColumnWidth(int column, const WLength& width)
   if (columnInfo(column).hidden)
     delta = 0;
 
-  if (ajaxMode()) {
+  if (ajaxMode())
+  {
     headers_->setWidth(headers_->width().toPixels() + delta);
     canvas_->setWidth(canvas_->width().toPixels() + delta);
 
-    if (static_cast<unsigned int>(renderState_) >= 
-	static_cast<unsigned int>(RenderState::NeedRerenderHeader))
+    if (static_cast<unsigned int>(renderState_) >=
+        static_cast<unsigned int>(RenderState::NeedRerenderHeader))
       return;
 
     if (isColumnRendered(column))
       updateColumnOffsets();
-    else
-      if (column < firstColumn())
-	setSpannerCount(Side::Left, spannerCount(Side::Left));
+    else if (column < firstColumn())
+      setSpannerCount(Side::Left, spannerCount(Side::Left));
   }
 
   if (static_cast<unsigned int>(renderState_) >=
@@ -1249,7 +1253,8 @@ void WTableView::updateColumnOffsets()
   for (int i = rowHeaderCount(); i < columnCount(); ++i) {
     ColumnInfo ci = columnInfo(i);
 
-    if (i >= fc && i <= lc) {
+    if (i >= fc && i <= lc)
+    {
       ColumnWidget *w = columnContainer(rowHeaderCount() + i - fc);
 
       w->setOffsets(0, Side::Left);
@@ -1258,7 +1263,7 @@ void WTableView::updateColumnOffsets()
       w->setWidth(ci.width.toPixels() + 7);
 
       if (!columnInfo(i).hidden)
-	totalRendered += (int)ci.width.toPixels() + 7;
+        totalRendered += (int)ci.width.toPixels() + 7;
 
       w->setHidden(ci.hidden);
     }
@@ -1312,21 +1317,25 @@ void WTableView::setHeaderHeight(const WLength& height)
     resize(this->width(), this->height());
 }
 
-WWidget* WTableView::headerWidget(int column, bool contentsOnly)
+WWidget *WTableView::headerWidget(int column, bool contentsOnly)
 {
   WWidget *result = nullptr;
 
-  if (ajaxMode()) {
-    if (headers_) {
-      if (column < headerColumnsTable_->count()) {
-	if (column < headerColumnsHeaderContainer_->count())
-	  result = headerColumnsHeaderContainer_->widget(column);
-      } else if (column - headerColumnsTable_->count() < headers_->count())
-	result = headers_->widget(column - headerColumnsTable_->count());
+  if (ajaxMode())
+  {
+    if (headers_)
+    {
+      if (column < headerColumnsTable_->count())
+      {
+        if (column < headerColumnsHeaderContainer_->count())
+          result = headerColumnsHeaderContainer_->widget(column);
+      }
+      else if (column - headerColumnsTable_->count() < headers_->count())
+        result = headers_->widget(column - headerColumnsTable_->count());
     }
-  } else
-    if (plainTable_ && column < plainTable_->columnCount())
-      result = plainTable_->elementAt(0, column)->widget(0);
+  }
+  else if (plainTable_ && column < plainTable_->columnCount())
+    result = plainTable_->elementAt(0, column)->widget(0);
 
   if (result && contentsOnly)
     return result->find("contents");
@@ -1630,8 +1639,7 @@ void WTableView::modelDataChanged(const WModelIndex& topLeft, const WModelIndex&
   }
 }
 
-void WTableView::updateItem(const WModelIndex& index,
-			    int renderedRow, int renderedColumn)
+void WTableView::updateItem(const WModelIndex& index, int renderedRow, int renderedColumn)
 {
   WContainerWidget *parentWidget;
   int wIndex;

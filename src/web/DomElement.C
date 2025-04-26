@@ -1155,11 +1155,11 @@ void DomElement::unstubWith(DomElement&& newElement, bool hideWithDisplay)
   hideWithDisplay_ = hideWithDisplay;
 }
 
-void DomElement::unwrap()
-{
-  ++numManipulations_;
-  unwrapped_ = true;
-}
+// void DomElement::unwrap()
+// {
+//   ++numManipulations_;
+//   unwrapped_ = true;
+// }
 
 // void DomElement::callMethod(const std::string& method)
 // {
@@ -2321,8 +2321,8 @@ std::string DomElement::asJavaScript(fmt::memory_buffer &out, Priority priority)
             }
         }
 
-        if (unwrapped_)
-            fmt::format_to(std::back_inserter(out), FMT_COMPILE(WT_CLASS ".unwrap('{}');\n"), id_);
+        // if (unwrapped_)
+        //     fmt::format_to(std::back_inserter(out), FMT_COMPILE(WT_CLASS ".unwrap('{}');\n"), id_);
             //out << WT_CLASS ".unwrap('" << id_ << "');\n";
 
         processEvents(app);

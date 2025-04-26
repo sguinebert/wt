@@ -207,10 +207,8 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
 
                 const WEnvironment& env = app->environment();
 
-                if (dynamic_cast<WFormWidget *>(this)
-                    && !env.agentIsOpera() && !env.agentIsIE())
-                    extraJS = "var g=this.onchange;"
-                              ""      "this.onchange=function(){this.onchange=g;};";
+                if (dynamic_cast<WFormWidget *>(this) && !env.agentIsOpera() && !env.agentIsIE())
+                    extraJS = "var g=this.onchange;this.onchange=function(){this.onchange=g;};";
 
                 actions.push_back
                     (DomElement::EventAction("e.keyCode && (e.keyCode == 13)",
@@ -252,28 +250,18 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
     /*
    * -- allow computation of dragged mouse distance
    */
-    EventSignal<WMouseEvent> *mouseDown
-        = mouseEventSignal(MOUSE_DOWN_SIGNAL, false);
-    EventSignal<WMouseEvent> *mouseUp
-        = mouseEventSignal(MOUSE_UP_SIGNAL, false);
-    EventSignal<WMouseEvent> *mouseMove
-        = mouseEventSignal(MOUSE_MOVE_SIGNAL, false);
-    EventSignal<WMouseEvent> *mouseDrag
-        = mouseEventSignal(MOUSE_DRAG_SIGNAL, false);
+    EventSignal<WMouseEvent> *mouseDown = mouseEventSignal(MOUSE_DOWN_SIGNAL, false);
+    EventSignal<WMouseEvent> *mouseUp = mouseEventSignal(MOUSE_UP_SIGNAL, false);
+    EventSignal<WMouseEvent> *mouseMove = mouseEventSignal(MOUSE_MOVE_SIGNAL, false);
+    EventSignal<WMouseEvent> *mouseDrag = mouseEventSignal(MOUSE_DRAG_SIGNAL, false);
 
-    bool updateMouseMove
-        = (mouseMove && mouseMove->needsUpdate(all))
-          || (mouseDrag && mouseDrag->needsUpdate(all));
+    bool updateMouseMove = (mouseMove && mouseMove->needsUpdate(all)) || (mouseDrag && mouseDrag->needsUpdate(all));
 
-    bool updateMouseDown
-        = (mouseDown && mouseDown->needsUpdate(all))
-          || updateMouseMove;
+    bool updateMouseDown = (mouseDown && mouseDown->needsUpdate(all)) || updateMouseMove;
 
-    bool updateMouseUp
-        = (mouseUp && mouseUp->needsUpdate(all))
-          || updateMouseMove;
+    bool updateMouseUp = (mouseUp && mouseUp->needsUpdate(all)) || updateMouseMove;
 
-    std::string CheckDisabled = fmt::format("if(o.classList.contains('{}')){{" WT_CLASS ".cancelEvent(e);return;}}",
+    std::string CheckDisabled = fmt::format(FMT_COMPILE("if(o.classList.contains('{}')){{" WT_CLASS ".cancelEvent(e);return;}}"),
                                             app->theme()->disabledClass());
 
     if (updateMouseDown) {
@@ -294,20 +282,18 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
         if (mouseUp && mouseUp->isConnected())
             js << app->javaScriptClass() << "._p_.saveDownPos(event);";
 
-        if ((mouseDrag && mouseDrag->isConnected())
-            || (mouseDown && mouseDown->isConnected()
-                && ((mouseUp && mouseUp->isConnected())
-                    || (mouseMove && mouseMove->isConnected()))))
+        if ((mouseDrag && mouseDrag->isConnected()) || 
+            (mouseDown && mouseDown->isConnected() && ((mouseUp && mouseUp->isConnected()) || (mouseMove && mouseMove->isConnected()))))
             js << WT_CLASS ".capture(this);";
 
-        if ((mouseMove && mouseMove->isConnected())
-            || (mouseDrag && mouseDrag->isConnected()))
+        if ((mouseMove && mouseMove->isConnected()) || (mouseDrag && mouseDrag->isConnected()))
             js << WT_CLASS ".mouseDown(e);";
 
         if (mouseDown) {
             js << mouseDown->javaScript();
             element.setEvent("mousedown", js.str(),
-                             mouseDown->encodeCmd(), mouseDown->isExposedSignal());
+                             mouseDown->encodeCmd(), 
+                             mouseDown->isExposedSignal());
             mouseDown->updateOk();
         } else
             element.setEvent("mousedown", js.str(), std::string(), false);
@@ -322,14 +308,13 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
      */
         js << CheckDisabled;
 
-        if ((mouseMove && mouseMove->isConnected())
-            || (mouseDrag && mouseDrag->isConnected()))
+        if ((mouseMove && mouseMove->isConnected()) || (mouseDrag && mouseDrag->isConnected()))
             js << WT_CLASS ".mouseUp(e);";
 
-        if (mouseUp) {
+        if (mouseUp) 
+        {
             js << mouseUp->javaScript();
-            element.setEvent("mouseup", js.str(),
-                             mouseUp->encodeCmd(), mouseUp->isExposedSignal());
+            element.setEvent("mouseup", js.str(), mouseUp->encodeCmd(), mouseUp->isExposedSignal());
             mouseUp->updateOk();
         } else
             element.setEvent("mouseup", js.str(), std::string(), false);
@@ -365,34 +350,26 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
     /*
    * -- allow computation of dragged touch distance
    */
-    EventSignal<WTouchEvent> *touchStart
-        = touchEventSignal(TOUCH_START_SIGNAL, false);
-    EventSignal<WTouchEvent> *touchEnd
-        = touchEventSignal(TOUCH_END_SIGNAL, false);
-    EventSignal<WTouchEvent> *touchMove
-        = touchEventSignal(TOUCH_MOVE_SIGNAL, false);
+    EventSignal<WTouchEvent> *touchStart = touchEventSignal(TOUCH_START_SIGNAL, false);
+    EventSignal<WTouchEvent> *touchEnd = touchEventSignal(TOUCH_END_SIGNAL, false);
+    EventSignal<WTouchEvent> *touchMove = touchEventSignal(TOUCH_MOVE_SIGNAL, false);
 
-    bool updateTouchMove
-        = (touchMove && touchMove->needsUpdate(all));
+    bool updateTouchMove = (touchMove && touchMove->needsUpdate(all));
 
-    bool updateTouchStart
-        = (touchStart && touchStart->needsUpdate(all))
-          || updateTouchMove;
+    bool updateTouchStart = (touchStart && touchStart->needsUpdate(all)) || updateTouchMove;
 
-    bool updateTouchEnd
-        = (touchEnd && touchEnd->needsUpdate(all))
-          || updateTouchMove;
+    bool updateTouchEnd = (touchEnd && touchEnd->needsUpdate(all)) || updateTouchMove;
 
     if (updateTouchStart) {
         /*
-     * when we have a touchStart event, we also need a touchEnd event
-     * to be able to compute dragDX/Y.
-     *
-     * When we have:
-     *  - a touchStart + (touchMove or touchEnd),
-     * we need to capture everything after on touch start, and keep track of the
-     * down button if we have a touchMove 
-     */
+        * when we have a touchStart event, we also need a touchEnd event
+        * to be able to compute dragDX/Y.
+        *
+        * When we have:
+        *  - a touchStart + (touchMove or touchEnd),
+        * we need to capture everything after on touch start, and keep track of the
+        * down button if we have a touchMove 
+        */
         WStringStream js;
 
         js << CheckDisabled;
@@ -445,14 +422,10 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
    * -- mix mouseClick and mouseDblClick events in mouseclick since we
    *    only want to fire one of both
    */
-    EventSignal<WMouseEvent> *mouseClick
-        = mouseEventSignal(M_CLICK_SIGNAL, false);
-    EventSignal<WMouseEvent> *mouseDblClick
-        = mouseEventSignal(DBL_CLICK_SIGNAL, false);
+    EventSignal<WMouseEvent> *mouseClick = mouseEventSignal(M_CLICK_SIGNAL, false);
+    EventSignal<WMouseEvent> *mouseDblClick = mouseEventSignal(DBL_CLICK_SIGNAL, false);
 
-    bool updateMouseClick
-        = (mouseClick && mouseClick->needsUpdate(all))
-          || (mouseDblClick && mouseDblClick->needsUpdate(all));
+    bool updateMouseClick = (mouseClick && mouseClick->needsUpdate(all)) || (mouseDblClick && mouseDblClick->needsUpdate(all));
 
     if (updateMouseClick) {
         WStringStream js;
@@ -542,10 +515,8 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
     /*
    * -- mouseOver with delay
    */
-    EventSignal<WMouseEvent> *mouseOver
-        = mouseEventSignal(MOUSE_OVER_SIGNAL, false);
-    EventSignal<WMouseEvent> *mouseOut
-        = mouseEventSignal(MOUSE_OUT_SIGNAL, false);
+    EventSignal<WMouseEvent> *mouseOver = mouseEventSignal(MOUSE_OVER_SIGNAL, false);
+    EventSignal<WMouseEvent> *mouseOut = mouseEventSignal(MOUSE_OUT_SIGNAL, false);
 
     bool updateMouseOver = mouseOver && mouseOver->needsUpdate(all);
 
@@ -634,9 +605,8 @@ void WInteractWidget::updateEventSignals(DomElement& element, bool all)
   for (EventSignalList::iterator i = other.begin(); i != other.end(); ++i) {
     EventSignalBase& s = **i;
 
-    if (s.name() == WInteractWidget::M_CLICK_SIGNAL
-	&& flags_.test(BIT_REPAINT_TO_AJAX))
-      element.unwrap();
+    // if (s.name() == WInteractWidget::M_CLICK_SIGNAL && flags_.test(BIT_REPAINT_TO_AJAX))
+    //   element.unwrap();
 
     updateSignalConnection(element, s, s.name(), all);
   }
@@ -683,9 +653,9 @@ void WInteractWidget::propagateSetEnabled(bool enabled)
   WWebWidget::propagateSetEnabled(enabled);
 }
 
-void WInteractWidget::setDraggable(const std::string& mimeType,
-				   WWidget *dragWidget, bool isDragWidgetOnly,
-				   WObject *sourceObject)
+void WInteractWidget::setDraggable(const std::string &mimeType,
+                                   WWidget *dragWidget, bool isDragWidgetOnly,
+                                   WObject *sourceObject)
 {
   if (dragWidget == nullptr)
     dragWidget = this;
