@@ -1,0 +1,26 @@
+{DOCTYPE}
+<html {HTMLATTRIBUTES}>
+<head>
+{HEADDECLARATIONS}
+<meta name="robots" content="noindex, nofollow">
+<title>{TITLE}</title>
+<style type="text/css" id="Wt-inline-css">
+{STYLESHEET}
+</style>
+{STYLESHEETS}
+<script type="module">
+  import { WtApp } from './Wt.mjs'
+  const appConfig = {
+    sessionId: '{SESSION_ID}',
+    scriptId: '{SCRIPT_ID}',
+    selfUrl: '{SELF_URL}',
+    webGLDetect: {WEBGL_DETECT},
+  };
+  const wtApp = new WtApp(appConfig);
+  wtApp.init(); // Initialize the application
+</script>
+</head>
+<body {BODYATTRIBUTES}>
+  {HTML}
+</body>
+</html>

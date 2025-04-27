@@ -15,7 +15,10 @@ v\:* {{ behavior:url(#default#VML); position:absolute }}
 {BOOT_JS}
 /* ]]> */
 </script>
-{AUTO_REDIRECT}
+<noscript>
+  <meta http-equiv="refresh" content="0; url='{AUTO_REDIRECT}'">
+  <link href="{BOOT_STYLE_URL}&js=no" rel="stylesheet" type="text/css">
+</noscript>
 <style type="text/css" id="Wt-inline-css"></style>
 </head>
 <body>
@@ -27,7 +30,6 @@ v\:* {{ behavior:url(#default#VML); position:absolute }}
 <input id="Wt-history-field" type="hidden"/>
 <noscript>
   <a href="{REDIRECT_URL}">{NOSCRIPT_TEXT}</a>
-<link href="{BOOT_STYLE_URL}&amp;js=no" rel="stylesheet" type="text/css">
 </noscript>
 <link href="{BOOT_STYLE_URL}" rel="stylesheet" type="text/css">
 <!--[if gte IE 6]>
