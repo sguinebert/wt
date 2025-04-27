@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
-   cartesianChart.es2022.js  ⚡️ v1.0.0 — 2025‑04‑24
+   cartesianChart.esm.js  ⚡️ v1.0.0 — 2025‑04‑24
    ------------------------------------------------------------------
    A modern, **framework‑agnostic** replacement for the legacy
    WCartesianChart interaction layer.
@@ -27,7 +27,7 @@ const mid = (a, b) => {
   return new DOMPoint((a.x + b.x) / 2, (a.y + b.y) / 2);
 };
 
-export class CartesianChartInteractor {
+export class WCartesianChart {
   /**
    * @param {HTMLCanvasElement} canvas   – target canvas (2D or WebGL)
    * @param {Object}   opts             – interaction & config options

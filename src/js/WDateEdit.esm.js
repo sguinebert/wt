@@ -76,8 +76,7 @@
     /** rectangle covering the right-hand hover zone */
     #zoneRect () {
       const { left, width, top, height } = this.input.getBoundingClientRect();
-      return new DOMRect(left + width - this.#hoverZone, top,
-                         this.#hoverZone, height);
+      return new DOMRect(left + width - this.#hoverZone, top, this.#hoverZone, height);
     }
   
     /** one-time popup bootstrap */

@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- *  tree-view.js  ⚡️ modern ES-module rewrite of legacy **WTreeView**
+ *  WTreeView.js  ⚡️ modern ES-module rewrite of legacy **WTreeView**
  *
  *  ▸ no globals, no WT macros – a self-contained class
  *  ▸ pointer / wheel friendly, ResizeObserver aware

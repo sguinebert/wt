@@ -12,10 +12,12 @@
 // -----------------------------------------------------------------------------
 
 export const defaultTheme = {
-  classes: {
-    valid  : "Wt-valid",
-    invalid: "Wt-invalid",
+  classes : {
+    valid  : "is-valid",
+    invalid: "is-invalid",
   },
+  type    : "bootstrap",
+  version : 5,
 };
 
 /**

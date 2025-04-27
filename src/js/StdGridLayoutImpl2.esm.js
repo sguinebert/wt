@@ -147,6 +147,31 @@ export default class StdLayout2 {
     this.#dirtyLayout = false;
   }
 
+  #applyGrid() { // Apply CSS Grid layout to the root element
+    const root = this.#conf.root;
+  
+    // Define grid template rows and columns
+    const rows = this.#conf.rows.map(r => r.stretch ? `minmax(0, ${r.stretch}fr)` : `${r.min}px`).join(" ");
+    const cols = this.#conf.columns.map(c => c.stretch ? `minmax(0, ${c.stretch}fr)` : `${c.min}px`).join(" ");
+  
+    // Apply CSS Grid styles to the root element
+    Object.assign(root.style, {
+      display: "grid",
+      gridTemplateRows: rows,
+      gridTemplateColumns: cols,
+      gap: `${this.#conf.margins.horizontal[0]}px ${this.#conf.margins.vertical[0]}px`,
+    });
+  
+    // Position items using grid-row and grid-column
+    for (const itm of this.#conf.items) {
+      const el = typeof itm.el === "string" ? document.getElementById(itm.el) : itm.el;
+      if (!el) continue;
+  
+      el.style.gridRow = itm.row + 1; // CSS Grid is 1-based
+      el.style.gridColumn = itm.col + 1;
+    }
+  }
+
   /** Manually mark an element dirty & request a re‑layout */
   markDirty(el) {
     const id = typeof el === "string" ? el : el.id;

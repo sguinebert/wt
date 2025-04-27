@@ -1,9 +1,9 @@
 /* -------------------------------------------------------------------------
- * AxisSliderWidget – modern rewrite (ES 2022+)
+ * WAxisSliderWidget – modern rewrite (ES 2022+)
  * -------------------------------------------------------------------------
  * Usage
- *   import AxisSliderWidget from './AxisSliderWidget.js';
- *   const slider = new AxisSliderWidget({
+ *   import WAxisSliderWidget from './WAxisSliderWidget.js';
+ *   const slider = new WAxisSliderWidget({
  *     widget,                 // outer <div>
  *     canvas: target.canvas,  // <canvas> used for visuals
  *     chart,                  // Wt chart object
@@ -15,7 +15,7 @@
  *   });
  * -------------------------------------------------------------------------*/
 
- export default class AxisSliderWidget {
+ export default class WAxisSliderWidget {
   /** @param {Object} cfg  (see top‑of‑file) */
   constructor (cfg) {
     Object.assign(this, cfg);                 // hoist props onto instance
