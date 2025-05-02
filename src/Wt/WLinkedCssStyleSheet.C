@@ -28,8 +28,21 @@ void WLinkedCssStyleSheet::cssText(WStringStream& out) const
 
 void WLinkedCssStyleSheet::cssText(fmt::memory_buffer &out) const
 {
-    WApplication *app = WApplication::instance();
-    fmt::format_to(std::back_inserter(out), "@import url(\"{}\"){};\n", link_.resolveUrl(app), !media_.empty() && media_ != "all" ? " " : "");
+  WApplication *app = WApplication::instance();
+  std::string resolved_url = link_.resolveUrl(app);
+  std::string media_attribute;
+
+  // Construct the media attribute string only if needed
+  if (!media_.empty() && media_ != "all") {
+      // Ensure media attribute value is properly escaped if necessary, though typically not needed for standard media queries.
+      media_attribute = fmt::format(FMT_COMPILE(" media=\"{}\""), media_); // Format as ' media="value"'
+  }
+
+  // Format the <link> tag
+  fmt::format_to(std::back_inserter(out),
+                 FMT_COMPILE("<link rel=\"stylesheet\" href=\"{}\" type=\"text/css\"{}>\n"),
+                 resolved_url,
+                 media_attribute); // Insert the media attribute string (or empty string)
 }
 
 } // namespace Wt

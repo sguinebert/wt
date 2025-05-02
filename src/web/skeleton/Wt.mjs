@@ -17,7 +17,7 @@ export class WtCore {
 
     //window.history.scrollRestoration = "auto";
     window.history.scrollRestoration = "manual";
-    window.addEventListener("scroll", debounce(() => {
+    window.addEventListener("scroll", this.rafDebounce(() => {
       if (history.state) {
         const newState = {...history.state};
         newState.scrollX = window.pageXOffset;
@@ -65,7 +65,31 @@ export class WtCore {
     this.isGecko = /gecko/.test(agent) && !this.isWebKit;
     this.isIOS = /iphone|ipad|ipod/.test(agent);
   }
-
+  // fitToWindow(element, desiredX, desiredY) {
+  //   // 1. Reset all four logical insets so previous runs don’t leak
+  //   ['insetInlineStart','insetInlineEnd','insetBlockStart','insetBlockEnd']
+  //     .forEach(p => element.style[p] = 'auto');
+  
+  //   // 2. Element & viewport geometry (logical names)
+  //   const box       = element.getBoundingClientRect();
+  //   const { inlineSize: vpI, blockSize: vpB } =
+  //         document.documentElement.getBoundingClientRect();
+  
+  //   /* ---------- inline axis ---------- */
+  //   let start = desiredX;
+  //   if (start + box.width > vpI)          // spill right (or left in RTL)
+  //     start = Math.max(0, vpI - box.width);
+  
+  //   /* ---------- block axis ---------- */
+  //   let top = desiredY;
+  //   if (top + box.height > vpB)           // spill bottom
+  //     top = Math.max(0, vpB - box.height);
+  
+  //   // 3. Commit with logical props
+  //   element.style.insetInlineStart = `${start}px`;
+  //   element.style.insetBlockStart  = `${top}px`;
+  // }
+  
   fitToWindow(element, x, y, rightx, bottomy){
     // Reset positioning styles
     element.style.left = element.style.right = element.style.top = element.style.bottom = 'auto';
@@ -78,15 +102,15 @@ export class WtCore {
     
     // Consider max dimensions for dynamic widgets
     if (!element.classList.contains("Wt-tooltip")) {
-      dimensions.width = WT.px(element, "maxWidth") || dimensions.width;
-      dimensions.height = WT.px(element, "maxHeight") || dimensions.height;
+      dimensions.width = this.WT.px(element, "maxWidth") || dimensions.width;
+      dimensions.height = this.WT.px(element, "maxHeight") || dimensions.height;
     }
     
     // Get parent and viewport information
     const offsetParent = element.offsetParent;
     if (!offsetParent) return;
     
-    const parentCoords = WT.widgetPageCoordinates(offsetParent);
+    const parentCoords = this.WT.widgetPageCoordinates(offsetParent);
     const viewport = {
       width: window.innerWidth,
       height: window.innerHeight,
@@ -104,12 +128,12 @@ export class WtCore {
       const scrollX = offsetParent === document.body ? window.scrollX : offsetParent.scrollLeft;
       
       rightx = rightx - parentCoords.x + scrollX;
-      x = offsetParent.clientWidth - (rightx + WT.px(element, "marginRight"));
+      x = offsetParent.clientWidth - (rightx + this.WT.px(element, "marginRight"));
       hside = 1;
     } else {
       // Fits to right of x - adjust for parent offset
       const scrollX = offsetParent === document.body ? 0 : offsetParent.scrollLeft;
-      x = x - parentCoords.x + scrollX - WT.px(element, "marginLeft");
+      x = x - parentCoords.x + scrollX - this.WT.px(element, "marginLeft");
     }
   
     // Determine vertical positioning
@@ -127,13 +151,13 @@ export class WtCore {
       
       bottomy = bottomy - parentCoords.y + scrollY;
       y = offsetParent.clientHeight - 
-          (bottomy + WT.px(element, "marginBottom") + WT.px(element, "borderBottomWidth"));
+          (bottomy + this.WT.px(element, "marginBottom") + this.WT.px(element, "borderBottomWidth"));
       vside = 1;
     } else {
       // Fits below y - adjust for parent offset
       const scrollY = offsetParent === document.body ? 0 : offsetParent.scrollTop;
       y = y - parentCoords.y + scrollY - 
-          WT.px(element, "marginTop") + WT.px(element, "borderTopWidth");
+      this.WT.px(element, "marginTop") + this.WT.px(element, "borderTopWidth");
     }
   
     // Apply final positioning
@@ -160,20 +184,20 @@ export class WtCore {
     el.querySelectorAll('.wt-reparented').forEach(node => root.append(node)); // append() moves, no manual remove needed
   };
   remove(id) {
-    const e = WT.getElement(id);
+    const e = this.WT.getElement(id);
     if (e) {
       //WT.saveReparented(e);
       e.parentNode.removeChild(e);
     }
   }
   replaceWith(w1Id, w2) {
-    WT.$(w1Id).replaceWith(w2);
+    this.WT.$(w1Id).replaceWith(w2);
 
     /* Reapply client-side validation, bootstrap applys validation classes
        also outside the element into its ancestors */
-    if (w2.wtValidate && WT.validate) {
+    if (w2.wtValidate && this.WT.validate) {
       setTimeout(function() {
-        WT.validate(w2);
+        this.WT.validate(w2);
       }, 0);
     }
   }
@@ -215,9 +239,7 @@ export class WtCore {
   };
   
   getElement(id) {
-    return document.getElementById(id) || Array.from(window.frames)
-      .map(frame => frame.document.getElementById(id))
-      .find(el => el) || null;
+    return document.getElementById(id);
   }
 
   $(id) {
@@ -276,6 +298,13 @@ export class WtCore {
       timeout = setTimeout(() => callback(...args), wait);
     };
   }
+  rafDebounce(fn) {
+    let rafId = 0;
+    return (...args) => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(()=>{ rafId = 0; fn(...args); });
+    };
+  }
 
   setUnicodeSelectionRange(elem, start, end) {
     const startCU = toUnits(el.value, start);
@@ -326,17 +355,17 @@ export class WtCore {
     return el.clientHeight;
   }
   hide(o) {
-    WT.getElement(o).style.display = "none";
-  };
+    this.WT.getElement(o).style.display = "none";
+  }
   inline(o) {
-    WT.getElement(o).style.display = "inline";
-  };
+    this.WT.getElement(o).style.display = "inline";
+  }
   block(o) {
-    WT.getElement(o).style.display = "block";
-  };
+    this.WT.getElement(o).style.display = "block";
+  }
   show(o, s) {
-    WT.getElement(o).style.display = s;
-  };
+    this.WT.getElement(o).style.display = s;
+  }
   target = e => e?.target || null;
 
   addCss(selector, style) { //not sure it is correct
@@ -362,17 +391,17 @@ export class WtCore {
   }
 
   positionAtWidget(id, atId, orientation, delta = 0) {
-    const w = WT.getElement(id);
-    const atw = WT.getElement(atId);
+    const w = this.WT.getElement(id);
+    const atw = this.WT.getElement(atId);
     if (!atw || !w) return;
 
-    const { x: atX, y: atY } = WT.widgetPageCoordinates(atw);
+    const { x: atX, y: atY } = this.WT.widgetPageCoordinates(atw);
     let x, y, rightx, bottomy;
 
     w.style.position = "absolute";
-    if (WT.css(w, "display") === "none") w.style.display = "block";
+    if (this.WT.css(w, "display") === "none") w.style.display = "block";
 
-    if (orientation === WT.Horizontal) {
+    if (orientation === this.WT.Horizontal) {
       x = atX + atw.offsetWidth;
       y = atY + delta;
       rightx = atX;
@@ -388,7 +417,7 @@ export class WtCore {
     while (!p.classList.contains("Wt-domRoot")) {
       if (p.wtReparentBarrier) break;
       if (
-        WT.css(p, "display") !== "inline" &&
+        this.WT.css(p, "display") !== "inline" &&
         p.clientHeight > 100 &&
         (["scroll", "auto"].includes(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight ||
          ["scroll", "auto"].includes(getComputedStyle(p).overflowX) && p.scrollWidth > p.clientWidth)
@@ -396,23 +425,23 @@ export class WtCore {
       p = p.parentNode;
     }
 
-    const posP = WT.css(p, "position");
+    const posP = this.WT.css(p, "position");
     if (!["absolute", "relative"].includes(posP)) p.style.position = "relative";
 
     w.parentNode.removeChild(w);
     p.appendChild(w);
     w.classList.add("wt-reparented");
 
-    WT.fitToWindow(w, x, y, rightx, bottomy);
+    this.WT.fitToWindow(w, x, y, rightx, bottomy);
     w.style.visibility = "";
   }
   
   positionXY(id, x, y) {
-    const w = WT.getElement(id);
+    const w = this.WT.getElement(id);
 
-    if (!WT.isHidden(w)) {
+    if (!this.WT.isHidden(w)) {
       w.style.display = "block";
-      WT.fitToWindow(w, x, y);
+      this.WT.fitToWindow(w, x, y);
     }
   }
 
@@ -574,7 +603,7 @@ export class Connection {
         this.#keepAlive = null;
         return;
       }
-      this.#socket.ping();
+      this.#socket.send('ping');
       if (Date.now() - this.#lastPong > this.heartbeat * 1.5) this.#socket.close();
     }, this.heartbeat);
   }
@@ -653,7 +682,7 @@ export default class WtApp {
       ...config,
     };
     this._p_ = this;
-    this.WTc = new WtCore(this.config);
+    this.WT = new WtCore(this.config);
     this.activePointers = new Map();
     //this.load();
 
@@ -686,8 +715,8 @@ export default class WtApp {
   }
 
   async loadScript(path, symbol, tries = 2) {
-    if (symbol && isSymbolDefined(symbol)) return;
-    if (isScriptLoaded(path)) return;
+    if (symbol && this.isSymbolDefined(symbol)) return;
+    if (this.isScriptLoaded(path)) return;
 
     for (let attempt = 1; attempt <= tries; attempt++) {
       try {
@@ -737,13 +766,13 @@ export default class WtApp {
           }
         }
         this.#loadingLibraries.delete(path);
-        if (this.#loadingLibraries.size === 0) scheduleUpdate();
+        //if (this.#loadingLibraries.size === 0) scheduleUpdate();
       } catch (error) {
         this.#loadingLibraries.delete(path);
-        if (this.#loadingLibraries.size === 0) scheduleUpdate();
+        //if (this.#loadingLibraries.size === 0) scheduleUpdate();
         const err = { 'error-description': `Fatal error: failed loading ${path}` };
         this.#sendError(err, err['error-description']);
-        this.#quit();
+        this.quit();
         throw error;
       }
     })();
@@ -752,12 +781,12 @@ export default class WtApp {
     return promise;
   }
 
-  #doJavaScript(js){
-    if (js) new Function(js)(); // vs eval(js); //!!!eval 
-    this.doAutoJavaScript?.();//this === appInstance && appInstance?._p_?.doAutoJavaScript();
-  }
+  // #doJavaScript(js){
+  //   if (js) new Function(js)(); // vs eval(js); //!!!eval 
+  //   this.doAutoJavaScript?.();//this === appInstance && appInstance?._p_?.doAutoJavaScript();
+  // }
   //Content-Security-Policy: script-src 'self' blob: https://trusted.cdn.com; object-src 'none'; base-uri 'self'; report-uri /csp-violation-report-endpoint;
-  async #doJS(js){
+  async #doJavaScript(js){
     if(!js) return;
     const blob = new Blob(['export default function(Wtc, Wt){', js, '}'], { type: 'text/javascript' });
     const url = URL.createObjectURL(blob); 
@@ -816,7 +845,6 @@ export default class WtApp {
     element.addEventListener('pointerleave', removePointer);
   }
 
-
   setPath(path) {
     history.pushState(null, '', path);
   }
@@ -846,9 +874,9 @@ export default class WtApp {
   }
   
   clearTimer(id) {
-    const timerData = this.timers.get(id);
-    if (timerData) {
-      (timerData.repeat === -1 ? clearTimeout : clearInterval)(timerData.timerId);
+    const t = this.timers.get(id);
+    if (t) {
+      (t.repeat === -1 ? clearTimeout : clearInterval)(t.timerId);
       this.timers.delete(id);
     }
   }
@@ -914,16 +942,11 @@ encodeEvent(event) {
   }
   
   // Process form data
-  if (formObjects.length > 0) {
-    for (const formId of formObjects) {
-      const el = document.getElementById(formId);
-      if (!el) continue;
-      
-      const value = getFormElementValue(el);
-      if (value !== undefined) {
-        payload.formData[formId] = value;
-      }
-    }
+  const form = event.object?.closest?.('form');
+  if (form) {
+    payload.formData = Object.fromEntries([...new FormData(form)].map(
+      ([k, v]) => [k, v instanceof File ? { name: v.name, type: v.type } : v]
+    ));
   }
   
   // Track active element
@@ -950,7 +973,7 @@ encodeEvent(event) {
   if (e.type) eventData.type = e.type;
   
   // Find target with ID
-  const target = findTargetWithId(e.target);
+  const target = this.findTargetWithId(e.target);
   if (target?.id) eventData.targetId = target.id;
   
   // Only handle pointer events (no fallback for older browsers)
@@ -1180,9 +1203,9 @@ getFormElementValue(el) {
     Object.values(this.timers).forEach(clearTimeout);
     this.#hasQuit = true;
     this.#conn.cancel();
-    const tr = WT.$("Wt-timers");
+    const tr = this.WT.$("Wt-timers");
     if (tr) {
-      WT.setHtml(tr, "", false);
+      this.WT.setHtml(tr, "", false);
     }
   }
 
