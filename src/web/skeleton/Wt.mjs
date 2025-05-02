@@ -6,7 +6,7 @@ const toPoints = (str, cuIndex) => graphemes(str.slice(0, cuIndex)).length;
 
 export class WtCore {
   constructor(config = {}) {
-    this.config = config;
+    this.cfg = config;
     this.buttons = 0;
     this.lastButtonUp = 0;
     this.mouseDragging = 0;
@@ -627,9 +627,10 @@ export class EventQueue {
   hasUnsent() { return this.#buf.length > 0; }
 }
 
-export default class WtApp {
+export default class WtApp {        
+  #cfg;
   #wevt = new GlobalEventManager();
-  #conn = new Connection(this.config.sessionUrl, this.#handleResponse);
+  #conn = new Connection(this.#cfg.sessionUrl, this.#handleResponse);
   #queue = new EventQueue(this.#conn);
   #libraryPromises = new Map(); // Tracks loading Promises by path
   #loadingLibraries = new Set(); // Tracks currently loading libraries
@@ -640,7 +641,7 @@ export default class WtApp {
   #quitmsg = null;
   constructor(config = {}) {
     this.id='app';
-    this.config = {
+    this.#cfg = {
       deployPath: config.deployPath || '',
       sessionUrl: config.sessionUrl || '',
       keepAlive: config.keepAlive || 60,
@@ -650,10 +651,11 @@ export default class WtApp {
       serverPushTimeout: config.serverPushTimeout || 30000,
       wsPath: config.wsPath || '/ws',
       wsId: config.wsId || '',
+      no_reload: config.no_reload || false,
       ...config,
     };
     this._p_ = this;
-    this.wt = new WtCore(this.config);
+    this.wt = new WtCore(this.#cfg);
     this.activePointers = new Map();
     //this.load();
 
@@ -668,7 +670,62 @@ export default class WtApp {
       this.#hasQuit = true;
       this.quit();
     }, { capture: true, once: true });
-    this.keepAliveTimer = setInterval(() => this.update(null, 'keepAlive', null, false), this.config.keepAlive * 1000);
+    this.keepAliveTimer = setInterval(() => this.update(null, 'keepAlive', null, false), this.#cfg.keepAlive * 1000);
+  }
+
+  #rand = () => (Math.random() * 1e6 | 0) + this.#cfg.randomSeed;
+
+  #hasWebGL() {
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+  }
+
+  /**
+   * Checks if cookies are enabled in the browser by setting and reading a test cookie.
+   * @private
+   * @returns {boolean} True if cookies are enabled, false otherwise
+   */
+  #isCookieEnabled() {
+    const testCookie = 'jscookietest=valid';
+    document.cookie = `${testCookie}; SameSite=Lax`;
+    this.#cfg.no_reload = this.#cfg.no_reload || document.cookie.includes(testCookie);
+    document.cookie = `${testCookie}; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+    return isEnabled;
+  }
+
+
+  async #init() {
+    /* 1️⃣ ensure ?wtd=sessionId param is present once */
+    const urlObj = new URL(location.href);
+    if (!urlObj.searchParams.has('wtd')) {
+      urlObj.searchParams.set('wtd', this.#cfg.sessionId);
+      history.replaceState(null, '', urlObj);
+      return; // browser reloads with param, our job is done
+    }
+    /*  check cookies */
+    this.#isCookieEnabled();
+
+
+
+    /* 2️⃣ build loader-script URL with diagnostics */
+    const jsUrl = new URL(this.#cfg.selfUrl, location.origin);
+    jsUrl.searchParams.set('sid', this.#cfg.scriptId);
+    jsUrl.searchParams.set('rand', this.#rand());
+    jsUrl.searchParams.set('scrW', screen.width);
+    jsUrl.searchParams.set('scrH', screen.height);
+    jsUrl.searchParams.set('tz', -new Date().getTimezoneOffset());
+    const tzName = Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone;
+    if (tzName) jsUrl.searchParams.set('tzS', tzName);
+    if (this.#cfg.webGLDetect && this.#hasWebGL()) jsUrl.searchParams.set('webGL', 'true');
+
+    const res = await fetch(jsUrl);
+    if (!res.ok) {
+      console.error('Failed to load script:', res.statusText);
+      //this.sendError({ 'error-description': `Failed to load script: ${res.statusText}` });
+      return;
+    }
+    const scriptText = await res.text(); //mainscript to build app page
+    this.#doJavaScript(scriptText);
   }
 
   async preload(uris, type = 'image') {
@@ -754,7 +811,7 @@ export default class WtApp {
 
   #doJavaScript(js){
     if (js) new Function(js)(); // vs eval(js); //!!!eval 
-    this === appInstance && appInstance?._p_?.doAutoJavaScript();
+    this === appInstance && appInstance?.doAutoJavaScript();//FIXME
   }
   
   trackPointer(element) {
@@ -1144,7 +1201,7 @@ getFormElementValue(el) {
       clearTimeout(this.timers.idle);
       const logout   = () => this.#conn.send('{"signal":"user", "id": "Wt-idleTimeout"}');
       this.timers.idle = setTimeout(() =>
-        logout, this.config.idleTimeout
+        logout, this.#cfg.idleTimeout
       );
     };
     ['wheel', 'pointerdown', 'keydown', 'visibilitychange'].forEach(e =>

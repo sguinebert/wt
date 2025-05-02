@@ -91,29 +91,29 @@ endfunction()
 #     Bootstrap5Theme_xml.C Bootstrap5Theme_xml)
 # FILE_TO_STRING(xml/auth_css_theme.xml
 #     AuthCssTheme_xml.C AuthCssTheme_xml)
+# Collect all files in the specified folders
+file(GLOB SKELETON_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/web/skeleton/*.html"
+    "${CMAKE_CURRENT_SOURCE_DIR}/web/skeleton/*.js"
+    "${CMAKE_CURRENT_SOURCE_DIR}/web/skeleton/*.mjs"
+)
+file(GLOB JS_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/js/*.js"
+)
+file(GLOB XML_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/xml/*.xml"
+)
+
+# Combine all files into a single list
+set(EMBED_FILES
+    ${SKELETON_FILES}
+    ${JS_FILES}
+    ${XML_FILES}
+)
+
+# Define the custom target
 add_custom_target(embed_files
-    SOURCES
-    web/skeleton/Plain.html
-    web/skeleton/Hybrid.html
-    web/skeleton/Boot.html
-
-    web/skeleton/Wt.js
-    web/skeleton/Wt.min.js
-    web/skeleton/es6.boot.js
-    web/skeleton/es6.Wt.js
-    web/skeleton/Wt.mjs
-    web/skeleton/Boot.js
-    web/skeleton/Boot.min.js
-
-    js/WCartesianChart.js
-    js/WCartesianChart.min.js
-
-    xml/wt.xml
-    xml/auth_strings.xml
-    xml/bootstrap_theme.xml
-    xml/bootstrap3_theme.xml
-    xml/bootstrap5_theme.xml
-    xml/auth_css_theme.xml
+    SOURCES ${EMBED_FILES}
 )
 set(DIR_TO_INCLUDE "/web/skeleton")
 
@@ -648,7 +648,8 @@ ADD_LIBRARY(wt ${libsources}
     Wt/cuehttp/deps/ada.cpp Wt/cuehttp/deps/ada.h
     Wt/WTemplate_.C Wt/WTemplate_.h
     Wt/cpp20/async_mutex.hpp
-    Wt/cpp23/embed.hpp)
+    Wt/cpp23/embed.hpp
+    Wt/cpp23/httpresponse.hpp)
 
 
 

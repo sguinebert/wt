@@ -28,9 +28,6 @@ SOFTWARE.
 #define _ANY_INVOKABLE_H_
 
 #include <functional>
-#include <memory>
-#include <type_traits>
-
 // clang-format off
 /*
 namespace std {
@@ -77,7 +74,9 @@ namespace std {
 }
 */
 // clang-format on
-
+#if __cplusplus < 202002L
+#include <memory>
+#include <type_traits>
 namespace ofats {
 
 namespace any_detail {
@@ -367,12 +366,18 @@ __OFATS_ANY_INVOCABLE(const, &&, true, const&&)   // 121
 #undef __OFATS_ANY_INVOCABLE
 
 }  // namespace ofats
+#endif
 
 /* We define our own type */
 namespace Wt {
 namespace cpp23 {
+#if __cplusplus >= 202002L
+    template <class T>
+    using move_only_function = std::move_only_function<T>;
+#else
   template <class T>
     using move_only_function = ofats::any_invocable<T>;
+#endif
 }
 }
 

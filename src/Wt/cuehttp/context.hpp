@@ -183,6 +183,7 @@ class context final : safe_noncopyable {
 
   void reset() {
     flush_ = false;
+    static_reply_ = std::string_view();
     request_.reset();
     response_.reset();
     cookies_.reset();
@@ -222,6 +223,7 @@ class context final : safe_noncopyable {
   bool flush_ = false;
   ::int64_t postDataExceeded() noexcept { return request_.postDataExceeded_; }
 
+    std::string_view static_reply_;
  private:
   void make_ws() {
     //assert(request_.websocket());

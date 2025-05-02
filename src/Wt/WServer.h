@@ -20,6 +20,7 @@
 #include <Wt/WebController.h>
 #include <Wt/WResource.h>
 
+#include "magic_enum/magic_enum.hpp"
 #include <chrono>
 
 namespace Http {
@@ -28,7 +29,51 @@ namespace Http {
   }
 }
 namespace Wt {
-
+enum class JsFile : unsigned {
+    AuthModel,
+    Bootstrap5Theme,
+    BootstrapValidate,
+    ChartCommon,
+    CssThemeValidate,
+    FlexLayoutImpl,
+    PopupWindow,
+    qtloader,
+    Resizable,
+    ResizeSensor,
+    ScrollVisibility,
+    SizeHandle,
+    StdGridLayoutImpl2,
+    ToolTip,
+    WAbstractMedia,
+    WAxisSliderWidget,
+    WDialog,
+    WDoubleValidator,
+    WFileDropWidget,
+    WFormWidget,
+    WGLWidget,
+    WImage,
+    WIntValidator,
+    WJavaScriptObjectStorage,
+    WLeafletMap,
+    WLengthValidator,
+    WLineEdit,
+    WMediaPlayer,
+    WPaintedWidget,
+    WPopupMenu,
+    WPopupWidget,
+    WRegExpValidator,
+    WSpinBox,
+    WStackedWidget,
+    WSuggestionPopup,
+    WTableView,
+    WTextEdit,
+    WTimeEdit,
+    WTreeTable,
+    WTreeView,
+    WWebWidget,
+    WtResize,
+    _Count
+};
 //class Configuration;
 //class WebController;
 //class WIOService;
@@ -445,6 +490,27 @@ public:
         webController_->start();
 
         //co_spawn(http::detail::engines::default_engines().get(), coro_expireSessions(), detached);
+
+        router_.get("Wt.mjs", [&](http::context& ctx) -> awaitable<void>
+                   {
+                       ctx.status(200);
+                       ctx.type("text/javascript");
+                       ctx.static_reply_ = getWtJs();
+                       ctx.flush();
+                       co_return;
+                   });
+        for (auto [wt, name] : magic_enum::enum_entries<JsFile>()) {
+            if (wt == JsFile::_Count) continue;
+            router_.get(name, [&, wt] (http::context& ctx) -> awaitable<void>
+                       {
+                           ctx.status(200);
+                           ctx.type("text/javascript");
+                           ctx.static_reply_ = jsFile(wt);
+                           ctx.flush();
+                           co_return;
+                       });
+            std::cout << name << " -> " << static_cast<int>(wt) << "\n";
+        }
 
         auto entrypoints = configuration().entryPoints();
         auto config = serverConfiguration_;
@@ -1011,6 +1077,10 @@ private:
   struct Impl;
   Impl *impl_;
 
+private:
+  std::string_view jsFile(JsFile wt) const;
+  std::string_view jsFile(std::string_view file) const;
+  std::string_view getWtJs() const;
   ::Http::server::Configuration *serverConfiguration_ = nullptr;
   Wt::http::cuehttp *server_ = nullptr;
 

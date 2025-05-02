@@ -252,6 +252,17 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
       if(!context_.flush_) {
           co_await context_.wait_flush(use_awaitable);
       }
+      if(!context_.static_reply_.empty()) { // constexpr string_view reply with headers included
+          auto [code, bytes_transferred] = co_await asio::async_write(socket_, asio::buffer(context_.static_reply_), use_nothrow_awaitable);
+          detail::unused(bytes_transferred);
+          if (code) {
+              std::cerr << "error async_write: " << code.what() << std::endl;
+              co_await close();
+              co_return;
+          }
+          context_.reset();
+          continue;
+      }
 
       std::vector<asio::const_buffer> buffers;
       context_.res().to_buffers(buffers);
@@ -260,9 +271,8 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
           auto [code, bytes_transferred] = co_await asio::async_write(socket_, buffers, use_nothrow_awaitable);
           detail::unused(bytes_transferred);
           if (code) {
-              //continue;
               std::cerr << "error async_write: " << code.what() << std::endl;
-              //co_await close();
+              co_await close();
               co_return;
           }
 
