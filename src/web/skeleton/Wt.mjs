@@ -598,16 +598,16 @@ export class Connection {
 
 export class EventQueue {
   #buf = [];
-  #maxBytes;
+  #max;
   #delay;
   #timer;
   #conn;
-  constructor(conn, {maxBytes = 10_000, delay = 40} = {}) {
-    this.#conn = conn; this.#maxBytes = maxBytes; this.#delay = delay;
+  constructor(conn, {max = 10_000, delay = 40} = {}) {
+    this.#conn = conn; this.#max = max; this.#delay = delay;
   }
   push(evt) {
-    this.#buf.push(JSON.stringify(evt));
-    if (this.#buf.join('&').length > this.#maxBytes)
+    this.#buf.push(evt);
+    if (this.#buf.length > this.#max)
       throw new Error('too many pending events');
     this.#scheduleFlush();
   }
@@ -618,7 +618,7 @@ export class EventQueue {
     clearTimeout(this.#timer); this.#timer = null;
     if (!this.#buf.length) return;
 
-    const payload = this.#buf.join('&');
+    const payload = JSON.stringify(this.#buf);
     this.#buf.length = 0;
 
     await this.#conn.ready;
@@ -628,7 +628,7 @@ export class EventQueue {
 }
 
 export default class WtApp {
-  #wevt = new GlobalEventManager();
+  #wevt = new GlobalEventManager(); //useless ??
   #conn = new Connection(this.config.sessionUrl, this.#handleResponse);
   #queue = new EventQueue(this.#conn);
   #libraryPromises = new Map(); // Tracks loading Promises by path
@@ -653,7 +653,7 @@ export default class WtApp {
       ...config,
     };
     this._p_ = this;
-    this.wt = new WtCore(this.config);
+    this.WTc = new WtCore(this.config);
     this.activePointers = new Map();
     //this.load();
 
@@ -742,8 +742,8 @@ export default class WtApp {
         this.#loadingLibraries.delete(path);
         if (this.#loadingLibraries.size === 0) scheduleUpdate();
         const err = { 'error-description': `Fatal error: failed loading ${path}` };
-        sendError?.(err, err['error-description']);
-        quit?.(null);
+        this.#sendError(err, err['error-description']);
+        this.#quit();
         throw error;
       }
     })();
@@ -754,7 +754,16 @@ export default class WtApp {
 
   #doJavaScript(js){
     if (js) new Function(js)(); // vs eval(js); //!!!eval 
-    this === appInstance && appInstance?._p_?.doAutoJavaScript();
+    this.doAutoJavaScript?.();//this === appInstance && appInstance?._p_?.doAutoJavaScript();
+  }
+  //Content-Security-Policy: script-src 'self' blob: https://trusted.cdn.com; object-src 'none'; base-uri 'self'; report-uri /csp-violation-report-endpoint;
+  async #doJS(js){
+    if(!js) return;
+    const blob = new Blob(['export default function(Wtc, Wt){', js, '}'], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob); 
+    const module = await import(url).catch(err => {console.error("Import failed:", err)}).then(() => URL.revokeObjectURL(url)); 
+    module?.default(this.WTc, this);//this === appInstance && appInstance?._p_?.doAutoJavaScript();
+    this.doAutoJavaScript?.();
   }
   
   trackPointer(element) {
@@ -1134,7 +1143,7 @@ getFormElementValue(el) {
           exception_js: msg,
           stack: e.stack || "No stack trace"
         };
-        sendError(err, `Wt internal error; code: ${e.code || "unknown"}, description: ${e.message || "No description"}`);
+        this.#sendError(err, `Wt internal error; code: ${e.code || "unknown"}, description: ${e.message || "No description"}`);
         throw e;
       }
   }
@@ -1151,6 +1160,20 @@ getFormElementValue(el) {
       document.addEventListener(e, reset, { passive: true/* , signal: aborter.signal */ })
     );
     reset();
+  }
+
+  #sendError(err, msg) {
+    const error = {
+      signal: 'error',
+      id: 'Wt-error',
+      name: 'error',
+      args: [err],
+      feedback: false,
+      evAckId: this.ackUpdateId
+    };
+    this.#queue.push(this.encodeEvent(error));
+    this.#queue.flush(); // Force flush to send error immediately
+    //console.error(msg, err);
   }
 
   quit() {
