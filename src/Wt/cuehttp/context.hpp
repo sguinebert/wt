@@ -36,6 +36,8 @@
 namespace Wt {
 namespace http {
 
+class detail::stream;
+
 class context final : safe_noncopyable {
     friend class CgiParser;
  public:
@@ -61,7 +63,7 @@ class context final : safe_noncopyable {
   }
 
   // request
-  std::vector<std::pair<std::string_view, std::string_view>> headers() const noexcept { return request_.headers(); }
+  auto& headers() const noexcept { return request_.headers(); }
 
   std::string_view getHeader(std::string_view field) const noexcept { return request_.get(field); }
 
@@ -241,6 +243,8 @@ class context final : safe_noncopyable {
   std::shared_ptr<Wt::WebSession> websession_;
 
   Wt::cpp23::move_only_function<void()> writecallback_ = nullptr;
+
+  friend class detail::stream;
 };
 
 }  // namespace http

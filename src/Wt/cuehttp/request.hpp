@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
 #include "cookies.hpp"
 #include "deps/picohttpparser.h"
@@ -40,6 +41,9 @@ namespace x3 = boost::spirit::x3;
 namespace Wt {
 namespace http {
 
+namespace detail {
+    class stream;
+}
 /*! \brief A list of parameter values.
  *
  * This is the type used to aggregate all values for a single parameter.
@@ -59,6 +63,7 @@ typedef std::unordered_map<std::string, ParameterValues> ParameterMap;
 typedef std::unordered_multimap<std::string, Http::UploadedFile> UploadedFileMap;
 
 class request final : safe_noncopyable {
+    friend class detail::stream;
 public:
     /*! \brief A single byte range.
    */
@@ -460,12 +465,15 @@ void inplaceUrlDecode(std::string &text)
   unsigned minor_version() const noexcept { return minor_version_; }
 
   std::string_view get(std::string_view field) const noexcept {
-    for (std::size_t i{0}; i < phr_num_headers_; ++i) {
-      const auto& header = phr_headers_[i];
-      if (detail::utils::iequals({header.name, header.name_len}, field)) {
-        return {header.value, header.value_len};
-      }
+    if(auto it = headers_.find(field); it != headers_.end()) {
+        return it->second;
     }
+    // for (std::size_t i{0}; i < phr_num_headers_; ++i) {
+    //   const auto& header = phr_headers_[i];
+    //   if (detail::utils::iequals({header.name, header.name_len}, field)) {
+    //     return {header.value, header.value_len};
+    //   }
+    // }
 
     using namespace std::literals;
     return ""sv;
@@ -485,23 +493,19 @@ void inplaceUrlDecode(std::string &text)
   }
 
   bool has_header(std::string_view field) const noexcept {
-    for (std::size_t i{0}; i < phr_num_headers_; ++i) {
-      const auto& header = phr_headers_[i];
-      if (detail::utils::iequals({header.name, header.name_len}, field)) {
-        return true;
-      }
-    }
-    return false;
+    return headers().contains(field);
+
+    // for (std::size_t i{0}; i < phr_num_headers_; ++i) {
+    //   const auto& header = phr_headers_[i];
+    //   if (detail::utils::iequals({header.name, header.name_len}, field)) {
+    //     return true;
+    //   }
+    // }
+    // return false;
   }
 
-  std::vector<std::pair<std::string_view, std::string_view>> headers() const noexcept {
-    std::vector<std::pair<std::string_view, std::string_view>> headers;
-    for (std::size_t i{0}; i < phr_num_headers_; ++i) {
-      const auto& header = phr_headers_[i];
-      headers.emplace_back(std::string_view{header.name, header.name_len},
-                           std::string_view{header.value, header.value_len});
-    }
-    return headers;
+  auto headers() const noexcept -> const std::unordered_map<std::string_view, std::string_view>& {
+    return headers_;
   }
 
   std::string_view method() const noexcept { return method_; }
@@ -641,6 +645,7 @@ void inplaceUrlDecode(std::string &text)
   void read(char* buf, unsigned offset, unsigned size) { std::copy(body_.begin() + offset, body_.begin() + offset + size, buf);  }
 
   void reset() noexcept {
+    headers_.clear();
     data_size_ = 0;
     parse_size_ = 0;
     buffer_offset_ = 0;
@@ -699,6 +704,12 @@ void inplaceUrlDecode(std::string &text)
       code = phr_parse_request(buffer_.data(), data_size_, &phr_method_, &phr_method_len_, &phr_path_, &phr_path_len_,
                                &phr_minor_version_, phr_headers_, &phr_num_headers_, parse_size_);
       if (code > 0) {
+        // headers
+        for (std::size_t i{0}; i < phr_num_headers_; ++i) {
+          const auto& header = phr_headers_[i];
+          headers_.emplace(std::string_view{header.name, header.name_len},
+                           std::string_view{header.value, header.value_len});
+        }
         // method
         parse_size_ += code;
         method_ = {phr_method_, phr_method_len_};
@@ -897,6 +908,7 @@ void inplaceUrlDecode(std::string &text)
   const char* phr_method_{nullptr};
   const char* phr_path_{nullptr};
   int phr_minor_version_;
+  std::unordered_map<std::string_view, std::string_view> headers_;
   phr_header phr_headers_[HTTP_REQUEST_HEADER_SIZE];
   std::size_t phr_method_len_;
   std::size_t phr_path_len_;

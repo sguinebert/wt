@@ -416,7 +416,7 @@ Wt/cuehttp/compress.hpp Wt/cuehttp/context.hpp Wt/cuehttp/cookies.hpp Wt/cuehttp
 Wt/WebController.h Wt/WebController.C
 
 Wt/cuehttp/deps/json.hpp Wt/cuehttp/deps/picohttpparser.h
-Wt/cuehttp/detail/body_stream.hpp Wt/cuehttp/detail/buffered_streambuf.hpp Wt/cuehttp/detail/common.hpp Wt/cuehttp/detail/connection.hpp Wt/cuehttp/detail/endian.hpp Wt/cuehttp/detail/MoveOnlyFunction.hpp
+Wt/cuehttp/detail/body_stream.hpp Wt/cuehttp/detail/buffered_streambuf.hpp Wt/cuehttp/detail/common.hpp Wt/cuehttp/detail/connection.hpp Wt/cuehttp/detail/connection_old.hpp Wt/cuehttp/detail/endian.hpp Wt/cuehttp/detail/MoveOnlyFunction.hpp
 Wt/cuehttp/detail/engines.hpp Wt/cuehttp/detail/gzip.hpp Wt/cuehttp/detail/middlewares.hpp Wt/cuehttp/detail/mime.hpp Wt/cuehttp/detail/noncopyable.hpp Wt/cuehttp/detail/send.hpp Wt/cuehttp/detail/sha1.hpp Wt/cuehttp/detail/static.hpp
 Wt/cuehttp/request.hpp Wt/cuehttp/response.hpp Wt/cuehttp/router.hpp Wt/cuehttp/send.hpp Wt/cuehttp/server.hpp Wt/cuehttp/session.hpp Wt/cuehttp/static.hpp Wt/cuehttp/use_session.hpp Wt/cuehttp/websocket.hpp Wt/cuehttp/ws_server.hpp
 
@@ -697,6 +697,21 @@ ENDIF(HAVE_URING)
 
 TARGET_INCLUDE_DIRECTORIES(wt PRIVATE Wt/AsioWrapper)
 
+# Add HTTP/2 feature if nghttp2 is found
+if(HAVE_NGHTTP2)
+  message(STATUS "Found nghttp2: HTTP/2 support will be enabled")
+  add_definitions(-DWT_WITH_HTTP2)
+
+  # Link with nghttp2
+  if(TARGET PkgConfig::NGHTTP2)
+    target_link_libraries(wt PRIVATE PkgConfig::NGHTTP2)
+  else()
+    target_include_directories(wt PRIVATE ${NGHTTP2_INCLUDE_DIRS})
+    target_link_libraries(wt PRIVATE ${NGHTTP2_LIBRARIES})
+  endif()
+else()
+  message(STATUS "nghttp2 not found: HTTP/2 support will be disabled")
+endif()
 
 #IF(${ZLIB_FOUND})
 #SET(MY_ZLIB_LIBS ${ZLIB_LIBRARIES})

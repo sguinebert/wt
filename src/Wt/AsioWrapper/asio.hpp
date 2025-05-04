@@ -16,12 +16,14 @@
 #define BOOST_ASIO_DISABLE_EPOLL 1
 #define BOOST_ASIO_HAS_FILE 1
 #include <boost/asio.hpp>
+#include <boost/asio/error.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/stream_file.hpp>
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/as_tuple.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
+#include <boost/asio/experimental/channel.hpp>
 #ifdef TWEAKS
 template <typename T>
 using awaitable = boost::asio::awaitable<T, boost::asio::io_context::executor_type>;
@@ -39,7 +41,7 @@ using namespace boost::asio::experimental::awaitable_operators;
 using namespace std::literals::chrono_literals;
 using std::chrono::steady_clock;
 using executor_t = boost::asio::io_context::executor_type;
-extern thread_local boost::asio::io_context* thread_context;
+//extern thread_local boost::asio::io_context* thread_context;
 using boost::asio::io_context;
 using namespace boost;
 #else
@@ -61,6 +63,7 @@ using namespace boost;
 #if defined(ASIO_HAS_CO_AWAIT)
 #include <asio/experimental/as_tuple.hpp>
 #include <asio/experimental/awaitable_operators.hpp>
+#include <asio/experimental/channel.hpp>
 using asio::awaitable;
 using asio::buffer;
 using asio::co_spawn;

@@ -2902,29 +2902,29 @@ awaitable<void> WebSession::notify(const WEvent& event)
           render(*handler);
       } else {
           // a normal request to a loaded application
-          try {
-              if (context->postDataExceeded())
-                  co_await app_->requestTooLarge().emit(context->postDataExceeded());
-          } catch (std::exception& e) {
-              LOG_ERROR("Exception in WApplication::requestTooLarge {}", e.what());
-              RETHROW(e); //is this necessary ?
-          } catch (...) {
-              LOG_ERROR("Exception in WApplication::requestTooLarge");
-              throw;
-          }
+          // try {
+          //     if (context->postDataExceeded())
+          //         co_await app_->requestTooLarge().emit(context->postDataExceeded());
+          // } catch (std::exception& e) {
+          //     LOG_ERROR("Exception in WApplication::requestTooLarge {}", e.what());
+          //     RETHROW(e); //is this necessary ?
+          // } catch (...) {
+          //     LOG_ERROR("Exception in WApplication::requestTooLarge");
+          //     throw;
+          // }
 
           std::string hashE  {context->getParameter("_")};
 
           //this is where the private resources are retrieved from
           // DEPRECATION : now we will handle private WResources without lock in webcontroller handleRequest()
-          WResource *resource = nullptr;
-          if (requestE.empty()) {
-              if (auto subpath = context->pathInfo(applicationUrl_); !subpath.empty())
-                  resource = app_->decodeExposedResource("/path/" + Utils::prepend(std::string(subpath), '/'));
+          // WResource *resource = nullptr;
+          // if (requestE.empty()) {
+          //     if (auto subpath = context->pathInfo(applicationUrl_); !subpath.empty())
+          //         resource = app_->decodeExposedResource("/path/" + Utils::prepend(std::string(subpath), '/'));
 
-              if (!resource && !hashE.empty())
-                  resource = app_->decodeExposedResource("/path/" + hashE);
-          }
+          //     if (!resource && !hashE.empty())
+          //         resource = app_->decodeExposedResource("/path/" + hashE);
+          // }
 
           auto resourceE = context->getParameter("resource");
           auto signalE = getSignal(context, "");
@@ -2933,46 +2933,47 @@ awaitable<void> WebSession::notify(const WEvent& event)
           if (!signalE.empty())
               progressiveBoot_ = false;
 
-          if (resource || (requestE == "resource" && !resourceE.empty())) { // now it will be never hit
-              if (resourceE == "blank") {
-                  context->type("text/html");
-                  context->res() << "<html><head><title>bhm</title></head><body></body></html>";
-                  handler->flushResponse();
-              } else {
-                  if (!resource) {
-                      unsigned long ver = 0;
-                      try {
-                          if (!verE.empty())
-                              ver = Utils::stoul(verE);
-                      } catch (std::exception& e) {
-                          ver = 0;
-                      }
-                      //this is where the private resources are retrieved from
-                      //(not like a global resource that is shared at server level)
-                      resource = app_->decodeExposedResource(resourceE, ver);
-                  }
+          // if (resource || (requestE == "resource" && !resourceE.empty())) { // now it will be never hit
+          //     if (resourceE == "blank") {
+          //         context->type("text/html");
+          //         context->res() << "<html><head><title>bhm</title></head><body></body></html>";
+          //         handler->flushResponse();
+          //     } else {
+          //         if (!resource) {
+          //             unsigned long ver = 0;
+          //             try {
+          //                 if (!verE.empty())
+          //                     ver = Utils::stoul(verE);
+          //             } catch (std::exception& e) {
+          //                 ver = 0;
+          //             }
+          //             //this is where the private resources are retrieved from
+          //             //(not like a global resource that is shared at server level)
+          //             resource = app_->decodeExposedResource(resourceE, ver);
+          //         }
 
-                  if (resource) {
-                      try {
-                          co_await resource->handle(context);
-                          handler->setRequest(nullptr, nullptr);
-                          handler->setRequest(nullptr);
-                      } catch (std::exception& e) {
-                          LOG_ERROR("Exception while streaming resource {}", e.what());
-                          RETHROW(e);
-                      } catch (...) {
-                          LOG_ERROR("Exception while streaming resource");
-                          throw;
-                      }
-                  } else {
-                      LOG_ERROR("decodeResource(): resource '{}' not exposed", resourceE);
-                      context->status(404);
-                      context->type("text/html");
-                      context->res() << "<html><body><h1>Page not found.</h1></body></html>";
-                      handler->flushResponse();
-                  }
-              }
-          } else { //make it default since resource is handle in webcontroller
+          //         if (resource) {
+          //             try {
+          //                 co_await resource->handle(context);
+          //                 handler->setRequest(nullptr, nullptr);
+          //                 handler->setRequest(nullptr);
+          //             } catch (std::exception& e) {
+          //                 LOG_ERROR("Exception while streaming resource {}", e.what());
+          //                 RETHROW(e);
+          //             } catch (...) {
+          //                 LOG_ERROR("Exception while streaming resource");
+          //                 throw;
+          //             }
+          //         } else {
+          //             LOG_ERROR("decodeResource(): resource '{}' not exposed", resourceE);
+          //             context->status(404);
+          //             context->type("text/html");
+          //             context->res() << "<html><body><h1>Page not found.</h1></body></html>";
+          //             handler->flushResponse();
+          //         }
+          //     }
+          // } else 
+          { //make it default since resource is handle in webcontroller
               env_->updateUrlScheme(context);
 
               if (!signalE.empty()) {
@@ -3026,7 +3027,8 @@ awaitable<void> WebSession::notify(const WEvent& event)
                    */
                   if (asyncResponse_) {
                       asyncResponse_->flush();
-                      asyncResponse_ = nullptr;
+                      if(!es6_) //only for pre-es6
+                        asyncResponse_ = nullptr;
                   }
 
                   if (signalE == "poll") {

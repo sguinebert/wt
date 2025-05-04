@@ -165,7 +165,7 @@ class response final : safe_noncopyable {
 
   void length(std::uint64_t content_length) noexcept { content_length_ = content_length; }
 
-  bool has_body() const noexcept { return buffer_.size() != 0; }
+  bool has_body() const noexcept { return body_buffer_.size() != 0; }
 
   //std::string_view dump_body() const noexcept { return std::string_view(boost::asio::buffer_cast<const char*>(buffer_.data()), buffer_.size()); }
   std::string_view dump_body() const noexcept { return std::string_view(body_buffer_.data(), body_buffer_.size()); }

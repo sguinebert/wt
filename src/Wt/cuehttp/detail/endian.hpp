@@ -21,6 +21,7 @@
 #define CUEHTTP_ENDIAN_HPP_
 
 #include <type_traits>
+#include <cstdint>
 #if defined(_MSC_VER)
 #include <stdlib.h>
 #define cue_bswap_16 _byteswap_ushort

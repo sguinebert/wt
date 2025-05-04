@@ -1372,8 +1372,7 @@ awaitable<void> WebController::handleWebSocketMessage(http::context *context, En
       static auto maxRequestSize = conf_.maxRequestSize();
       static auto maxFormDataSize = conf_.maxFormDataSize();
 
-      /*static thread_local*/ CgiParser cgi(maxRequestSize,
-                                        maxFormDataSize);
+      /*static thread_local*/ CgiParser cgi(maxRequestSize, maxFormDataSize);
       try {
           cgi.parse(message, lock->sessionId(), context, CgiParser::ReadDefault);
       } catch (std::exception& e) {

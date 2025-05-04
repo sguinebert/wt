@@ -49,6 +49,7 @@ OPTION(WT_NO_STD_WSTRING "Build Wt to run on a system without std::wstring suppo
 OPTION(ENABLE_OPENGL "Build Wt with support for server-side opengl rendering" ON)
 OPTION(ENABLE_UNWIND "Build Wt with stacktrace support using libunwind" OFF)
 OPTION(ENABLE_URING "Build Wt with IO_URING for asio reactor using liburing" ON)
+OPTION(ENABLE_HTTP2 "Build Wt with LSQUIC for asio nexus using liblsquic.a" ON)
 OPTION(ENABLE_HTTP3 "Build Wt with LSQUIC for asio nexus using liblsquic.a" ON)
 
 IF(NOT CMAKE_CXX_STANDARD)
@@ -252,6 +253,7 @@ INCLUDE(cmake/WtFindHaru.txt)
 INCLUDE(cmake/WtFindGm.txt)
 INCLUDE(cmake/WtFindUring.txt)
 INCLUDE(cmake/WtFindLsQuic.txt)
+INCLUDE(cmake/WtFindNghttp2.cmake)
 #INCLUDE(cmake/WtFindGL.txt)
 #INCLUDE(cmake/WtFindSkia.txt)
 
@@ -566,6 +568,10 @@ IF(ENABLE_UNWIND AND UNWIND_FOUND)
   SET(HAVE_UNWIND ON)
 ENDIF(ENABLE_UNWIND AND UNWIND_FOUND)
 
+IF(ENABLE_HTTP2 AND NGHTTP2_FOUND)
+  SET(HAVE_NGHTTP2 ON)
+ENDIF(ENABLE_HTTP2 AND NGHTTP2_FOUND)
+
 IF(ENABLE_HTTP3 AND LSQUIC_FOUND)
   SET(HAVE_LSQUIC ON)
 ENDIF(ENABLE_HTTP3 AND LSQUIC_FOUND)
@@ -579,7 +585,6 @@ CONFIGURE_FILE(
 )
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 INSTALL_FILES(/include/Wt FILES ${WCONFIG_H_PATH})
-
 
 # add_custom_target(InstallGulpPackages ALL
 #   COMMAND npm install --save-dev gulp gulp-cli

@@ -669,7 +669,7 @@ export default class WtApp {
   #downY = 0;
   #quitmsg = null;
   constructor(config = {}) {
-    this.id='app';
+    this.id=config.appId||'Wt';
     this.#cfg = {
       deployPath: config.deployPath || '',
       sessionUrl: config.sessionUrl || '',
