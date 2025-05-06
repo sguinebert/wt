@@ -20,10 +20,10 @@ class server {
   using executor_type = quic::detail::engine_impl::executor_type;
 
   /// construct the server with its associated executor
-  explicit server(const executor_type& ex);
+  explicit server(const Wt::http::detail::engines& engine);
 
   /// construct the server with its associated executor and transport settings
-  server(const executor_type& ex, const quic::settings& s);
+  server(const Wt::http::detail::engines& engine, const quic::settings& s);
 
   /// return the associated io executor
   executor_type get_executor() const;

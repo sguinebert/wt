@@ -288,10 +288,10 @@ ssl_ctx_st* api_peer_ssl_ctx(void* peer_ctx, const sockaddr* local)
   return socket.ssl.native_handle();
 }
 
-engine_impl::engine_impl(const boost::asio::any_io_executor& ex,
+engine_impl::engine_impl(const Wt::http::detail::engines& engine,
                          socket_impl* client, const settings* s,
                          unsigned flags)
-  : ex(ex), timer(ex), client(client), is_http(flags & LSENG_HTTP)
+  : engine_(engine), timer(engine.get_executor()), client(client), is_http(flags & LSENG_HTTP)
 {
   lsquic_engine_api api = {};
   api.ea_packets_out = api_send_packets;

@@ -7,8 +7,7 @@
 namespace nexus::quic::detail {
 
 struct service_tag {};
-using service_list_base_hook = boost::intrusive::list_base_hook<
-    boost::intrusive::tag<service_tag>>;
+using service_list_base_hook = boost::intrusive::list_base_hook<boost::intrusive::tag<service_tag>>;
 
 /// service for two-phase execution_context shutdown, which breaks ownership
 /// cycles between completion handlers and their io objects. tracks objects

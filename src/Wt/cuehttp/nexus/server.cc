@@ -7,31 +7,31 @@
 namespace nexus {
 namespace quic {
 
-server::server(const executor_type& ex)
-    : engine(ex, nullptr, nullptr, LSENG_SERVER)
+server::server(const Wt::http::detail::engines& engine)
+    : engine_(ex, nullptr, nullptr, LSENG_SERVER)
 {}
 
-server::server(const executor_type& ex, const settings& s)
-    : engine(ex, nullptr, &s, LSENG_SERVER)
+server::server(const Wt::http::detail::engines& engine, const settings& s)
+    : engine_(engine, nullptr, &s, LSENG_SERVER)
 {}
 
 server::executor_type server::get_executor() const
 {
-  return engine.get_executor();
+  return engine_.get_executor();
 }
 
 void server::close()
 {
-  engine.close();
+  engine_.close();
 }
 
 acceptor::acceptor(server& s, udp::socket&& socket, ssl::context& ctx)
-    : impl(s.engine, std::move(socket), ctx)
+    : impl(s.engine_, std::move(socket), ctx)
 {}
 
 acceptor::acceptor(server& s, const udp::endpoint& endpoint,
                    ssl::context& ctx)
-    : impl(s.engine, endpoint, true, ctx)
+    : impl(s.engine_, endpoint, true, ctx)
 {}
 
 acceptor::executor_type acceptor::get_executor() const
@@ -75,12 +75,12 @@ void acceptor::close()
 
 namespace h3 {
 
-server::server(const executor_type& ex)
-    : engine(ex, nullptr, nullptr, LSENG_SERVER | LSENG_HTTP)
+server::server(const Wt::http::detail::engines& engine)
+    : engine(engine, nullptr, nullptr, LSENG_SERVER | LSENG_HTTP)
 {}
 
-server::server(const executor_type& ex, const quic::settings& s)
-    : engine(ex, nullptr, &s, LSENG_SERVER | LSENG_HTTP)
+server::server(const Wt::http::detail::engines& engine, const quic::settings& s)
+    : engine(engine, nullptr, &s, LSENG_SERVER | LSENG_HTTP)
 {}
 
 server::executor_type server::get_executor() const

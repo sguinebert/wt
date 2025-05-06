@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../detail/engines.hpp"
 #include "../udp.hpp"
 #include "../ssl.hpp"
 #include "detail/engine_impl.hpp"
@@ -14,16 +15,16 @@ class connection;
 /// class acceptor
 class server {
   friend class acceptor;
-  detail::engine_impl engine;
+  detail::engine_impl engine_;
  public:
   /// the polymorphic executor type, boost::asio::any_io_executor
   using executor_type = detail::engine_impl::executor_type;
 
   /// construct the server with its associated executor
-  explicit server(const executor_type& ex);
+  explicit server(const Wt::http::detail::engines& engine);
 
   /// construct the server with its associated executor and transport settings
-  server(const executor_type& ex, const settings& s);
+  server(const Wt::http::detail::engines& engine, const settings& s);
 
   /// return the associated io executor
   executor_type get_executor() const;

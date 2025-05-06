@@ -3,7 +3,8 @@
 #include <memory>
 #include <mutex>
 
-#include <boost/asio/steady_timer.hpp>
+#include <Wt/AsioWrapper/asio.hpp>
+//#include <boost/asio/steady_timer.hpp>
 
 #include "../settings.hpp"
 
@@ -22,10 +23,10 @@ struct engine_deleter { void operator()(lsquic_engine* e) const; };
 using lsquic_engine_ptr = std::unique_ptr<lsquic_engine, engine_deleter>;
 
 struct engine_impl {
-      using executor_type = boost::asio::any_io_executor;
+  using executor_type = asio::any_io_executor;
   mutable std::mutex mutex;
-  executor_type ex;
-  boost::asio::steady_timer timer;
+  Wt::http::detail::engines &engine_;
+  asio::steady_timer timer;
   lsquic_engine_ptr handle;
   // pointer to client socket or null if server
   socket_impl* client;
@@ -36,12 +37,12 @@ struct engine_impl {
   void reschedule(std::unique_lock<std::mutex>& lock);
   void on_timer();
 
-  engine_impl(const boost::asio::any_io_executor& ex, socket_impl* client,
+  engine_impl(const Wt::http::detail::engines& engine, socket_impl* client,
               const settings* s, unsigned flags);
   ~engine_impl();
 
 
-  const executor_type& get_executor() const { return ex; }
+  const executor_type& get_executor() const { return engine_.get_context(); }
 
   void close();
 

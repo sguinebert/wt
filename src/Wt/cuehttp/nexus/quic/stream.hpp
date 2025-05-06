@@ -20,7 +20,7 @@ class connection;
 /// asio's AsyncRead/WriteStream and SyncRead/WriteStream
 class stream {
  protected:
-    friend class connection;
+  friend class connection;
   friend class detail::connection_impl;
   detail::stream_impl impl;
   explicit stream(detail::connection_impl& impl);
