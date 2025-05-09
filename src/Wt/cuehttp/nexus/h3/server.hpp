@@ -20,10 +20,10 @@ class server {
   using executor_type = quic::detail::engine_impl::executor_type;
 
   /// construct the server with its associated executor
-  explicit server(const Wt::http::detail::engines& engine);
+  explicit server(const Wt::http::detail::engines* engine);
 
   /// construct the server with its associated executor and transport settings
-  server(const Wt::http::detail::engines& engine, const quic::settings& s);
+  server(const Wt::http::detail::engines* engine, const quic::settings& s);
 
   /// return the associated io executor
   executor_type get_executor() const;
@@ -42,9 +42,10 @@ class acceptor {
  public:
   /// the polymorphic executor type, boost::asio::any_io_executor
   using executor_type = quic::detail::socket_impl::executor_type;
+  using udp_socket = quic::detail::socket_impl::udp_socket;
 
   /// construct the acceptor, taking ownership of a bound UDP socket
-  acceptor(server& s, udp::socket&& socket, ssl::context& ctx);
+  acceptor(server& s, udp_socket&& socket, ssl::context& ctx);
 
   /// construct the acceptor and bind a UDP socket to the given endpoint
   acceptor(server& s, const udp::endpoint& endpoint, ssl::context& ctx);

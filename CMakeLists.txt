@@ -241,7 +241,11 @@ include (CheckSymbolExists)
 find_package(PNG)
 
 set(ZLIB_ROOT ${ZLIB_PREFIX})
-find_package(ZLIB)
+find_package(ZLIB REQUIRED)
+
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+find_package(Brotli COMPONENTS dec enc REQUIRED)
+
 
 INCLUDE(cmake/WtFindBoost.txt)
 INCLUDE(cmake/WtFindFcgi.txt)
@@ -254,8 +258,10 @@ INCLUDE(cmake/WtFindGm.txt)
 INCLUDE(cmake/WtFindUring.txt)
 INCLUDE(cmake/WtFindLsQuic.txt)
 INCLUDE(cmake/WtFindNghttp2.cmake)
+#INCLUDE(cmake/FindBrotli.cmake)
 #INCLUDE(cmake/WtFindGL.txt)
 #INCLUDE(cmake/WtFindSkia.txt)
+
 
 find_package(OpenGL)
 find_package(GLEW)
@@ -573,7 +579,8 @@ IF(ENABLE_HTTP2 AND NGHTTP2_FOUND)
 ENDIF(ENABLE_HTTP2 AND NGHTTP2_FOUND)
 
 IF(ENABLE_HTTP3 AND LSQUIC_FOUND)
-  SET(HAVE_LSQUIC ON)
+message(STATUS "LSQUIC found")
+  SET(WT_HAS_LSQUIC TRUE)
 ENDIF(ENABLE_HTTP3 AND LSQUIC_FOUND)
 
 # Compile time constants & make sure our build finds it

@@ -36,14 +36,48 @@
 namespace Wt {
 namespace http {
 
-class detail::stream;
+// class stream {
+//     int32_t stream_id;
+//     std::vector<nghttp2_nv> headers;
+//     asio::experimental::channel<void(boost::system::error_code, std::string)> body_channel{socket_.get_executor(), 10};
+//     std::queue<std::string> response_queue;
+//     bool response_complete = false;
+//     context ctx;
+
+//     stream(int32_t id, std::function<awaitable<bool>(std::string_view)> reply_chunk,
+//            std::function<awaitable<bool>(std::vector<asio::const_buffer>&)> reply_chunk_sg,
+//            bool is_ssl, std::function<void(detail::ws_frame&&)> ws_send)
+//         : stream_id{id},
+//         ctx{std::move(reply_chunk), std::move(reply_chunk_sg), is_ssl, std::move(ws_send)} {}
+
+//     awaitable<std::string> async_read_body() {
+//         auto [ec, data] = co_await body_channel.async_receive(asio::use_awaitable);
+//         if (ec) co_return "";
+//         co_return data;
+//     }
+
+//     awaitable<void> send_response(std::vector<nghttp2_nv> headers, std::string body) {
+//         response_queue.push(std::move(body));
+//         nghttp2_data_provider data_prd{};
+//         data_prd.read_callback = data_provider_read_callback;
+//         auto* conn = static_cast<base_connection*>(ctx.user_data);
+//         nghttp2_submit_response(conn->session_, stream_id, headers.data(), headers.size(), &data_prd);
+//         co_return;
+//     }
+
+//     void end_response() {
+//         response_complete = true;
+//         auto* conn = static_cast<base_connection*>(ctx.user_data);
+//         nghttp2_session_resume_data(conn->session_, stream_id);
+//     }
+// };
 
 class context final : safe_noncopyable {
     friend class CgiParser;
  public:
     context(detail::reply_handler handler,  detail::reply_handler_sg handler2, bool https, detail::ws_send_handler ws_send_handler) noexcept
          : response_{cookies_, std::move(handler), std::move(handler2)},
-        request_{https, response_, cookies_},
+        request_{https, /*response_,*/ cookies_},
         ws_send_handler_{std::move(ws_send_handler)} {}
 
   request& req() noexcept { return request_; }
@@ -142,8 +176,18 @@ class context final : safe_noncopyable {
 
   void length(std::uint64_t content_length) noexcept { response_.length(content_length); }
 
-  auto prepare(std::size_t n) { return response_.buffer_.prepare(n); }
-  void commit(std::size_t n) { response_.buffer_.commit(n); }
+  // auto prepare(std::size_t n) { return response_.buffer_.prepare(n); }
+  // void commit(std::size_t n) { response_.buffer_.commit(n); }
+
+  auto prepare(std::size_t n) {
+      auto& buffer = response_.buffer();
+      buffer.reserve(n);
+      return asio::mutable_buffer(buffer.data() + buffer.size() /*- commited */, buffer.capacity() - buffer.size() /*- commited */);
+  }
+  void commit(std::size_t n) {
+      auto& buffer = response_.buffer();
+      buffer.clear();
+  }
 
   class cookies& cookies() noexcept {
     return cookies_;

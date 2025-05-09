@@ -121,7 +121,7 @@ inline awaitable<void> send_file(context& ctx, _Path&& path, _Options&& options)
         do  {
           auto mutb = ctx.prepare(options.chunked_threshold);
           read_bytes = co_await file.async_read_some_at(tellg, mutb, use_awaitable);
-          ctx.commit(read_bytes);
+          //ctx.commit(read_bytes);
           tellg += options.chunked_threshold;
           co_await ctx.res().chunk_flush();
         } while (read_bytes);
@@ -131,8 +131,7 @@ inline awaitable<void> send_file(context& ctx, _Path&& path, _Options&& options)
 
         auto mutb = ctx.prepare(file_size);
         auto read_bytes = co_await file.async_read_some_at(0, mutb, use_awaitable);
-        ctx.commit(read_bytes);
-
+        //ctx.commit(read_bytes);
       }
 
       ctx.flush();

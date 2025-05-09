@@ -35,8 +35,11 @@ inline void list_transfer(connection_impl& s, connection_list& from,
 }
 
 struct socket_impl : boost::intrusive::list_base_hook<> {
+    using executor_type = boost::asio::io_context::executor_type;
+
+    using udp_socket = boost::asio::basic_datagram_socket<boost::asio::ip::udp, executor_type>;
   engine_impl& engine;
-  udp::socket socket;
+  udp_socket socket;
   ssl::context& ssl;
   udp::endpoint local_addr; // socket's bound address
   boost::circular_buffer<incoming_connection> incoming_connections;
@@ -44,7 +47,7 @@ struct socket_impl : boost::intrusive::list_base_hook<> {
   connection_list open_connections;
   bool receiving = false;
 
-  socket_impl(engine_impl& engine, udp::socket&& socket,
+  socket_impl(engine_impl& engine, udp_socket&& socket,
               ssl::context& ssl);
   socket_impl(engine_impl& engine, const udp::endpoint& endpoint,
               bool is_server, ssl::context& ssl);
@@ -52,7 +55,6 @@ struct socket_impl : boost::intrusive::list_base_hook<> {
     close();
   }
 
-  using executor_type = boost::asio::any_io_executor;
   executor_type get_executor() const;
 
   udp::endpoint local_endpoint() const { return local_addr; }

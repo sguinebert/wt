@@ -87,7 +87,7 @@ class engines final : safe_noncopyable {
       return thread_context;
   }
 
-  asio::io_context& get() noexcept { return *io_contexts_[index_++ % io_contexts_.size()]; }
+  asio::io_context& get() const noexcept { return *io_contexts_[index_++ % io_contexts_.size()]; }
 
   void run() {
     for (const auto& io_context : io_contexts_) {
@@ -144,7 +144,7 @@ class engines final : safe_noncopyable {
   std::vector<std::shared_ptr<asio::io_context>> io_contexts_;
   std::vector<asio::executor_work_guard<asio::io_context::executor_type>> workers_;
   std::vector<std::thread> run_threads_;
-  std::size_t index_{0};
+  mutable std::size_t index_{0};
 };
 
 }  // namespace detail

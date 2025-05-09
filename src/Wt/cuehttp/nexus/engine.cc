@@ -288,10 +288,10 @@ ssl_ctx_st* api_peer_ssl_ctx(void* peer_ctx, const sockaddr* local)
   return socket.ssl.native_handle();
 }
 
-engine_impl::engine_impl(const Wt::http::detail::engines& engine,
+engine_impl::engine_impl(const Wt::http::detail::engines* engine,
                          socket_impl* client, const settings* s,
                          unsigned flags)
-  : engine_(engine), timer(engine.get_executor()), client(client), is_http(flags & LSENG_HTTP)
+  : engine_(engine), timer(engine->get()), client(client), is_http(flags & LSENG_HTTP)
 {
   lsquic_engine_api api = {};
   api.ea_packets_out = api_send_packets;
@@ -325,6 +325,45 @@ engine_impl::engine_impl(const Wt::http::detail::engines& engine,
   max_streams_per_connection = es.es_init_max_streams_bidi;
 
   handle.reset(::lsquic_engine_new(flags, &api));
+}
+
+engine_impl::engine_impl(const executor_type* ex,
+                         socket_impl* client, const settings* s,
+                         unsigned flags)
+    : executor_(ex), timer(*ex), client(client), is_http(flags & LSENG_HTTP)
+{
+    lsquic_engine_api api = {};
+    api.ea_packets_out = api_send_packets;
+    api.ea_packets_out_ctx = this;
+    static const lsquic_stream_if stream_api = make_stream_api();
+    api.ea_stream_if = &stream_api;
+    api.ea_stream_if_ctx = this;
+    api.ea_get_ssl_ctx = api_peer_ssl_ctx;
+    if (flags & LSENG_HTTP) {
+        static const lsquic_hset_if header_api = make_header_api();
+        api.ea_hsi_if = &header_api;
+        api.ea_hsi_ctx = this;
+    }
+
+    // apply and validate the settings
+    lsquic_engine_settings es;
+    ::lsquic_engine_init_settings(&es, flags);
+    if (s) {
+        write_settings(*s, es);
+    }
+
+    es.es_versions = (1 << LSQVER_I001) | (1 << LSQVER_I002); // RFC version only
+    char errbuf[256];
+    int r = ::lsquic_engine_check_settings(&es, flags, errbuf, sizeof(errbuf));
+    if (r == -1) {
+        throw bad_setting(errbuf);
+    }
+    es.es_delay_onclose = 1;
+    api.ea_settings = &es;
+
+    max_streams_per_connection = es.es_init_max_streams_bidi;
+
+    handle.reset(::lsquic_engine_new(flags, &api));
 }
 
 } // namespace nexus::quic::detail

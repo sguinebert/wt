@@ -353,18 +353,18 @@ public:
 //  void write(WT_BOSTREAM& out,
 //	     const Http::ParameterMap& parameters = Http::ParameterMap(),
 //	     const Http::UploadedFileMap& files = Http::UploadedFileMap());
-
+#warning "this code is broken"
   void write(asio::streambuf& out)
   {
 
       http::cookies cookies;
       //std::streambuf test(out);
       http::response response(cookies, out);
-      http::request  request(true, response, cookies);
+      //http::request  request(true, response, cookies);
 
       asio::io_context ctx;
 
-      auto fut = co_spawn(ctx, handleRequest(request, response), asio::use_future);
+      //auto fut = co_spawn(ctx, handleRequest(request, response), asio::use_future);
 
       ctx.run();
 

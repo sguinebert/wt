@@ -42,6 +42,10 @@ class WResource;
 
 namespace http {
 
+namespace detail {
+class stream;
+}
+
 struct Continuation;
 class ResponseContinuation;
 
@@ -222,12 +226,81 @@ class response final : safe_noncopyable {
   }
   /*cancel*/
 
+  inline bool is_compressed_type(std::string_view mime) {
+      // Normalise to lowercase (ASCII) on-the-fly.
+      auto icmp = [](char a, char b){ return std::tolower(a) == std::tolower(b); };
+
+      // ---------- 2. skip “already compressed / media” types ----------
+      // Fast prefix checks first ↓
+      constexpr std::array<std::string_view,4> compressed_prefixes = {
+          "image/",       // png, jpeg, webp, avif, gif…
+          "video/",
+          "audio/",
+          "font/"         // woff, woff2
+      };
+      for (auto p : compressed_prefixes)
+          if (mime.size() >= p.size() &&
+              std::equal(p.begin(), p.end(), mime.begin(), icmp))
+              return false;
+
+      // Exact matches (application/…)
+      constexpr std::array<std::string_view,12> compressed_mime_exact = {
+          "application/zip",
+          "application/x-7z-compressed",
+          "application/x-rar-compressed",
+          "application/x-bzip2",
+          "application/x-xz",
+          "application/pdf",
+          "application/octet-stream",         // generic binary blobs
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "application/x-shockwave-flash",    // swf
+          "application/x-tar"
+      };
+      for (auto m : compressed_mime_exact)
+          if (mime.size() == m.size() &&
+              std::equal(m.begin(), m.end(), mime.begin(), icmp))
+              return false;
+
+      // ---------- 3. default: compress ----------
+      // Typical textual types: text/*, application/json, js, css, svg, xml, etc.
+      return true;
+  }
+
+  inline bool should_deflate(std::string_view mime,
+                             std::size_t size,
+                             std::size_t min_len_text = 1024,   // 1 KiB
+                             std::size_t min_len_other = 256)   // old default
+  {
+      // 1) already-compressed?
+      if (is_compressed_type(mime)) return false;
+
+      // 2) payload size rule
+      bool is_text =
+          mime.rfind("text/", 0) == 0 ||
+          mime == "application/json"   ||
+          mime == "application/javascript" ||
+          mime == "application/xml"    ||
+          mime == "image/svg+xml";
+
+      auto cut = is_text ? min_len_text : min_len_other;
+      return size == 0 || size >= cut;
+  }
+  /* http2 streaming */
+  awaitable<void> http2_flush(bool deflate);
+
   /* flush data manually for chunked transfers
    * why so many effort to use prepend body_buffer_ or deflated_body_ with size of the chunk?
    * because of performance gain for contiguous memory vs scatter gather (cf asio performance benchmark)
   */
   awaitable<void> chunk_flush(bool deflate = false)
   {
+      if(http_version_ > 1){
+        if (deflate) addHeader("Content-Encoding","gzip"); //or brotli if available
+        co_await http2_flush(deflate);
+        co_return;
+      }
     content_length_ = 0;
     assert(reply_handler_ && is_chunked_);
 
@@ -251,7 +324,7 @@ class response final : safe_noncopyable {
 
         deflated_body_.append(10, '\0'); //prepend 10 x '\0' to prepare space for chunk size + CRLF
         detail::gzip::compress(rawbody, deflated_body_);
-        deflated_body_.append("\r\n"); //CRLF append
+        deflated_body_.append(CRLF); //CRLF append
 
         corr = corrected(deflated_body_); //add length of chunk to the prepended 10 x '\0'
       }
@@ -312,7 +385,7 @@ class response final : safe_noncopyable {
     deflate_gzip_ = false;
 
     response_str_.clear();//deprecated
-    stream_.reset();//deprecated
+    //stream_.reset();//deprecated
     buffer_.consume(buffer_.size()); //Deprecated
     buf_.clear();//deprecated
 
@@ -611,6 +684,7 @@ class response final : safe_noncopyable {
 
 private:
   std::vector<std::pair<std::string, std::string>> headers_;
+  int http_version_{1};
   unsigned minor_version_{1};
   unsigned status_{404};
   bool keepalive_{true};
@@ -637,7 +711,9 @@ private:
   // static thread_local std::string last_gmt_date_str_ {64, '\0'};
   detail::reply_handler reply_handler_;
   detail::reply_handler_sg reply_handler_sg_;
-  std::shared_ptr<std::ostream> stream_{nullptr};
+  detail::stream* stream_{nullptr};
+
+  //asio::channel<void()> *gate_ = nullptr;
 
   friend class context;
 };
@@ -683,5 +759,18 @@ struct Continuation {
 
 }  // namespace http
 }  // namespace cue
+
+
+// #include "detail/stream.hpp"
+
+// awaitable<void> Wt::http::response::http2_flush(bool deflate) {
+//     stream_->continuation_ = true;
+//     if(stream_->paused_)
+//         nghttp2_session_resume_data(stream_->session_, stream_->stream_id);
+//     else
+//         stream_->flush();
+
+//     co_await stream_->gate_.async_receive(use_awaitable);
+// }
 
 #endif  // CUEHTTP_RESPONSE_HPP_

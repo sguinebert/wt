@@ -23,6 +23,9 @@
 //#ifdef ENABLE_GZIP
 
 #include <zlib.h>
+#include <brotli/encode.h>
+#include <brotli/decode.h>
+
 #include <string>
 #include <array>
 #include <vector>

@@ -19,12 +19,13 @@ class client {
  public:
   /// the polymorphic executor type, boost::asio::any_io_executor
   using executor_type = detail::engine_impl::executor_type;
+  using udp_socket = detail::engine_impl::udp_socket;
 
   /// construct the client, taking ownership of a bound UDP socket
-  client(udp::socket&& socket, ssl::context& ctx); // TODO: noexcept
+  client(udp_socket&& socket, ssl::context& ctx); // TODO: noexcept
 
   /// construct the client, taking ownership of a bound UDP socket
-  client(udp::socket&& socket, ssl::context& ctx, const settings& s); // TODO: noexcept
+  client(udp_socket&& socket, ssl::context& ctx, const settings& s); // TODO: noexcept
 
   /// construct the client and bind a UDP socket to the given endpoint
   client(const executor_type& ex, const udp::endpoint& endpoint,

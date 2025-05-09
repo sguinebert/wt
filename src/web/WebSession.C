@@ -3027,7 +3027,7 @@ awaitable<void> WebSession::notify(const WEvent& event)
                    */
                   if (asyncResponse_) {
                       asyncResponse_->flush();
-                      if(!es6_) //only for pre-es6
+                      if(!env_->es6_) //only for pre-es6
                         asyncResponse_ = nullptr;
                   }
 

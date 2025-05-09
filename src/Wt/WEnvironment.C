@@ -682,7 +682,7 @@ void WEnvironment::setUserAgent(std::string_view userAgent)
     Configuration& conf = session_->controller()->configuration();
 
     auto extractVersion = [](std::string_view ua, std::size_t pos) {
-        pos += marker.length();
+        //pos += marker.length();
         size_t end = ua.find_first_of(". ", pos);
         if (end == std::string_view::npos) end = ua.length();
         return Wt::Utils::stoi(ua.substr(pos, end - pos), -1);

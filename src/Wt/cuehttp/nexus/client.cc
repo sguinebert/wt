@@ -8,26 +8,26 @@ namespace quic {
 
 client::client(const executor_type& ex, const udp::endpoint& endpoint,
                ssl::context& ctx)
-    : engine(ex, &socket, nullptr, 0),
+    : engine(&ex, &socket, nullptr, 0),
       socket(engine, endpoint, false, ctx)
 {
 }
 
 client::client(const executor_type& ex, const udp::endpoint& endpoint,
                ssl::context& ctx, const settings& s)
-    : engine(ex, &socket, &s, 0),
+    : engine(&ex, &socket, &s, 0),
       socket(engine, endpoint, false, ctx)
 {
 }
 
-client::client(udp::socket&& socket, ssl::context& ctx)
-    : engine(socket.get_executor(), &this->socket, nullptr, 0),
+client::client(udp_socket&& socket, ssl::context& ctx)
+    : engine(&socket.get_executor(), &this->socket, nullptr, 0),
       socket(engine, std::move(socket), ctx)
 {
 }
 
-client::client(udp::socket&& socket, ssl::context& ctx, const settings& s)
-    : engine(socket.get_executor(), &this->socket, &s, 0),
+client::client(udp_socket&& socket, ssl::context& ctx, const settings& s)
+    : engine(&socket.get_executor(), &this->socket, &s, 0),
       socket(engine, std::move(socket), ctx)
 {
 }
@@ -61,32 +61,32 @@ namespace h3 {
 
 client::client(const executor_type& ex, const udp::endpoint& endpoint,
                ssl::context& ctx)
-    : engine(ex, &socket, nullptr, LSENG_HTTP),
+    : engine(&ex, &socket, nullptr, LSENG_HTTP),
       socket(engine, endpoint, false, ctx)
 {
 }
 
 client::client(const executor_type& ex, const udp::endpoint& endpoint,
                ssl::context& ctx, const quic::settings& s)
-    : engine(ex, &socket, &s, LSENG_HTTP),
+    : engine(&ex, &socket, &s, LSENG_HTTP),
       socket(engine, endpoint, false, ctx)
 {
 }
 
-client::client(udp::socket&& socket, ssl::context& ctx)
-    : engine(socket.get_executor(), &this->socket, nullptr, LSENG_HTTP),
+client::client(udp_socket&& socket, ssl::context& ctx)
+    : engine(&socket.get_executor(), &this->socket, nullptr, LSENG_HTTP),
       socket(engine, std::move(socket), ctx)
 {
 }
 
-client::client(udp::socket&& socket, ssl::context& ctx,
+client::client(udp_socket&& socket, ssl::context& ctx,
                const quic::settings& s)
-    : engine(socket.get_executor(), &this->socket, &s, LSENG_HTTP),
+    : engine(&socket.get_executor(), &this->socket, &s, LSENG_HTTP),
       socket(engine, std::move(socket), ctx)
 {
 }
 
-client::executor_type client::get_executor() const
+auto client::get_executor() const
 {
   return engine.get_executor();
 }

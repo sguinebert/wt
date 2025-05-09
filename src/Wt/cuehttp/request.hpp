@@ -29,7 +29,7 @@
 #include "deps/picohttpparser.h"
 #include "detail/common.hpp"
 #include "detail/noncopyable.hpp"
-#include "response.hpp"
+//#include "response.hpp"
 #include "deps/ada.h"
 
 #include <Wt/Http/Request.h>
@@ -37,7 +37,8 @@
 //#include <Wt/Configuration.h>
 
 namespace x3 = boost::spirit::x3;
-
+using namespace std::literals;
+using namespace std::string_literals;
 namespace Wt {
 namespace http {
 
@@ -459,8 +460,8 @@ void inplaceUrlDecode(std::string &text)
     // }
 
  public:
-  request(bool https, response& res, cookies& cookies) noexcept
-      : https_{https}, buffer_(HTTP_REQUEST_BUFFER_SIZE), res_{res}, cookies_{cookies} {}
+  request(bool https, /*response& res,*/ cookies& cookies) noexcept
+      : https_{https}, buffer_(HTTP_REQUEST_BUFFER_SIZE), /*res_{res},*/ cookies_{cookies} {}
 
   unsigned minor_version() const noexcept { return minor_version_; }
 
@@ -665,7 +666,7 @@ void inplaceUrlDecode(std::string &text)
     content_length_ = 0;
     postDataExceeded_ = 0;
     websocket_ = false;
-    res_.reset();
+    //res_.reset();
     cookies_.reset();
     body_ = {};
   }
@@ -699,7 +700,7 @@ void inplaceUrlDecode(std::string &text)
     } else {
       phr_num_headers_ = HTTP_REQUEST_HEADER_SIZE;
       if (size == 0) {
-        res_.reset();
+        //res_.reset();
       }
       code = phr_parse_request(buffer_.data(), data_size_, &phr_method_, &phr_method_len_, &phr_path_, &phr_path_len_,
                                &phr_minor_version_, phr_headers_, &phr_num_headers_, parse_size_);
@@ -932,7 +933,7 @@ void inplaceUrlDecode(std::string &text)
   std::string_view method_;
   std::uint64_t content_length_{0};
   bool websocket_{false};
-  response& res_;
+  //response& res_;
   cookies& cookies_;
   std::string_view body_;
 

@@ -32,6 +32,7 @@
 #cmakedefine WT_HAS_WPDFIMAGE
 #cmakedefine WT_WITH_SSL
 #cmakedefine WT_HAS_SAML
+#cmakedefine WT_HAS_LSQUIC
 
 #cmakedefine WT_USE_OPENGL
 #cmakedefine WT_DEBUG_ENABLED

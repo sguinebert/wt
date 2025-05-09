@@ -29,9 +29,17 @@
 #include <iostream>
 
 #include <Wt/AsioWrapper/asio.hpp>
+#include <boost/asio/io_context.hpp>
 #include <nghttp2/nghttp2.h>
 #include <boost/system/error_code.hpp>
 #include <openssl/ssl.h>
+
+// #if defined(__has_include) && __has_include(<boost/unordered/unordered_flat_map.hpp>)
+// #include <boost/unordered/unordered_flat_map.hpp>
+// #define WT_HAS_BOOST_UNORDERED_FLAT_MAP 1
+// #else
+// #include <unordered_map>
+// #endif
 
 #include "stream.hpp"
 #include "../context.hpp"
@@ -61,7 +69,7 @@ public:
     template <typename Socket = _Socket, typename = std::enable_if_t<!std::is_same_v<std::decay_t<Socket>, http_socket>>>
     base_connection(std::function<awaitable<void>(context&)> handler, asio::io_context& io_service,
                     asio::ssl::context& ssl_context) noexcept
-        : socket_{io_service, ssl_context},
+        : socket_{io_service, ssl_context}, timer_{io_service, asio::steady_timer::duration::max()},
         context_{std::bind(&base_connection::coro_reply_chunk, this, std::placeholders::_1),
                  std::bind(&base_connection::coro_reply_chunk_sg, this, std::placeholders::_1),
                  true,
@@ -133,19 +141,19 @@ protected:
         auto* conn = static_cast<base_connection*>(user_data);
         if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_REQUEST)
         {
-            auto& ioc = asio::use_service<asio::io_context>(conn->socket_.get_executor().context());
+            auto& ioc = static_cast<asio::io_context&>(conn->socket_.get_executor().context());
             auto [s, ok] =
-                conn->streams_.emplace(frame->hd.stream_id,
-                                       session, frame,
-                                       ioc, 10,
-                                       std::bind(&base_connection::coro_reply_chunk, conn, std::placeholders::_1),
-                                       std::bind(&base_connection::coro_reply_chunk_sg, conn, std::placeholders::_1),
-                                       false,
-                                       std::bind(&base_connection::spawn_coro_ws_send, conn, std::placeholders::_1));
+                conn->streams_.try_emplace(frame->hd.stream_id,
+                                           session, frame,
+                                           ioc, 10,
+                                           std::bind(&base_connection::coro_reply_chunk, conn, std::placeholders::_1),
+                                           std::bind(&base_connection::coro_reply_chunk_sg, conn, std::placeholders::_1),
+                                           false,
+                                           std::bind(&base_connection::spawn_coro_ws_send, conn, std::placeholders::_1));
             //conn->streams_[frame->hd.stream_id] = std::move(s);
             asio::co_spawn(ioc,
                            s->second.handle_stream(conn->handler_),
-                           asio::detached);
+                           detached);
         }
         if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
             if (auto it = conn->streams_.find(frame->hd.stream_id); it != conn->streams_.end()) {
@@ -162,7 +170,7 @@ protected:
         if (auto it = conn->streams_.find(stream_id); it != conn->streams_.end()) {
             //it->second->body_channel().try_send({}, std::string(reinterpret_cast<const char*>(data), len));
             boost::system::error_code ec;
-            it->second.body_channel().async_send(ec, std::string(reinterpret_cast<const char*>(data), len), asio::detached);
+            it->second.body_channel().async_send(ec, std::string(reinterpret_cast<const char*>(data), len), detached);
         }
         return 0;
     }
@@ -402,7 +410,7 @@ protected:
             reply_str_.clear();
             if (ws_helper_) {
                 ws_handshake_ = true;
-                co_spawn(socket_.get_executor(), coro_ws(sft), asio::detached);
+                co_spawn(socket_.get_executor(), coro_ws(sft), detached);
                 co_await ws_helper_->websocket_->emit(detail::ws_event::open);
                 co_return;
             }
@@ -439,7 +447,7 @@ protected:
         cancel_signal_.emit(asio::cancellation_type::total);
     }
 
-    awaitable<void> coro_ws(auto sft) {
+    awaitable<void> coro_ws(auto /*sft*/) {
         co_await (coro_do_read_ws_header() || coro_do_send_ws_frame());
     }
 
@@ -613,7 +621,7 @@ protected:
         asio::streambuf buffer_;
         detail::ws_reader ws_reader_;
         std::queue<detail::ws_frame> write_queue_;
-        std::mutex write_queue_mutex_;
+        std::mutex write_queue_mutex_; //contention should be low if no message sent from other clients (threads)
     };
 
     detail::ws_frame& get_frame() {
@@ -631,8 +639,13 @@ protected:
     asio::steady_timer timer_;
     asio::cancellation_signal cancel_signal_;
     nghttp2_session* session_;
+#if WT_HAS_BOOST_UNORDERED_FLAT_MAP
+    boost::unordered_flat_map<int32_t, stream> streams_;
+    boost::unordered_flat_map<int32_t, nghttp2_headers> ng_headers_;
+#else
     std::unordered_map<int32_t, stream> streams_;
     std::unordered_map<int32_t, nghttp2_headers> ng_headers_;
+#endif
 };
 
 template <typename _Socket = http_socket>
@@ -644,7 +657,7 @@ public:
     tcp::socket& socket() noexcept { return this->socket_; }
 
     void do_read_real() {
-        co_spawn(this->socket_.get_executor(), this->coro_http(this->shared_from_this()), asio::detached);
+        co_spawn(this->socket_.get_executor(), this->coro_http(this->shared_from_this()), detached);
     }
 };
 
@@ -659,7 +672,7 @@ public:
     tcp::socket& socket() noexcept { return socket_.next_layer(); }
 
     void do_read_real() {
-        co_spawn(this->socket_.get_executor(), do_handshake(this->shared_from_this()), asio::detached);
+        co_spawn(this->socket_.get_executor(), do_handshake(this->shared_from_this()), detached);
     }
 
 private:
@@ -677,8 +690,8 @@ private:
         SSL_get0_alpn_selected(socket_.native_handle(), &alpn_data, &alpn_len);
         if (alpn_len == 2 && memcmp(alpn_data, "h2", 2) == 0) {
             setup_http2_session();
-            co_spawn(socket_.get_executor(), read_loop(sft), asio::detached);
-            co_spawn(socket_.get_executor(), write_loop(sft), asio::detached);
+            co_spawn(socket_.get_executor(), read_loop(sft), detached);
+            co_spawn(socket_.get_executor(), write_loop(sft), detached);
         } else {
             co_await this->coro_http(sft);
         }

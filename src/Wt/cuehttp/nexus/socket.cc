@@ -9,7 +9,7 @@
 
 namespace nexus::quic {
 
-void prepare_socket(udp::socket& sock, bool is_server, error_code& ec)
+void prepare_socket(udp_socket& sock, bool is_server, error_code& ec)
 {
   if (sock.non_blocking(true, ec); ec) {
     return;
@@ -19,17 +19,17 @@ void prepare_socket(udp::socket& sock, bool is_server, error_code& ec)
   }
   if (is_server) {
     ec = nexus::detail::set_options(sock, receive_dstaddr{true},
-                                    udp::socket::reuse_address{true});
+                                    udp_socket::reuse_address{true});
   }
 }
 
 namespace detail {
 
-static udp::socket bind_socket(const boost::asio::any_io_executor& ex,
+static udp_socket bind_socket(const engine_impl::executor_type& ex,
                                const udp::endpoint& endpoint, bool is_server)
 {
   // open the socket
-  auto socket = udp::socket{ex, endpoint.protocol()};
+  auto socket = udp_socket{ex, endpoint.protocol()};
   // set socket options before bind(), because the server enables REUSEADDR
   error_code ec;
   prepare_socket(socket, is_server, ec);
@@ -40,7 +40,7 @@ static udp::socket bind_socket(const boost::asio::any_io_executor& ex,
   return socket;
 }
 
-socket_impl::socket_impl(engine_impl& engine, udp::socket&& socket,
+socket_impl::socket_impl(engine_impl& engine, udp_socket&& socket,
                          ssl::context& ssl)
     : engine(engine),
       socket(std::move(socket)),
@@ -181,7 +181,7 @@ void socket_impl::start_recv()
     return;
   }
   receiving = true;
-  socket.async_wait(udp::socket::wait_read,
+  socket.async_wait(udp_socket::wait_read,
       [this] (error_code ec) {
         receiving = false;
         if (!ec) {
@@ -278,7 +278,7 @@ auto socket_impl::send_packets(const lsquic_out_spec* begin,
         // lsquic won't call our send_packets() callback again until we call
         // lsquic_engine_send_unsent_packets()
         // wait for the socket to become writeable again, so we can call that
-        socket.async_wait(udp::socket::wait_write,
+        socket.async_wait(udp_socket::wait_write,
             [this] (error_code ec) {
               if (!ec) {
                 on_writeable();

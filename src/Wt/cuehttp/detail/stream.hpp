@@ -32,9 +32,39 @@
 #include <Wt/AsioWrapper/asio.hpp>
 #include <nghttp2/nghttp2.h>
 
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+namespace fs = boost::filesystem;
+
 namespace Wt {
 namespace http {
 namespace detail {
+
+
+
+// Returns something like "/tmp" or "C:\\Users\\Me\\AppData\\Local\\Temp"
+static inline fs::path tempdir() {
+    return fs::temp_directory_path();
+}
+
+// Creates a new zero-length file named wt-<random>.tmp in the temp dir.
+// Returns its full path, or an empty path on error.
+static inline fs::path tempfile() {
+    try {
+#ifdef _WIN32
+        // wt‑1234.tmp  (4 hex digits + .tmp)
+        fs::path name = fs::unique_path("wt-%%%%.tmp");
+#else
+        // wtXXXXXX    (6 hex digits, no extension)
+        fs::path name = fs::unique_path("wt%%%%%%");
+#endif
+        return name;
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Temp file creation failed: " << e.what() << "\n";
+        return {};
+    }
+}
+
 struct rcbuf_handle {
     nghttp2_rcbuf* p = nullptr;
 
@@ -65,13 +95,11 @@ struct rcbuf_handle {
 struct nghttp2_headers {
 public:
     nghttp2_headers() = default;
-    void track(nghttp2_rcbuf* p, nghttp2_rcbuf* val) {       // ➋ remember one incref
-        if(p) {
-            rcbufs_.emplace_back(p);
-        }
-        if(val) {
-            rcbufs_.emplace_back(val);
-        }
+    void track(nghttp2_rcbuf* key, nghttp2_rcbuf* val) {       // ➋ remember incref key values
+        if(key)
+            rcbufs_.emplace_back(key);
+        if(val)
+            rcbufs_.emplace_back(val);  
     }
 private:
     std::vector<rcbuf_handle> rcbufs_; // ➌ just raw pointers
@@ -90,7 +118,7 @@ public:
         : session_{session},
         stream_id{frame->hd.stream_id},
         headers{frame->headers.nvlen},
-        body_channel_{io_context, channel_buffer_size},
+        body_channel_{io_context, channel_buffer_size}, gate_(io_context, 1),
         ctx{std::move(reply_chunk), std::move(reply_chunk_sg), is_ssl, std::move(ws_send)}
     {
         // Extract headers from the frame
@@ -160,13 +188,31 @@ public:
             }
         }
     }
+    // stream(stream&& other) noexcept
+    //     : session_(std::exchange(other.session_, nullptr)),
+    //     body_channel_(std::move(other.body_channel_)),
+    //     gate_(std::move(other.gate_)),
+    //     headers(std::move(other.headers)),
+    //     ioc_(other.ioc_),
+    //     stream_id_(std::exchange(other.stream_id_, 0))
+    // /* move other members */ {
+    // }
 
     ~stream() {
-
-
     }
 
-    asio::awaitable<void> handle_stream(std::function<asio::awaitable<void>(context&)> handler) {
+    auto make_nv(std::string_view n,
+                 std::string_view v,
+                 uint8_t flags = NGHTTP2_NV_FLAG_NONE) -> nghttp2_nv
+    {
+        return { reinterpret_cast<uint8_t*>(const_cast<char*>(n.data())),
+                reinterpret_cast<uint8_t*>(const_cast<char*>(v.data())),
+                n.size(),
+                v.size(),
+                flags };
+    }
+
+    asio::awaitable<void> handle_stream(const std::function<asio::awaitable<void>(context&)>& handler) {
 
         if (auto it = ctx.headers().find("content-type"); it != ctx.headers().end()) {
             /*Do not use multipart with modern HTTP2, we can handle multiple files at once with muliplexes streams: use application/octet-stream */
@@ -177,37 +223,70 @@ public:
         }
 
         size_t total_size = 0;
+        static auto maxpostLength = 10000000; // 10MB
         //auto postDataExceeded = ctx.postDataExceeded();
         //std::string temp_file_path;
-        //std::unique_ptr<asio::stream_file> temp_file;
+        std::unique_ptr<asio::stream_file> temp_file;
 
         if (is_upload) {
-            // Always use a temporary file for uploads
-            // temp_file_path = (boost::filesystem::temp_directory_path() / 
-            //                   boost::filesystem::unique_path()).string();
-            // temp_file = std::make_unique<asio::stream_file>(
-            //     body_channel.get_executor(), temp_file_path,
-            //     asio::stream_file::write_only | asio::stream_file::create | 
-            //     asio::stream_file::truncate);
-        } 
+            auto& reqHeaders = ctx.headers();
+            if(auto upload = ctx.req().get("Upload"); !upload.empty()) {
+                if(ctx.req().uploadedFiles().find(upload.data()) == ctx.req().uploadedFiles().end()) {
+
+
+
+                    auto temp_file_name = tempfile();
+                    fs::path temp_file_path   = tempdir() / temp_file_name;
+                    if (temp_file_path.empty()) {
+                        std::cerr << "Failed to create temporary file for upload.\n";
+                        co_return;
+                    }
+                    auto& files = ctx.req().uploadedFiles();
+
+                    files.emplace(
+                        std::piecewise_construct,
+                        std::forward_as_tuple(std::string(upload.data(), upload.size())), // key
+                        std::forward_as_tuple(temp_file_name.string(),
+                                              std::string(ctx.getHeader("filename")),
+                                              std::string(ctx.getHeader("content-type")))
+                        );
+                    //ctx.req().uploadedFiles().emplace(upload.data(), temp_file_name.string(), ctx.getHeader("filename"), ctx.getHeader("content-type"));
+                    // Create a temporary file for upload
+                    temp_file = std::make_unique<asio::stream_file>(
+                        body_channel_.get_executor(), temp_file_path.string(),
+                        asio::stream_file::write_only | asio::stream_file::create | asio::stream_file::truncate);
+                }
+            }
+        }
+
+
 
         for (;;) {
             auto [ec, chunk] = co_await body_channel_.async_receive(use_nothrow_awaitable);
             if (ec || chunk.empty()) break; // End of stream
 
             total_size += chunk.size();
-            // if (postDataExceeded) {
-            //     std::vector<nghttp2_nv> error_headers = {
-            //         { (uint8_t*)":status", 7, (uint8_t*)"413", 3, NGHTTP2_NV_FLAG_NONE }
-            //     };
-            //     send_response(std::move(error_headers), "Payload Too Large");
-            //     end_response();
-            //     break;
-            // }
+            auto len = total_size - maxpostLength;
+            // Check for maximum post size
+            if (len > 0) {
+                ctx.request_.postDataExceeded_ = len;
 
-            if (is_upload) { //multipart/form-data need to be parsed first
-                // Parse the multipart/form-data and write to temp_file
-                //co_await temp_file->async_write_some(asio::buffer(chunk), use_nothrow_awaitable);
+                co_await handler(ctx);
+
+                std::vector<nghttp2_nv> error_headers = {
+                    make_nv(":status", "413", NGHTTP2_NV_FLAG_NONE),
+                    make_nv("content-type", "text/plain")
+                };
+                std::string error_message = "413 Payload Too Large";
+
+                send_response(std::move(error_headers));
+                end_response();
+                co_return; //clean temp file?
+            }
+
+            if (temp_file) { //DO NOT USE multipart/form-data : need to be parsed first
+                // (HTTP2 is multiplexed now) the multipart/form-data is less efficient
+                co_await temp_file->async_write_some(asio::buffer(chunk), use_nothrow_awaitable);//catch errors...
             } else {
                 ctx.request_.buffer_.assign(chunk.begin(), chunk.end());
             }
@@ -224,15 +303,7 @@ public:
         auto resHeaders = ctx.headers(); //correct this
         std::vector<nghttp2_nv> h2_resp;
         h2_resp.reserve(resHeaders.size() + 1);
-        auto make_nv = [](std::string_view n,
-                          std::string_view v,
-                          uint8_t flags = NGHTTP2_NV_FLAG_NONE) -> nghttp2_nv {
-            return { reinterpret_cast<uint8_t*>(const_cast<char*>(n.data())),
-                    reinterpret_cast<uint8_t*>(const_cast<char*>(v.data())),
-                    n.size(),
-                    v.size(),
-                    flags };
-        };
+
 
         h2_resp.push_back(make_nv(":status", std::to_string(ctx.status())));      // 1️⃣ first & mandatory
 
@@ -262,28 +333,155 @@ public:
         send_response(std::move(h2_resp));
         end_response();
     }
+    static ssize_t raw_read_cb(nghttp2_session* session, int32_t stream_id,
+                         uint8_t* buf, size_t length, uint32_t* data_flags,
+                         nghttp2_data_source* source, void*)
+    {
+        auto* stream = static_cast<class stream*>(source->ptr);
+        std::string_view body_view = stream->ctx.res().body();
+        size_t remaining = body_view.size() - stream->offset_;
+        size_t to_send = std::min(length, remaining);
+        if (to_send > 0) {
+            /* copy into buf – you CANNOT just re-point the pointer */
+            std::memcpy(buf, body_view.data() + stream->offset_, to_send);
+            stream->offset_ += to_send;
+        }
+        if (stream->offset_ == body_view.size()) {
+            if(stream->continuation_) {
+                stream->paused_ = true;
+                stream->gate_.try_send(boost::system::error_code());               // wake coroutine immediately
+                return NGHTTP2_ERR_DEFERRED;
+            }
+            *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+        }
+        return static_cast<ssize_t>(to_send);
+    }
+    static ssize_t brotli_read_cb(nghttp2_session*,
+                                  int32_t /*stream_id*/,
+                                  uint8_t* dst, size_t dst_len,
+                                  uint32_t* data_flags,
+                                  nghttp2_data_source* src,
+                                  void* /*user*/)
+    {
+        auto* s     = static_cast<stream*>(src->ptr);
 
+        /* 1. one encoder per stream ------------------------- */
+        if (!s->br_) {
+            s->br_ = BrotliEncoderCreateInstance(nullptr,nullptr,nullptr);
+            if (!s->br_) return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+            BrotliEncoderSetParameter(s->br_, BROTLI_PARAM_QUALITY, 5);     // speed-quality trade-off
+            BrotliEncoderSetParameter(s->br_, BROTLI_PARAM_MODE, BROTLI_MODE_GENERIC); //vs BROTLI_MODE_TEXT
+        }
+
+        /* 2. prepare input / output pointers ---------------- */
+        std::string_view body = s->ctx.res().body();
+        const uint8_t*   in   = reinterpret_cast<const uint8_t*>(body.data() + s->in_off_);
+        size_t           avail_in  = body.size() - s->in_off_;
+        uint8_t*         out       = dst;
+        size_t           avail_out = dst_len;
+
+        /* 3. encode one shot -------------------------------- */
+        BrotliEncoderOperation op =
+            (s->in_off_ + avail_in == body.size()) ? BROTLI_OPERATION_FINISH
+                                                   : BROTLI_OPERATION_PROCESS;
+
+        if (!BrotliEncoderCompressStream(s->br_, op,
+                                         &avail_in, &in,
+                                         &avail_out, &out, nullptr))
+            return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+
+        /* 4. update accounting ------------------------------ */
+        size_t produced = dst_len - avail_out;
+        s->in_off_ += (body.size() - s->in_off_) - avail_in;
+
+        if (BrotliEncoderIsFinished(s->br_)) {
+            // “continuation” logic (pause after slice)
+            if(s->continuation_) {
+                s->paused_ = true;
+                s->gate_.try_send(boost::system::error_code());               // wake coroutine immediately
+                return NGHTTP2_ERR_DEFERRED;
+            }
+            *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+            BrotliEncoderDestroyInstance(s->br_);
+            s->br_      = nullptr;
+            s->gz_done_ = true;
+            return (ssize_t)produced;
+
+        }
+        else if (produced == 0) {
+            /* dst too small – ask nghttp2 to call us again with fresh buffer */
+            return NGHTTP2_ERR_WOULDBLOCK;
+        }
+
+        return static_cast<ssize_t>(produced);
+    }
+
+
+    static ssize_t gzip_read_cb(nghttp2_session* session, int32_t stream_id,
+                        uint8_t* buf, size_t length, uint32_t* data_flags,
+                        nghttp2_data_source* source, void*)
+    {
+        auto* s = static_cast<stream*>(source->ptr);
+
+        constexpr int level = 6; // 1-9, 6 is default;
+        if (!s->gz_ready_) {
+            s->gz_ = z_stream{};
+            constexpr int windowBits = 15 + 16;            // 15 = max window, +16 = gzip wrapper
+            if (deflateInit2(&s->gz_, level, Z_DEFLATED, windowBits, level, Z_DEFAULT_STRATEGY) != Z_OK)
+                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;   // fatal for this stream
+            s->gz_ready_ = true;
+        }
+        std::string_view body = s->ctx.res().body();
+
+        s->gz_.next_in = reinterpret_cast<Bytef*>(const_cast<char*>(body.data() + s->in_off_));
+        s->gz_.avail_in = static_cast<uInt>(body.size() - s->in_off_);
+        s->gz_.next_out = buf;                         // buf comes from nghttp2
+        s->gz_.avail_out = static_cast<uInt>(length);   // how much we may fill
+
+        int flush = (s->in_off_ + s->gz_.avail_in == body.size())
+                        ? Z_FINISH : Z_NO_FLUSH;
+
+        int ret   = deflate(&s->gz_, flush);
+        if (ret < 0) return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+
+        size_t produced = length - s->gz_.avail_out;
+        s->in_off_     += (body.size() - s->in_off_) - s->gz_.avail_in;  // how much input consumed
+        if (ret == Z_STREAM_END) {                   // all input consumed & gzip trailer written
+            // “continuation” logic (pause after slice)
+            if(s->continuation_) {
+                s->paused_ = true;
+                s->gate_.try_send(boost::system::error_code());               // wake coroutine immediately
+                return NGHTTP2_ERR_DEFERRED;
+            }
+            *data_flags |= NGHTTP2_DATA_FLAG_EOF;
+            deflateEnd(&s->gz_);
+            s->gz_ready_ = false;
+            s->gz_done_  = true;
+            return (ssize_t)produced;
+        }
+
+        // if we produced 0 bytes because 'buf' was too small, ask nghttp2 to call us again
+        if (produced == 0 && s->gz_.avail_out == 0)
+            return NGHTTP2_ERR_WOULDBLOCK;           // unlikely with 16 KiB, but correct
+
+        return (ssize_t)produced;
+    }
+/* Memory & flow-control
+    ┌───────────── prepare slice 0
+│ flush_chunk()
+│            ┌── nghttp2 pulls slice 0 (read_cb) – gate send
+│            │
+│            │         ┌── kernel writes slice 0
+│            │         │
+│ prepare slice 1 ─────┘ resume coroutine (gate recv)
+│ flush_chunk() again
+└─────────────────────────────────────────
+*/
     void send_response(std::vector<nghttp2_nv> headers) {
         if (!ctx.res().body().empty()) {// Send response using nghttp2 with zero-copy
             nghttp2_data_provider data_prd{};
             data_prd.source.ptr = this; // Use stream* directly
-            data_prd.read_callback = [](nghttp2_session*, int32_t, uint8_t* buf, size_t length,
-                                        uint32_t* data_flags, nghttp2_data_source* source,
-                                        void*) -> ssize_t {
-                auto* stream = static_cast<class stream*>(source->ptr);
-                std::string_view body_view = stream->ctx.res().body();
-                size_t remaining = body_view.size() - stream->offset;
-                size_t to_send = std::min(length, remaining);
-                if (to_send > 0) {
-                    // Point buf directly to the original data without copying
-                    buf = reinterpret_cast<uint8_t*>(const_cast<char*>(body_view.data() + stream->offset));
-                    stream->offset += to_send;
-                }
-                if (stream->offset == body_view.size()) {
-                    *data_flags |= NGHTTP2_DATA_FLAG_EOF;
-                }
-                return static_cast<ssize_t>(to_send);
-            };
+            data_prd.read_callback = deflate_ ? &gzip_read_cb : &raw_read_cb;
             int rv = nghttp2_submit_response(session_, stream_id, headers.data(),
                                              headers.size(), &data_prd);
             if (rv != 0) {
@@ -299,9 +497,45 @@ public:
             }
         }
     }
+    void flush(bool deflate) {
+        deflate_ = deflate;
+        auto resHeaders = ctx.headers(); //correct this
+        std::vector<nghttp2_nv> h2_resp;
+        h2_resp.reserve(resHeaders.size() + 1);
+
+
+        h2_resp.push_back(make_nv(":status", std::to_string(ctx.status())));      // 1️⃣ first & mandatory
+
+        // 2) copy application headers, skipping hop‑by‑hop & pseudo
+        static constexpr std::array<std::string_view, 7> hop_by_hop = {"connection",
+                                                                       "keep-alive",
+                                                                       "proxy-connection",
+                                                                       "transfer-encoding",
+                                                                       "upgrade",
+                                                                       "trailer",
+                                                                       "te"};
+
+        for (const auto& [name, value] : resHeaders) {
+            if (!name.empty() && name[0] != ':'                              // skip any stray pseudo
+                && std::none_of(hop_by_hop.begin(), hop_by_hop.end(),
+                                [&](auto h){ return h == name; }))           // skip banned headers
+            {
+                // translate Host → :authority
+                if (name == "host") {
+                    h2_resp.push_back(make_nv(":authority", value));
+                } else {
+                    h2_resp.push_back(make_nv(name, value));
+                }
+            }
+        }
+
+        send_response(std::move(h2_resp));
+        nghttp2_session_resume_data(session_, stream_id);
+    }
 
     void end_response() {
         response_complete = true;
+        offset_ = 0;
         //auto* conn = static_cast<base_connection*>(ctx.user_data);
         nghttp2_session_resume_data(session_, stream_id);
     }
@@ -313,13 +547,37 @@ private:
     int32_t stream_id;
     std::vector<nghttp2_nv> headers;
     asio::experimental::channel<void(boost::system::error_code, std::string)> body_channel_;
+    asio::experimental::channel<void(boost::system::error_code)> gate_;
     bool response_complete = false;
     context ctx;
     bool is_upload = false;
-    std::size_t offset = 0;
+    std::size_t offset_ = 0;
+    bool paused_ = false;
+    bool continuation_ = false;
+
+    //gzip
+    bool deflate_ = false;
+    z_stream gz_{0};
+    BrotliEncoderState* br_ = nullptr; //brotli
+    bool gz_ready_ = false;
+    bool gz_done_ = false;
+    std::size_t in_off_ = 0;     // how much of body we have fed to zlib
+
+    friend class http::response;
 };
+
 
 }  // namespace detail
 }  // namespace http
 }  // namespace cue
 
+/* messy def position */
+inline awaitable<void> Wt::http::response::http2_flush(bool deflate) {
+    stream_->continuation_ = true;
+    if(stream_->paused_)
+        nghttp2_session_resume_data(stream_->session_, stream_->stream_id);
+    else
+        stream_->flush(deflate);
+
+    co_await stream_->gate_.async_receive(use_awaitable);
+}

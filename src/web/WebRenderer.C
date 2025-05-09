@@ -2895,7 +2895,7 @@ void WebRenderer::serveMainscript(http::context *context)
                  conf.serializedEvents(),
                  session_.useUglyInternalPaths(),
                  conf.webSockets(),
-                 conf.delayClick(),
+                 conf.doubleClickTimeout(),
                  JsString(app->hideLoadingIndicator_.javaScript()),
                  JsString(app->showLoadingIndicator_.javaScript()));
 

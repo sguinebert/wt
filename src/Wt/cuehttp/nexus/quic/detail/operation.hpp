@@ -5,6 +5,7 @@
 #include <mutex>
 #include <optional>
 #include <sys/uio.h>
+#include <boost/asio.hpp>
 #include <boost/asio/associated_executor.hpp>
 #include "../../error_code.hpp"
 #include "../../h3/fields.hpp"
@@ -138,29 +139,22 @@ struct async_operation : Operation {
 
     switch (type) {
       case completion_type::post:
-        boost::asio::execution::execute(
-            boost::asio::require(
-                boost::asio::prefer(ex,
-                                    boost::asio::execution::relationship.fork,
-                                    boost::asio::execution::allocator(alloc)),
-                boost::asio::execution::blocking.never),
-            std::move(f));
+        boost::asio::post(
+            ex,
+            bind_allocator(alloc, std::move(f))
+            );
         break;
       case completion_type::defer:
-        boost::asio::execution::execute(
-            boost::asio::require(
-                boost::asio::prefer(ex,
-                                    boost::asio::execution::relationship.continuation,
-                                    boost::asio::execution::allocator(alloc)),
-                boost::asio::execution::blocking.never),
-            std::move(f));
+          boost::asio::defer(
+              ex,
+              bind_allocator(alloc, std::move(f))
+              );
         break;
       case completion_type::dispatch:
-        boost::asio::execution::execute(
-            boost::asio::prefer(ex,
-                                boost::asio::execution::blocking.possibly,
-                                boost::asio::execution::allocator(alloc)),
-            std::move(f));
+          boost::asio::dispatch(
+              ex,
+              bind_allocator(alloc, std::move(f))
+              );
         break;
       case completion_type::destroy: // handled above
         break;

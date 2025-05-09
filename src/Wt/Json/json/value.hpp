@@ -3201,14 +3201,14 @@ public:
     bool
     get_bool(bool ifnull) noexcept
     {
-        if(!is_bool());
+        if(!is_bool())
             return ifnull;
         return sca_.b;
     }
     bool
     get_bool(bool ifnull) const noexcept
     {
-        if(!is_bool());
+        if(!is_bool())
             return ifnull;
         return sca_.b;
     }

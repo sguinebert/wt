@@ -7,11 +7,11 @@
 namespace nexus {
 namespace quic {
 
-server::server(const Wt::http::detail::engines& engine)
-    : engine_(ex, nullptr, nullptr, LSENG_SERVER)
+server::server(const Wt::http::detail::engines* engine)
+    : engine_(engine, nullptr, nullptr, LSENG_SERVER)
 {}
 
-server::server(const Wt::http::detail::engines& engine, const settings& s)
+server::server(const Wt::http::detail::engines* engine, const settings& s)
     : engine_(engine, nullptr, &s, LSENG_SERVER)
 {}
 
@@ -25,7 +25,7 @@ void server::close()
   engine_.close();
 }
 
-acceptor::acceptor(server& s, udp::socket&& socket, ssl::context& ctx)
+acceptor::acceptor(server& s, udp_socket&& socket, ssl::context& ctx)
     : impl(s.engine_, std::move(socket), ctx)
 {}
 
@@ -75,11 +75,11 @@ void acceptor::close()
 
 namespace h3 {
 
-server::server(const Wt::http::detail::engines& engine)
+server::server(const Wt::http::detail::engines* engine)
     : engine(engine, nullptr, nullptr, LSENG_SERVER | LSENG_HTTP)
 {}
 
-server::server(const Wt::http::detail::engines& engine, const quic::settings& s)
+server::server(const Wt::http::detail::engines* engine, const quic::settings& s)
     : engine(engine, nullptr, &s, LSENG_SERVER | LSENG_HTTP)
 {}
 
@@ -93,7 +93,7 @@ void server::close()
 
 }
 
-acceptor::acceptor(server& s, udp::socket&& socket, ssl::context& ctx)
+acceptor::acceptor(server& s, udp_socket&& socket, ssl::context& ctx)
     : impl(s.engine, std::move(socket), ctx)
 {}
 

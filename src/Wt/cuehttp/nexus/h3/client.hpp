@@ -17,12 +17,13 @@ class client {
  public:
   /// the polymorphic executor type, boost::asio::any_io_executor
   using executor_type = quic::detail::engine_impl::executor_type;
+  using udp_socket = quic::detail::engine_impl::udp_socket;
 
   /// construct the client, taking ownership of a bound UDP socket
-  client(udp::socket&& socket, ssl::context& ctx);
+  client(udp_socket&& socket, ssl::context& ctx);
 
   /// construct the client, taking ownership of a bound UDP socket
-  client(udp::socket&& socket, ssl::context& ctx,
+  client(udp_socket&& socket, ssl::context& ctx,
          const quic::settings& s);
 
   /// construct the client and bind a UDP socket to the given endpoint
@@ -34,7 +35,7 @@ class client {
          ssl::context& ctx, const quic::settings& s);
 
   /// return the associated io executor
-  executor_type get_executor() const;
+  auto get_executor() const;
 
   /// return the socket's locally-bound address/port
   udp::endpoint local_endpoint() const;

@@ -417,7 +417,7 @@ Wt/WebController.h Wt/WebController.C
 
 Wt/cuehttp/deps/json.hpp Wt/cuehttp/deps/picohttpparser.h
 Wt/cuehttp/detail/body_stream.hpp Wt/cuehttp/detail/buffered_streambuf.hpp Wt/cuehttp/detail/common.hpp Wt/cuehttp/detail/connection.hpp Wt/cuehttp/detail/connection_old.hpp Wt/cuehttp/detail/endian.hpp Wt/cuehttp/detail/MoveOnlyFunction.hpp
-Wt/cuehttp/detail/engines.hpp Wt/cuehttp/detail/gzip.hpp Wt/cuehttp/detail/middlewares.hpp Wt/cuehttp/detail/mime.hpp Wt/cuehttp/detail/noncopyable.hpp Wt/cuehttp/detail/send.hpp Wt/cuehttp/detail/sha1.hpp Wt/cuehttp/detail/static.hpp
+Wt/cuehttp/detail/engines.hpp Wt/cuehttp/detail/gzip.hpp Wt/cuehttp/detail/middlewares.hpp Wt/cuehttp/detail/mime.hpp Wt/cuehttp/detail/noncopyable.hpp Wt/cuehttp/detail/send.hpp Wt/cuehttp/detail/sha1.hpp Wt/cuehttp/detail/static.hpp Wt/cuehttp/detail/stream.hpp
 Wt/cuehttp/request.hpp Wt/cuehttp/response.hpp Wt/cuehttp/router.hpp Wt/cuehttp/send.hpp Wt/cuehttp/server.hpp Wt/cuehttp/session.hpp Wt/cuehttp/static.hpp Wt/cuehttp/use_session.hpp Wt/cuehttp/websocket.hpp Wt/cuehttp/ws_server.hpp
 
 
@@ -496,9 +496,8 @@ web/base64.h web/base64.cpp
 # AuthCssTheme_xml.C
 #JQuery_js.C
 )
-
-IF(HAVE_LSQUIC)
-SET(libsources ${libsources}
+message(STATUS "WT_HAS_LSQUIC => ${WT_HAS_LSQUIC}")
+SET(NEXUS_FILES
 Wt/cuehttp/nexus/global/context.hpp Wt/cuehttp/nexus/global/error.hpp
 Wt/cuehttp/nexus/h3/client.hpp Wt/cuehttp/nexus/h3/error.hpp Wt/cuehttp/nexus/h3/fields.hpp
 Wt/cuehttp/nexus/h3/server.hpp Wt/cuehttp/nexus/h3/stream.hpp
@@ -516,7 +515,25 @@ Wt/cuehttp/nexus/global.cc Wt/cuehttp/nexus/global_init.hpp Wt/cuehttp/nexus/h3.
 Wt/cuehttp/nexus/nexus.hpp Wt/cuehttp/nexus/qconnection.cc Wt/cuehttp/nexus/quic.hpp
 Wt/cuehttp/nexus/recv_header_set.hpp Wt/cuehttp/nexus/server.cc Wt/cuehttp/nexus/settings.cc
 Wt/cuehttp/nexus/socket.cc Wt/cuehttp/nexus/ssl.hpp Wt/cuehttp/nexus/stream.cc Wt/cuehttp/nexus/stream_state.cc Wt/cuehttp/nexus/udp.hpp)
-ENDIF(HAVE_LSQUIC)
+
+IF(WT_HAS_LSQUIC)
+  set_source_files_properties(
+    ${NEXUS_FILES} PROPERTIES
+    COMPILE_DEFINITIONS
+      LSQUIC_HAVE_OPENSSL=1
+      LSQUIC_HAVE_CXX11=1
+      LSQUIC_HAVE_CXX14=1
+      LSQUIC_HAVE_CXX17=1
+      LSQUIC_HAVE_CXX20=1
+  )
+
+  list(APPEND libsources ${NEXUS_FILES})
+else()
+  add_custom_target(nexus_sources
+    SOURCES ${NEXUS_FILES}
+    COMMENT "Show nexus sources in the IDE"
+  )
+ENDIF(WT_HAS_LSQUIC)
 
 IF (WT_CPP20_DATE_TZ_IMPLEMENTATION STREQUAL "date")
   list(APPEND libsources
@@ -704,10 +721,10 @@ if(HAVE_NGHTTP2)
 
   # Link with nghttp2
   if(TARGET PkgConfig::NGHTTP2)
-    target_link_libraries(wt PRIVATE PkgConfig::NGHTTP2)
+    target_link_libraries(wt PUBLIC PkgConfig::NGHTTP2)
   else()
-    target_include_directories(wt PRIVATE ${NGHTTP2_INCLUDE_DIRS})
-    target_link_libraries(wt PRIVATE ${NGHTTP2_LIBRARIES})
+    target_include_directories(wt PUBLIC ${NGHTTP2_INCLUDE_DIRS})
+    target_link_libraries(wt PUBLIC ${NGHTTP2_LIBRARIES})
   endif()
 else()
   message(STATUS "nghttp2 not found: HTTP/2 support will be disabled")
@@ -717,10 +734,24 @@ endif()
 #SET(MY_ZLIB_LIBS ${ZLIB_LIBRARIES})
 #INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIRS})
 #ADD_DEFINITIONS(-DWTHTTP_WITH_ZLIB ${ZLIB_DEFINITIONS})
-target_compile_definitions(wt PUBLIC ${ZLIB_DEFINITIONS})
-TARGET_INCLUDE_DIRECTORIES(wt PUBLIC ${ZLIB_INCLUDE_DIRS})
-TARGET_LINK_LIBRARIES(wt PUBLIC ${ZLIB_LIBRARIES})
+# target_compile_definitions(wt PUBLIC ${ZLIB_DEFINITIONS})
+# TARGET_INCLUDE_DIRECTORIES(wt PUBLIC ${ZLIB_INCLUDE_DIRS})
+# TARGET_LINK_LIBRARIES(wt PUBLIC ${ZLIB_LIBRARIES})
 #ENDIF(${ZLIB_FOUND})
+
+if(ZLIB_FOUND)
+  target_compile_definitions(wt PUBLIC WTHTTP_WITH_ZLIB)
+  TARGET_LINK_LIBRARIES(wt PUBLIC ZLIB::ZLIB)
+else()
+  message(FATAL_ERROR "Zlib not found!")
+endif()
+
+if(Brotli_FOUND)
+#target_link_libraries(wt PUBLIC Brotli::decoder Brotli::encoder)
+TARGET_LINK_LIBRARIES(wt PUBLIC brotlidec brotlienc)
+else()
+  message(FATAL_ERROR "Brotli not found!")
+endif()
 
 IF(WT_HAS_SAML)
   TARGET_LINK_LIBRARIES(wt PRIVATE Shibboleth::OpenSAML)
@@ -856,15 +887,15 @@ IF(MULTI_THREADED_BUILD)
   TARGET_LINK_LIBRARIES(wt PRIVATE ${WT_THREAD_LIB})
 ENDIF(MULTI_THREADED_BUILD)
 
-IF(HAVE_LSQUIC)
+IF(WT_HAS_LSQUIC)
     message("activate http3 (lsquic found), ${LSQUIC_INCLUDE_DIR}, ${LSQUIC_LIBRARY}")
     # For lsquic include directories
     TARGET_INCLUDE_DIRECTORIES(wt PUBLIC ${LSQUIC_INCLUDE_DIR})
     # Assuming you also need to link against lsquic directly
     TARGET_LINK_LIBRARIES(wt PRIVATE ${LSQUIC_LIBRARY})
-ELSE(HAVE_LSQUIC)
+ELSE(WT_HAS_LSQUIC)
     message("LSQUIC not found, ${LSQUIC_INCLUDE_DIR}, ${LSQUIC_LIBRARY}")
-ENDIF(HAVE_LSQUIC)
+ENDIF(WT_HAS_LSQUIC)
 
 TARGET_INCLUDE_DIRECTORIES(wt INTERFACE
   $<INSTALL_INTERFACE:include>)

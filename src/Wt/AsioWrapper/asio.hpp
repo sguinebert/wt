@@ -41,7 +41,8 @@ using namespace boost::asio::experimental::awaitable_operators;
 using namespace std::literals::chrono_literals;
 using std::chrono::steady_clock;
 using executor_t = boost::asio::io_context::executor_type;
-//extern thread_local boost::asio::io_context* thread_context;
+//FIXME: this is not thread local in boost asio
+extern thread_local boost::asio::io_context* thread_context;
 using boost::asio::io_context;
 using namespace boost;
 #else
