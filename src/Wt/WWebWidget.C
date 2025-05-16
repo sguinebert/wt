@@ -1312,7 +1312,8 @@ void WWebWidget::updateDom(DomElement& element, bool all)
                 if (all && app->environment().agent() == UserAgent::IE6
                     && element.type() == DomElementType::DIV) {
                     //DomElement *i = DomElement::createNew(DomElementType::IFRAME);
-                    DomElement i(DomElement::Mode::Create, DomElementType::IFRAME);
+                    auto& i = element.addChild(DomElementType::IFRAME);
+                    //DomElement i(DomElement::Mode::Create, DomElementType::IFRAME);
                     i.setId("sh" + id());
                     i.setProperty(Property::Class, "Wt-shim");
                     i.setProperty(Property::Src, "javascript:false;");
@@ -1332,7 +1333,7 @@ void WWebWidget::updateDom(DomElement& element, bool all)
                     //                  "i.style.height=w.clientHeight + 'px';"
                     //                  "}}");
 
-                    element.addChild(i);
+                    //element.addChild(i);
                 }
             }
         }

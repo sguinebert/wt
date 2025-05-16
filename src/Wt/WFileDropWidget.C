@@ -101,7 +101,9 @@ protected:
      *     before any application-code is called by the finished upload.
      *   - only Wt-code is executed within this lock
      */
-    WApplication::UpdateLock lock(WApplication::instance());
+      auto app = WApplication::instance();
+      co_await app->takeLock();
+    //WApplication::UpdateLock lock(WApplication::instance());
 #endif // WT_TARGET_JAVA
 
     auto fileId = request.getParameter("file-id");

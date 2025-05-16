@@ -22,11 +22,13 @@ WText::RichText::RichText()
 
 bool WText::RichText::setText(const WString& newText)
 {
+    std::cerr << "setText: " << newText.toUTF8() << std::endl;
   text = newText;
 
   bool ok = checkWellFormed();
   if (!ok)
     format = TextFormat::Plain;
+  std::cerr << "setText: " << newText.toUTF8() << std::endl;
 
   return ok;
 }

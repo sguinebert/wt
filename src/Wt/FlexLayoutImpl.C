@@ -61,7 +61,8 @@ void FlexLayoutImpl::updateDom(DomElement& parent)
 {
   WApplication *app = WApplication::instance();
 
-  DomElement div = DomElement::getForUpdate(elId_, DomElementType::DIV);
+  auto& div = parent.addChild("div" + id(), DomElementType::DIV);
+  //DomElement div = DomElement::getForUpdate(elId_, DomElementType::DIV);
 
   Orientation orientation = getOrientation();
 
@@ -75,14 +76,14 @@ void FlexLayoutImpl::updateDom(DomElement& parent)
 
   for (unsigned i = 0; i < orderedInserts.size(); ++i) {
     int pos = orderedInserts[i];
-    DomElement el = createElement(orientation, pos, totalStretch, app);
-    div.insertChildAt(std::move(el), pos);
+    //DomElement el = createElement(orientation, pos, totalStretch, app);
+    div.insertChildAt(createElement(orientation, pos, totalStretch, app), pos);
   }
 
   addedItems_.clear();
 
   for (unsigned i = 0; i < removedItems_.size(); ++i)
-    div.callJavaScript<true>(/*WT_CLASS*/ ".remove('{}');", removedItems_[i]);
+    div.callJavaScript<true>(WT_CLASS ".remove('{}');", removedItems_[i]);
 
   removedItems_.clear();
 
@@ -90,7 +91,7 @@ void FlexLayoutImpl::updateDom(DomElement& parent)
   // js << "layout.adjust(" << grid_.horizontalSpacing_ << ")";
   div.callMethod("layout.adjust({})", grid_.horizontalSpacing_);
 
-  parent.addChild(div);
+  //parent.addChild(std::move(div));
 }
 
 FlexLayoutImpl::~FlexLayoutImpl()

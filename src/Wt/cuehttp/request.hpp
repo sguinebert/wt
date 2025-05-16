@@ -44,6 +44,29 @@ namespace http {
 
 namespace detail {
     class stream;
+
+struct CaseInsensitiveEqual {
+    using is_transparent = void;
+
+    bool operator()(std::string_view lhs, std::string_view rhs) const {
+        if (lhs.size() != rhs.size()) return false;
+        for (size_t i = 0; i < lhs.size(); ++i) {
+            if (std::tolower(static_cast<unsigned char>(lhs[i])) !=
+                std::tolower(static_cast<unsigned char>(rhs[i]))) {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+// Define the case-insensitive unordered_map with string keys
+using headermap = std::unordered_map<
+    std::string_view,
+    std::string_view,
+    std::hash<std::string_view>,
+    CaseInsensitiveEqual
+    >;
 }
 /*! \brief A list of parameter values.
  *
@@ -134,8 +157,10 @@ public:
 // and ".." is interpreted as parent folder (foo/../bar) -> pop the last segment RFC 3986 "/foo/bar/../baz" → "/foo/baz"
 auto inplaceDecode_split(std::string &text) -> std::vector<std::string_view>
 {
+    if(text.empty())
+        return {""};
     std::vector<std::string_view> segments;
-    // Note: there is a Java-too duplicate of this function in Wt/Utils.C
+    // Note: there is a duplicate of this function in Wt/Utils.C
     std::size_t j = 0;
     std::size_t pos = 0;
     std::size_t first_percent = text.find('%');
@@ -157,9 +182,6 @@ auto inplaceDecode_split(std::string &text) -> std::vector<std::string_view>
         //boost::split(segments, text, boost::is_any_of("/"));
         return segments;
     }
-
-    // const char* pointer = text.data() + first_percent;
-    // const char* end = text.data() + text.size();
 
     size_t lenght = text.length();
 
@@ -209,42 +231,42 @@ auto inplaceDecode_split(std::string &text) -> std::vector<std::string_view>
     //segments.emplace_back(text.begin() + pos, text.end());
     return segments;
 }
+//FIXME OR DELETE : USE  ada::unicode::percent_decode(dataurl, dataurl.find('%'));
+// static std::string decode_uri(std::string_view encoded)
+// {
+//     std::string text {encoded};
 
-static std::string decode_uri(std::string_view encoded)
-{
-    std::string text {encoded};
+//     std::size_t j = 0;
+//     std::size_t first_percent = encoded.find('%');
+//     if (first_percent == std::string_view::npos) {
+//         return text;
+//     }
 
-    std::size_t j = 0;
-    std::size_t first_percent = encoded.find('%');
-    if (first_percent == std::string_view::npos) {
-        return text;
-    }
+//     size_t lenght = text.length();
+//     for (std::size_t i = first_percent; i < lenght; ++i)
+//     {
+//         char c = text[i];
 
-    size_t lenght = text.length();
-    for (std::size_t i = first_percent; i < lenght; ++i)
-    {
-        char c = text[i];
+//         if (c != '%' || lenght - i < 2 ||
+//             ( // ch == '%' && // It is unnecessary to check that ch == '%'.
+//                 (!ada::unicode::is_ascii_hex_digit(text[j+1]) ||
+//                  !ada::unicode::is_ascii_hex_digit(text[j+2]))))
+//         {
+//             text[j++] = (c == '+') ? ' ' : c;
+//         }
+//         else
+//         {
+//             unsigned a = ada::unicode::convert_hex_to_binary(text[j+1]);
+//             unsigned b = ada::unicode::convert_hex_to_binary(text[j+2]);
+//             char ch = static_cast<char>(a * 16 + b);
+//             text[j++] = ch;
+//             i += 2;
+//         }
+//     }
 
-        if (c != '%' || lenght - i < 2 ||
-            ( // ch == '%' && // It is unnecessary to check that ch == '%'.
-                (!ada::unicode::is_ascii_hex_digit(text[j+1]) ||
-                 !ada::unicode::is_ascii_hex_digit(text[j+2]))))
-        {
-            text[j++] = (c == '+') ? ' ' : c;
-        }
-        else
-        {
-            unsigned a = ada::unicode::convert_hex_to_binary(text[j+1]);
-            unsigned b = ada::unicode::convert_hex_to_binary(text[j+2]);
-            char ch = static_cast<char>(a * 16 + b);
-            text[j++] = ch;
-            i += 2;
-        }
-    }
-
-    text.erase(j);
-    return text;
-}
+//     text.erase(j);
+//     return text;
+// }
 
 //the best should be using a unique decoded string + vector of std::pair<string_view, string_view>
 //or std::unordered_map<string_view, string_view>
@@ -265,8 +287,9 @@ static void parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
         {
             if (next == std::string::npos)
                 next = s.length();
+            auto key = s.substr(pos, next - pos);
             //parameters.emplace(decode_uri(s.substr(pos, next - pos)), std::string{});
-            parameters[decode_uri(s.substr(pos, next - pos))].emplace_back(std::string{});
+            parameters[ada::unicode::percent_decode(key, key.find('%'))].emplace_back(std::string{});
 
             pos = next + 1;
         }
@@ -282,8 +305,10 @@ static void parseFormUrlEncoded(std::string_view s, ParameterMap &parameters)
             //std::string value { s.substr(next + 1, amp - (next + 1)) };
             //inplaceUrlDecode(value);
 
-            //parameters[key].push_back(value);
-            parameters[decode_uri(s.substr(pos, next - pos))].emplace_back(decode_uri(s.substr(next + 1, amp - (next + 1))));
+            auto key = s.substr(pos, next - pos);
+            auto value = s.substr(next + 1, amp - (next + 1));
+            parameters[ada::unicode::percent_decode(key, key.find('%'))]
+                .emplace_back(ada::unicode::percent_decode(value, value.find('%')));
             // parameters.emplace(decode_uri(s.substr(pos, next - pos)),
             //                    decode_uri(s.substr(next + 1, amp - (next + 1))));
             pos = amp + 1;
@@ -311,7 +336,8 @@ void parseFormUrlEncoded(std::string_view s)
             if (next == std::string::npos)
                 next = s.length();
 
-            query.append(decode_uri(s.substr(pos, next - pos)), std::string{});
+            auto key = s.substr(pos, next - pos);
+            query.append(ada::unicode::percent_decode(key, key.find('%')), std::string{});
             pos = next + 1;
         }
         else
@@ -326,8 +352,10 @@ void parseFormUrlEncoded(std::string_view s)
                 parseFormUrlEncoded(s.substr(next + 1, amp - (next + 1)));
             }
 
-            query.append(decode_uri(s.substr(pos, next - pos)),
-                         decode_uri(s.substr(next + 1, amp - (next + 1))));
+            auto key = s.substr(pos, next - pos);
+            auto value = s.substr(next + 1, amp - (next + 1));
+            query.append(ada::unicode::percent_decode(key, key.find('%')),
+                         ada::unicode::percent_decode(value, value.find('%')));
             pos = amp + 1;
         }
     }
@@ -505,7 +533,7 @@ void inplaceUrlDecode(std::string &text)
     // return false;
   }
 
-  auto headers() const noexcept -> const std::unordered_map<std::string_view, std::string_view>& {
+  auto headers() const noexcept -> const detail::headermap& {
     return headers_;
   }
 
@@ -522,7 +550,7 @@ void inplaceUrlDecode(std::string &text)
     return host_str.substr(host_str.rfind(":"));
   }
 
-  std::string_view url() const noexcept { return url_; }
+  std::string_view url() const noexcept { return urlsv_.get_href(); }
 
   //boost::url_view& urlv() noexcept { return urlv_; }
 
@@ -541,7 +569,7 @@ void inplaceUrlDecode(std::string &text)
   std::string_view href() const noexcept {
     if (href_.empty()) {
       href_ += origin();
-      href_ += url_;
+      href_ += path_;
     }
     return href_;
   }
@@ -552,12 +580,9 @@ void inplaceUrlDecode(std::string &text)
     if (!decoded_segments_.empty())
       return decoded_segments_;
 
-    if(path_.empty())
-        decoded_segments_.emplace_back(std::string_view(""));
-
     decoded_path_ = path_;
-    decoded_segments_ = inplaceDecode_split(decoded_path_);
-    return decoded_segments_;
+
+    return decoded_segments_ = inplaceDecode_split(decoded_path_);
   }
 
   std::string_view pathInfo(std::string_view base) noexcept { if(pathInfo_.empty() && path_.size() != base.size()) pathInfo_ = path_.substr(base.size() + 1); return pathInfo_; }
@@ -569,10 +594,8 @@ void inplaceUrlDecode(std::string &text)
   UploadedFileMap& uploadedFiles() { return files_; }
 
   ada::url_search_params& query() const noexcept {
-    if (!querystring_.empty() && !query_.size()) {
+    if (!querystring_.empty() && !query_.size())
           query_.reset(querystring_);
-        //query_ = detail::utils::parse_query(querystring_);
-    }
     return query_;
   }
 
@@ -653,8 +676,9 @@ void inplaceUrlDecode(std::string &text)
     continue_parse_body_ = false;
     field_ = {};
     value_ = {};
-    url_ = {};
+    //url_ = {};
     decoded_path_.clear();
+    decoded_segments_.clear();
     origin_.clear();
     href_.clear();
     path_ = {};
@@ -704,6 +728,7 @@ void inplaceUrlDecode(std::string &text)
       }
       code = phr_parse_request(buffer_.data(), data_size_, &phr_method_, &phr_method_len_, &phr_path_, &phr_path_len_,
                                &phr_minor_version_, phr_headers_, &phr_num_headers_, parse_size_);
+
       if (code > 0) {
         // headers
         for (std::size_t i{0}; i < phr_num_headers_; ++i) {
@@ -715,7 +740,8 @@ void inplaceUrlDecode(std::string &text)
         parse_size_ += code;
         method_ = {phr_method_, phr_method_len_};
         // url
-        url_ = {phr_path_, phr_path_len_};
+        //url_ = {phr_method_, phr_path_len_};
+        path_ = {phr_path_, phr_path_len_};
         parse_url();
 
         // content_length
@@ -855,7 +881,9 @@ void inplaceUrlDecode(std::string &text)
  private:
   //high speed url parsing
   void parse_url() {
-      auto uri = ada::parse<ada::url_aggregator>(url_);
+      std::cerr << "parse_url() path_:" << path_ << std::endl;
+      static auto base = ada::parse<ada::url_aggregator>("http://d.fr");  // or from Host/TLS
+      auto uri = ada::parse<ada::url_aggregator>(path_, &base.value());
       if(uri) {
           urlsv_ = uri.value();
           path_ = urlsv_.get_pathname();
@@ -881,10 +909,9 @@ void inplaceUrlDecode(std::string &text)
       method_ = {buffer_.data() + (method_.data() - data), method_.length()};
     }
 
-    if (!url_.empty()) {
-      url_ = {buffer_.data() + (url_.data() - data), url_.length()};
-      //urlv_= boost::url_view { url_ };
-    }
+    // if (!url_.empty()) {
+    //   url_ = {buffer_.data() + (url_.data() - data), url_.length()};
+    // }
 
     if (!path_.empty()) {
       path_ = {buffer_.data() + (path_.data() - data), path_.length()};
@@ -909,7 +936,7 @@ void inplaceUrlDecode(std::string &text)
   const char* phr_method_{nullptr};
   const char* phr_path_{nullptr};
   int phr_minor_version_;
-  std::unordered_map<std::string_view, std::string_view> headers_;
+  detail::headermap headers_;
   phr_header phr_headers_[HTTP_REQUEST_HEADER_SIZE];
   std::size_t phr_method_len_;
   std::size_t phr_path_len_;
@@ -918,7 +945,7 @@ void inplaceUrlDecode(std::string &text)
   std::string_view field_;
   std::string_view value_;
   unsigned minor_version_{1};
-  std::string_view url_;
+  //std::string_view url_;
   //boost::url_view urlv_;
   ada::url_aggregator urlsv_;
   std::string decoded_path_;

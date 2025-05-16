@@ -107,7 +107,7 @@ struct formatter<HtmlAttribute> {
 
         std::string escapedvalue;
         Parser::escape(a.value, escapedvalue);
-        return fmt::format_to(out, FMT_COMPILE(" {}=\"{}\""), a.name, escapedvalue);
+        return fmt::format_to(out, FMT_COMPILE(" {}=\"{}\""), a.name, a.value);
     }
 
 };
@@ -442,6 +442,9 @@ namespace {
   }
 namespace skeletons {
 // Embed the file contents into a constexpr array
+static constexpr char Boot_legacy_html[] = {
+#embed "skeleton/Boot.legacy.html"
+};
 static constexpr char Boot_html[] = {
 #embed "skeleton/Boot.html"
 };
@@ -1010,6 +1013,8 @@ void WebRenderer::serveResponse(Wt::http::context *context)
 {
   session_.setTriggerUpdate(false);
 
+    std::cerr << "serveResponse: " << magic_enum::enum_name(context->responseType()) << std::endl;
+
   switch (context->responseType()) {
   case Wt::http::ResponseType::Update:
     serveJavaScriptUpdate(context);
@@ -1208,6 +1213,7 @@ void WebRenderer::serveMainpage(http::context *context)
                              "xmlns:v=\"urn:schemas-microsoft-com:vml\" lang=\"en\" dir=\"ltr\"";
   std::string attr = fmt::format(FMT_COMPILE(" class=\"{}\"{}"), bodyClassRtl(), (app->layoutDirection() == LayoutDirection::RightToLeft) ? " dir=\"RTL\"" : "");
 
+  std::cerr << "________________________________________htmlAttr: " << htmlAttr << std::endl;
   if(hybridPage) {
       if(session_.env().ajax())
           fmt::format_to(response.out(), FMT_COMPILE(skeletons::hibridparts0[0]),
@@ -1248,6 +1254,7 @@ void WebRenderer::serveMainpage(http::context *context)
                          fmt::arg("STYLESHEETS", std::string_view(styleSheets.data(), styleSheets.size())),
                          fmt::arg("BODYATTRIBUTES", attr));
   }
+  std::cerr << "________________________________________htmlAttr: " << htmlAttr << std::endl;
 
 
   if (hybridPage)
@@ -1258,27 +1265,28 @@ void WebRenderer::serveMainpage(http::context *context)
   if(hybridPage) {
       if(session_.env().ajax())
           fmt::format_to(response.out(), FMT_COMPILE(skeletons::hibridparts0[1]),
-                         fmt::arg("BLANK_HTML", blankUrl),
+                         fmt::arg("BLANK_HTML", blankUrl),fmt::arg("BODYATTRIBUTES", attr),
                          fmt::arg("RELATIVE_URL", url),
                          fmt::arg("SESSION_ID", session_.sessionId()));
       else
           fmt::format_to(response.out(), FMT_COMPILE(skeletons::hibridparts1[1]),
-                         fmt::arg("BLANK_HTML", blankUrl),
+                         fmt::arg("BLANK_HTML", blankUrl),fmt::arg("BODYATTRIBUTES", attr),
                          fmt::arg("RELATIVE_URL", url),
                          fmt::arg("SESSION_ID", session_.sessionId()));
   }
   else {
       if(session_.env().ajax())
           fmt::format_to(response.out(), FMT_COMPILE(skeletons::plainparts0[1]),
-                         fmt::arg("BLANK_HTML", blankUrl),
+                         fmt::arg("BLANK_HTML", blankUrl),fmt::arg("BODYATTRIBUTES", attr),
                          fmt::arg("RELATIVE_URL", url),
                          fmt::arg("SESSION_ID", session_.sessionId()));
       else
           fmt::format_to(response.out(), FMT_COMPILE(skeletons::plainparts1[1]),
-                         fmt::arg("BLANK_HTML", blankUrl),
+                         fmt::arg("BLANK_HTML", blankUrl), fmt::arg("BODYATTRIBUTES", attr),
                          fmt::arg("RELATIVE_URL", url),
                          fmt::arg("SESSION_ID", session_.sessionId()));
   }
+  std::cerr << "________________________________________END______ " << std::endl;
 
 
   DomElement::TimeoutList timeouts;
@@ -2501,7 +2509,7 @@ void WebRenderer::serveMainAjax(fmt::memory_buffer &out)
     app->streamBeforeLoadJavaScript(out, true);
 
     if (!widgetset) {
-        fmt::format_to(std::back_inserter(out), FMT_COMPILE("window.{}_LoadWidgetTree = function() {{\n"),
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("window.{}LoadWidgetTree = function() {{\n"),
                        app->javaScriptClass());
     }
 
@@ -2551,7 +2559,7 @@ void WebRenderer::serveMainAjax(fmt::memory_buffer &out)
     addResponseAckPuzzle(s);
 
     if (app->hasQuit()) {
-        fmt::format_to(std::back_inserter(s), FMT_COMPILE("{}. _p_.quit({});\n"),
+        fmt::format_to(std::back_inserter(s), FMT_COMPILE("{}._p_.quit({});\n"),
                        app->javaScriptClass(),
                        (app->quittedMessage_.empty() ? "null" : app->quittedMessage_.jsStringLiteral()));
     }
@@ -2566,7 +2574,7 @@ void WebRenderer::serveMainAjax(fmt::memory_buffer &out)
 #endif // WT_DEBUG_ENABLED
 
     currentFormObjectsList_ = createFormObjectsList(app);
-    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}. _p_.setFormObjects([{}];\n"),
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.setFormObjects([{}]);\n"),
                    app->javaScriptClass(), currentFormObjectsList_);
     formObjectsChanged_ = false;
 
@@ -2581,7 +2589,7 @@ void WebRenderer::serveMainAjax(fmt::memory_buffer &out)
             fmt::format_to(std::back_inserter(fcollectedJS1_), "{}", finvisibleJS_);
             finvisibleJS_.clear();
         } else if (widgetset) {
-            fmt::format_to(std::back_inserter(fcollectedJS1_), FMT_COMPILE("{}. _p_.update(null, 'none', null, false);"),
+            fmt::format_to(std::back_inserter(fcollectedJS1_), FMT_COMPILE("{}._p_.update(null, 'none', null, false);"),
                            session_.app()->javaScriptClass());
         }
     }
@@ -2605,7 +2613,7 @@ void WebRenderer::serveMainAjax(fmt::memory_buffer &out)
 
     if (!widgetset) {
         if (!app->hasQuit()) {
-            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}. _p_.update(null, 'load', null, false);\n"),
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}._p_.update(null, 'load', null, false);\n"),
                            session_.app()->javaScriptClass());
         }
         fmt::format_to(std::back_inserter(out), "{}", "};\n");
@@ -2839,65 +2847,64 @@ void WebRenderer::serveMainscript(http::context *context)
       params += Utils::urlEncode(i->first) + '=' + Utils::urlEncode(i->second[0]);
     }
   }
-  // script.setVar("PARAMS", params);
 
   static auto const quitmessage = WString::tr("Wt.QuittedMessage").jsStringLiteral();
 
-  fmt::format_to(std::back_inserter(out), FMT_COMPILE("if(!window.{})"
-                                                      "window.{}="
-                                                      "new WtConstructor({{"
-                                                      "ACK_UPDATE_ID:{},"        // Number
-                                                      "APP_CLASS:\"{}\","        // String
-                                                      "CLOSE_CONNECTION:{},"     // Boolean
-                                                      "DEPLOY_PATH:'{:s}',"      // String
-                                                      "IDLE_TIMEOUT:{},"         // Number
-                                                      "INDICATOR_TIMEOUT:{},"    // Number
-                                                      "INNER_HTML:\"{}\","       // String
-                                                      "KEEP_ALIVE:{},"           // Boolean
-                                                      "MAX_FORMDATA_SIZE:{},"    // Number
-                                                      "MAX_PENDING_EVENTS:{},"   // Number
-                                                      "QUITTED_STR:\"{}\","      // String
-                                                      "SERVER_PUSH_TIMEOUT:{},"  // Number
-                                                      "SESSION_URL:'{:s}',"      // String
-                                                      "WS_ID:\"{}\","            // String
-                                                      "WS_PATH:'{:s}',"          // String
-                                                      "WT_CLASS:\"{}\","         // String
-                                                      "CATCH_ERROR:{},"          // Boolean
-                                                      "SHOW_ERROR:{},"           // Boolean
-                                                      "STRICTLY_SERIALIZED_EVENTS:{}," // Boolean
-                                                      "UGLY_INTERNAL_PATHS:{},"  // Boolean
-                                                      "WEB_SOCKETS:{},"          // Boolean
-                                                      "delayClick:{},"           // Number
-                                                      "delayedClicks:[],"        // Empty array
-                                                      "google:null,"            // Null
-                                                      "hideLoadingIndicator:'{:s}'," // Function as string
-                                                      "showLoadingIndicator:'{:s}'"  // Function as string
-                                                      "}});"),
-                 app->javaScriptClass(), app->javaScriptClass(),
-                 expectedAckId_,
-                 app->javaScriptClass(),
-                 false,
-                 JsString(deployPath),
-                 conf.idleTimeout(),
-                 conf.indicatorTimeout(),
-                 innerHtml,
-                 conf.keepAlive(),
-                 conf.maxFormDataSize(),
-                 conf.maxPendingEvents(),
-                 quitmessage,
-                 conf.serverPushTimeout() * 1000,
-                 JsString(sessionUrl()),
-                 "",
-                 JsString(deployPath),
-                 WT_CLASS,
-                 conf.errorReporting() != Configuration::NoErrors,
-                 conf.errorReporting() == Configuration::ErrorMessage,
-                 conf.serializedEvents(),
-                 session_.useUglyInternalPaths(),
-                 conf.webSockets(),
-                 conf.doubleClickTimeout(),
-                 JsString(app->hideLoadingIndicator_.javaScript()),
-                 JsString(app->showLoadingIndicator_.javaScript()));
+  // fmt::format_to(std::back_inserter(out), FMT_COMPILE("if(!window.{})"
+  //                                                     "window.{}="
+  //                                                     "new WtConstructor({{"
+  //                                                     "ACK_UPDATE_ID:{},"        // Number
+  //                                                     "APP_CLASS:\"{}\","        // String
+  //                                                     "CLOSE_CONNECTION:{},"     // Boolean
+  //                                                     "DEPLOY_PATH:'{:s}',"      // String
+  //                                                     "IDLE_TIMEOUT:{},"         // Number
+  //                                                     "INDICATOR_TIMEOUT:{},"    // Number
+  //                                                     "INNER_HTML:\"{}\","       // String
+  //                                                     "KEEP_ALIVE:{},"           // Boolean
+  //                                                     "MAX_FORMDATA_SIZE:{},"    // Number
+  //                                                     "MAX_PENDING_EVENTS:{},"   // Number
+  //                                                     "QUITTED_STR:\"{}\","      // String
+  //                                                     "SERVER_PUSH_TIMEOUT:{},"  // Number
+  //                                                     "SESSION_URL:'{:s}',"      // String
+  //                                                     "WS_ID:\"{}\","            // String
+  //                                                     "WS_PATH:'{:s}',"          // String
+  //                                                     "WT_CLASS:\"{}\","         // String
+  //                                                     "CATCH_ERROR:{},"          // Boolean
+  //                                                     "SHOW_ERROR:{},"           // Boolean
+  //                                                     "STRICTLY_SERIALIZED_EVENTS:{}," // Boolean
+  //                                                     "UGLY_INTERNAL_PATHS:{},"  // Boolean
+  //                                                     "WEB_SOCKETS:{},"          // Boolean
+  //                                                     "delayClick:{},"           // Number
+  //                                                     "delayedClicks:[],"        // Empty array
+  //                                                     "google:null,"            // Null
+  //                                                     "hideLoadingIndicator:'{:s}'," // Function as string
+  //                                                     "showLoadingIndicator:'{:s}'"  // Function as string
+  //                                                     "}});"),
+  //                app->javaScriptClass(), app->javaScriptClass(),
+  //                expectedAckId_,
+  //                app->javaScriptClass(),
+  //                false,
+  //                JsString(deployPath),
+  //                conf.idleTimeout(),
+  //                conf.indicatorTimeout(),
+  //                innerHtml,
+  //                conf.keepAlive(),
+  //                conf.maxFormDataSize(),
+  //                conf.maxPendingEvents(),
+  //                quitmessage,
+  //                conf.serverPushTimeout() * 1000,
+  //                JsString(sessionUrl()),
+  //                "",
+  //                JsString(deployPath),
+  //                WT_CLASS,
+  //                conf.errorReporting() != Configuration::NoErrors,
+  //                conf.errorReporting() == Configuration::ErrorMessage,
+  //                conf.serializedEvents(),
+  //                session_.useUglyInternalPaths(),
+  //                conf.webSockets(),
+  //                conf.doubleClickTimeout(),
+  //                JsString(app->hideLoadingIndicator_.javaScript()),
+  //                JsString(app->showLoadingIndicator_.javaScript()));
 
 
   fmt::format_to(std::back_inserter(out), /*FMT_COMPILE*/(skeletons::Wt_js_template),
@@ -2917,6 +2924,17 @@ void WebRenderer::serveMainscript(http::context *context)
                  fmt::arg("INDICATOR_TIMEOUT", conf.indicatorTimeout()),
                  fmt::arg("SERVER_PUSH_TIMEOUT", conf.serverPushTimeout() * 1000),
                  fmt::arg("CLOSE_CONNECTION", false),
+                 fmt::arg("UGLY_INTERNAL_PATHS", false),
+                 fmt::arg("STRICTLY_SERIALIZED_EVENTS", false),
+                 fmt::arg("WEB_SOCKETS", conf.webSockets()),
+                 fmt::arg("SHOW_ERROR", false),
+                 fmt::arg("DELAY_CLICK", conf.doubleClickTimeout()),
+                 fmt::arg("DELAYED_CLICKS", "[]"),
+                 fmt::arg("GOOGLE", "null"),
+                 fmt::arg("HIDE_LOADING_INDICATOR", app->hideLoadingIndicator_.javaScript()),
+                 fmt::arg("SHOW_LOADING_INDICATOR", app->showLoadingIndicator_.javaScript()),
+                 fmt::arg("PARAMS", params),
+                 fmt::arg("CATCH_ERROR", conf.errorReporting() != Configuration::NoErrors),
                  fmt::arg("PARAMS", params));
 
   // script.stream(out);
@@ -2974,7 +2992,7 @@ void WebRenderer::serveMainscript(http::context *context)
     } else
       app->streamBeforeLoadJavaScript(out, true);
 
-    fmt::format_to(std::back_inserter(out), FMT_COMPILE("window.{}_LoadWidgetTree = function() {{\n"), app->javaScriptClass());
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("window.{}LoadWidgetTree = function() {{\n"), app->javaScriptClass());
     // out << "window." << app->javaScriptClass()
     //     << "LoadWidgetTree = function(){\n";
 
@@ -3048,8 +3066,8 @@ void WebRenderer::serveBootstrap(http::context *context)
   //      session_.bootstrapUrl(context,
   //                            WebSession::BootstrapOption::KeepInternalPath) + "&js=no");
 
-  std::string noJsRedirectUrl = fmt::format("{:h}&amp;js=no",
-                                    JsString(session_.bootstrapUrl(context, WebSession::BootstrapOption::KeepInternalPath)));
+  std::string noJsRedirectUrl = fmt::format("{}&amp;js=no",
+                                    /*JsString*/(session_.bootstrapUrl(context, WebSession::BootstrapOption::KeepInternalPath)));
 
   // boot.setVar("REDIRECT_URL", noJsRedirectUrl.str());
   // boot.setVar("AUTO_REDIRECT",
@@ -3064,11 +3082,12 @@ void WebRenderer::serveBootstrap(http::context *context)
   //                            WebSession::BootstrapOption::ClearInternalPath)
   //          + "&request=style&page=" + std::to_string(pageId_));
 
-  std::string bootStyleUrl = fmt::format("{:h}&amp;request=style&amp;page={}",
-                                            JsString(session_.bootstrapUrl(context, WebSession::BootstrapOption::ClearInternalPath)), pageId_);
+  std::string bootStyleUrl = fmt::format("{}&amp;request=style&amp;page={}",
+                                            /*JsString*/(session_.bootstrapUrl(context, WebSession::BootstrapOption::ClearInternalPath)), pageId_);
 
-  //boot.setVar("BOOT_STYLE_URL", bootStyleUrl.str());
-
+  std::cerr << "bootStyleUrl: " << bootStyleUrl << " vs : " << session_.bootstrapUrl(context, WebSession::BootstrapOption::ClearInternalPath) << std::endl;
+  std::cerr << "noJsRedirectUrl: " << noJsRedirectUrl << std::endl;
+    std::cerr << "Test with invalid char: \xEF\xBF\xBD\n";
   setCaching(response, false);
   response.addHeader("X-Frame-Options", "SAMEORIGIN");
 
@@ -3076,15 +3095,37 @@ void WebRenderer::serveBootstrap(http::context *context)
 
   setHeaders(response, contentType);
 
-  //WStringStream out(response.out());
-  streamBootContent(context, false);
-  //boot.stream(out);
+  //streamBootContent(context, false); -> {BOOT_JS}
 
   static auto redirectmessage = conf.redirectMessage();
+  //const C={{a:{AJAX_CANONICAL_URL},b:{INTERNAL_PATH},c:{PATH_INFO},d:{RANDOMSEED},e:{RELOAD_IS_NEWSESSION},f:{SCRIPT_ID},g:{SELF_URL},h:{USE_COOKIES},i:{COOKIE_CHECKS},j:{HYBRID},k:{PROGRESS},l:{WEBGL_DETECT},m:{SESSION_ID}}};
+  std::string internalPath =  session_.env().internalPath();
+  //bootJs.setVar("INTERNAL_PATH", safeJsStringLiteral(internalPath));
 
-  fmt::format_to(response.out(), FMT_COMPILE(skeletons::Boot_template),
+  auto app = session_.app();
+  fmt::format_to(response.out(), FMT_COMPILE(skeletons::Boot_template), //ALL in one legacy file
+                 fmt::arg("SELF_URL", safeJsStringLiteral(session_.bootstrapUrl(context, WebSession::BootstrapOption::ClearInternalPath))),
+                 fmt::arg("SESSION_ID", session_.sessionId()),
+                 fmt::arg("SCRIPT_ID", scriptId_),
+                 fmt::arg("RANDOMSEED", WRandom::get()),
+                 fmt::arg("RELOAD_IS_NEWSESSION", conf.reloadIsNewSession()),
+                 fmt::arg("USE_COOKIES", conf.sessionTracking() == Configuration::CookiesURL),
+                 fmt::arg("AJAX_CANONICAL_URL", safeJsStringLiteral(session_.ajaxCanonicalUrl(context))),
+                 fmt::arg("APP_CLASS", "Wt"),
+                 fmt::arg("PATH_INFO", safeJsStringLiteral(session_.pagePathInfo_)),
+                 fmt::arg("COOKIE_CHECKS", conf.cookieChecks()),
+                 fmt::arg("SPLIT_SCRIPT", conf.splitScript()),
+                 fmt::arg("HYBRID", false),
+                 fmt::arg("PROGRESS", false && !session_.env().ajax()),
+                 fmt::arg("DEFER_SCRIPT", true),
+                 fmt::arg("WEBGL_DETECT", conf.webglDetect()),
+                 fmt::arg("INTERNAL_PATH", safeJsStringLiteral(internalPath)),
+                 fmt::arg("DOCTYPE", session_.docType()),
+                 fmt::arg("HTMLATTRIBUTES", app ? app->htmlClass_ : ""),
+                 fmt::arg("HEADDECLARATIONS", headDeclarations()),
+                 fmt::arg("AUTO_REDIRECT",  noJsRedirectUrl),
+                 fmt::arg("BLANK_HTML", session_.bootstrapUrl(context, WebSession::BootstrapOption::ClearInternalPath)),
                  fmt::arg("REDIRECT_URL", noJsRedirectUrl),
-                 fmt::arg("AUTO_REDIRECT", "<noscript><meta http-equiv=\"refresh\" content=\"0; url=" + noJsRedirectUrl + "\"></noscript>"),
                  fmt::arg("NOSCRIPT_TEXT", redirectmessage),
                  fmt::arg("BOOT_STYLE_URL", bootStyleUrl));
 
@@ -3696,10 +3737,10 @@ std::string WebRenderer::createFormObjectsList(WApplication *app)
 
 void WebRenderer::collectJS(WStringStream* js)
 {
-    //std::vector<DomElement> changes;
-    changes_.clear();
+    std::vector<DomElement> changes;
+    //changes_.clear();
 
-    collectChanges(changes_);
+    collectChanges(changes);
 
     WApplication *app = session_.app();
 
@@ -3713,18 +3754,18 @@ void WebRenderer::collectJS(WStringStream* js)
 
         EscapeOStream sout(*js);
 
-        for (unsigned i = 0; i < changes_.size(); ++i)
-            changes_[i].asJavaScript(sout, DomElement::Priority::Delete);
+        for (unsigned i = 0; i < changes.size(); ++i)
+            changes[i].asJavaScript(sout, DomElement::Priority::Delete);
 
-        for (unsigned i = 0; i < changes_.size(); ++i) {
-            changes_[i].asJavaScript(sout, DomElement::Priority::Update);
+        for (unsigned i = 0; i < changes.size(); ++i) {
+            changes[i].asJavaScript(sout, DomElement::Priority::Update);
             //delete changes[i];
         }
     } //else {
     //for (unsigned i = 0; i < changes.size(); ++i)
     //delete changes[i];
     //}
-    changes_.clear();
+    //changes_.clear();
 
     if (js) {
         if (app->titleChanged_) {
@@ -3773,10 +3814,10 @@ void WebRenderer::collectJS(WStringStream* js)
 
 void WebRenderer::collectJS(fmt::memory_buffer *js)
 {
-    //std::vector<DomElement> changes;
-    changes_.clear();
+    std::vector<DomElement> changes;
+    //changes_.clear();
 
-    collectChanges(changes_);
+    collectChanges(changes);
 
     WApplication *app = session_.app();
 
@@ -3788,18 +3829,18 @@ void WebRenderer::collectJS(fmt::memory_buffer *js)
         if (conf.inlineCss())
             app->styleSheet().javaScriptUpdate(app, *js, false);
 
-        for (unsigned i = 0; i < changes_.size(); ++i)
-            changes_[i].asJavaScript(*js, DomElement::Priority::Delete);
+        for (unsigned i = 0; i < changes.size(); ++i)
+            changes[i].asJavaScript(*js, DomElement::Priority::Delete);
 
-        for (unsigned i = 0; i < changes_.size(); ++i) {
-            changes_[i].asJavaScript(*js, DomElement::Priority::Update);
+        for (unsigned i = 0; i < changes.size(); ++i) {
+            changes[i].asJavaScript(*js, DomElement::Priority::Update);
             //delete changes[i];
         }
     } //else {
     //for (unsigned i = 0; i < changes.size(); ++i)
     //delete changes[i];
     //}
-    changes_.clear();
+    //changes_.clear();
 
     if (js) {
         if (app->titleChanged_) {
@@ -3971,7 +4012,7 @@ std::string WebRenderer::headDeclarations() const
     std::string baseUrl;
     WApplication::readConfigurationProperty("baseURL", baseUrl);
 
-    return fmt::format("{}{}{}{}",
+    return fmt::format(FMT_COMPILE("{}{}{}{}"),
                        fmt::join(metaHeaders, ""),
                        fmt::join(contents, ""),
                        fmt::Favicon(session_.favicon()),

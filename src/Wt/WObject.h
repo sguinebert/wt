@@ -315,10 +315,10 @@ protected:
   virtual void signalConnectionsChanged();
 
   struct FormData {
-    FormData(const Http::ParameterValues& aValues, const std::vector<Http::UploadedFile>& aFiles)
-      : values(aValues), files(aFiles) { }
+    FormData(const std::vector<std::string>&& aValues, const std::vector<Http::UploadedFile>& aFiles)
+          : values(std::move(aValues)), files(aFiles) { }
 
-    const Http::ParameterValues& values;
+    const std::vector<std::string> values;
     std::vector<Http::UploadedFile> files;
   };
 

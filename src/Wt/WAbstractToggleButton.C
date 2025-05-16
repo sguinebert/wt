@@ -321,12 +321,12 @@ void WAbstractToggleButton::updateDom(DomElement& element, bool all)
 
     if (&element != input) {
         if (label) {
-            label_.addChild(input_);
-            label_.addChild(span_);
-            element.addChild(label_);
+            label_.addChild(std::move(input_));
+            label_.addChild(std::move(span_));
+            element.addChild(std::move(label_));
         } else {
-            element.addChild(input_);
-            element.addChild(span_);
+            element.addChild(std::move(input_));
+            element.addChild(std::move(span_));
         }
     }
 }

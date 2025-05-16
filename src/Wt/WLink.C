@@ -172,7 +172,7 @@ JSlot *WLink::manageInternalPathChange(WApplication *app,
                 widget->clicked().preventDefaultAction();
             }
 
-            slot->setJavaScript(fmt::format("function(){{{}._p_.setHash('{:s}',true);}}", app->javaScriptClass(), internalPath().toUTF8()));
+            slot->setJavaScript(fmt::format("function(){{{}._p_.setHash(\\'{:s}\\',true);}}", app->javaScriptClass(), internalPath().toUTF8()));
 
             // slot->setJavaScript
             //     ("function(){" +

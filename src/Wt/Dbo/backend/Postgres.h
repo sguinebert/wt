@@ -63,22 +63,13 @@ public:
    */
   Postgres(const Postgres& other);
 
-    Postgres& operator=(const Postgres& other)
-    {
-        connection_ = std::move(other.connection_);
-        connInfo_ = other.connInfo_;
-        timeout_ = other.timeout_;
-        maximumLifetime_ = other.maximumLifetime_;
-        connectTime_ = other.connectTime_;
-        cancel_wait_ = other.cancel_wait_;
-        return *this;
-    }
+  Postgres& operator=(const Postgres& other);
 
   /*! \brief Destructor.
    *
    * Closes the connection.
    */
-  ~Postgres();
+  ~Postgres(){}
 
   std::unique_ptr<Postgres> clone() const;
 
@@ -109,7 +100,10 @@ public:
    * This will try to reconnect a previously disconnected connection. If the connection
    * is still open, it will first disconnect.
    */
-  bool reconnect();
+  bool reconnect()
+  {
+      return connection_->reconnect();
+  }
 
   /*! \brief Returns the underlying connection.
    */
@@ -322,7 +316,7 @@ public:
       if (result) {
           auto count = statementCache_.count(id);
           if (count >= WARN_NUM_STATEMENTS_THRESHOLD) {
-              LOG_WARN("Warning: number of instances ({}) of prepared statement '{}' for this connection exceeds threshold ({}). This could indicate a programming error.", (count + 1), id, WARN_NUM_STATEMENTS_THRESHOLD);
+              logw("Warning: number of instances ({}) of prepared statement '{}' for this connection exceeds threshold ({}). This could indicate a programming error.", (count + 1), id, WARN_NUM_STATEMENTS_THRESHOLD);
               fmtlog::poll();
           }
           auto stmt = prepareStatement(result->sql());

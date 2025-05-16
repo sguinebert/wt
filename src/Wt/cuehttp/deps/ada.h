@@ -4,6 +4,8 @@
  * @file ada.h
  * @brief Includes all definitions for Ada.
  */
+#pragma GCC visibility push(default)
+
 #ifndef ADA_H
 #define ADA_H
 
@@ -10387,3 +10389,6 @@ parse_url_pattern(std::variant<std::string_view, url_pattern_init> input,
 
 #endif  // ADA_H
 /* end file include/ada.h */
+#if defined(__GNUC__) && !defined(ADA_STATIC)
+#  pragma GCC visibility push(default)
+#endif

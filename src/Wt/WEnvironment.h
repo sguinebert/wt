@@ -183,8 +183,7 @@ public:
    *
    * \sa getParameterMap()
    */
-  const http::ParameterValues& getParameterValues(const std::string& name)
-    const;
+  const http::ParameterValues& getParameterValues(const std::string& name) const;
 
   /*! \brief Returns a single value for a query parameter.
    *

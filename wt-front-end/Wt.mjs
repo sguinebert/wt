@@ -578,8 +578,10 @@ export class Connection {
   close()               { this.#socket?.close(); this.#sse?.close(); this.#keepAlive && clearInterval(this.#keepAlive); }
 
   /* ---------- internals ------------ */
-  #openWebSocket(baseUrl) {
-    const url = new URL(baseUrl);
+  #openWebSocket(relativeUrl) {
+    const baseUrl = window.location.origin;
+    console.log('openWebSocket', baseUrl, relativeUrl);
+    const url = new URL(relativeUrl, baseUrl);
     url.protocol = url.protocol.replace('http', 'ws');
     url.searchParams.set('request', 'ws');
 
@@ -650,7 +652,10 @@ export class EventQueue {
     const payload = JSON.stringify(this.#buf);
     this.#buf.length = 0;
 
-    await this.#conn.ready;
+    console.log('sending', payload.length, 'bytes');
+    console.log('sending', payload);
+
+    //await this.#conn.ready;
     this.#conn.send(payload);
   }
   hasUnsent() { return this.#buf.length > 0; }
@@ -660,7 +665,7 @@ export default class WtApp {
   #cfg;
   #wevt = new GlobalEventManager();
   #conn;// = new Connection(this.#cfg.sessionUrl, this.#handleResponse);
-  #queue = new EventQueue(this.#conn);
+  #queue;// = new EventQueue(this.#conn);
   #libraryPromises = new Map(); // Tracks loading Promises by path
   #loadingLibraries = new Set(); // Tracks currently loading libraries
   #updatePending = false; // Debounces sendUpdate calls
@@ -672,7 +677,7 @@ export default class WtApp {
     this.id=config.appId||'Wt';
     this.#cfg = {
       deployPath: config.deployPath || '',
-      sessionUrl: config.sessionUrl || `${config.selfUrl}/${config.sessionId}`,
+      sessionUrl: config.sessionUrl || `/${config.selfUrl}`,
       keepAlive: config.keepAlive || 60,
       maxFormDataSize: config.maxFormDataSize || 1024 * 1024,
       idleTimeout: config.idleTimeout || null,
@@ -684,6 +689,7 @@ export default class WtApp {
       ...config,
     };
     this.#conn = new Connection(this.#cfg.sessionUrl, this.#handleResponse);
+    this.#queue = new EventQueue(this.#conn);
 
     this._p_ = this;
     this.WT = new WtCore(this.config);
@@ -722,7 +728,7 @@ export default class WtApp {
     document.cookie = `${testCookie}; SameSite=Lax`;
     this.#cfg.no_reload = this.#cfg.no_reload || document.cookie.includes(testCookie);
     document.cookie = `${testCookie}; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
-    return isEnabled;
+    //return isEnabled;
   }
 
 
@@ -967,7 +973,7 @@ export default class WtApp {
       evAckId: this.ackUpdateId || 0,
     };
     this.#queue.push(this.encodeEvent(eventData)); 
-    this.#queue.scheduleUpdate(); 
+    this.#queue.flush(); 
   }
 
   emit(obj, config, ...Args) {
@@ -1015,8 +1021,8 @@ encodeEvent(event) {
   }
   
   // Add internal path data
-  if (currentHash) {
-    payload.path = currentHash;
+  if (window.location.hash) {
+    payload.path = window.location.hash.substring(1);
   }
   
   // If no DOM event, return early

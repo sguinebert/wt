@@ -44,6 +44,8 @@ namespace Wt {
         WT_API EVP_PKEY* readPrivateKeyFromFile(const std::string& path);
 
         WT_API std::string rs256(EVP_PKEY* pkey, const std::string& message);
+
+        //WT_API std::string rs256(const std::string& privateKey, const std::string& message);
     }
 }
 #endif //WT_WITH_SSL

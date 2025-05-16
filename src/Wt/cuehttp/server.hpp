@@ -148,98 +148,98 @@ public:
 #ifdef WT_WITH_SSL
 
 // Function to generate a self-signed certificate and private key
-static inline std::pair<std::string, std::string> generate_self_signed_cert() {
-    std::string cert_str, key_str;
+// static inline std::pair<std::string, std::string> generate_self_signed_cert() {
+//     std::string cert_str, key_str;
 
-    // Create a new EVP_PKEY for the RSA key
-    std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)> pkey(EVP_PKEY_new(), EVP_PKEY_free);
-    if (!pkey) {
-        throw std::runtime_error("Failed to create EVP_PKEY");
-    }
+//     // Create a new EVP_PKEY for the RSA key
+//     std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)> pkey(EVP_PKEY_new(), EVP_PKEY_free);
+//     if (!pkey) {
+//         throw std::runtime_error("Failed to create EVP_PKEY");
+//     }
 
-    // Generate an RSA key using modern API
-    EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr);
-    if (!pctx) {
-        throw std::runtime_error("Failed to create EVP_PKEY_CTX");
-    }
-    if (EVP_PKEY_keygen_init(pctx) <= 0) {
-        EVP_PKEY_CTX_free(pctx);
-        throw std::runtime_error("Failed to initialize keygen");
-    }
-    if (EVP_PKEY_CTX_set_rsa_keygen_bits(pctx, 2048) <= 0) {
-        EVP_PKEY_CTX_free(pctx);
-        throw std::runtime_error("Failed to set RSA key bits");
-    }
-    EVP_PKEY* pkey_raw = pkey.get();
-    if (EVP_PKEY_keygen(pctx, &pkey_raw) <= 0) {
-        EVP_PKEY_CTX_free(pctx);
-        throw std::runtime_error("Failed to generate RSA key");
-    }
-    EVP_PKEY_CTX_free(pctx);
+//     // Generate an RSA key using modern API
+//     EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr);
+//     if (!pctx) {
+//         throw std::runtime_error("Failed to create EVP_PKEY_CTX");
+//     }
+//     if (EVP_PKEY_keygen_init(pctx) <= 0) {
+//         EVP_PKEY_CTX_free(pctx);
+//         throw std::runtime_error("Failed to initialize keygen");
+//     }
+//     if (EVP_PKEY_CTX_set_rsa_keygen_bits(pctx, 2048) <= 0) {
+//         EVP_PKEY_CTX_free(pctx);
+//         throw std::runtime_error("Failed to set RSA key bits");
+//     }
+//     EVP_PKEY* pkey_raw = pkey.get();
+//     if (EVP_PKEY_keygen(pctx, &pkey_raw) <= 0) {
+//         EVP_PKEY_CTX_free(pctx);
+//         throw std::runtime_error("Failed to generate RSA key");
+//     }
+//     EVP_PKEY_CTX_free(pctx);
 
-    // Create a new X.509 certificate
-    std::unique_ptr<X509, void(*)(X509*)> cert(X509_new(), X509_free);
-    if (!cert) {
-        throw std::runtime_error("Failed to create X509 certificate");
-    }
-    X509_set_version(cert.get(), 2); // Version 3 (index 2)
-    ASN1_INTEGER_set(X509_get_serialNumber(cert.get()), 1);
-    X509_gmtime_adj(X509_get_notBefore(cert.get()), 0); // Valid from now
-    X509_gmtime_adj(X509_get_notAfter(cert.get()), 60 * 60 * 24 * 365); // Valid for 1 year
+//     // Create a new X.509 certificate
+//     std::unique_ptr<X509, void(*)(X509*)> cert(X509_new(), X509_free);
+//     if (!cert) {
+//         throw std::runtime_error("Failed to create X509 certificate");
+//     }
+//     X509_set_version(cert.get(), 2); // Version 3 (index 2)
+//     ASN1_INTEGER_set(X509_get_serialNumber(cert.get()), 1);
+//     X509_gmtime_adj(X509_get_notBefore(cert.get()), 0); // Valid from now
+//     X509_gmtime_adj(X509_get_notAfter(cert.get()), 60 * 60 * 24 * 365); // Valid for 1 year
 
-    // Set the public key in the certificate
-    if (!X509_set_pubkey(cert.get(), pkey.get())) {
-        throw std::runtime_error("Failed to set public key");
-    }
+//     // Set the public key in the certificate
+//     if (!X509_set_pubkey(cert.get(), pkey.get())) {
+//         throw std::runtime_error("Failed to set public key");
+//     }
 
-    // Set subject name (and issuer, since it's self-signed)
-    X509_NAME* name = X509_get_subject_name(cert.get());
-    if (!name) {
-        throw std::runtime_error("Failed to get subject name");
-    }
-    X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, (unsigned char*)"WT", -1, -1, 0);
-    X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, (unsigned char*)"Wt", -1, -1, 0);
-    X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char*)"localhost", -1, -1, 0);
-    X509_set_issuer_name(cert.get(), name);
+//     // Set subject name (and issuer, since it's self-signed)
+//     X509_NAME* name = X509_get_subject_name(cert.get());
+//     if (!name) {
+//         throw std::runtime_error("Failed to get subject name");
+//     }
+//     X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, (unsigned char*)"WT", -1, -1, 0);
+//     X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, (unsigned char*)"Wt", -1, -1, 0);
+//     X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char*)"localhost", -1, -1, 0);
+//     X509_set_issuer_name(cert.get(), name);
 
-    // Sign the certificate with the private key
-    if (!X509_sign(cert.get(), pkey.get(), EVP_sha256())) {
-        throw std::runtime_error("Failed to sign certificate");
-    }
+//     // Sign the certificate with the private key
+//     if (!X509_sign(cert.get(), pkey.get(), EVP_sha256())) {
+//         throw std::runtime_error("Failed to sign certificate");
+//     }
 
-    // Convert certificate to PEM format
-    BIO* bio = BIO_new(BIO_s_mem());
-    if (!bio) {
-        throw std::runtime_error("Failed to create BIO");
-    }
-    std::unique_ptr<BIO, void (*)(BIO *)> cert_bio(bio, [](BIO* b) { BIO_free(b); });
-    if (!cert_bio) {
-        throw std::runtime_error("Failed to create BIO for certificate");
-    }
-    if (!PEM_write_bio_X509(cert_bio.get(), cert.get())) {
-        throw std::runtime_error("Failed to write certificate to BIO");
-    }
-    char* cert_data;
-    long cert_len = BIO_get_mem_data(cert_bio.get(), &cert_data);
-    cert_str.assign(cert_data, cert_len);
+//     // Convert certificate to PEM format
+//     BIO* bio = BIO_new(BIO_s_mem());
+//     if (!bio) {
+//         throw std::runtime_error("Failed to create BIO");
+//     }
+//     std::unique_ptr<BIO, void (*)(BIO *)> cert_bio(bio, [](BIO* b) { BIO_free(b); });
+//     if (!cert_bio) {
+//         throw std::runtime_error("Failed to create BIO for certificate");
+//     }
+//     if (!PEM_write_bio_X509(cert_bio.get(), cert.get())) {
+//         throw std::runtime_error("Failed to write certificate to BIO");
+//     }
+//     char* cert_data;
+//     long cert_len = BIO_get_mem_data(cert_bio.get(), &cert_data);
+//     cert_str.assign(cert_data, cert_len);
 
-    // Convert private key to PEM format
-    std::unique_ptr<BIO, void(*)(BIO*)> key_bio(
-        BIO_new(BIO_s_mem()),
-        [](BIO* bio) { BIO_free(bio); }
-        );
-    if (!key_bio) {
-        throw std::runtime_error("Failed to create BIO for private key");
-    }
-    if (!PEM_write_bio_PrivateKey(key_bio.get(), pkey.get(), nullptr, nullptr, 0, nullptr, nullptr)) {
-        throw std::runtime_error("Failed to write private key to BIO");
-    }
-    char* key_data;
-    long key_len = BIO_get_mem_data(key_bio.get(), &key_data);
-    key_str.assign(key_data, key_len);
+//     // Convert private key to PEM format
+//     std::unique_ptr<BIO, void(*)(BIO*)> key_bio(
+//         BIO_new(BIO_s_mem()),
+//         [](BIO* bio) { BIO_free(bio); }
+//         );
+//     if (!key_bio) {
+//         throw std::runtime_error("Failed to create BIO for private key");
+//     }
+//     if (!PEM_write_bio_PrivateKey(key_bio.get(), pkey.get(), nullptr, nullptr, 0, nullptr, nullptr)) {
+//         throw std::runtime_error("Failed to write private key to BIO");
+//     }
+//     char* key_data;
+//     long key_len = BIO_get_mem_data(key_bio.get(), &key_data);
+//     key_str.assign(key_data, key_len);
 
-    return {cert_str, key_str};
-}
+//     return {cert_str, key_str};
+// }
 
 template <>
 class server<detail::https_socket> final : public base_server<detail::https_socket, server<detail::https_socket>>,
@@ -258,13 +258,13 @@ public:
         }
 
         // If no files provided or loading failed, generate self-signed certificate
-        try {
-            auto [cert_str, key_str] = generate_self_signed_cert();
-            ssl_context_.use_certificate_chain(asio::const_buffer(cert_str.data(), cert_str.size()));
-            ssl_context_.use_private_key(asio::const_buffer(key_str.data(), key_str.size()), asio::ssl::context::pem);
-        } catch (const std::exception& e) {
-            throw std::runtime_error("Failed to generate self-signed certificate: " + std::string(e.what()));
-        }
+        // try {
+        //     auto [cert_str, key_str] = generate_self_signed_cert();
+        //     ssl_context_.use_certificate_chain(asio::const_buffer(cert_str.data(), cert_str.size()));
+        //     ssl_context_.use_private_key(asio::const_buffer(key_str.data(), key_str.size()), asio::ssl::context::pem);
+        // } catch (const std::exception& e) {
+        //     throw std::runtime_error("Failed to generate self-signed certificate: " + std::string(e.what()));
+        // }
     }
 
     server(server&& rhs) noexcept : ssl_context_{asio::ssl::context::sslv23} {

@@ -10,6 +10,11 @@
 
 #ifdef WT_ASIO_IS_BOOST_ASIO
 
+#include <boost/version.hpp>
+#if BOOST_VERSION < 108600 // Boost 1.86.0
+#error "Boost version 1.86.0 or higher is required"
+#endif
+
 #define ASIO_HAS_IO_URING 1
 #define BOOST_ASIO_HAS_IO_URING 1
 #define ASIO_DISABLE_EPOLL 1
@@ -42,7 +47,7 @@ using namespace std::literals::chrono_literals;
 using std::chrono::steady_clock;
 using executor_t = boost::asio::io_context::executor_type;
 //FIXME: this is not thread local in boost asio
-extern thread_local boost::asio::io_context* thread_context;
+//extern thread_local boost::asio::io_context* thread_context;
 using boost::asio::io_context;
 using namespace boost;
 #else
@@ -50,6 +55,11 @@ using namespace boost;
 #endif
 
 #else // WT_ASIO_IS_STANDALONE_ASIO
+
+#include <asio/version.hpp>
+#if ASIO_VERSION < 121000 // Asio 1.21.0
+#error "Asio version 1.21.0 or higher is required"
+#endif
 
 #define ASIO_HAS_IO_URING 1
 #define BOOST_ASIO_HAS_IO_URING 1

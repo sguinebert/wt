@@ -258,21 +258,23 @@ DomElement WAbstractMedia::createDomElement(WApplication *app)
         media.setId(mediaId_);
         updateMediaDom(media, true);
         for (std::size_t i = 0; i < sources_.size(); ++i) {
-            DomElement src = DomElement::createNew(DomElementType::SOURCE);
+            auto& src = media.addChild(DomElementType::SOURCE);
+            //DomElement src = DomElement::createNew(DomElementType::SOURCE);
             src.setId(fmt::format("{}s{}", mediaId_, i));
             renderSource(&src, *sources_[i], i + 1 >= sources_.size());
-            media.addChild(std::move(src));
+            //media.addChild(std::move(src));
         }
-        result.addChild(media);
+        result.addChild(std::move(media));
     }
     else {
         mediaId_ = id();
         updateMediaDom(result, true);
         for (std::size_t i = 0; i < sources_.size(); ++i) {
-            DomElement src = DomElement::createNew(DomElementType::SOURCE);
+            auto& src = result.addChild(DomElementType::SOURCE);
+            //DomElement src = DomElement::createNew(DomElementType::SOURCE);
             src.setId(fmt::format("{}s{}", mediaId_, i));
             renderSource(&src, *sources_[i], i + 1 >= sources_.size());
-            result.addChild(std::move(src));
+            //result.addChild(std::move(src));
         }
     }
 
@@ -384,13 +386,14 @@ void WAbstractMedia::getDomChanges(std::vector<DomElement>& result, WApplication
             sourcesRendered_ = 0;
             for (std::size_t i = 0; i < sources_.size(); ++i) {
                 auto id = fmt::format(FMT_COMPILE("{}s{}"), mediaId_, i);
-                DomElement src(DomElement::Mode::Create, DomElementType::SOURCE, id); // ++numManipulations_;
+                auto& src = media.addChild(DomElementType::SOURCE);
+                src.setId(id);
                 renderSource(&src, *sources_[i], i + 1 >= sources_.size());
 
                 //DomElement *src = DomElement::createNew(DomElementType::SOURCE);
                 //src->setId(mediaId_ + "s" + std::to_string(i));
-                renderSource(&src, *sources_[i], i + 1 >= sources_.size());
-                media.addChild(src);
+                //renderSource(&src, *sources_[i], i + 1 >= sources_.size());
+                //media.addChild(std::move(src));
             }
             sourcesRendered_ = sources_.size();
             sourcesChanged_ = false;

@@ -54,15 +54,7 @@ namespace Wt {
    */
         MSSQLServer(const MSSQLServer& other);
 
-        MSSQLServer& operator=(const MSSQLServer& other)
-        {
-            //connection_ = other.connection_;
-            impl_ = other.impl_;
-            properties_ = std::move(other.properties_);
-            //statementCache_ = std::move(other.statementCache_);
-            statefulSql_ = std::move(other.statefulSql_);
-            return *this;
-        }
+        MSSQLServer& operator=(const MSSQLServer& other);
 
 
         /*! \brief Destructor.

@@ -41,8 +41,14 @@
 #include "js/BootstrapValidate.min.js"
 #endif
 
+// namespace skeletons {
+//   extern const char * BootstrapTheme_xml;
+// }
 namespace skeletons {
-  extern const char * BootstrapTheme_xml;
+  static constexpr char BootstrapTheme_xml[] = {
+#embed "../xml/bootstrap_theme.xml"
+      , '\0'
+  };
 }
 
 namespace Wt {
@@ -227,7 +233,7 @@ void WBootstrap2Theme::apply(WWidget *widget,
         if (!dynamic_cast<WPopupMenu *>(item->parentMenu())) {
           DomElement b = DomElement::createNew(DomElementType::B);
           b.setProperty(Property::Class, "caret");
-          element.addChild(b);
+          element.addChild(std::move(b));
         }
       }
       break;

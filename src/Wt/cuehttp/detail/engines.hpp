@@ -38,8 +38,6 @@ asio::io_context ctx{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE};
 
 using namespace boost;
 
-//inline thread_local boost::asio::io_context* thread_context;
-
 namespace Wt {
 namespace http {
 namespace detail {
@@ -61,7 +59,7 @@ class engines final : safe_noncopyable {
         }
     }
 
-    static thread_local asio::io_context* thread_context;
+    static inline thread_local asio::io_context* thread_context;
     static engines& engine(unsigned th = std::thread::hardware_concurrency()) noexcept {
         static engines engines{th, thread_context};
         return engines;

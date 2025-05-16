@@ -141,24 +141,24 @@ constexpr auto getBitset() {
 }
 
 // Escape function for a single rule set
-template <RuleSet RS, typename Out>
-void escapeString(const std::string& input, Out&& output) {
-    constexpr auto entries = getEntries<RS>();
-    constexpr auto special = getBitset<RS>();
+// template <RuleSet RS, typename Out>
+// void escapeString(const std::string& input, Out&& output) {
+//     constexpr auto entries = getEntries<RS>();
+//     constexpr auto special = getBitset<RS>();
 
-    for (char c : input) {
-        if (special[static_cast<unsigned char>(c)]) {
-            for (const auto& e : entries) {
-                if (c == e.c) {
-                    output.append(e.s);
-                    break;
-                }
-            }
-        } else {
-            output += c;
-        }
-    }
-}
+//     for (char c : input) {
+//         if (special[static_cast<unsigned char>(c)]) {
+//             for (const auto& e : entries) {
+//                 if (c == e.c) {
+//                     output.append(e.s);
+//                     break;
+//                 }
+//             }
+//         } else {
+//             output += c;
+//         }
+//     }
+// }
 template<RuleSet RS>
 struct AVX512Optimized {
     static size_t escape(const char *in, size_t len, char *out) {
@@ -326,20 +326,20 @@ struct MixedRules {
     }
 
     // Escape function using mixed rules
-    static void scalar_escape(const std::string& input, std::string& output) {
-        for (char c : input) {
-            if (special[static_cast<unsigned char>(c)]) {
-                const auto& esc = entries[static_cast<unsigned char>(c)];
-                if (esc.first != 0) { // Check if character is mapped
-                    output.append(esc.second);
-                } else {
-                    output += c; // Fallback (shouldn’t happen with proper rules)
-                }
-            } else {
-                output += c;
-            }
-        }
-    }
+    // static void scalar_escape(const std::string& input, std::string& output) {
+    //     for (char c : input) {
+    //         if (special[static_cast<unsigned char>(c)]) {
+    //             const auto& esc = entries[static_cast<unsigned char>(c)];
+    //             if (esc.first != 0) { // Check if character is mapped
+    //                 output.append(esc.second);
+    //             } else {
+    //                 output += c; // Fallback (shouldn’t happen with proper rules)
+    //             }
+    //         } else {
+    //             output += c;
+    //         }
+    //     }
+    // }
 
     // AVX2-accelerated escaping (max 32 bytes per iteration)
     template<typename OUT>
@@ -378,7 +378,7 @@ struct MixedRules {
 //     }
 // #endif
 #if defined(__AVX2__)
-        if(hasAVX2()) {
+        if(!hasAVX2()) {
             // AVX2 loop: 32 bytes at a time
             for (; i + 31 < len; i += 32) {
                 __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(s + i));
@@ -439,6 +439,10 @@ struct MixedRules {
                 output += c;
             }
         }
+        output.push_back('\0'); // Null-terminate the output string
+        output.resize(output.size() + 1); // Resize to fit the null terminator
+
+        //std::cerr << "escape character: " << output << std::endl;
     }
 };
 

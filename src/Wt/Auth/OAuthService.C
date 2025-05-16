@@ -212,7 +212,7 @@ public:
         }
     }
 
-  void sendResponse(Http::Response& response)
+  void sendResponse(Http::Response& response) //deprecated
   {
 #ifndef WT_TARGET_JAVA
     std::ostream& o = response.out();
@@ -225,7 +225,7 @@ public:
 
     if (!usePopup) {
 #ifndef WT_TARGET_JAVA
-      WApplication::UpdateLock lock(app);
+      //WApplication::UpdateLock lock(app);
 #endif
       //process_->doneCallbackConnection_ =
       app->unsuspended().connect<&OAuthProcess::onOAuthDone>(process_);

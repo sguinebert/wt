@@ -1,0 +1,83 @@
+/* Universal, prefix‑free transition helpers – modern browsers */
+:root{
+  --t-slide:.35s; /* default slide duration */
+  --t-fade:.3s;   /* default fade duration  */
+  --t-flip:.65s;  /* default flip duration  */
+  --t-pop:.35s;   /* default pop duration   */
+}
+
+/* -------- Generic -------- */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite}
+
+@keyframes fade-in{from{opacity:0}}
+@keyframes fade-out{to{opacity:0}}
+@keyframes half-fade-in{from{opacity:0}to{opacity:.5}}
+@keyframes half-fade-out{from{opacity:.5}to{opacity:0}}
+@keyframes boot2-fade-in{from{opacity:0}to{opacity:.8}}
+@keyframes boot2-fade-out{from{opacity:.8}to{opacity:0}}
+
+.fade.in{animation:fade-in var(--t-fade) both}
+.fade.out{animation:fade-out var(--t-fade) both}
+
+.modal-backdrop.fade.in,.Wt-dialogcover.fade.in{opacity:.5;animation:half-fade-in var(--t-fade) both}
+.modal-backdrop.fade.out,.Wt-dialogcover.fade.out{animation:half-fade-out var(--t-fade) both}
+
+.modal-backdrop.Wt-bootstrap2.fade.in{opacity:.8;animation:boot2-fade-in var(--t-fade) both}
+.modal-backdrop.Wt-bootstrap2.fade.out{animation:boot2-fade-out var(--t-fade) both}
+
+/* -------- Slide (X) -------- */
+@keyframes slide-in-right{from{transform:translateX(100%)}}
+@keyframes slide-out-left{to{transform:translateX(-100%)}}
+@keyframes slide-in-left{from{transform:translateX(-100%)}}
+@keyframes slide-out-right{to{transform:translateX(100%)}}
+
+.slide.in{z-index:10;animation:slide-in-right var(--t-slide) both}
+.slide.out{z-index:0;animation:slide-out-left var(--t-slide) both}
+.slide.in.reverse{z-index:0;animation:slide-in-left var(--t-slide) both}
+.slide.out.reverse{z-index:10;animation:slide-out-right var(--t-slide) both}
+
+/* -------- Slide (Y) -------- */
+@keyframes slide-in-bottom{from{transform:translateY(100%)}}
+@keyframes slide-out-bottom{to{transform:translateY(100%)}}
+@keyframes slide-in-top{from{transform:translateY(-100%)}}
+@keyframes slide-out-top{to{transform:translateY(-100%)}}
+
+.slideup.in{z-index:10;animation:slide-in-bottom var(--t-slide) both}
+.slideup.out{z-index:0}
+.slideup.out.reverse{z-index:10;animation:slide-out-bottom var(--t-slide) both}
+.slideup.in.reverse{z-index:0}
+
+.slidedown.in{z-index:10;animation:slide-in-top var(--t-slide) both}
+.slidedown.out{z-index:0}
+.slidedown.out.reverse{z-index:10;animation:slide-out-top var(--t-slide) both}
+.slidedown.in.reverse{z-index:0}
+
+/* -------- Flip -------- */
+.ui-mobile-viewport-perspective{perspective:1000}
+@keyframes flip-in-left{from{transform:rotateY(180deg) scale(.8)}}
+@keyframes flip-in-right{from{transform:rotateY(-180deg) scale(.8)}}
+@keyframes flip-out-left{to{transform:rotateY(-180deg) scale(.8)}}
+@keyframes flip-out-right{to{transform:rotateY(180deg) scale(.8)}}
+
+.flip{animation-duration:var(--t-flip);backface-visibility:hidden;transform:translateZ(0)}
+.flip.in{z-index:10;animation:flip-in-left var(--t-flip) both}
+.flip.out{z-index:0;animation:flip-out-left var(--t-flip) both}
+.flip.in.reverse{z-index:0;animation:flip-in-right var(--t-flip) both}
+.flip.out.reverse{z-index:10;animation:flip-out-right var(--t-flip) both}
+
+/* -------- Pop -------- */
+@keyframes pop-in{from{transform:scale(.2)}}
+@keyframes pop-out{to{transform:scale(.2)}}
+
+.pop{transform-origin:50% 50%}
+.pop.in{z-index:10;animation:pop-in var(--t-pop) both}
+.pop.out.reverse{z-index:10;animation:pop-out var(--t-pop) both}
+.pop.in.reverse{z-index:0}
+
+/* -------- Composition helpers -------- */
+.slide.in.fade{animation:slide-in-right var(--t-slide) both,fade-in var(--t-fade) both}
+.slide.out.fade{animation:slide-out-left var(--t-slide) both,fade-out var(--t-fade) both}
+.pop.fade.in{animation:pop-in var(--t-pop) both,fade-in var(--t-fade) both}
+.pop.fade.out{animation:pop-out var(--t-pop) both,fade-out var(--t-fade) both}
+

@@ -1326,76 +1326,76 @@ public:
    * \sa getUpdateLock()
    */
 #endif // WT_TARGET_JAVA
-  class WT_API UpdateLock
-#ifdef WT_TARGET_JAVA
-    : public AutoCloseable
-#endif // WT_TARGET_JAVA
-  {
-  public:
-#ifndef WT_TARGET_JAVA
-    /*! \brief Creates and locks the given application.
-     *
-     * The lock guarantees exclusive access to modify the
-     * application's state.
-     *
-     * You should also consider WServer::post() for lock-free
-     * communication between different application sessions.
-     *
-     * As soon as the library decides to destroy the application, the
-     * lock will no longer succeed in taking the application lock. You
-     * can need to detect this by checking that after the lock is taken,
-     * the lock is taken:
-     * \code
-     * WApplication::UpdateLock lock(app);
-     * if (lock) {
-     *   // exclusive access to app state
-     * }
-     * \endcode
-     */
-    UpdateLock(WApplication *app);
+//   class WT_API UpdateLock
+// #ifdef WT_TARGET_JAVA
+//     : public AutoCloseable
+// #endif // WT_TARGET_JAVA
+//   {
+//   public:
+// #ifndef WT_TARGET_JAVA
+//     /*! \brief Creates and locks the given application.
+//      *
+//      * The lock guarantees exclusive access to modify the
+//      * application's state.
+//      *
+//      * You should also consider WServer::post() for lock-free
+//      * communication between different application sessions.
+//      *
+//      * As soon as the library decides to destroy the application, the
+//      * lock will no longer succeed in taking the application lock. You
+//      * can need to detect this by checking that after the lock is taken,
+//      * the lock is taken:
+//      * \code
+//      * WApplication::UpdateLock lock(app);
+//      * if (lock) {
+//      *   // exclusive access to app state
+//      * }
+//      * \endcode
+//      */
+//     UpdateLock(WApplication *app);
 
-    /*! \brief Tests whether the update lock was succesfully taken.
-     *
-     * This may return \c false when the library has already decided
-     * to destroy the session (but before your application
-     * finalizer/destructor has run to notify helper threads that the
-     * application is destroyed).
-     */
-    explicit operator bool() const { return ok_; }
+//     /*! \brief Tests whether the update lock was succesfully taken.
+//      *
+//      * This may return \c false when the library has already decided
+//      * to destroy the session (but before your application
+//      * finalizer/destructor has run to notify helper threads that the
+//      * application is destroyed).
+//      */
+//     explicit operator bool() const { return ok_; }
 
-    /*! \brief Releases the lock.
-     */
-    ~UpdateLock();
+//     /*! \brief Releases the lock.
+//      */
+//     ~UpdateLock();
 
-#else
-    /*! \brief Releases the lock.
-     */
-    void release();
-#endif
+// #else
+//     /*! \brief Releases the lock.
+//      */
+//     void release();
+// #endif
 
-#ifdef WT_TARGET_JAVA
-    /*! \brief Releases the lock.
-     *
-     * Calls release()
-     *
-     * Implemented in order to support the AutoCloseable interface.
-     */
-    virtual void close();
-#endif // WT_TARGET_JAVA
+// #ifdef WT_TARGET_JAVA
+//     /*! \brief Releases the lock.
+//      *
+//      * Calls release()
+//      *
+//      * Implemented in order to support the AutoCloseable interface.
+//      */
+//     virtual void close();
+// #endif // WT_TARGET_JAVA
 
-  private:
-#ifdef WT_TARGET_JAVA
-    UpdateLock(WApplication *app);
-    bool createdHandler_;
-#endif // WT_TARGET_JAVA
+//   private:
+// #ifdef WT_TARGET_JAVA
+//     UpdateLock(WApplication *app);
+//     bool createdHandler_;
+// #endif // WT_TARGET_JAVA
 
-#ifndef WT_TARGET_JAVA
-    //mutable std::unique_ptr<UpdateLockImpl> impl_;
-    bool ok_;
-#endif // !WT_TARGET_JAVA
+// #ifndef WT_TARGET_JAVA
+//     //mutable std::unique_ptr<UpdateLockImpl> impl_;
+//     bool ok_;
+// #endif // !WT_TARGET_JAVA
 
-    friend class WApplication;
-  };
+//     friend class WApplication;
+//   };
 
 #ifdef WT_TARGET_JAVA
   /*! \brief Grabs and returns the lock for manipulating widgets outside

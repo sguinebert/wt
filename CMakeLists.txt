@@ -267,7 +267,7 @@ find_package(OpenGL)
 find_package(GLEW)
 
 set(OPENSSL_ROOT_DIR ${SSL_PREFIX})
-find_package(OpenSSL)
+find_package(OpenSSL 3 REQUIRED)
 
 IF (ENABLE_SAML)
   find_package(OpenSAML)

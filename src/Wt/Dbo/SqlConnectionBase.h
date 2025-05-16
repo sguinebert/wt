@@ -131,7 +131,7 @@ class SqlStatement;
       }
 
   protected:
-      SqlConnectionBase();
+      SqlConnectionBase(){}
       SqlConnectionBase(const SqlConnectionBase& other)  : properties_(other.properties_)
       { }
       //SqlConnectionBase& operator=(const SqlConnectionBase&) = delete;
@@ -163,7 +163,7 @@ class SqlStatement;
       typedef std::multimap<std::string, std::unique_ptr<SqlStatement>> StatementMap;
 
       StatementMap statementCache_;
-      std::map<std::string, std::string> properties_;
+      std::unordered_map<std::string, std::string> properties_;
       std::vector<std::string> statefulSql_;
   };
   }

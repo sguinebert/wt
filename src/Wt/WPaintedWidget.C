@@ -384,19 +384,21 @@ DomElement WPaintedWidget::createDomElement(WApplication *app)
     DomElement result = DomElement::createNew(domElementType());
     setId(&result, app);
 
-    auto wrap_ = DomElement::createNew(DomElementType::DIV);
-    DomElement *wrap = &result;
+    //auto wrap_ = DomElement::createNew(DomElementType::DIV);
+    DomElement *wrap_ptr = &result;
 
     if (width().isAuto() && height().isAuto()) {
         result.setProperty(Property::StylePosition, "relative");
+        auto& wrap = result.addChild(DomElementType::DIV);
 
-        wrap = &wrap_; //DomElement::createNew(DomElementType::DIV);
-        wrap->setProperty(Property::StylePosition, "absolute");
-        wrap->setProperty(Property::StyleLeft, "0");
-        wrap->setProperty(Property::StyleRight, "0");
+        wrap_ptr = &wrap; //DomElement::createNew(DomElementType::DIV);
+        wrap.setProperty(Property::StylePosition, "absolute");
+        wrap.setProperty(Property::StyleLeft, "0");
+        wrap.setProperty(Property::StyleRight, "0");
     }
 
-    DomElement canvas = DomElement::createNew(DomElementType::DIV);
+    //DomElement canvas = DomElement::createNew(DomElementType::DIV);
+    auto& canvas = wrap_ptr->addChild(DomElementType::DIV);
 
     if (!app->environment().agentIsSpiderBot())
         canvas.setId('p' + id());
@@ -423,9 +425,9 @@ DomElement WPaintedWidget::createDomElement(WApplication *app)
 
     needRepaint_ = false;
 
-    wrap->addChild(canvas);
-    if (wrap != &result)
-        result.addChild(wrap_);
+    // wrap->addChild(canvas);
+    // if (wrap != &result)
+    //     result.addChild(wrap_);
 
     updateDom(result, true);
 
@@ -646,20 +648,22 @@ void WWidgetCanvasPainter
     result->setProperty(Property::StyleOverflowX, "hidden");
     result->setProperty(Property::StyleOverflowY, "hidden");
 
-    DomElement canvas = DomElement::createNew(DomElementType::CANVAS);
+    auto& canvas = result->addChild(DomElementType::CANVAS);
+    //DomElement canvas = DomElement::createNew(DomElementType::CANVAS);
     canvas.setId('c' + widget_->id());
     canvas.setProperty(Property::StyleDisplay, "block");
     canvas.setAttribute("width", wstr);
     canvas.setAttribute("height", hstr);
-    result->addChild(canvas);
+    //result->addChild(canvas);
     widget_->sizeChanged_ = false;
 
     WCanvasPaintDevice *canvasDevice
         = dynamic_cast<WCanvasPaintDevice *>(device.get());
 
-    DomElement text_ = DomElement::createNew(DomElementType::DIV);
+    //DomElement text_ = DomElement::createNew(DomElementType::DIV);
     DomElement *text = nullptr;
     if (canvasDevice->textMethod() == WCanvasPaintDevice::TextMethod::DomText) {
+        auto& text_ = result->addChild(DomElementType::DIV);
         text = &text_; //DomElement::createNew(DomElementType::DIV);
         text->setId('t' + widget_->id());
         text->setProperty(Property::StylePosition, "absolute");
@@ -695,8 +699,8 @@ void WWidgetCanvasPainter
 
     canvasDevice->render(widget_->jsRef(), 'c' + widget_->id(), el, updateAreasJs);
 
-    if (text)
-        result->addChild(text_);
+    // if (text)
+    //     result->addChild(text_);
 }
 
 void WWidgetCanvasPainter
@@ -789,7 +793,8 @@ void WWidgetRasterPainter::createContents
     // std::string wstr = std::to_string(widget_->renderWidth_);
     // std::string hstr = std::to_string(widget_->renderHeight_);
 
-    DomElement img = DomElement::createNew(DomElementType::IMG);
+    auto& img = result->addChild(DomElementType::IMG);
+    //DomElement img = DomElement::createNew(DomElementType::IMG);
     img.setId('i' + widget_->id());
     img.setAttribute("width", widget_->renderWidth_);
     img.setAttribute("height", widget_->renderHeight_);
@@ -801,7 +806,7 @@ void WWidgetRasterPainter::createContents
     WResource *resource = dynamic_cast<WResource *>(device.get());
     img.setAttribute("src", resource->generateUrl());
 
-    result->addChild(img);
+    //result->addChild(img);
 
     device_ = std::move(device);
 }

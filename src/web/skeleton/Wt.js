@@ -3128,7 +3128,7 @@ window._$_APP_CLASS_$_ = new (function() {
     }
   }
 
-  setSessionUrl(_$_SESSION_URL_$_);
+  setSessionUrl('_$_SESSION_URL_$_');
 
   comm = WT.initAjaxComm(sessionUrl, handleResponse);
 

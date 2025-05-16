@@ -118,7 +118,7 @@ public:
   bool setsValue() const;
   bool isSchema() const;
   virtual bool updateids() const { return false; }
-  virtual std::vector<cpp17::any> insertedNaturalids() const { return std::vector<cpp17::any>(); }
+  virtual std::vector<cpp17::any> insertedNaturalids() const  { return std::vector<cpp17::any>(); }
 
   Session *session() { return dbo_ ? dbo_->session() : session_; }
 
@@ -224,7 +224,7 @@ public:
   void setNomutation(bool nomutation) { nomutation_ = nomutation;}
   void setIdOnly(bool idonly = true) { IdOnly_ = idonly;}
   virtual bool updateids() const override { return updateIds_; }
-  virtual std::vector<cpp17::any> insertedNaturalids() const { return listids_; }
+  virtual std::vector<cpp17::any> insertedNaturalids() const override final { return listids_; }
 
 protected:
   SqlStatement *statement_;

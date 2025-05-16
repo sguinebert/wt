@@ -91,11 +91,12 @@ public:
   WStringStream& operator=(const WStringStream& other);
 
   WStringStream(WStringStream&& other) noexcept : sink_(other.sink_), buf_i_(other.buf_i_) { //will suppress the final version
-    if (buf_ == static_buf_) {
+    if (other.buf_ == other.static_buf_) {
       std::memcpy(static_buf_, other.static_buf_, S_LEN + 1);
+      buf_ = static_buf_;
     } else {
-      buf_ = other.buf_;
-      other.buf_ = nullptr;
+      buf_ = static_buf_;
+      //other.buf_ = nullptr;
     }
     bufs_ = std::move(other.bufs_);
     other.bufs_.clear();
@@ -104,11 +105,12 @@ public:
   { //will suppress the final version
       sink_ = other.sink_;
       buf_i_ = other.buf_i_;
-      if (buf_ == static_buf_) {
+      if (other.buf_ == other.static_buf_) {
           std::memcpy(static_buf_, other.static_buf_, S_LEN + 1);
+          buf_ = static_buf_;
       } else {
-          buf_ = other.buf_;
-          other.buf_ = nullptr;
+          buf_ = static_buf_;
+          //other.buf_ = nullptr;
       }
       bufs_ = std::move(other.bufs_);
       other.bufs_.clear();

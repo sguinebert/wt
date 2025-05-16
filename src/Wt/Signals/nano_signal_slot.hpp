@@ -16,11 +16,10 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     using function = Function<RT(Args...)>;
 
     template <typename T>
-    void insert_sfinae(Delegate_Key const& key, typename T::Observer* instance)
+    auto insert_sfinae(Delegate_Key const& key, typename T::Observer* instance) -> observer::Connection&
     {
-        auto conn = observer::insert(key, instance);
-        instance->insert(key, this);
-        //return conn;
+        observer::insert(key, instance);
+        return instance->insert(key, this);
     }
     template <typename T>
     void remove_sfinae(Delegate_Key const& key, typename T::Observer* instance)
@@ -29,9 +28,9 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
         instance->remove(key);
     }
     template <typename T>
-    void insert_sfinae(Delegate_Key const& key, ...)
+    auto insert_sfinae(Delegate_Key const& key, ...) -> observer::Connection&
     {
-        observer::insert(key, this);
+        return observer::insert(key, this);
     }
     template <typename T>
     void remove_sfinae(Delegate_Key const& key, ...)
@@ -54,124 +53,131 @@ class Signal<RT(Args...), MT_Policy> final : public Observer<MT_Policy>
     Observer<MT_Policy>::Connection make_Connection(T* instance)
     {
         Delegate_Key key = function::template bind<mem_ptr>(instance);
-        return Observer<MT_Policy>::Connection(key, this);
+        return typename Observer<MT_Policy>::Connection(key, this);
     }
     template <typename L>
     Observer<MT_Policy>::Connection make_Connection(L* function)
     {
         Delegate_Key key = function::template bind<L>(function);
-        return Observer<MT_Policy>::Connection(key, this);
+        return typename Observer<MT_Policy>::Connection(key, this);
     }
 
     //-------------------------------------------------------------------CONNECT
 
     template <typename L>
-    void connect(L* instance)
+    auto connect(L* instance) -> observer::Connection&
     {
-        observer::insert(function::template bind<L>(instance), this);
+        return observer::insert(function::template bind<L>(instance), this);
     }
     /* connect to a lambda or std::bind callable object passed by r or l-value */
     template <typename L>
-    observer::Connection connect(L&& instance)
+    auto connect(L&& callable) -> observer::Connection&
     {
+        using f_type = std::decay_t<L>;
+        using function_pointer_type = RT(*)(Args...);
 
-        /* it is a reference to a functor (example a lambda passed by ref) - you need to watch the lifetime of the lambda */
+        /* Case 1: L is an lvalue reference (e.g., an existing lambda variable) */
         if constexpr(std::is_lvalue_reference_v<L>) {
-            connect(std::addressof(instance));
-            return typename observer::Connection(function::template bind<std::remove_reference_t<L>>(std::addressof(instance)), this);
+            // Store a raw pointer to the existing lvalue functor.
+            // User is responsible for the lifetime of 'instance'.
+            return connect(std::addressof(callable)); // Calls connect(L* instance)
         }
-        /* the size of the object L is less or equal than the size of a pointer : rational -> if the size is a pointer then no internal state present in the lambda so no save needed on the heap */
-//        else if constexpr (sizeof(std::remove_pointer_t<L>) <= sizeof(void*))
-//        {
-//            return connect(std::addressof(instance));
-//        }
-        /* allocate & copy the lambda on the heap and keep shared_ptr alive in a std::any object inside a Connection object*/
+        /* Case 2: L is an rvalue, and it's a stateless lambda (convertible to function pointer) */
+        else if constexpr (std::is_convertible_v<f_type, function_pointer_type>) {
+            // The lambda is stateless. We can obtain a function pointer to it.
+            // The unary '+' operator on a stateless lambda decays it to a function pointer.
+            // This function pointer is then passed to the connect overload for static functions.
+            // No heap allocation needed for the lambda itself.
+            auto func_ptr = +callable; // Get the function pointer
+            return connect(func_ptr);      // Call the connect overload for static function pointers
+        }
+        /* Case 3: L is an rvalue and is stateful (or not a lambda convertible to func ptr) */
         else {
-            using f_type = std::remove_pointer_t<std::remove_reference_t<L>>;
-
-            //auto shrd = std::shared_ptr<f_type>(new f_type(std::move(instance)));
-            auto shrd = std::make_shared<f_type>(std::move(instance));
-            //std::cerr << "test rvalue lambda store and call " << std::addressof(*shrd) << " // " << shrd.get() << std::endl;
-            observer::insert(function::template bind<f_type>(shrd.get()), this, std::move(shrd));
-            return typename observer::Connection(function::template bind<f_type>(shrd.get()), this);
+            // Allocate & copy/move the stateful rvalue functor on the heap.
+            // Keep shared_ptr alive in the observer's storage.
+            auto heap = std::make_shared<f_type>(std::move(callable));
+            auto func_ptr = heap.get(); // Get the function pointer
+            return observer::insert(function::template bind<f_type>(func_ptr), this, std::move(heap));
         }
     }
+    /* Why ?  lifetime monitor: the slot will auto-disconnect
+     *                   when *target* is destroyed (if we pass std::bind(..., this, c) */
     template <typename L, typename T>
-    observer::Connection connect(L&& func, T* instance)
+    auto connect(T* instance, L&& callable) -> observer::Connection&
     {
-
+        using f_type = std::decay_t<L>;
+        using function_pointer_type = RT(*)(Args...);
         /* it is a reference to a functor (example a lambda passed by ref) - you need to watch the lifetime of the lambda */
         if constexpr(std::is_lvalue_reference_v<L>) {
-            insert_sfinae<T>(function::template bind<std::addressof(func)>(instance), instance);
-            return typename observer::Connection(function::template bind<L>(std::addressof(func)), this);
-            //return connect(std::addressof(func), instance);
+            return insert_sfinae<T>(function::template bind<std::addressof(callable)>(instance), instance);
         }
-        /* the size of the object L is less than the size of a pointer */
-        //        else if constexpr (sizeof(std::remove_pointer_t<L>) <= sizeof(void*))
-        //        {
-        //            return insert_sfinae<T>(function::template bind<std::addressof(func)>(instance), instance);
-        //        }
-        /* allocate & copy the lambda in the heap and keep shared_ptr in std::any inside Connection*/
+        /* Case 2: L is an rvalue, and it's a stateless lambda (convertible to function pointer) */
+        else if constexpr (std::is_convertible_v<f_type, function_pointer_type>) {
+            // The lambda is stateless. We can obtain a function pointer to it.
+            // The unary '+' operator on a stateless lambda decays it to a function pointer.
+            // This function pointer is then passed to the connect overload for static functions.
+            // No heap allocation needed for the lambda itself.
+            auto func_ptr = +callable; // Get the function pointer
+            return insert_sfinae<T>(function::template bind<std::addressof(func_ptr)>(instance), instance);
+        }
+        /* Case 3: L is an rvalue and is stateful (or not a lambda convertible to func ptr) */
         else {
             using f_type = std::remove_pointer_t<std::remove_reference_t<L>>;
-
-            //instance->insert(function::template bind<&func>(instance), this);
-            //auto shrd = std::shared_ptr<f_type>(new f_type(std::move(instance)));
-            auto shrd = std::make_shared<f_type>(std::move(instance));
-            //std::cerr << "test rvalue lambda store and call " << std::addressof(*shrd) << " // " << shrd.get() << std::endl;
-            insert_sfinae<T>(function::template bind<shrd.get()>(instance), instance);
-            //return observer::insert(function::template bind(shrd.get()), this, std::move(shrd));
-            return typename observer::Connection(function::template bind<f_type>(shrd.get()), this);
+            // Allocate & copy/move the stateful rvalue functor on the heap.
+            // Keep shared_ptr alive in the observer's storage.
+            auto heap = std::make_shared<f_type>(std::move(callable));
+            auto func_ptr = heap.get(); // Get the function pointer
+            return observer::insert(function::template bind<f_type>(func_ptr), instance, std::move(heap));
         }
     }
 
     /* static function connection */
     template <RT(*fun_ptr)(Args...)>
-    void connect()
+    auto connect() -> observer::Connection&
     {
-        observer::insert(function::template bind<fun_ptr>(), this);
+        return observer::insert(function::template bind<fun_ptr>(), this);
     }
     /* connect to a member method of a class T passed by pointer*/
     template <typename T, RT(T::*mem_ptr)(Args...)>
-    void connect(T* instance)
+    auto connect(T* instance) -> observer::Connection&
     {
-        insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
+        return insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
     /* connect to a member const method of a class T passed by pointer */
     template <typename T, RT(T::*mem_ptr)(Args...) const>
-    void connect(T* instance)
+    auto connect(T* instance) -> observer::Connection&
     {
-        insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
+        return insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
     /* connect to a member method of a class T passed by ref*/
     template <typename T, RT(T::*mem_ptr)(Args...)>
-    void connect(T& instance)
+    auto connect(T& instance) -> observer::Connection&
     {
-        connect<mem_ptr, T>(std::addressof(instance));
+        return connect<mem_ptr, T>(std::addressof(instance));
     }
     /* connect to a member const method of a class T passed by ref */
     template <typename T, RT(T::*mem_ptr)(Args...) const>
-    void connect(T& instance)
+    auto connect(T& instance) -> observer::Connection&
     {
-        connect<mem_ptr, T>(std::addressof(instance));
+        return connect<mem_ptr, T>(std::addressof(instance));
     }
     /* implementions detail of the connection to a member method of a class T passed by pointer*/
     template <auto mem_ptr, typename T>
-    void connect(T* instance)
+    auto connect(T* instance) -> observer::Connection&
     {
-        insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
+        return insert_sfinae<T>(function::template bind<mem_ptr>(instance), instance);
     }
     /* implementions detail of the connection to a member method of a class T passed by ref*/
     template <auto mem_ptr, typename T>
-    void connect(T& instance)
+    auto connect(T& instance) -> observer::Connection&
     {
-        connect<mem_ptr, T>(std::addressof(instance));
+        return connect<mem_ptr, T>(std::addressof(instance));
     }
     /* implementions detail of the connection to a functor ptr */
     template <auto mem_ptr>
-    void connect()
+    auto connect() -> observer::Connection&
     {
-        observer::insert(function::template bind<mem_ptr>(), this);
+        return observer::insert(function::template bind<mem_ptr>(), this);
     }
 
     //----------------------------------------------------------------DISCONNECT

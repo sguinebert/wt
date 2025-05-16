@@ -448,7 +448,7 @@ awaitable<SqlStatement *>collection<C>::executeStatement() const
 
   if (statement) {
     session_->active_conn = co_await session_->assign_connection(false);
-    auto res = co_await statement->execute();
+    /*auto res =*/ co_await statement->execute();
 
     //const auto& result = (postgrespp::result&)res;
     //std::cerr << result.size() ;

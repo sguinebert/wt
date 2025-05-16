@@ -89,7 +89,7 @@ consteval auto EscapedAttrib(const char (&literal)[N]) {
 
     return escape_js_literal<M>(literal);;
 }
-#define CONSTEXPR_JS_ESCAPED(str) EscapedAttrib<compute_escaped_size(str)>(str)
+#define CONSTEXPR_JS_ESCAPED(str) str //EscapedAttrib<compute_escaped_size(str)>(str)
 
 /* this class is made for attributes and property to ensure that literals are processed at compile time */
 struct EscapedString {
@@ -112,7 +112,7 @@ struct EscapedString {
             return value;
         else
             MixEscaper::escape(value, result);
-        value.swap(result);
+        //value.swap(result);
         isescaped_ = true;
         return value;
     }
@@ -336,10 +336,15 @@ public:
    */
   void addChild(DomElement &&child);
 
+  DomElement& addChild(DomElementType type);
+
+  DomElement& addChild(const std::string &id, DomElementType type);
+
+
   //template <typename DomElement>
-  void addChild(DomElement& child) {
-      addChild(std::move(child));
-  }
+  // void addChild(DomElement& child) {
+  //     addChild(std::move(child));
+  // }
   /*! \brief Inserts a child.
    *
    * Ownership of the child is transferred to this element, and the child
@@ -831,7 +836,7 @@ public:
 
   /*! \brief Allocates a JavaScript variable.
    */
-  std::string createVar() const;
+  std::string& createVar() const;
 
   void setGlobalUnfocused(bool b);
 
@@ -847,11 +852,11 @@ private:
 
   typedef boost::unordered_flat_map<std::string, EscapedString> AttributeMap;
   typedef boost::unordered_flat_set<std::string> AttributeSet;
-  typedef boost::unordered_flat_map<const char *, EventHandler> EventHandlerMap;
+  //typedef boost::unordered_flat_map<const char *, EventHandler> EventHandlerMap;
 
   // typedef std::unordered_map<std::string, std::string> AttributeMap;
   // typedef std::unordered_set<std::string> AttributeSet;
-  // typedef std::unordered_map<const char *, EventHandler> EventHandlerMap;
+  typedef std::unordered_map<const char *, EventHandler> EventHandlerMap;
 
   bool willRenderInnerHtmlJS(WApplication *app) const;
   bool canWriteInnerHTML(WApplication *app) const;
@@ -995,29 +1000,24 @@ struct fmt::formatter<JsString> {
             if(jstype == 's') {
                 using Escaper = MixedRules<RuleSet::JsStringLiteralSQuote>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(out, "{}", escaped);
             }
             else {
                 using Escaper = MixedRules<RuleSet::JsStringLiteralDQuote>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(out, "{}", escaped);
             }
         }
         else if(htmltype && !jstype) {
             if(htmltype == 'h') {
                 using Escaper = MixedRules<RuleSet::HtmlAttribute>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(out, "{}", escaped);
             }
             else if(htmltype == 'p') {
                 using Escaper = MixedRules<RuleSet::PlainText>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(out, "{}", escaped);
             }
             else {
                 using Escaper = MixedRules<RuleSet::PlainTextNewLines>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(out, "{}", escaped);
             }
         }
         else if(htmltype && jstype) {
@@ -1025,41 +1025,36 @@ struct fmt::formatter<JsString> {
                 if(jstype == 's') {
                     using Escaper = MixedRules<RuleSet::HtmlAttribute, RuleSet::JsStringLiteralSQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(out, "{}", escaped);
                 }
                 else {
                     using Escaper = MixedRules<RuleSet::HtmlAttribute, RuleSet::JsStringLiteralDQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(out, "{}", escaped);
                 }
             }
             else if(htmltype == 'p') {
                 if(jstype == 's') {
                     using Escaper = MixedRules<RuleSet::PlainText, RuleSet::JsStringLiteralSQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(out, "{}", escaped);
                 }
                 else {
                     using Escaper = MixedRules<RuleSet::PlainText, RuleSet::JsStringLiteralDQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(out, "{}", escaped);
                 }
             }
             else {
                 if(jstype == 's') {
                     using Escaper = MixedRules<RuleSet::PlainTextNewLines, RuleSet::JsStringLiteralSQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(out, "{}", escaped);
                 }
                 else {
                     using Escaper = MixedRules<RuleSet::PlainTextNewLines, RuleSet::JsStringLiteralDQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(out, "{}", escaped);
                 }
             }
         }
+        return fmt::format_to(out, FMT_COMPILE("{}"), jsv.value);
         //if no parameter
-        return fmt::format_to(out, "{}", jsv.value);
+        //return fmt::format_to(out, FMT_COMPILE("{}"), jsv.value);
     }
 };
 #endif // DOMELEMENT_H_

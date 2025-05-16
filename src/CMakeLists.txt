@@ -662,7 +662,7 @@ IF(WIN32)
 ENDIF(WIN32)
 
 ADD_LIBRARY(wt ${libsources}
-    Wt/cuehttp/deps/ada.cpp Wt/cuehttp/deps/ada.h
+    Wt/cuehttp/deps/ada.h Wt/cuehttp/deps/ada.cpp
     Wt/WTemplate_.C Wt/WTemplate_.h
     Wt/cpp20/async_mutex.hpp
     Wt/cpp23/embed.hpp
@@ -806,18 +806,16 @@ ELSE(ENABLE_LIBWTTEST)
   MESSAGE("** Not building libwttest")
 ENDIF(ENABLE_LIBWTTEST)
 
-IF(HAVE_SSL)
-  TARGET_LINK_LIBRARIES(wt PUBLIC ${OPENSSL_LIBRARIES})
-  INCLUDE_DIRECTORIES(${OPENSSL_INCLUDE_DIR})
-  IF(WIN32)
-    TARGET_LINK_LIBRARIES(wt PRIVATE Crypt32.lib)
-  ENDIF(WIN32)
-ELSE(HAVE_SSL)
-  MESSAGE("** Disabling crypto support (Auth::SHA1HashFunction, HTTPS support): requires OpenSSL.")
-  IF(ENABLE_SSL)
-    MESSAGE("   Indicate the location of your OpenSSL library using -DSSL_PREFIX=...")
-  ENDIF(ENABLE_SSL)
-ENDIF(HAVE_SSL)
+if(OpenSSL_FOUND)
+    TARGET_LINK_LIBRARIES(wt PUBLIC OpenSSL::SSL OpenSSL::Crypto)
+    add_test(NAME check_ssl COMMAND app --print-ssl-version)
+    if(WIN32)
+        TARGET_LINK_LIBRARIES(wt PRIVATE Crypt32)
+    endif()
+else()
+    message(WARNING "** Disabling crypto support (Auth::SHA1HashFunction, HTTPS support): requires OpenSSL.")
+    message("   Indicate the location of your OpenSSL library using -DOPENSSL_ROOT_DIR=...")
+endif()
 
 IF(HAVE_HARU)
   TARGET_LINK_LIBRARIES(wt PRIVATE ${HARU_LIBRARIES})

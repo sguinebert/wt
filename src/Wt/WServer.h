@@ -491,7 +491,7 @@ public:
 
         //co_spawn(http::detail::engines::default_engines().get(), coro_expireSessions(), detached);
 
-        router_.get("Wt.mjs", [&](http::context& ctx) -> awaitable<void>
+        router_.get("/Wt.mjs", [&](http::context& ctx) -> awaitable<void>
                    {
                        ctx.status(200);
                        ctx.type("text/javascript");
@@ -1066,7 +1066,7 @@ private:
 #endif // WT_TARGET_JAVA
 
   std::string application_, configurationFile_, appRoot_, description_;
-  static thread_local Configuration *configuration_;
+  /*static thread_local*/ Configuration *configuration_;
   std::shared_ptr<WLocalizedStrings> localizedStrings_;
 
   bool ownsIOService_;

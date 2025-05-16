@@ -405,9 +405,14 @@ private:
             }
 
             auto& decoded_segments = ctx.decoded_segments(); //example : /api/v1/user/123 -> decoded_segments = {api, v1, user, 123}
+            std::cerr << "data decoded_segments ;:" << ctx.url() << std::endl;
+            std::cerr << "data decoded_segments size ;:" << decoded_segments.size() << std::endl;
+            for(auto& vf : decoded_segments)
+                std::cerr << " data uv ;:" << vf << std::endl;
             auto method = ctx.method();
             /* Begin by finding the method node */
             for (auto &p : root.children) {
+                //std::cerr << " data method ;:" << p-> << std::endl;
                 if (p->name == method) {
                     /* Then route the url */
                     auto target = getHandlers(p.get(), decoded_segments, 0);

@@ -137,7 +137,7 @@ private:
   std::vector<int> wsRequestsToHandle_;
   bool cookieUpdateNeeded_;
 
-  std::vector<DomElement> changes_;
+  //std::vector<DomElement> changes_;
 
   void setHeaders(http::response& response, const std::string mimeType);
   void setCaching(http::response& response, bool allowCache);

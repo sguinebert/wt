@@ -305,13 +305,15 @@ void PaintedSlider::doUpdateDom(DomElement& element, bool all)
     if (all) {
         WApplication *app = WApplication::instance();
 
-        DomElement west = DomElement::createNew(DomElementType::DIV);
+        auto& west = element.addChild(DomElementType::DIV);
+        //DomElement west = DomElement::createNew(DomElementType::DIV);
         west.setProperty(Property::Class, "Wt-w");
-        element.addChild(west);
+        //element.addChild(west);
 
-        DomElement east = DomElement::createNew(DomElementType::DIV);
+        auto& east = element.addChild(DomElementType::DIV);
+        //DomElement east = DomElement::createNew(DomElementType::DIV);
         east.setProperty(Property::Class, "Wt-e");
-        element.addChild(east);
+        //element.addChild(east);
 
         element.addChild(createSDomElement(app));
         element.addChild(fill_->createSDomElement(app));

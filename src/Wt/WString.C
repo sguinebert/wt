@@ -211,14 +211,20 @@ bool WString::operator> (const WString& rhs) const
 {
   return toUTF8() > rhs.toUTF8();
 }
-
+// friend void swap(WString& a, WString& b) noexcept {
+//     std::cout << "Swapping: " << (a.data_ ? a.data_ : "null") << " with "
+//               << (b.data_ ? b.data_ : "null") << std::endl;
+//     using std::swap;
+//     swap(a.data_, b.data_);
+//     swap(a.size_, b.size_);
+// }
 WString& WString::operator= (const WString& rhs)
 {
   if (this != &rhs) {
     this->WString::~WString();
     new (this) WString(rhs);
   }
-
+  //swap(*this, rhs);
   return *this;
 }
 

@@ -76,7 +76,7 @@ void WPushButton::setCheckable(bool checkable)
 
 awaitable<void> WPushButton::toggled()
 {
-#warning "WPushButton::toggled() is not a true EventSignal"
+#warning "WPushButton::toggled() is not a true awaitable"
     // FIXME: later, make it a true EventSignal
 
     flags_.set(BIT_IS_CHECKED, !isChecked());
@@ -266,14 +266,14 @@ void WPushButton::renderHRef(DomElement& /*element*/)
             if (!app->environment().ajax())
                 clicked().connect<&WPushButton::doRedirect>(this);
         }
-
+#warning "PARSER BROKEN"
         using Parser = MixedRules<RuleSet::JsStringLiteralSQuote>;
         std::string parsed;
         if (linkState_.link.type() == LinkType::InternalPath) {
             Parser::escape(linkState_.link.internalPath().toUTF8(), parsed);
             linkState_.clickJS->setJavaScript
                 (fmt::format("function(){{{}._p_.setHash({}, true);}}",
-                             app->javaScriptClass(), parsed));
+                             app->javaScriptClass(), linkState_.link.internalPath().toUTF8()));
             //jsStringLiteral(linkState_.link.internalPath())));
         }
         else {

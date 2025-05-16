@@ -91,14 +91,15 @@ public:
   awaitable<::cpp20::async_mutex_lock> takeLock() {
       //async_mutex aquire lock or suspend coroutine
       std::cerr << ":: try take async_lock ::" << std::endl;
-      co_return co_await asyncmutex_.async_scoped_lock(use_awaitable); // SEGFAULT bad implementation
-      std::cerr << ":: try take async_lock OK ::" << std::endl;
+      //co_return co_await asyncmutex_.async_scoped_lock(use_awaitable); // SEGFAULT bad implementation
   }
   bool try_lock() {
       return asyncmutex_.try_lock();
   }
   void unlock() {
-      asyncmutex_.unlock();
+      std::cerr << "NEED TO CHECK IF LOCKED" << std::endl;
+      // if(asyncmutex_.())
+      //asyncmutex_.unlock();
   }
 
   bool attachThreadToLockedHandler();
@@ -232,8 +233,10 @@ public:
                 session_->handlers_.erase(it);
             session_->unlock();
         }
-        if(!eventsProcessed_)
+        if(!eventsProcessed_){
             LOG_ERROR("processEvents() not called");
+            std::terminate();
+        }
 
         if (session_->handlers_.empty())
             session_->hibernate();
@@ -277,6 +280,7 @@ public:
 
     bool haveLock() const
     {
+        return true;
         return lockOwner_ == std::this_thread::get_id();
         // #ifdef WT_THREADED
         //   return lock_.owns_lock();

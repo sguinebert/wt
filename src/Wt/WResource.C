@@ -195,8 +195,6 @@ namespace Wt
     // }
 
     ctx->status(200);
-
-//    co_await handleRequest(*ctx);
     co_await handleRequest(ctx->req(), ctx->res());
 
     /* NO continuation recursive loop with coroutine */

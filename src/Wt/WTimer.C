@@ -69,6 +69,7 @@ void WTimer::start()
     if(clientSideTimeout_ && app && app->environment().ajax())
         return;
 
+
     auto executor = http::detail::engines::thread_context;
     co_spawn(*executor, [&, interval =  static_cast<int>(interval_.count())]() -> awaitable<void> {
         auto executor = co_await asio::this_coro::executor;

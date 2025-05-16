@@ -26,7 +26,7 @@ WLayoutItem *StdLayoutImpl::layoutItem() const
 
 StdLayoutItemImpl *StdLayoutImpl::getImpl(WLayoutItem *item)
 {
-  return static_cast<StdLayoutItemImpl *>(item->impl()); // we are sure that the item is of type StdLayoutItemImpl
+  return dynamic_cast<StdLayoutItemImpl *>(item->impl()); // we are sure that the item is of type StdLayoutItemImpl
 }
 
 }

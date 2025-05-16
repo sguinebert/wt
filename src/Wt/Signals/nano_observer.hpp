@@ -33,32 +33,58 @@ public:
         Connection(Delegate_Key const& key) noexcept : delegate(key), observer() {}
         Connection(Delegate_Key const& key, Observer* obs) noexcept : delegate(key), observer(obs->weak_ptr()) {}
         template<class T>
-        Connection(Delegate_Key const& key, Observer* obs, T&& ptr) noexcept : delegate(key), observer(obs->weak_ptr()), any(std::forward<T>(ptr))
+        Connection(Delegate_Key const& key, Observer* obs, T&& ptr) noexcept :
+            delegate(key),
+            observer(obs->weak_ptr()),
+            any(std::forward<T>(ptr))
         {
-//            std::cout << "Connection addressof : " << std::addressof(*ptr) << std::endl;
-//            auto lambda = std::any_cast<T>(any);
-//            std::cout << "Connection any addressof : " << std::addressof(*lambda) << std::endl;
-//            std::cout << "test : " << reinterpret_cast<void*>(delegate[0]) << " - " << reinterpret_cast<void*>(delegate[1]) << std::endl;
         }
-        Connection(const Connection& other) : delegate(other.delegate), observer(other.observer)
+        // Corrected Copy Constructor
+        Connection(const Connection& other)
+            : delegate(other.delegate),
+            observer(other.observer),
+            any(other.any) // std::any handles its own copying
         {
-            std::cout << "Connection copy" << std::endl;
         }
-        Connection(const Connection&& other) : delegate(other.delegate), observer(other.observer)
+
+        // Corrected Move Constructor
+        Connection(Connection&& other) noexcept // Should be noexcept
+            : delegate(other.delegate), // Delegate_Key is POD-like, copy is fine
+            observer(std::move(other.observer)),
+            any(std::move(other.any)) // Move the std::any
         {
-            std::cout << "Connection move" << std::endl;
         }
-        Connection& operator=(const Connection& other) noexcept {
-            std::cout << "copy assignment " << std::endl;
-            delegate = other.delegate;
-            //observer = other.observer->weak_ptr();
+
+        // Corrected Copy Assignment
+        Connection& operator=(const Connection& other) noexcept
+        {
+            if (this != &other) {
+                delegate = other.delegate;
+                observer = other.observer;
+                any = other.any; // std::any handles its own copy assignment
+            }
             return *this;
         }
+
+        // Corrected Move Assignment
+        Connection& operator=(Connection&& other) noexcept
+        {
+            // std::cout << "move assignment " << std::endl;
+            if (this != &other) {
+                delegate = other.delegate; // Or std::move if Delegate_Key becomes movable
+                observer = std::move(other.observer);
+                any = std::move(other.any);
+            }
+            return *this;
+        }
+
         template<class O>
         Connection& operator=(const O& other) noexcept {
-            std::cout << "copy assignment " << std::endl;
-            delegate = other.delegate;
-            //observer = other.observer->weak_ptr();
+            if (this != &other) {
+                delegate = other.delegate;
+                observer = other.observer;
+                any = other.any; // std::any handles its own copy assignment
+            }
             return *this;
         }
 
@@ -132,7 +158,7 @@ private:
         return nolock_isConnected(key);
     }
 
-    Connection nolock_insert(Delegate_Key const& key, Observer* obs)
+    Connection& nolock_insert(Delegate_Key const& key, Observer* obs)
     {
         auto begin = std::begin(connections);
         auto end = std::end(connections);
@@ -140,7 +166,7 @@ private:
         return *connections.emplace(std::upper_bound(begin, end, key, Z_Order()), key, obs);
     }
 
-    Connection insert(Delegate_Key const& key, Observer* obs)
+    Connection& insert(Delegate_Key const& key, Observer* obs)
     {
         [[maybe_unused]]
         auto lock = MT_Policy::lock_guard();
@@ -148,7 +174,7 @@ private:
         return nolock_insert(key, obs);
     }
     template<class T>
-    Connection insert(Delegate_Key const& key, Observer* obs, T&& ptr)
+    Connection& insert(Delegate_Key const& key, Observer* obs, T&& ptr)
     {
         [[maybe_unused]]
         auto lock = MT_Policy::lock_guard();

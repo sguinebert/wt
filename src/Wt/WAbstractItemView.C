@@ -1296,19 +1296,27 @@ void WAbstractItemView::setHeaderHeight(const WLength& height)
 
 void WAbstractItemView::bindObjJS(JSlot& slot, const std::string& jsMethod)
 {
-  slot.setJavaScript
-    ("function(obj, event) {"
-     """" + jsRef() + ".wtObj." + jsMethod + "(obj, event);"
-     "}");
+    auto js = fmt::format(FMT_COMPILE(WT_CLASS "function(obj, event) {{" WT_CLASS ".$(\\'{}\\').wtObj.{}(obj, event);}}"), id(), jsMethod);
+    slot.setJavaScript(js);
+  // slot.setJavaScript
+  //   ("function(obj, event) {"
+  //    """" + jsRef() + ".wtObj." + jsMethod + "(obj, event);"
+  //    "}");
 }
 
 void WAbstractItemView::connectObjJS(EventSignalBase& s,
 				     const std::string& jsMethod)
 {
-  s.connect
-    ("function(obj, event) {"
-     """" + jsRef() + ".wtObj." + jsMethod + "(obj, event);"
-     "}");
+  // s.connect
+  //   ("function(obj, event) {"
+  //    """" + jsRef() + ".wtObj." + jsMethod + "(obj, event);"
+  //    "}");
+  auto js = fmt::format(FMT_COMPILE(WT_CLASS "function(obj, event) {{" WT_CLASS ".$(\\'{}\\').wtObj.{}(obj, event);}}"), id(), jsMethod);
+  s.connect(js);
+  // s.connect
+    //     ("function(obj, event) {"
+    //      """" + jsRef() + ".wtObj." + jsMethod + "(obj, event);"
+    //                                         "}");
 }
 
 void WAbstractItemView::modelLayoutAboutToBeChanged()

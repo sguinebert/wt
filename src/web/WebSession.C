@@ -1793,7 +1793,6 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
                 break;
             }
           }
-
           /*
            * We can simply bootstrap.
            */
@@ -1829,10 +1828,14 @@ awaitable<void> WebSession::handleRequest(Handler& handler, EntryPoint *ep)
             } else
                 co_await setLoaded();
           } else {
+
+            std::cerr << "app_->notify done" << std::endl;
             /*
              * Delay application start
              */
             serveResponse(handler);
+
+            std::cerr << "app_->notify done" << std::endl;
             setState(State::Loaded, conf.bootstrapTimeout());
           }
           break;
@@ -3377,12 +3380,10 @@ void WebSession::serveResponse(Handler& handler)
 
 awaitable<void> WebSession::propagateFormValues(const WEvent& e, const std::string& se)
 {
-  //const WebRequest& request = *e.impl_.handler->request();
   auto context = e.impl_.handler->context();
 
   renderer_.updateFormObjectsList(app_);
   auto& formObjects = renderer_.formObjects();
-
   auto focus = context->getParameter(se + "focus");
   if (!focus.empty()) {
     int selectionStart = -1, selectionEnd = -1;
@@ -3412,7 +3413,8 @@ awaitable<void> WebSession::propagateFormValues(const WEvent& e, const std::stri
       // FIXME: reenable isVisible() check once we've fixed all of the regressions
       if (w && (!w->isEnabled()/* || !w->isVisible()*/))
         continue; // Do not update form data of a disabled or invisible widget
-      obj->setFormData(getFormData(context, se + formName));
+      auto formdata = getFormData(context, se + formName);
+      obj->setFormData(formdata);
     } else
       co_await obj->setRequestTooLarge(context->postDataExceeded());
   }
@@ -3424,14 +3426,14 @@ WObject::FormData WebSession::getFormData(const WebRequest& request, const std::
   std::vector<Http::UploadedFile> files;
   Utils::find(request.uploadedFiles(), name, files);
 
-  return WObject::FormData(request.getParameterValues(name), files);
+  auto params = request.getParameterValues(name);
+  return WObject::FormData(std::move(params), files);//don't care: getFormData(const WebRequest& request)deprecated
 }
 
 WObject::FormData WebSession::getFormData(http::context *context, const std::string &name)
 {
   std::vector<Http::UploadedFile> files;
   Utils::find(context->uploadedFiles(), name, files);
-
   return WObject::FormData(context->req().getParameterValues(name), files);
 }
 
@@ -3496,8 +3498,6 @@ awaitable<void> WebSession::notifySignal(const WEvent& e)
     if (!context)
       co_return;
 
-    //const WebRequest& request = *handler.request();
-
     int signalI = handler->signalOrder[i];
     std::string se = signalI > 0 ? fmt::format(FMT_COMPILE("e{}"), signalI) : std::string();
     auto signalE = getSignal(context, se);
@@ -3518,12 +3518,12 @@ awaitable<void> WebSession::notifySignal(const WEvent& e)
         else
           co_await setLoaded();
       }
-
       // We will want invisible changes now too.
       renderer_.setVisibleOnly(false);
     } else if (signalE == "keepAlive") {
       // Do nothing
     } else if (signalE != "poll") {
+
       co_await propagateFormValues(e, se);
 
       // Save pending changes (e.g. from resource completion)

@@ -117,7 +117,7 @@ public:
    *
    * Closes the connection.
    */
-  ~MySQL();
+  ~MySQL(){}
 
   /*! \brief Returns a copy of the connection.
    */
@@ -241,7 +241,10 @@ public:
         co_await executeSql("ROLLBACK");
   }
 
-  std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql);
+  std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql){
+      //return std::unique_ptr<SqlStatement>(new MySQLStatement(*this, sql));
+  }
+
 
   SqlStatement *getStatement(const std::string &id);
 

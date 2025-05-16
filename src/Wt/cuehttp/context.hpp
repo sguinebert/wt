@@ -249,7 +249,7 @@ class context final : safe_noncopyable {
   void flush() {
     flush_ = true;
 
-    if(websocket_) {
+    if(websocket_ != nullptr) {
         if(auto sv = response_.dump_body(); !sv.empty())
             websocket_->send(std::string(sv));
         response_.reset();

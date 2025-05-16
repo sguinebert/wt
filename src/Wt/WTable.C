@@ -247,30 +247,33 @@ DomElement WTable::createDomElement(WApplication *app)
   DomElement table = DomElement::createNew(domElementType());
   setId(&table, app);
 
-  DomElement thead = DomElement::createNew(DomElementType::THEAD);//nullptr;
-  bool ff = false;
+  DomElement *theadptr = nullptr;// DomElement::createNew(DomElementType::THEAD);//nullptr;
   if (headerRowCount_ != 0) {
+    auto& thead = table.addChild(DomElementType::THEAD);
+    theadptr = &thead;
     //thead = DomElement::createNew(DomElementType::THEAD);
-    ff = true;
     if (withIds)
       thead.setId(id() + "th");
   }
 
-  DomElement tbody = DomElement::createNew(DomElementType::TBODY);
+  auto& tbody = table.addChild(DomElementType::TBODY);
+  //DomElement tbody = DomElement::createNew(DomElementType::TBODY);
   if (withIds)
     tbody.setId(id() + "tb");
 
-  DomElement colgroup = DomElement::createNew(DomElementType::COLGROUP);
+  auto& colgroup = table.addChild(DomElementType::COLGROUP);
+  //DomElement colgroup = DomElement::createNew(DomElementType::COLGROUP);
 
   for (unsigned col = 0; col < columns_.size(); ++col) {
-    DomElement c = DomElement::createNew(DomElementType::COL);
+    auto& c = colgroup.addChild(DomElementType::COL);
+    //DomElement c = DomElement::createNew(DomElementType::COL);
     if (withIds)
       c.setId(columns_[col]->id());
     columns_[col]->updateDom(c, true);
-    colgroup.addChild(c);
+    //colgroup.addChild(c);
   }
 
-  table.addChild(colgroup);
+  //table.addChild(colgroup);
   
   flags_.reset(BIT_COLUMNS_CHANGED);
 
@@ -279,17 +282,17 @@ DomElement WTable::createDomElement(WApplication *app)
       itemAt(row, col)->overSpanned_ = false;
   
   for (unsigned row = 0; row < (unsigned)rowCount(); ++row) {
-    DomElement tr = createRowDomElement(row, withIds, app);
+    //DomElement tr = createRowDomElement(row, withIds, app);
     if (row < static_cast<unsigned>(headerRowCount_))
-      thead.addChild(tr);
+      theadptr->addChild(createRowDomElement(row, withIds, app));
     else
-      tbody.addChild(tr);
+      tbody.addChild(createRowDomElement(row, withIds, app));
   }
   rowsAdded_ = 0;
 
-  if (ff)
-    table.addChild(thead);
-  table.addChild(tbody);
+  // if (ff)
+  //   table.addChild(thead);
+  //table.addChild(tbody);
 
   updateDom(table, true);
 
@@ -314,7 +317,7 @@ DomElement WTable::createRowDomElement(int row, bool withIds, WApplication *app)
         auto cell = itemAt(row, col);
 
         if (!cell->overSpanned_) {
-            DomElement td = cell->createSDomElement(app);
+            //DomElement td = cell->createSDomElement(app);
 
             /*
            * So, IE gets confused when doing appendChild() for TH followed by
@@ -322,9 +325,9 @@ DomElement WTable::createRowDomElement(int row, bool withIds, WApplication *app)
            * so we do TH with appendChild, and insertCell(col).
            */
             if (col < headerColumnCount_ || row < headerRowCount_)
-                tr.addChild(td);
+                tr.addChild(cell->createSDomElement(app));
             else
-                tr.insertChildAt(std::move(td), col - spanCounter);
+                tr.insertChildAt(cell->createSDomElement(app), col - spanCounter);
 
             for (int i = 0; i < cell->rowSpan(); ++i)
                 for (int j = 0; j < cell->columnSpan(); ++j)
@@ -352,9 +355,10 @@ void WTable::getDomChanges(std::vector<DomElement>& result, WApplication *app)
     } else {
         for (auto i = rowsChanged_.begin(); i != rowsChanged_.end(); ++i)
         {
-            DomElement e2 = DomElement::getForUpdate(*i, DomElementType::TR);
+            auto& e2 = result.emplace_back(DomElement::Mode::Update, DomElementType::TR, (*i)->id());
+            //DomElement e2 = DomElement::getForUpdate(*i, DomElementType::TR);
             (*i)->updateDom(e2, false);
-            result.push_back(std::move(e2));
+            //result.push_back(std::move(e2));
         }
 
         rowsChanged_.clear();
@@ -365,8 +369,8 @@ void WTable::getDomChanges(std::vector<DomElement>& result, WApplication *app)
             //DomElement etb = DomElement::getForUpdate(id() + "tb", DomElementType::TBODY);
             for (unsigned i = 0; i < static_cast<unsigned>(rowsAdded_); ++i)
             {
-                DomElement tr = createRowDomElement(rowCount() - rowsAdded_ + i, true, app);
-                etb.addChild(tr);
+                //DomElement tr = createRowDomElement(rowCount() - rowsAdded_ + i, true, app);
+                etb.addChild(createRowDomElement(rowCount() - rowsAdded_ + i, true, app));
             }
 
             //result.push_back(std::move(etb));

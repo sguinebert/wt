@@ -994,7 +994,8 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
     co_return;
   }
 
-  std::cerr << "context->url() : "  << context->url() << std::endl;
+  std::cerr << "context->url() : "  << context->path() << std::endl;
+  //std::cerr << "context->req().body() : "  << context->req().body() << std::endl;
 
 
   //      if (!context->entryPoint_) {

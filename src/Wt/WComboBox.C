@@ -265,10 +265,10 @@ void WComboBox::updateDom(DomElement& element, bool all)
                 selectionChanged_ = true;
         }
 
-        DomElement *currentGroup = nullptr;
+        DomElement *currentGroup_ptr = nullptr;
         bool groupDisabled = true;
 
-        auto currentGroup_ = DomElement::createNew(DomElementType::OPTGROUP);
+        auto currentGroup = DomElement::createNew(DomElementType::OPTGROUP);
 
         int size = count();
         for (int i = 0; i < size; ++i) {
@@ -299,31 +299,31 @@ void WComboBox::updateDom(DomElement& element, bool all)
             if (groupname.empty()) { // no group
                 isSoloItem = true;
 
-                if (currentGroup) { // possibly close off an active group
+                if (currentGroup_ptr) { // possibly close off an active group
                     if (groupDisabled)
-                        currentGroup->setProperty(Property::Disabled, "true");
-                    element.addChild(currentGroup_);
-                    currentGroup = nullptr;
-                    currentGroup_.setType(DomElementType::OPTGROUP);
+                        currentGroup_ptr->setProperty(Property::Disabled, "true");
+                    element.addChild(std::move(currentGroup));
+                    currentGroup_ptr = nullptr;
+                    currentGroup.setType(DomElementType::OPTGROUP);
                 }
             } else {
                 isSoloItem = false;
 
                 // not same as current group
-                if (!currentGroup ||
-                    currentGroup->getProperty(Property::Label) != groupname.toUTF8()) {
-                    if (currentGroup) { // possibly close off an active group
+                if (!currentGroup_ptr ||
+                    currentGroup_ptr->getProperty(Property::Label) != groupname.toUTF8()) {
+                    if (currentGroup_ptr) { // possibly close off an active group
                         if (groupDisabled)
-                            currentGroup->setProperty(Property::Disabled, "true");
-                        element.addChild(currentGroup_);
-                        currentGroup = nullptr;
-                        currentGroup_.setType(DomElementType::OPTGROUP);
+                            currentGroup_ptr->setProperty(Property::Disabled, "true");
+                        element.addChild(std::move(currentGroup));
+                        currentGroup_ptr = nullptr;
+                        currentGroup.setType(DomElementType::OPTGROUP);
                     }
 
                     // make group
                     //currentGroup = DomElement::createNew(DomElementType::OPTGROUP);
-                    currentGroup = &currentGroup_;
-                    currentGroup->setProperty(Property::Label, groupname.toUTF8());
+                    currentGroup_ptr = &currentGroup;
+                    currentGroup_ptr->setProperty(Property::Label, groupname.toUTF8());
                     groupDisabled = !(model_->flags(model_->index(i, modelColumn_)) & ItemFlag::Selectable);
                 } else {
                     if (model_->flags(model_->index(i, modelColumn_)).test(ItemFlag::Selectable))
@@ -332,17 +332,17 @@ void WComboBox::updateDom(DomElement& element, bool all)
             }
 
             if (isSoloItem)
-                element.addChild(item);
+                element.addChild(std::move(item));
             else
-                currentGroup->addChild(item);
+                currentGroup_ptr->addChild(std::move(item));
 
             // last loop and there's still an open group
-            if (i == size - 1 && currentGroup) {
+            if (i == size - 1 && currentGroup_ptr) {
                 if (groupDisabled)
-                    currentGroup->setProperty(Property::Disabled, "true");
-                element.addChild(currentGroup_);
-                currentGroup = nullptr;
-                currentGroup_.setType(DomElementType::OPTGROUP);
+                    currentGroup_ptr->setProperty(Property::Disabled, "true");
+                element.addChild(std::move(currentGroup));
+                currentGroup_ptr = nullptr;
+                currentGroup.setType(DomElementType::OPTGROUP);
             }
         }
 

@@ -1,25 +1,25 @@
-{DOCTYPE}
-<html {HTMLATTRIBUTES}>
+<!DOCTYPE html>
+<html >
 <head>
-{HEADDECLARATIONS}
+
 <meta name="robots" content="noindex, nofollow">
 <title></title>
-<link href="{BOOT_STYLE_URL}" rel="preload" as="style" onload="this.rel='stylesheet'">
+<link href="./main.css" rel="preload" as="style" onload="this.rel='stylesheet'">
 <script type="module">
   console.log('Loading WtApp...');
   import WtApp from './Wt.mjs';
-  const appConfig = {{
-    sessionId: '{SESSION_ID}',
-    scriptId: '{SCRIPT_ID}',
-    selfUrl: {SELF_URL},
-    webGLDetect: {WEBGL_DETECT},
-  }};
+  const appConfig = {
+    sessionId: 'stTSJzPd6BxTMqCu',
+    scriptId: '0',
+    selfUrl: 'app.js?wtd=stTSJzPd6BxTMqCu',
+    webGLDetect: true,
+  };
   const wtApp = new WtApp(appConfig);
   //wtApp.init(); // Initialize the application
 </script>
 <noscript>
-  <meta http-equiv="refresh" content="0; url="{AUTO_REDIRECT}">
-  <link href="{BOOT_STYLE_URL}&amp;js=no" rel="stylesheet" type="text/css">
+  <meta http-equiv="refresh" content="0; url="app?wtd=stTSJzPd6BxTMqCu&amp;js=no">
+  <link href="app?wtd=stTSJzPd6BxTMqCu&amp;request=style&amp;page=1&amp;js=no" rel="stylesheet" type="text/css">
 </noscript>
 <style type="text/css" id="Wt-inline-css"></style>
 </head>

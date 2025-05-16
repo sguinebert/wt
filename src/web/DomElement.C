@@ -197,29 +197,29 @@ struct fmt::formatter<EscapedString> {
             if(jstype == 's') {
                 using Escaper = MixedRules<RuleSet::JsStringLiteralSQuote>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
             }
             else {
                 using Escaper = MixedRules<RuleSet::JsStringLiteralDQuote>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
             }
         }
         else if(htmltype && !jstype) {
             if(htmltype == 'h') {
                 using Escaper = MixedRules<RuleSet::HtmlAttribute>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
             }
             else if(htmltype == 'p') {
                 using Escaper = MixedRules<RuleSet::PlainText>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
             }
             else {
                 using Escaper = MixedRules<RuleSet::PlainTextNewLines>;
                 Escaper::escape(jsv.value, escaped);
-                return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
             }
         }
         else if(htmltype && jstype) {
@@ -227,36 +227,36 @@ struct fmt::formatter<EscapedString> {
                 if(jstype == 's') {
                     using Escaper = MixedRules<RuleSet::HtmlAttribute, RuleSet::JsStringLiteralSQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
                 }
                 else {
                     using Escaper = MixedRules<RuleSet::HtmlAttribute, RuleSet::JsStringLiteralDQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
                 }
             }
             else if(htmltype == 'p') {
                 if(jstype == 's') {
                     using Escaper = MixedRules<RuleSet::PlainText, RuleSet::JsStringLiteralSQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
                 }
                 else {
                     using Escaper = MixedRules<RuleSet::PlainText, RuleSet::JsStringLiteralDQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
                 }
             }
             else {
                 if(jstype == 's') {
                     using Escaper = MixedRules<RuleSet::PlainTextNewLines, RuleSet::JsStringLiteralSQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
                 }
                 else {
                     using Escaper = MixedRules<RuleSet::PlainTextNewLines, RuleSet::JsStringLiteralDQuote>;
                     Escaper::escape(jsv.value, escaped);
-                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), escaped);
+                    return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), jsv.value);
                 }
             }
         }
@@ -439,6 +439,13 @@ public:
                 if (!WApplication::instance()->environment().agentIsSpiderBot() || i->first != "name") {
                     out = fmt::format_to(out, FMT_COMPILE(" {}=\"{:h}\""), i->first, i->second);
                 }
+
+            if(!domElement.globalUnfocused_)
+                for(auto &[signal, handler] : domElement.eventHandlers_) {
+                    if (!handler.jsCode.empty()) {
+                        out = fmt::format_to(out, FMT_COMPILE(" on{}=\"{}\""), signal, handler.jsCode);
+                    }
+                }
         // }
         // else if(presentation_ == 'p') {
             using Escaper = MixedRules<RuleSet::HtmlAttribute>;
@@ -446,8 +453,8 @@ public:
             for (auto &[prop, value] : properties) {
                 switch (prop) {
                 case Property::InnerHTML:
-                    //innerHTML += value;
-                    Escaper::escape(value, domElement.innerHTML_);
+                    domElement.innerHTML_ += value;
+                    //Escaper::escape(value, domElement.innerHTML_);
                     break;
                 case Property::Disabled:
                     if (value == "true")
@@ -550,52 +557,22 @@ public:
     }
 };
 
-
 template <>
-struct fmt::formatter<std::tuple<const Wt::DomElement&, // format specification storage
-                                 fmt::memory_buffer&,
-                                 fmt::memory_buffer&,
-                                 std::vector<Wt::DomElement::TimeoutEvent>&>>
-{
+struct fmt::formatter<std::pair<const char *, Wt::DomElement::EventHandler>> {    // format specification storage
 public:
     // parse format specification and store it:
     constexpr auto parse (format_parse_context& ctx) {return ctx.begin(); }
+
     // format a value using stored specification:
     template <typename FormatContext>
-    auto format(const std::tuple<const Wt::DomElement&,
-                                 fmt::memory_buffer&,
-                                 fmt::memory_buffer&,
-                                 std::vector<Wt::DomElement::TimeoutEvent>&>& tuple, FormatContext& ctx) const
-    {
-
-         auto &[domElement, outf, js, timeouts] = tuple;
-        /*
-         * http://www.w3.org/TR/html/#guidelines
-         * XHTML recommendation, back-wards compatibility with HTML: C.2, C.3:
-         * do not use minimized forms when content is empty like <p />, and use
-         * minimized forms for certain elements like <br />
-         */
-        if (Wt::DomElement::isSelfClosingTag(domElement.type_))
-        {
-            return fmt::format_to(ctx.out(), " />");
-        }
-        for(auto& child : domElement.childrenToAdd_) {
-            child.child.asHTML(outf, js, timeouts);
-        }
-
-        auto app = Wt::WApplication::instance();
-
-        return fmt::format_to(ctx.out(), FMT_COMPILE("{}{}{}</{}>"), domElement.innerHTML_, std::string_view(domElement.childrenHtml_),
-                              domElement.type_ == Wt::DomElementType::DIV
-                                      && app->environment().agent() == Wt::UserAgent::IE6
-                                      && domElement.innerHTML_.empty()
-                                      && domElement.childrenToAdd_.empty()
-                                      && !domElement.childrenHtml_.size() ? "&nbsp;" : "", // IE6 will incorrectly set the height of empty divs
-                              domElement.type_  == Wt::DomElementType::OTHER ?
-                                  domElement.elementTagName_ : elementNames_[static_cast<unsigned int>(domElement.type_)]);
+    auto format(const std::pair<const char *, Wt::DomElement::EventHandler>& pair, FormatContext& ctx) const {
+        auto out = ctx.out();
+        auto &[event, handler] = pair;
+        if(handler.jsCode.empty())
+            return out;
+        return fmt::format_to(out, FMT_COMPILE(" on{}=\"{}\""), event, handler.jsCode);
     }
 };
-
 
 template <>
 struct fmt::formatter<Wt::DomElement::TimeoutEvent> {    // format specification storage
@@ -613,11 +590,60 @@ public:
                               timeout.event,
                               timeout.msec,
                               timeout.repeat);
+    }
+};
 
-            // out << app->javaScriptClass()
-            // << "._p_.addTimerEvent('" << timeout.event << "', "
-            // << timeouts[i].msec << ','
-            // << timeouts[i].repeat << ");\n";
+template <>
+struct fmt::formatter<std::tuple<const Wt::DomElement&, // format specification storage
+                                 fmt::memory_buffer&,
+                                 fmt::memory_buffer&,
+                                 Wt::DomElement::TimeoutList&>>
+{
+public:
+    // parse format specification and store it:
+    constexpr auto parse (format_parse_context& ctx) {return ctx.begin(); }
+    // format a value using stored specification:
+    template <typename FormatContext>
+    auto format(const std::tuple<const Wt::DomElement&,
+                                 fmt::memory_buffer&,
+                                 fmt::memory_buffer&,
+                                 Wt::DomElement::TimeoutList&>& tuple, FormatContext& ctx) const
+    {
+
+         auto &[domElement, outf, js, timeouts] = tuple;
+        /*
+         * http://www.w3.org/TR/html/#guidelines
+         * XHTML recommendation, back-wards compatibility with HTML: C.2, C.3:
+         * do not use minimized forms when content is empty like <p />, and use
+         * minimized forms for certain elements like <br />
+         */
+        if (Wt::DomElement::isSelfClosingTag(domElement.type_))
+        {
+            return fmt::format_to(ctx.out(), " />");
+        }
+        for(auto& child : domElement.childrenToAdd_) {
+            child.child.asHTML(outf, js, timeouts);
+        }
+
+        //timeouts.insert(timeouts.end(), domElement.timeouts_.begin(), domElement.timeouts_.end());
+
+        std::string_view domtype = domElement.type_  == Wt::DomElementType::OTHER ?
+                                       domElement.elementTagName_ :
+                                       elementNames_[static_cast<unsigned int>(domElement.type_)];
+
+        //std::string_view javascript(js.begin(), js.end());
+
+        return fmt::format_to(ctx.out(), FMT_COMPILE("{}{}</{}>"),
+                              domElement.innerHTML_,
+                              std::string_view(domElement.childrenHtml_),
+                              domtype);
+
+        // return fmt::format_to(ctx.out(), FMT_COMPILE("{}{}</{}>{}{}"),
+        //                       domElement.innerHTML_,
+        //                       std::string_view(domElement.childrenHtml_),
+        //                       domtype,
+        //                       fmt::join(timeouts, ""),
+        //                       javascript);
     }
 };
 
@@ -703,7 +729,8 @@ DomElement::~DomElement()
   //   delete updatedChildren_[i];
 
   //delete replaced_;
-  delete insertBefore_;
+  // if(insertBefore_)
+  //   delete insertBefore_;
 }
 
 void DomElement::setDomElementTagName(const std::string& name) {
@@ -825,12 +852,26 @@ void DomElement::addChild(DomElement &&child)
 
     if (wasEmpty_ && canWriteInnerHTML(WApplication::instance())) {
       child.asHTML(childrenHtml_, javaScript_, timeouts_);
-      //delete child;
     } else {
       childrenToAdd_.push_back(ChildInsertion(-1, std::move(child)));
     }
   } else
     updatedChildren_.push_back(std::move(child));
+}
+
+DomElement &DomElement::addChild(DomElementType type)
+{
+    numManipulations_ += 2; // cannot be short-cutted
+    auto& ch = childrenToAdd_.emplace_back(-1, DomElement(Mode::Create, type));
+    if (wasEmpty_ && canWriteInnerHTML(WApplication::instance())) {
+        ch.child.asHTML(childrenHtml_, javaScript_, timeouts_);
+    }
+    return ch.child;
+}
+
+DomElement &DomElement::addChild(const std::string &id, DomElementType type)
+{
+    return updatedChildren_.emplace_back(Mode::Update, type, id);
 }
 
 void DomElement::saveChild(const std::string& id)
@@ -953,7 +994,7 @@ void DomElement::setEvent(const char *eventName,
 
     if (actions[i].exposed)
       code << WApplication::instance()->javaScriptClass()
-	   << "._p_.update(o,'" << actions[i].updateCmd << "',e,true);";
+       << "._p_.update(o,'" << actions[i].updateCmd << "',e,true);";
 
     if (!actions[i].jsCondition.empty())
       code << "}";
@@ -1009,9 +1050,11 @@ void DomElement::processProperties(WApplication *app) const
                 // self->properties_.erase(Property::StyleMaxWidth);
 
                 self->properties_.erase(Property::StyleWidth);
+#ifdef WT_PRE_ES6_SUPPORT
                 self->properties_[Property::StyleWidthExpression] = fmt::format(FMT_COMPILE(WT_CLASS ".IEwidth(this,\'{}\',\'{}\')"),
                                                                                 minw,
                                                                                 maxw);
+#endif
             }
         }
 
@@ -1030,7 +1073,7 @@ void DomElement::processEvents(WApplication *app) const
   const char *S_keypress = WInteractWidget::KEYPRESS_SIGNAL;
 
   if (auto keypress = self->eventHandlers_.find(S_keypress); keypress != eventHandlers_.end() && !keypress->second.jsCode.empty())
-    keypress->second.jsCode = fmt::format("if (" WT_CLASS ".isKeyPress(event)){{{}}}", keypress->second.jsCode);
+    keypress->second.jsCode = fmt::format(FMT_COMPILE("if (" WT_CLASS ".isKeyPress(event)){{{}}}"), keypress->second.jsCode);
 }
 
 void DomElement::setTimeout(int msec, bool jsRepeat)
@@ -1051,7 +1094,7 @@ void DomElement::callJavaScript(const std::string& jsCode, bool evenWhenDeleted)
 {
   ++numManipulations_;
   if (!evenWhenDeleted)
-    fmt::format_to(std::back_inserter(javaScript_), "{}\n", jsCode);
+    fmt::format_to(std::back_inserter(javaScript_), FMT_COMPILE("{}\n"), jsCode);
   else
     javaScriptEvenWhenDeleted_ += jsCode;
 }
@@ -1299,40 +1342,6 @@ void DomElement::cssStyle(fmt::memory_buffer &out) const
 }
 
 void DomElement::setJavaScriptEvent(EscapeOStream& out,
-				    const char *eventName,
-				    const EventHandler& handler,
-				    WApplication *app) const
-{
-  // events on the dom root container are events received by the whole
-  // document when no element has focus
-
-  unsigned fid = nextId_++;
-
-  out << "function f" << fid << "(event) { ";
-
-  out << handler.jsCode;
-
-  out << "}\n";
-
-  if (globalUnfocused_) {
-    out << app->javaScriptClass() 
-      <<  "._p_.bindGlobal('" << std::string(eventName) <<"', '" << id_ << "', f" << fid 
-      << ")\n";
-    return;
-  } else {
-    declare(out);
-    out << var_;
-  }
-
-  if (eventName == WInteractWidget::WHEEL_SIGNAL &&
-      app->environment().agentIsIE() && 
-      static_cast<unsigned int>(app->environment().agent()) >= 
-      static_cast<unsigned int>(UserAgent::IE9))
-    out << ".addEventListener('wheel', f" << fid << ", false);\n";
-  else //mode_ == update
-    out << ".on" << const_cast<char *>(eventName) << "=f" << fid << ";\n";
-}
-void DomElement::setJavaScriptEvent(fmt::memory_buffer& out,
                                     const char *eventName,
                                     const EventHandler& handler,
                                     WApplication *app) const
@@ -1342,22 +1351,74 @@ void DomElement::setJavaScriptEvent(fmt::memory_buffer& out,
 
     unsigned fid = nextId_++;
 
-    if (globalUnfocused_ ||
-        (eventName == WInteractWidget::WHEEL_SIGNAL &&
+    out << "function f" << fid << "(event) { ";
+
+    out << handler.jsCode;
+
+    out << "}\n";
+
+    if (globalUnfocused_) {
+        out << app->javaScriptClass()
+        <<  "._p_.bindGlobal('" << std::string(eventName) <<"', '" << id_ << "', f" << fid
+        << ")\n";
+        return;
+    } else {
+        declare(out);
+        out << var_;
+    }
+
+    if (eventName == WInteractWidget::WHEEL_SIGNAL &&
+        app->environment().agentIsIE() &&
+        static_cast<unsigned int>(app->environment().agent()) >=
+            static_cast<unsigned int>(UserAgent::IE9))
+        out << ".addEventListener('wheel', f" << fid << ", false);\n";
+    else //mode_ == update
+        out << ".on" << const_cast<char *>(eventName) << "=f" << fid << ";\n";
+}
+void DomElement::setJavaScriptEvent(fmt::memory_buffer& out,
+                                    const char *eventName,
+                                    const EventHandler& handler,
+                                    WApplication *app) const //
+{
+    // events on the dom root container are events received by the whole
+    // document when no element has focus
+
+    unsigned fid = nextId_++;
+
+    if (globalUnfocused_
+#ifdef WT_PRE_ES6_SUPPORT
+        || (eventName == WInteractWidget::WHEEL_SIGNAL &&
          app->environment().agentIsIE() &&
-         static_cast<unsigned int>(app->environment().agent()) >= static_cast<unsigned int>(UserAgent::IE9)))
+         static_cast<unsigned int>(app->environment().agent()) >= static_cast<unsigned int>(UserAgent::IE9))
+#endif
+        )
     {
         if (globalUnfocused_) {
-            fmt::format_to(std::back_inserter(out), FMT_COMPILE("function f{fid}(event){{{}}}\n{}._p_.bindGlobal('{}', '{}', f{fid})\n"), handler.jsCode, app->javaScriptClass(), fmt::ptr(signal), id_, fmt::arg("fid", fid));
-            //return;
-        } else {
-            declare(out);
-            fmt::format_to(std::back_inserter(out), FMT_COMPILE("function f{fid}(event){{{}}}\n{}.addEventListener('wheel', f{fid}, false);\n"), handler.jsCode, var_, fmt::arg("fid", fid)); //out << ".addEventListener('wheel', f" << fid << ", false);\n";
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("function f{fid}(event){{{}}}\n{}._p_.bindGlobal('{}', '{}', f{fid})\n"),
+                           handler.jsCode,
+                           app->javaScriptClass(),
+                           fmt::ptr(signal),
+                           id_,
+                           fmt::arg("fid", fid));
         }
+#ifdef WT_PRE_ES6_SUPPORT
+        else {
+            declare(out);
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("function f{fid}(event){{{}}}\n{}.addEventListener('wheel', f{fid}, false);\n"),
+                           handler.jsCode,
+                           var_,
+                           fmt::arg("fid", fid));
+        }
+#endif
     }
     else
     {
-        fmt::format_to(std::back_inserter(out), FMT_COMPILE("function f{fid}(event){{{}}}\n{}.on{}=f{fid}"), fid, handler.jsCode, var_, eventName, fmt::arg("fid", fid));
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("function f{fid}(event){{{}}}\n{}.on{}=f{fid}"),
+                       fid,
+                       handler.jsCode,
+                       var_,
+                       eventName,
+                       fmt::arg("fid", fid));
     }
 }
 
@@ -1423,7 +1484,7 @@ void DomElement::asHTML(fmt::memory_buffer &out, fmt::memory_buffer &javaScript,
 
         if (type_ == DomElementType::A) {
             std::string href = getAttribute("href");
-
+#ifdef WT_PRE_ES6_SUPPORT
             /*
              * If we're IE7/8 or there is a real URL, then we don't wrap
              */
@@ -1431,7 +1492,9 @@ void DomElement::asHTML(fmt::memory_buffer &out, fmt::memory_buffer &javaScript,
                 app->environment().agent() == UserAgent::IE8 ||
                 href.length() > 1)
                 needButtonWrap_ = false;
-            else if (app->theme()->canStyleAnchorAsButton()) {
+            else
+#endif
+            if (app->theme()->canStyleAnchorAsButton()) {
                 DomElement *self = const_cast<DomElement *>(this);
                 self->setAttribute("href", app->url(app->internalPath())
                                                + "&signal=" + clickEvent->second.signalName);
@@ -1444,57 +1507,12 @@ void DomElement::asHTML(fmt::memory_buffer &out, fmt::memory_buffer &javaScript,
         }
     }
 
-    //const bool supportButton = true;
 
-    //bool needAnchorWrap = false;
 
-    // if (!supportButton && type_ == DomElementType::BUTTON) {
-    //     renderedType = DomElementType::INPUT;
-
-    //     DomElement *self = const_cast<DomElement *>(this);
-    //     if (!isSubmit)
-    //         self->setAttribute("type", "button");
-    //     self->setAttribute("value",
-    //                        properties_.find(Property::InnerHTML)->second);
-    //     self->setProperty(Property::InnerHTML, "");
-    // }
-
-    // EscapeOStream attributeValues(out);
-    // attributeValues.pushEscape(EscapeOStream::HtmlAttribute);
-
-    if (app->environment().ajax()) {
-        for(auto &[signal, handler] : eventHandlers_) {
-            if (!handler.jsCode.empty()) {
-                if (globalUnfocused_ ||
-                    (signal == WInteractWidget::WHEEL_SIGNAL &&
-                     app->environment().agentIsIE() &&
-                     static_cast<unsigned int>(app->environment().agent()) >= static_cast<unsigned int>(UserAgent::IE9)))
-                {
-                    //setJavaScriptEvent(javaScript, signal, handler, app);
-                    unsigned fid = nextId_++;
-
-                    if (globalUnfocused_) {
-                        fmt::format_to(std::back_inserter(javaScript), FMT_COMPILE("function f{fid}(event){{{}}}\n{}._p_.bindGlobal('{}', '{}', f{fid})\n"), handler.jsCode, app->javaScriptClass(), signal, id_, fmt::arg("fid", fid));
-                        //return;
-                    } else {
-                        declare(javaScript);
-                        fmt::format_to(std::back_inserter(javaScript), FMT_COMPILE("function f{fid}(event){{{}}}\n{}.addEventListener('wheel', f{fid}, false);\n"), handler.jsCode, var_, fmt::arg("fid", fid)); //out << ".addEventListener('wheel', f" << fid << ", false);\n";
-                    }
-                }
-                else
-                {
-                    fmt::format_to(std::back_inserter(out), FMT_COMPILE(" on{}=\"{}\""), signal, handler.jsCode);
-                }
-            }
-        }
-    }
-
-    //std::string_view style;
     innerHTML_.clear();
     auto tuple = std::tie(*this, out, javaScript, timeouts);
 
     if (needButtonWrap_) {
-        //if (supportButton) {
             PropertyMap& map = const_cast<PropertyMap&>(properties_);
             //auto node = map.extract(Property::Class);
             auto node = properties_.find(Property::Class);
@@ -1510,271 +1528,61 @@ void DomElement::asHTML(fmt::memory_buffer &out, fmt::memory_buffer &javaScript,
             if (node != properties_.end()) {
                 map.erase(Property::Class);
             }
-
-
-            // if (!isDefaultInline())
-            //     fmt::format_to(std::back_inserter(out), " style=\"display: block;{}\"", fmt::join(properties_, ""));
-            // else if(hasCssRules_)
-            //     fmt::format_to(std::back_inserter(out), " style=\"{}\"", fmt::join(properties_, ""));
-            // else {
-            //     auto i = properties_.find(Property::Disabled);
-            //     auto j = attributes_.find("title");
-            //     fmt::format_to(std::back_inserter(out), "<button type=\"submit\" name=\"signal={}\" class=\"Wt-wrap {}\"{} title=\"{}\"><{}",
-            //                    clickEvent->second.signalName,
-            //                    l != properties_.end() ? l->second : "",
-            //                    ((i != properties_.end()) && (i->second=="true")) ? " disabled=\"disabled\"" : "",
-            //                    j != attributes_.end() ? j->second : "",
-            //                    elementNames_[static_cast<unsigned int>(renderedType)]);
-            // }
-
-
-
-
-            // if (auto i = properties_.find(Property::Disabled); (i != properties_.end()) && (i->second=="true"))
-            //     fmt::format_to(std::back_inserter(out), " disabled=\"disabled\"");
-
-            // if (auto j = attributes_.find("title"); j != attributes_.end())
-            // {
-            //     fmt::format_to(std::back_inserter(out), " {}=\"{}\"", j->first, j->second);
-            // }
-
-            // if (app->environment().agent() != UserAgent::Konqueror
-            //     && !app->environment().agentIsWebKit()
-            //     && !app->environment().agentIsIE())
-            //     style = "margin: 0px -3px -2px -3px;";
-
-            //fmt::format_to(std::back_inserter(out), " ><{}", elementNames_[static_cast<unsigned int>(renderedType)]);
-            /***************/
-        // } else {
-        //     auto i = properties_.find(Property::InnerHTML);
-        //     if (type_ == DomElementType::IMG)
-        //         fmt::format_to(std::back_inserter(out), "<input type=\"image\" name=\"signal={}\"  value=\"{}\"",
-        //                        clickEvent->second.signalName,
-        //                        i != properties_.end() ? i->second : "");
-        //     else
-        //         fmt::format_to(std::back_inserter(out), "<input type=\"submit\" name=\"signal={}\"  value=\"{}\"",
-        //                        clickEvent->second.signalName,
-        //                        i != properties_.end() ? i->second : "");
-        // }
-    // } else if (needAnchorWrap) { //DEPRECATED : never reach
-    //     fmt::format_to(std::back_inserter(out), "<a href=\"#\" class=\"Wt-wrap\" onclick=\"{}\"><{}{:a}{:p}{}{}</a>",
-    //                    clickEvent->second.jsCode,
-    //                    elementNames_[static_cast<unsigned int>(renderedType)],
-    //                    this,
-    //                    this,
-    //                    openingTagOnly || !isSelfClosingTag(renderedType) ? ">" : "",
-    //                    ccc);
-    } else /*if (renderedType == DomElementType::OTHER)*/  // Custom DomElementType
+    } else /* no button wrapper required */
         fmt::format_to(std::back_inserter(out), FMT_COMPILE("<{}{:a}{}{}"),
                        renderedType == DomElementType::OTHER ? elementTagName_ : elementNames_[static_cast<unsigned int>(renderedType)],
                        *this,
                        openingTagOnly || !isSelfClosingTag(renderedType) ? ">" : "",
                        tuple);
-    // else
-    //     fmt::format_to(std::back_inserter(out), "<{}", elementNames_[static_cast<unsigned int>(renderedType)]);
 
+#ifdef WT_PRE_ES6_SUPPORT
+    if (app->environment().ajax()) {
+        for(auto &[signal, handler] : eventHandlers_) {
+            if (!handler.jsCode.empty()) {
+                if (globalUnfocused_ ||
+                    (signal == WInteractWidget::WHEEL_SIGNAL &&
+                     app->environment().agentIsIE() &&
+                     static_cast<unsigned int>(app->environment().agent()) >= static_cast<unsigned int>(UserAgent::IE9)))
+                {
+                    //setJavaScriptEvent(javaScript, signal, handler, app);
+                    unsigned fid = nextId_++;
 
-    //fmt::format_to(std::back_inserter(out), "{:a}", this);
+                    if (globalUnfocused_) {
+                        fmt::format_to(std::back_inserter(javaScript), FMT_COMPILE("function f{fid}(event){{{}}}\n{}._p_.bindGlobal('{}', '{}', f{fid})\n"), handler.jsCode, app->javaScriptClass(), signal, id_, fmt::arg("fid", fid));
+                    } else {
+                        declare(javaScript);
+                        fmt::format_to(std::back_inserter(javaScript), FMT_COMPILE("function f{fid}(event){{{}}}\n{}.addEventListener('wheel', f{fid}, false);\n"), handler.jsCode, var_, fmt::arg("fid", fid));
+                    }
+                }
+            }
+        }
+    }
+#else
+    if (globalUnfocused_) {
+        for(auto &[signal, handler] : eventHandlers_) {
+            if (!handler.jsCode.empty()) {
+                //setJavaScriptEvent(javaScript, signal, handler, app);
+                unsigned fid = nextId_++;
+                fmt::format_to(std::back_inserter(javaScript), FMT_COMPILE("function f{fid}(event){{{}}}\n{}._p_.bindGlobal('{}', '{}', f{fid})\n"),
+                               handler.jsCode,
+                               app->javaScriptClass(),
+                               signal,
+                               id_,
+                               fmt::arg("fid", fid));
+            }
+        }
+    }
+#endif
 
-    // if (!id_.empty()) {
-    //     fmt::format_to(std::back_inserter(out), " id=\"{}\"", id_);
-    // }
-
-    // for (auto i = attributes_.begin(); i != attributes_.end(); ++i)
-    //     if (!app->environment().agentIsSpiderBot() || i->first != "name") {
-    //         fmt::format_to(std::back_inserter(out), " {}=\"{}\"", i->first, i->second);
-    //     }
-
-    // if (app->environment().ajax()) {
-    //     for(auto &[signal, handler] : eventHandlers_) {
-    //         if (!handler.jsCode.empty()) {
-    //             if (globalUnfocused_ ||
-    //                 (signal == WInteractWidget::WHEEL_SIGNAL &&
-    //                  app->environment().agentIsIE() &&
-    //                  static_cast<unsigned int>(app->environment().agent()) >= static_cast<unsigned int>(UserAgent::IE9)))
-    //             {
-    //                 //setJavaScriptEvent(javaScript, signal, handler, app);
-    //                 unsigned fid = nextId_++;
-
-    //                 fmt::format_to(std::back_inserter(javaScript), "function f{}(event){{{}}}\n", fid, handler.jsCode);
-
-    //                 if (globalUnfocused_) {
-    //                     fmt::format_to(std::back_inserter(javaScript), "{}._p_.bindGlobal('{}', '{}', f{})\n", app->javaScriptClass(), signal, id_, fid);
-    //                     return;
-    //                 } else {
-    //                     declare(javaScript);
-    //                 }
-
-    //                 if (signal == WInteractWidget::WHEEL_SIGNAL &&
-    //                     app->environment().agentIsIE() &&
-    //                     static_cast<unsigned int>(app->environment().agent()) >= static_cast<unsigned int>(UserAgent::IE9))
-    //                     fmt::format_to(std::back_inserter(javaScript), "{}.addEventListener('wheel', f{}, false);\n", var_, fid); //out << ".addEventListener('wheel', f" << fid << ", false);\n";
-    //                 else
-    //                     fmt::format_to(std::back_inserter(javaScript), "{}.on{}=f{};\n", var_, signal, fid); //out << ".on" << const_cast<char *>(eventName) << "=f" << fid << ";\n";
-    //             }
-    //             else
-    //             {
-    //                 fmt::format_to(std::back_inserter(out), " on{}=\"{}\"", signal, handler.jsCode);
-    //             }
-    //         }
-    //     }
-    // }
-
-
-
-
-    //innerHTML_.clear();
-    //fmt::format_to(std::back_inserter(out), "{:p}", this);
-    // std::string innerHTML = "";
-
-    // for (auto &[prop, value] : properties_) {
-    //     switch (prop) {
-    //     case Property::InnerHTML:
-    //         innerHTML += value;
-    //         break;
-    //     case Property::Disabled:
-    //         if (value == "true")
-    //             fmt::format_to(std::back_inserter(out)," disabled=\"disabled\"");
-    //         break;
-    //     case Property::ReadOnly:
-    //         if (value == "true")
-    //             fmt::format_to(std::back_inserter(out)," readonly=\"readonly\"");
-    //         break;
-    //     case Property::TabIndex:
-    //         fmt::format_to(std::back_inserter(out)," tabindex=\"{}\"", value);
-    //         break;
-    //     case Property::Checked:
-    //         if (value == "true")
-    //             fmt::format_to(std::back_inserter(out)," checked=\"checked\"");
-    //         break;
-    //     case Property::Selected:
-    //         if (value == "true")
-    //             fmt::format_to(std::back_inserter(out)," selected=\"selected\"");
-    //         break;
-    //     case Property::SelectedIndex:
-    //         if (value == "-1") {
-    //             DomElement *self = const_cast<DomElement *>(this);
-    //             self->callMethod("selectedIndex=-1");
-    //         }
-    //         break;
-    //     case Property::Multiple:
-    //         if (value == "true")
-    //             fmt::format_to(std::back_inserter(out)," multiple=\"multiple\"");
-    //         break;
-    //     case Property::Target:
-    //         fmt::format_to(std::back_inserter(out)," target=\"{}\"", value);
-    //         break;
-    //     case Property::Download:
-    //         fmt::format_to(std::back_inserter(out)," download=\"{}\"", value);
-    //         break;
-    //     case Property::Indeterminate:
-    //         if (value == "true") {
-    //             DomElement *self = const_cast<DomElement *>(this);
-    //             self->callMethod("indeterminate=" + value);
-    //         }
-    //         break;
-    //     case Property::Value:
-    //         if (type_ != DomElementType::TEXTAREA) {
-    //             fmt::format_to(std::back_inserter(out)," value=\"{}\"", value);
-    //         } else {
-    //             std::string v = value;
-    //             innerHTML += WWebWidget::escapeText(v, false);
-    //         }
-    //         break;
-    //     case Property::Src:
-    //         fmt::format_to(std::back_inserter(out)," src=\"{}\"", value);
-    //         break;
-    //     case Property::ColSpan:
-    //         fmt::format_to(std::back_inserter(out)," colspan=\"{}\"", value);
-    //         break;
-    //     case Property::RowSpan:
-    //         fmt::format_to(std::back_inserter(out)," rowspan=\"{}\"", value);
-    //         break;
-    //     case Property::Class:
-    //         fmt::format_to(std::back_inserter(out)," class=\"{}\"", value);
-    //         break;
-    //     case Property::Label:
-    //         fmt::format_to(std::back_inserter(out)," label=\"{}\"", value);
-    //         break;
-    //     case Property::Placeholder:
-    //         fmt::format_to(std::back_inserter(out)," placeholder=\"{}\"", value);
-    //         break;
-    //     default:
-    //         break;
-    //     }
-    // }
-
-    // if (!needButtonWrap_) {
-    //     cssStyle(out);
-    // }
-    // else if(!style.empty())
-    //     fmt::format_to(std::back_inserter(out), "style=\"{}\"", style);
-
-    // if (needButtonWrap_ && !supportButton)
-    //     out.append(" />");
-    // else {
-    // if (openingTagOnly) {
-    //     out.push_back('>');
-    //     return;
-    // }
-
-        /*
-     * http://www.w3.org/TR/html/#guidelines
-     * XHTML recommendation, back-wards compatibility with HTML: C.2, C.3:
-     * do not use minimized forms when content is empty like <p />, and use
-     * minimized forms for certain elements like <br />
-     */
-     //   if (!isSelfClosingTag(renderedType)) {
-            //out.push_back('>');
-            // for (unsigned i = 0; i < childrenToAdd_.size(); ++i)
-            //     childrenToAdd_[i].child->asHTML(out, javaScript, timeouts);
-
-            // out << innerHTML; // for WPushButton must be after childrenToAdd_
-
-            // out << childrenHtml_.str();
-
-
-            // auto ccc = std::tie(*this, out, javaScript, timeouts);
-            // fmt::format_to(std::back_inserter(out), ">{}", ccc);
-
-            // fmt::format_to(std::back_inserter(out), ">{}{}{}{}</{}>", ccc, innerHTML_, childrenHtml_.str(),
-            //                           renderedType == DomElementType::DIV
-            //                        && app->environment().agent() == UserAgent::IE6
-            //                        && innerHTML_.empty()
-            //                        && childrenToAdd_.empty()
-            //                        && childrenHtml_.empty() ? "&nbsp;" : "", // IE6 will incorrectly set the height of empty divs
-            //                renderedType  == DomElementType::OTHER ?
-            //                    elementTagName_ : elementNames_[static_cast<unsigned int>(renderedType)]);
-
-            // // IE6 will incorrectly set the height of empty divs
-            // if (renderedType == DomElementType::DIV
-            //     && app->environment().agent() == UserAgent::IE6
-            //     && innerHTML.empty()
-            //     && childrenToAdd_.empty()
-            //     && childrenHtml_.empty())
-            //     out.append("&nbsp;");
-            // if (renderedType  == DomElementType::OTHER) // Custom tag name
-            //     out << "</" << elementTagName_ << ">";
-            // else
-            //     out << "</" << elementNames_[static_cast<unsigned int>(renderedType)]
-            //         << ">";
-        // } else
-        //     out.append(" />");
-
-        // if (needButtonWrap_ /*&& supportButton*/)
-        //     out.append("</button>");
-        // else if (needAnchorWrap)
-        //     out.append("</a>");
-    //}
-
-    //javaScript << javaScriptEvenWhenDeleted_ << javaScript_;
-    fmt::format_to(std::back_inserter(javaScript), FMT_COMPILE("{}{}"), javaScriptEvenWhenDeleted_, std::string_view(javaScript_));
+    // javaScriptEvenWhenDeleted_ deprecated ?
+    fmt::format_to(std::back_inserter(javaScript), FMT_COMPILE("{}{}"),
+                   javaScriptEvenWhenDeleted_,
+                   std::string_view(javaScript_));
 
     if (timeOut_ != -1)
-        timeouts.push_back(TimeoutEvent(timeOut_, id_, timeOutJSRepeat_));
+        timeouts.emplace_back(timeOut_, id_, timeOutJSRepeat_);
 
     Utils::insert(timeouts, timeouts_);
-
 }
 
 void DomElement::asHTML(EscapeOStream& out,
@@ -1971,8 +1779,7 @@ void DomElement::asHTML(EscapeOStream& out,
         }
 
     if (app->environment().ajax()) {
-        for (EventHandlerMap::const_iterator i = eventHandlers_.begin();
-             i != eventHandlers_.end(); ++i) {
+        for (EventHandlerMap::const_iterator i = eventHandlers_.begin(); i != eventHandlers_.end(); ++i) {
             if (!i->second.jsCode.empty()) {
                 if (globalUnfocused_
                     || (i->first == WInteractWidget::WHEEL_SIGNAL &&
@@ -2134,13 +1941,10 @@ void DomElement::asHTML(EscapeOStream& out,
     Utils::insert(timeouts, timeouts_);
 }
 
-std::string DomElement::createVar() const
+std::string& DomElement::createVar() const
 {
 #ifndef WT_TARGET_JAVA
     fmt::format_to(std::back_inserter(var_), FMT_COMPILE("j{}"), nextId_++);
-  // char buf[20];
-  // std::sprintf(buf, "j%u", nextId_++);
-  // var_ = buf;
 #else // !WT_TARGET_JAVA
   var_ = "j" + std::to_string(nextId_++);
 #endif // !WT_TARGET_JAVA
@@ -2332,14 +2136,6 @@ std::string DomElement::asJavaScript(fmt::memory_buffer &out, Priority priority)
             declare(out);
 
             std::string varr = replaced_->createVar();
-            // WStringStream insertJs;
-            // insertJs << var_ << ".parentNode.replaceChild("
-            //          << varr << ',' << var_ << ");\n";
-            // replaced_->createElement(out, app, insertJs.str());
-            // if (unstubbed_)
-            //     out << WT_CLASS ".unstub(" << var_ << ',' << varr << ','
-            //         << (hideWithDisplay_ ? 1 : 0) << ");\n";
-
             std::string insertJs;
             fmt::format_to(std::back_inserter(insertJs), FMT_COMPILE("{}.parentNode.replaceChild({},{});\n"), var_, varr, var_);
             replaced_->createElement(out, app, insertJs);
@@ -2370,16 +2166,12 @@ std::string DomElement::asJavaScript(fmt::memory_buffer &out, Priority priority)
         }
 
         for (unsigned i = 0; i < childrenToSave_.size(); ++i) {
+#ifdef WT_PRE_ES6_SUPPORT
             if (app->environment().agentIsIE())
                 fmt::format_to(std::back_inserter(out),  FMT_COMPILE("var c{}{}=$('#').detach();"), var_, i, childrenToSave_[i]);
             else
+#endif
                 fmt::format_to(std::back_inserter(out),  FMT_COMPILE("var c{}{}=$('#');"), var_, i, childrenToSave_[i]);
-            // out << "var c" << var_ << (int)i << '='
-            //     << "$('#" << childrenToSave_[i] << "')";
-            // // In IE, contents is deleted by setting innerHTML
-            // if (app->environment().agentIsIE())
-            //     out << ".detach()";
-            // out << ";";
         }
 
         if (mode_ != Mode::Create) {
@@ -2429,18 +2221,16 @@ void DomElement::createTimeoutJs(WStringStream& out,
 
 void DomElement::createTimeoutJs(fmt::memory_buffer &out, const TimeoutList &timeouts, WApplication *app)
 {
-    fmt::format_to(std::back_inserter(out), "{}", fmt::join(timeouts, ""));
+    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}"), fmt::join(timeouts, ""));
 }
 
-void DomElement::createElement(WStringStream& out, WApplication *app,
-			       const std::string& domInsertJS)
+void DomElement::createElement(WStringStream& out, WApplication *app, const std::string& domInsertJS)
 {
   EscapeOStream sout(out);
   createElement(sout, app, domInsertJS);
 }
 
-void DomElement::createElement(EscapeOStream& out, WApplication *app,
-                               const std::string& domInsertJS)
+void DomElement::createElement(EscapeOStream& out, WApplication *app, const std::string& domInsertJS)
 {
     if (var_.empty())
         createVar();
@@ -2482,8 +2272,7 @@ void DomElement::createElement(fmt::memory_buffer &out, WApplication *app, std::
     if (var_.empty())
         createVar();
 
-
-
+#ifdef WT_PRE_ES6_SUPPORT
     if (app->environment().agentIsIE()
         && app->environment().agent() <= UserAgent::IE8
         && type_ != DomElementType::TEXTAREA) {
@@ -2508,14 +2297,15 @@ void DomElement::createElement(fmt::memory_buffer &out, WApplication *app, std::
         fmt::format_to(std::back_inserter(out),  FMT_COMPILE("');{}"), domInsertJS);
         renderInnerHtmlJS(out, app);
         renderDeferredJavaScript(out);
-    } else {
+    } else
+#else
+    http::detail::unused(app);
+#endif
+    {
         fmt::format_to(std::back_inserter(out),  FMT_COMPILE("var {}=document.createElement('{}');{}"),
                        var_,
                        elementNames_[static_cast<unsigned int>(type_)],
                        domInsertJS);
-        // out << "document.createElement('"
-        //     << elementNames_[static_cast<unsigned int>(type_)] << "');";
-        // out << domInsertJS;
         asJavaScript(out, Priority::Create);
         asJavaScript(out, Priority::Update);
     }
@@ -2527,16 +2317,25 @@ std::string DomElement::addToParent(fmt::memory_buffer &out, const std::string &
 
     if (type_ == DomElementType::TD || type_ == DomElementType::TR) {
         if (type_ == DomElementType::TD)
-            fmt::format_to(std::back_inserter(out), FMT_COMPILE("var {}={}.insertCell({});\n"), var_, parentVar, pos);
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("var {}={}.insertCell({});\n"),
+                           var_,
+                           parentVar,
+                           pos);
         else
-            fmt::format_to(std::back_inserter(out), FMT_COMPILE("var {}={}.insertRow({});\n"), var_, parentVar, pos);
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("var {}={}.insertRow({});\n"),
+                           var_,
+                           parentVar,
+                           pos);
 
         asJavaScript(out, Priority::Create);
         asJavaScript(out, Priority::Update);
     } else {
         fmt::memory_buffer insertJS;
         if (pos != -1)
-            fmt::format_to(std::back_inserter(insertJS), FMT_COMPILE(WT_CLASS ".insertAt({},{},{});"), parentVar, var_, pos);
+            fmt::format_to(std::back_inserter(insertJS), FMT_COMPILE(WT_CLASS ".insertAt({},{},{});"),
+                           parentVar,
+                           var_,
+                           pos);
         else
             fmt::format_to(std::back_inserter(insertJS), FMT_COMPILE("{}.appendChild({});"), parentVar, var_);
 
@@ -2826,65 +2625,38 @@ void DomElement::renderInnerHtmlJS(fmt::memory_buffer &out, WApplication *app) c
                 innerHTML += i->second;
             }
         }
-
         /*
          * Do we actually have anything to render ?
-         *   first condition: for IE6: write &nbsp; inside a empty <div></div>
+         *
          */
-        if ((type_ == DomElementType::DIV
-             && app->environment().agent() == UserAgent::IE6)
-            || !childrenToAdd_.empty() || childrenHtml_.size()
-            || !innerHTML.empty()) {
+        if (!childrenToAdd_.empty() || childrenHtml_.size() || !innerHTML.empty())
+        {
             declare(out);
 
             TimeoutList timeouts;
             fmt::memory_buffer js;
-
             auto tuple = std::tie(*this, out, js, timeouts);
+#ifdef WT_PRE_ES6_SUPPORT
+//if backticks are not supported, use single quotes fallback with singlequote escaping (if we want to support older browsers pre ES6)
+            if(app->environment().isIE())
+                fmt::format_to(std::back_inserter(out), FMT_COMPILE(WT_CLASS ".setHtml({},'{:e}');\n"), var_, tuple);
+            else
+#endif
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE(WT_CLASS ".setHtml({},`{}`);\n"),
+                           var_,
+                           tuple);
 
-            fmt::format_to(std::back_inserter(out), FMT_COMPILE(WT_CLASS ".setHtml({},'{}{}{}');\n"), var_, tuple, innerHTML, std::string_view(childrenHtml_));
-            //out << WT_CLASS ".setHtml(" << var_ << ",'";
-
-            //out.pushEscape(EscapeOStream::JsStringLiteralSQuote);
-            // TimeoutList timeouts;
-            // EscapeOStream js;
-
-            // for (unsigned i = 0; i < childrenToAdd_.size(); ++i)
-            //     childrenToAdd_[i].child->asHTML(out, js, timeouts);
-
-            //out << innerHTML;
-
-            //out << childrenHtml_.str();
-
-            //deprecated
-            // if (type_ == DomElementType::DIV
-            //     && app->environment().agent() == UserAgent::IE6
-            //     && childrenToAdd_.empty()
-            //     && innerHTML.empty()
-            //     && childrenHtml_.empty())
-            //     out << "&nbsp;";
-
-            //out.popEscape();
-
-            //out << "');\n";
-
+            std::string_view javascript(js.data(), js.size());
+            //intergrated inside previous statement
             Utils::insert(timeouts, timeouts_);
-
-            fmt::format_to(std::back_inserter(out),  FMT_COMPILE("{}{}"), fmt::join(timeouts, ""), std::string_view(js.data(), js.size()));
-
-            // for (unsigned i = 0; i < timeouts.size(); ++i) {
-            //     out << app->javaScriptClass()
-            //     << "._p_.addTimerEvent('" << timeouts[i].event << "', "
-            //     << timeouts[i].msec << ','
-            //     << timeouts[i].repeat << ");\n";
-            // }
-
-            // out << js;
+            fmt::format_to(std::back_inserter(out),  FMT_COMPILE("{}{}"),
+                           fmt::join(timeouts, ""),
+                           javascript);
         }
     } else {
         declare(out);
         for (unsigned i = 0; i < childrenToAdd_.size(); ++i) {
-            DomElement &child = (DomElement&)childrenToAdd_[i].child;
+            DomElement &child = const_cast<DomElement&>(childrenToAdd_[i].child);
             child.addToParent(out, var_, childrenToAdd_[i].pos, app);
         }
     }
@@ -2895,9 +2667,6 @@ void DomElement::renderInnerHtmlJS(fmt::memory_buffer &out, WApplication *app) c
                        id_,
                        timeOut_,
                        timeOutJSRepeat_);
-        // out << app->javaScriptClass() << "._p_.addTimerEvent('"
-        //     << id_ << "', " << timeOut_ << ','
-        //     << timeOutJSRepeat_ << ");\n";
     }
 }
 
@@ -2905,9 +2674,7 @@ void DomElement::renderDeferredJavaScript(fmt::memory_buffer &out) const
 {
     if (javaScript_.size()) {
         declare(out);
-        fmt::format_to(std::back_inserter(out), "{}\n", javaScript_);
-        // out.append(javaScript_);
-        // out.push_back('\n');
+        fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}\n"), javaScript_);
     }
 }
 
@@ -2921,9 +2688,6 @@ void DomElement::renderDeferredJavaScript(EscapeOStream& out) const
 
 void DomElement::setJavaScriptProperties(fmt::memory_buffer &out, WApplication *app) const
 {
-
-    bool pushed = false;
-
     for (auto i = properties_.begin(); i != properties_.end(); ++i) {
         declare(out);
 
@@ -2940,49 +2704,35 @@ void DomElement::setJavaScriptProperties(fmt::memory_buffer &out, WApplication *
            */
             if (willRenderInnerHtmlJS(app))
                 break;
-
+#ifndef WT_PRE_ES6_SUPPORT
+            fmt::format_to(std::back_inserter(out),  FMT_COMPILE(WT_CLASS ".setHtml({},`{}`,{});"),
+                           var_,
+                           i->second,
+                           i->first != Property::InnerHTML);
+#else //if < ES6 back-stick is not supported
             fmt::format_to(std::back_inserter(out),  FMT_COMPILE(WT_CLASS ".setHtml({},'{:s}',{});"),
                            var_,
                            JsString(i->second),
-                           i->first == Property::InnerHTML);
-
-            // out << WT_CLASS ".setHtml(" << var_ << ',';
-            // if (!pushed) {
-            //     escaped.pushEscape(EscapeOStream::JsStringLiteralSQuote);
-            //     pushed = true;
-            // }
-            // fastJsStringLiteral(out, escaped, i->second);
-            // if (i->first == Property::InnerHTML)
-            //     out << ",false";
-            // else
-            //     out << ",true";
-
-            // out << ");";
-
+                           i->first != Property::InnerHTML);
+#endif
             break;
         case Property::Value:
+#ifndef WT_PRE_ES6_SUPPORT
+            fmt::format_to(std::back_inserter(out),  FMT_COMPILE("{}.value=`{}`;"), var_, i->second);
+#else //if < ES6 back-stick is not supported
             fmt::format_to(std::back_inserter(out),  FMT_COMPILE("{}.value='{:s}';"), var_, JsString(i->second));
-            // out << var_ << ".value=";
-            // if (!pushed) {
-            //     escaped.pushEscape(EscapeOStream::JsStringLiteralSQuote);
-            //     pushed = true;
-            // }
-            // fastJsStringLiteral(out, escaped, i->second);
-            // out << ';';
+#endif
             break;
         case Property::Target:
             fmt::format_to(std::back_inserter(out),  FMT_COMPILE("{}.target='{}';"), var_, i->second);
-            //out << var_ << ".target='" << i->second << "';";
             break;
         case Property::Indeterminate:
             fmt::format_to(std::back_inserter(out),  FMT_COMPILE("{}.indeterminate={};"), var_, i->second);
-            //out << var_ << ".indeterminate=" << i->second << ";";
             break;
         case Property::Disabled:
             if (type_ == DomElementType::A) {
                 if (i->second == "true")
                     fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.setAttribute('disabled', 'disabled');"), var_);
-                    //out << var_ << ".setAttribute('disabled', 'disabled');";
                 else
                     fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.removeAttribute('disabled', 'disabled');"), var_);
                     //out << var_ << ".removeAttribute('disabled', 'disabled');";
@@ -3028,7 +2778,11 @@ void DomElement::setJavaScriptProperties(fmt::memory_buffer &out, WApplication *
             //out << var_ << ".rowSpan=" << i->second << ";";
             break;
         case Property::Label:
+#ifndef WT_PRE_ES6_SUPPORT
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.label=`{}`;"), var_, i->second);
+#else //if < ES6 back-stick is not supported
             fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.label='{:s}';"), var_, JsString(i->second));
+#endif
             //out << var_ << ".label=";
             // if (!pushed) {
             //     escaped.pushEscape(EscapeOStream::JsStringLiteralSQuote);
@@ -3038,7 +2792,11 @@ void DomElement::setJavaScriptProperties(fmt::memory_buffer &out, WApplication *
             // out << ';';
             break;
         case Property::Placeholder:
+#ifndef WT_PRE_ES6_SUPPORT
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.placeholder=`{}`;"), var_, i->second);
+#else //if < ES6 back-stick is not supported
             fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.placeholder='{:s}';"), var_, JsString(i->second));
+#endif
             //out << var_ << ".placeholder=";
             // if (!pushed) {
             //     escaped.pushEscape(EscapeOStream::JsStringLiteralSQuote);
@@ -3048,7 +2806,11 @@ void DomElement::setJavaScriptProperties(fmt::memory_buffer &out, WApplication *
             // out << ';';
             break;
         case Property::Class:
+#ifndef WT_PRE_ES6_SUPPORT
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.className=`{}`;"), var_, i->second);
+#else //if < ES6 back-stick is not supported
             fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.className='{:s}';"), var_, JsString(i->second));
+#endif
             //out << var_ << ".className=";
             // if (!pushed) {
             //     escaped.pushEscape(EscapeOStream::JsStringLiteralSQuote);
@@ -3059,17 +2821,23 @@ void DomElement::setJavaScriptProperties(fmt::memory_buffer &out, WApplication *
             break;
         case Property::StyleFloat:
 
-            //out << var_ << ".style.";
+#ifdef WT_PRE_ES6_SUPPORT
             if (app->environment().agentIsIE())
-                fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.style.styleFloat=\'{}\';"), var_, i->second);
-                //out << "styleFloat";
+                fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.style.styleFloat='{}';"), var_, i->second);
             else
-                fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.style.cssFloat=\'{}\';"), var_, i->second);
+#endif
+                fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.style.cssFloat='{}';"), var_, i->second);
                 //out << "cssFloat";
             //out << "=\'" << i->second << "\';";
             break;
         case Wt::Property::StyleWidthExpression:
+#ifndef WT_PRE_ES6_SUPPORT
+            fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.style.setExpression('width', `{}`);"),
+                           var_,
+                           i->second);
+#else //if < ES6 back-stick is not supported
             fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.style.setExpression('width', '{:s}');"), var_, JsString(i->second));
+#endif
             //out << var_ << ".style.setExpression('width',";
             // if (!pushed) {
             //     escaped.pushEscape(EscapeOStream::JsStringLiteralSQuote);
@@ -3087,13 +2855,19 @@ void DomElement::setJavaScriptProperties(fmt::memory_buffer &out, WApplication *
                    * Unsupported properties, like min-height, would otherwise be
                    * ignored, but we want this information client-side. (Still, really ?)
                    */
-                    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.style['{}']='{}';"), var_, cssNames_[p - static_cast<unsigned int>(Property::StylePosition)], i->second);
+                    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.style['{}']='{}';"),
+                                   var_,
+                                   cssNames_[p - static_cast<unsigned int>(Property::StylePosition)],
+                                   i->second);
                     //
                     // out << var_ << ".style['"
                     //     << cssNames_[p - static_cast<unsigned int>(Property::StylePosition)]
                     //     << "']='" << i->second << "';";
                 } else {
-                    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.style.{}='{}';"), var_, cssCamelNames_[p - static_cast<unsigned int>(Property::Style)], i->second);
+                    fmt::format_to(std::back_inserter(out), FMT_COMPILE("{}.style.{}='{}';"),
+                                   var_,
+                                   cssCamelNames_[p - static_cast<unsigned int>(Property::Style)],
+                                   i->second);
                     //
                     // out << var_ << ".style."
                     //     << cssCamelNames_[p - static_cast<unsigned int>(Property::Style)]
@@ -3275,7 +3049,9 @@ void DomElement::setJavaScriptAttributes(fmt::memory_buffer &out) const
     declare(out);
     if(!attributes_.empty())
         fmt::format_to(std::back_inserter(out),
-                       FMT_COMPILE("let opt={};Object.keys(opt).forEach(key=>{{if(key==='style'){input}.style.cssText=opt[key];else {input}.setAttribute(key, opt[key]);}});"), fmt::arg("input", var_), attributes_);
+                       FMT_COMPILE("let opt={};Object.keys(opt).forEach(key=>{{if(key==='style'){input}.style.cssText=opt[key];else {input}.setAttribute(key, opt[key]);}});"),
+                       fmt::arg("input", var_),
+                       attributes_);
 
     if(!removedAttributes_.empty())
         fmt::format_to(std::back_inserter(out),

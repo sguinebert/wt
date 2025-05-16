@@ -45,7 +45,7 @@ void WGroupBox::updateDom(DomElement& element, bool all)
       legend = DomElement::getForUpdate(id() + "l", DomElementType::LEGEND);*/
 
     legend.setProperty(Wt::Property::InnerHTML, escapeText(title_.toUTF8()));
-    element.addChild(legend);
+    element.addChild(std::move(legend));
 
     titleChanged_ = false;
   }

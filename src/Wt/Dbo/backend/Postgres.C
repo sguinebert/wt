@@ -133,6 +133,27 @@ namespace backend
   {
   }
 
+  Postgres::Postgres(const Postgres &other)
+  {
+      connection_ = std::move(other.connection_);
+      connInfo_ = other.connInfo_;
+      timeout_ = other.timeout_;
+      maximumLifetime_ = other.maximumLifetime_;
+      connectTime_ = other.connectTime_;
+      cancel_wait_ = other.cancel_wait_;
+  }
+
+  Postgres &Postgres::operator=(const Postgres &other)
+  {
+      connection_ = std::move(other.connection_);
+      connInfo_ = other.connInfo_;
+      timeout_ = other.timeout_;
+      maximumLifetime_ = other.maximumLifetime_;
+      connectTime_ = other.connectTime_;
+      cancel_wait_ = other.cancel_wait_;
+      return *this;
+  }
+
   std::unique_ptr<SqlStatement> Postgres::prepareStatement(const std::string &sql)
   {
       if (PQstatus(conn_) != CONNECTION_OK)

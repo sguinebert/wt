@@ -292,8 +292,8 @@ namespace Wt
     std::string s = se;
     int seLength = se.length();
 
-    type = context->getParameter(concat(s, seLength, "type")); //getStringParameter(request, concat(s, seLength, "type"));
-    boost::to_lower(type);
+    // type = context->getParameter(concat(s, seLength, "type")); //getStringParameter(request, concat(s, seLength, "type"));
+    // boost::to_lower(type);
 
     clientX = parseIntParameter(context, concat(s, seLength, "clientX"), 0);
     clientY = parseIntParameter(context, concat(s, seLength, "clientY"), 0);

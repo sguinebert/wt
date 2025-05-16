@@ -1,29 +1,28 @@
 {DOCTYPE}
-<html {HTMLATTRIBUTES}>
+<html lang="en" dir="ltr" class="{HTMLATTRIBUTES}">
 <head>
 {HEADDECLARATIONS}
 <meta name="robots" content="noindex, nofollow">
 <title></title>
-<!--[if gte IE 6]>
-<style type="text/css">
-v\:* {{ behavior:url(#default#VML); position:absolute }}
-</style>
-<script id="ie-deferred-loader" defer="defer" src="//:"></script>
-<![endif]-->
 <script>
 /*<![CDATA[*/
-{BOOT_JS}
+/* eslint-disable */
+const C={{a:{AJAX_CANONICAL_URL},b:{INTERNAL_PATH},c:{PATH_INFO},d:{RANDOMSEED},e:{RELOAD_IS_NEWSESSION},f:{SCRIPT_ID},g:{SELF_URL},h:{USE_COOKIES},i:{COOKIE_CHECKS},j:{HYBRID},k:{PROGRESS},l:{WEBGL_DETECT},m:'{SESSION_ID}'}};
+window.addEventListener("resize",()=>{{}});
+function loadScript(u){{const h=document.head,x=new XMLHttpRequest();x.open("GET",u,!0);x.onreadystatechange=()=>{{if(x.readyState===4&&(x.status===200||x.status===0)){{const s=document.createElement("script");s.text=x.responseText;h.appendChild(s)}}}};x.send()}}
+if(C.k){{const dcs=[];const d=e=>{{const f=document.getElementById("Wt-form");if(!f)return!0;dcs.push({{bubbles:e.bubbles,cancelable:e.cancelable,detail:e.detail,screenX:e.screenX,screenY:e.screenY,clientX:e.clientX,clientY:e.clientY,ctrlKey:e.ctrlKey,altKey:e.altKey,shiftKey:e.shiftKey,metaKey:e.metaKey,button:e.button,targetId:e.target.id}});e.stopPropagation();e.preventDefault();return!1}};(function sdc(){{const b=document.body;if(!b)setTimeout(sdc,1);else b.addEventListener("click",d,!0)}})()}}
+(function(){{const d=document,w=window,R=()=>Math.round(1e6*Math.random())+C.d,U=u=>w.location.replace(u),H=()=>{{const f=d.getElementById("Wt-form");f?f.style.visibility="hidden":setTimeout(H,10)}},gp=()=>{{const q=w.location.search;return(q.startsWith("?" )?q.slice(1):q).split("&")}},gP=n=>{{for(const p of gp()){{const[t,y]=p.split("=");if(t===n)return decodeURIComponent(y)}}return null}},cU=(n,v)=>{{const ps=gp().map(p=>{{const[t,y]=p.split("=");return t===n?`${{t}}=${{encodeURIComponent(v)}}`:p}});ps.some(p=>p.startsWith(`${{n}}=`))||ps.push(`${{n}}=${{encodeURIComponent(v)}}`);return`?${{ps.join("&")}}${{w.location.hash}}`}};let dep=decodeURIComponent(w.location.pathname);C.c&&dep.includes(C.c)&&(dep=dep.replace(C.c,""));const depI=`&deployPath=${{encodeURIComponent(dep)}}`,ajax=!!w.XMLHttpRequest,htmlH=!!(w.history&&w.history.pushState),tzO=new Date().getTimezoneOffset();let O=`&tz=${{-tzO}}`;Intl?.DateTimeFormat&&(O+=`&tzS=${{encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}}`);if(C.l&&w.WebGLRenderingContext){{const c=d.createElement("canvas"),ctx=c.getContext("webgl2",{{antialias:!0}})||c.getContext("webgl");ctx&&(O+="&webGL=true")}}O+=`&scrW=${{screen.width}}&scrH=${{screen.height}}`;let noR=C.e;if(C.i){{const sec=new Date(Date.now()+1e3);d.cookie="jscookietest=valid;SameSite=Lax";noR=noR||(C.h&&d.cookie.includes("jscookietest=valid"));d.cookie="jscookietest=;expires=Thu, 01 Jan 1970 00:00:00 GMT;SameSite=Lax";d.cookie=`WtTestCookie=ok;path=/;expires=${{sec.toUTCString()}};SameSite=Lax`}}let hash=w.location.hash.slice(1);hash.includes("?")&&(hash=hash.split("?")[0]);const self=`${{C.g}}&sid=${{C.f}}`,need=(!noR||!ajax)&&gP("wtd")!==C.m;if(need){{if(htmlH)U(cU("wtd",C.m));else{{const ip=hash.startsWith("/")&&hash.length>1?hash:C.b;U(`${{self}}#${{ip}}`)}}return}}let can=C.a;if(!htmlH&&can.length>1){{if(C.j){{const soon=new Date(Date.now()+1e3).toUTCString();d.cookie=`WtInternalPath=${{encodeURIComponent(C.b)}};path=/;expires=${{soon}};SameSite=Lax`}}can.startsWith("#")&&(can=`../${{can}}`);U(can);return}}let hI="";if(hash.startsWith("/")){{hI=`&_=${{encodeURIComponent(hash)}}`;C.j&&hash!==C.b&&setTimeout(H,10)}}const all=`${{hI}}${{O}}${{htmlH?"&htmlHistory=true":""}}${{depI}}`;loadScript(`${{self}}${{all}}&request=script&rand=${{R()}}`)}})();
 /* ]]> */
 </script>
 <noscript>
   <meta http-equiv="refresh" content="0; url='{AUTO_REDIRECT}'">
-  <link href="{BOOT_STYLE_URL}&js=no" rel="stylesheet" type="text/css">
+  <link href="{BOOT_STYLE_URL}&amp;js=no" rel="stylesheet" type="text/css">
 </noscript>
 <style type="text/css" id="Wt-inline-css"></style>
 </head>
 <body>
 <!--[if lt IE 8]>
-<iframe id="Wt-history-iframe" src="{BLANK_HTML}"
+<iframe id="Wt-history-iframe" src="{BLANK_HTML}&amp;request=resource&amp;resource=blank"
  style="position:absolute;top:0;left:0;width:1px;height:1px;visibility:hidden;">
 </iframe>
 <![endif]-->
@@ -32,10 +31,5 @@ v\:* {{ behavior:url(#default#VML); position:absolute }}
   <a href="{REDIRECT_URL}">{NOSCRIPT_TEXT}</a>
 </noscript>
 <link href="{BOOT_STYLE_URL}" rel="stylesheet" type="text/css">
-<!--[if gte IE 6]>
-<script type="text/javascript">
-document.namespaces.add("v","urn:schemas-microsoft-com:vml","#default#VML");
-</script>
-<![endif]-->
 </body>
 </html>

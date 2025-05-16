@@ -19,7 +19,7 @@ StdLayoutItemImpl::StdLayoutItemImpl(Type type) : type_(type)
 StdLayoutItemImpl::~StdLayoutItemImpl()
 { }
   
-constexpr WContainerWidget *StdLayoutItemImpl::container() const
+WContainerWidget *StdLayoutItemImpl::container() const
 {  
   return static_cast<WContainerWidget *>(layoutItem()->parentWidget());
 }

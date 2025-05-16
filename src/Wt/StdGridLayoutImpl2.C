@@ -74,7 +74,7 @@ struct formatter<Wt::StdGridLayoutImpl2> {
             if(i != sections.size() - 1)
                 out = fmt::format_to(out, ",");
         }
-        out = fmt::format_to(out, "[");
+        out = fmt::format_to(out, "]");
         return out;
     }
 
@@ -118,14 +118,14 @@ struct formatter<Wt::Impl::Grid> {
                     out = fmt::format_to(out, ","); //js << ",";
 
                 if (item.item_) {
-                    auto stdlayout = (StdLayoutItemImpl *)(item.item_.get()->impl());
+                    auto stdlayout = dynamic_cast<StdLayoutItemImpl*>(item.item_.get()->impl());
                     std::string id = stdlayout->id();
 
                     //js << "{";
                     out = fmt::format_to(out, "{{");
 
                     if (item.colSpan_ != 1 || item.rowSpan_ != 1)
-                        out = fmt::format_to(out, "span: [{},{}],", item.colSpan_, item.rowSpan_);//js << "span: [" << item.colSpan_ << "," << item.rowSpan_ << "],";
+                        out = fmt::format_to(out, FMT_COMPILE("span: [{},{}],"), item.colSpan_, item.rowSpan_);//js << "span: [" << item.colSpan_ << "," << item.rowSpan_ << "],";
 
                     if (item.alignment_.value()) {
                         unsigned align = 0;
@@ -147,10 +147,10 @@ struct formatter<Wt::Impl::Grid> {
                             }
 
                         //js << "align:" << (int)align << ",";
-                        out = fmt::format_to(out, "align:{},", align);
+                        out = fmt::format_to(out, FMT_COMPILE("align:{},"), align);
                     }
 
-                    out = fmt::format_to(out, "dirty:{}id:'{}'}}", item.update_ ? 2 : 0, id);
+                    out = fmt::format_to(out, FMT_COMPILE("dirty:{}, id:'{}'}}"), item.update_ ? 2 : 0, id);
 
                     // js << "dirty:" << (grid_.items_[row][col].update_ ? 2 : 0)
                     //    << ",id:'" << id << "'"
@@ -202,7 +202,7 @@ StdGridLayoutImpl2::StdGridLayoutImpl2(WLayout *layout, Impl::Grid& grid)
                       ""    "window.addEventListener('load',f);"
                       "}})();"), app->javaScriptClass(), app->javaScriptClass());
 
-    auto j2 = fmt::format(FMT_COMPILE("if({}.layouts2){}.scheduleAdjust();"), app->javaScriptClass(), app->javaScriptClass());
+    auto j2 = fmt::format(FMT_COMPILE("if({}.layouts2){}.layouts2.adjustNow();"), app->javaScriptClass(), app->javaScriptClass());
     WApplication::instance()->addAutoJavaScript(j2);
     // WApplication::instance()->addAutoJavaScript
     //   ("if(" + app->javaScriptClass() + ".layouts2) "
@@ -292,12 +292,13 @@ void StdGridLayoutImpl2::updateDom(DomElement& parent)
   if (needConfigUpdate_) {
     needConfigUpdate_ = false;
 
-    DomElement div = DomElement::getForUpdate(this, DomElementType::DIV);
+    auto& div = parent.addChild(parent.id(), DomElementType::DIV);
+    //DomElement div = DomElement::getForUpdate(this, DomElementType::DIV);
 
     for (unsigned i = 0; i < addedItems_.size(); ++i) {
       WLayoutItem *item = addedItems_[i];
-      DomElement c = createElement(item, app);
-      div.addChild(c);
+      //DomElement c = createElement(item, app);
+      div.addChild(createElement(item, app));
     }
 
     addedItems_.clear();
@@ -307,7 +308,7 @@ void StdGridLayoutImpl2::updateDom(DomElement& parent)
 
     removedItems_.clear();
 
-    parent.addChild(div);
+    //parent.addChild(std::move(div));
 
     // WStringStream js;
     // js << app->javaScriptClass() << ".layouts2.updateConfig('"
@@ -401,7 +402,7 @@ int StdGridLayoutImpl2::minimumHeightForRow(int row) const
   for (unsigned j = 0; j < colCount; ++j) {
     WLayoutItem *item = grid_.items_[row][j].item_.get();
     if (item)
-      minHeight = std::max(minHeight, getImpl(item)->minimumHeight());
+        minHeight = 0;// std::max(minHeight, getImpl(item)->minimumHeight());
   }
 
   return minHeight;
@@ -415,7 +416,7 @@ int StdGridLayoutImpl2::minimumWidthForColumn(int col) const
   for (unsigned i = 0; i < rowCount; ++i) {
     WLayoutItem *item = grid_.items_[i][col].item_.get();
     if (item)
-      minWidth = std::max(minWidth, getImpl(item)->minimumWidth());
+        minWidth = 0;//std::max(minWidth, getImpl(item)->minimumWidth());
   }
 
   return minWidth;
@@ -760,7 +761,8 @@ DomElement StdGridLayoutImpl2::createDomElement(DomElement *parent,
             totalColStretch += std::max(0, grid_.columns_[col].stretch_);
 
         for (unsigned col = 0; col < colCount; ++col) {
-            DomElement c(DomElement::Mode::Create, DomElementType::COL);// = DomElement::createNew(DomElementType::COL);
+            auto& c = table.addChild(DomElementType::COL);
+            //DomElement c(DomElement::Mode::Create, DomElementType::COL);// = DomElement::createNew(DomElementType::COL);
             int stretch = std::max(0, grid_.columns_[col].stretch_);
 
             if (stretch || totalColStretch == 0) {
@@ -771,10 +773,10 @@ DomElement StdGridLayoutImpl2::createDomElement(DomElement *parent,
 
                 // WStringStream ss;
                 // ss << "width:" << Utils::round_css_str(pct, 2, buf) << "%;";
-                c.setProperty(Property::Style, fmt::format("width:{}%;", Utils::round_css_str(pct, 2, buf)));
+                c.setProperty(Property::Style, fmt::format(FMT_COMPILE("width:{:.02}%;"), pct, 2, buf));
             }
 
-            table.addChild(c);
+            //table.addChild(c);
         }
 
         //tbody = DomElement::createNew(DomElementType::TBODY);
@@ -856,9 +858,9 @@ DomElement StdGridLayoutImpl2::createDomElement(DomElement *parent,
                         if (padding[0] == padding[1] && padding[0] == padding[2]
                             && padding[0] == padding[3]) {
                             if (padding[0] != 0)
-                                fmt::format_to(std::back_inserter(style) , "padding:{}px;{:v}", padding[0], vAlign);
+                                fmt::format_to(std::back_inserter(style) , FMT_COMPILE("padding:{}px;{:v}"), padding[0], vAlign);
                         } else
-                            fmt::format_to(std::back_inserter(style), "padding:{}px {}px {}px {}px;{:v}", padding[0], padding[1], padding[2], padding[3], vAlign);
+                            fmt::format_to(std::back_inserter(style), FMT_COMPILE("padding:{}px {}px {}px {}px;{:v}"), padding[0], padding[1], padding[2], padding[3], vAlign);
                             // style << "padding:"
                             //       << padding[0] << "px " << padding[1] << "px "
                             //       << padding[2] << "px " << padding[3] << "px;";
@@ -931,8 +933,8 @@ DomElement StdGridLayoutImpl2::createDomElement(DomElement *parent,
                             bool haveMinWidth
                                 = !c->getProperty(Property::StyleMinWidth).empty();
 
-                            itd.addChild(cc);
-
+                            itd.addChild(std::move(cc));
+#ifdef WT_PRE_ES6_SUPPORT
                             if (app->environment().agentIsIElt(9)) {
                                 // IE7 and IE8 do support min-width but do not enforce it
                                 // properly when in a table.
@@ -943,12 +945,13 @@ DomElement StdGridLayoutImpl2::createDomElement(DomElement *parent,
                                     spacer.setProperty(Property::StyleWidth,
                                                         c->getProperty(Property::StyleMinWidth));
                                     spacer.setProperty(Property::StyleHeight, "1px");
-                                    itd.addChild(spacer);
+                                    itd.addChild(std::move(spacer));
                                 }
                             }
+#endif
 
-                            irow.addChild(itd);
-                            itable.addChild(irow);
+                            irow.addChild(std::move(itd));
+                            itable.addChild(std::move(irow));
                             c = &itable;
                             break;
                         }
@@ -968,12 +971,11 @@ DomElement StdGridLayoutImpl2::createDomElement(DomElement *parent,
                             break;
                         }
 
-                        bool haveMinWidth
-                            = !c->getProperty(Property::StyleMinWidth).empty();
-
-                        td.addChild(*c);
-
+                        td.addChild(std::move(*c));
+#ifdef WT_PRE_ES6_SUPPORT
                         if (app->environment().agentIsIElt(9)) {
+                            bool haveMinWidth
+                                = !c->getProperty(Property::StyleMinWidth).empty();
                             // IE7 and IE8 do support min-width but do not enforce it properly
                             // when in a table.
                             //  see http://stackoverflow.com/questions/2356525
@@ -983,15 +985,16 @@ DomElement StdGridLayoutImpl2::createDomElement(DomElement *parent,
                                 spacer.setProperty(Property::StyleWidth,
                                                     c->getProperty(Property::StyleMinWidth));
                                 spacer.setProperty(Property::StyleHeight, "1px");
-                                td.addChild(spacer);
+                                td.addChild(std::move(spacer));
                             }
                         }
+#endif
                     }
 
-                    tr.addChild(td);
+                    tr.addChild(std::move(td));
                 }
                 else if(item.item_) { //if (!tableptr) { if (item.item_) {
-                    div.addChild(cc);
+                    div.addChild(std::move(cc));
                 }
             }
         }
@@ -1001,15 +1004,15 @@ DomElement StdGridLayoutImpl2::createDomElement(DomElement *parent,
                 tr.setProperty(Property::StyleDisplay, "hidden");
             else
                 prevRowWithItem = row;
-            tbody.addChild(tr);
+            tbody.addChild(std::move(tr));
         }
     }
 
     //js << "));";
 
     if (tableptr) {
-        table.addChild(tbody);
-        div.addChild(table);
+        table.addChild(std::move(tbody));
+        div.addChild(std::move(table));
     }
 #warning "Maybe directly format the member of the domelement ?"
     div.callJavaScript(fmt::to_string(js));
@@ -1048,9 +1051,9 @@ DomElement StdGridLayoutImpl2::createDomElement(DomElement *parent,
             DomElement itd = DomElement::createNew(DomElementType::TD);
             if (fitHeight)
                 itd.setProperty(Property::Style, "height:100%;");
-            itd.addChild(div);
-            irow.addChild(itd);
-            itable.addChild(irow);
+            itd.addChild(std::move(div));
+            irow.addChild(std::move(itd));
+            itable.addChild(std::move(irow));
             itable.setId(id() + "l");
             return itable; //  copy elision?? ////div = itable;
 

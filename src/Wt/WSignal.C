@@ -93,10 +93,11 @@ void EventSignalBase::removeSlot(WStatelessSlot *s)
 
 const std::string EventSignalBase::encodeCmd() const
 {
-  char buf[20];
-  buf[0] = 's';
-  Utils::utoa(id_, buf + 1, 16);
-  return std::string(buf);
+    return fmt::format(FMT_COMPILE("s{:x}"), id_);
+  // char buf[20];
+  // buf[0] = 's';
+  // Utils::utoa(id_, buf + 1, 16);
+  // return std::string(buf);
 }
 
 const std::string
@@ -261,22 +262,17 @@ EventSignalBase::~EventSignalBase()
   for (unsigned i = 0; i < connections_.size(); ++i) {
     if (connections_[i].ok())
       if (!connections_[i].slot->removeConnection(this))
-        delete connections_[i].slot;
+        delete connections_[i].slot; //FIXME std::unique_ptr for modern c++
   }
 }
 
 Wt::Signals::Connection
-EventSignalBase::connectStateless(Wt::Signals::Connection c,
+EventSignalBase::connectStateless(Wt::Signals::Connection& c,
                                   WObject *target,
                                   WStatelessSlot *slot)
 {
-//#warning "TODO finish implementation"
-  //Wt::Signals::connection c;
-  //dummy_.connect(std::bind(method, target));
-  //auto c = dummy_. template connect<method>(target);
-  //Wt::Signals::connection c = dummy_.connect(std::bind(method, target), target);
   if (slot->addConnection(this))
-    connections_.push_back(StatelessConnection(c, target, slot));
+    connections_.emplace_back(c, target, slot);
 
   ownerRepaint();
 
@@ -289,7 +285,7 @@ void EventSignalBase::connect(JSlot& slot)
 
   if (s->addConnection(this)) {
     Wt::Signals::Connection c;
-    connections_.push_back(StatelessConnection(c, nullptr, s));
+    connections_.emplace_back(c, nullptr, s);
 
     ownerRepaint();
   }
@@ -306,18 +302,17 @@ void EventSignalBase::connect(const std::string& javaScript)
   // for (int i = 0; i < argc; ++i)
   //   ss << ",a" << (i+1);
   // ss << ");";
+  //why not starting from 0 ?
   auto jslot = fmt::format(FMT_COMPILE("({})(o,e{}{});"),
                            javaScript,
                            argc ? ",a" : "",
                            fmt::join(std::views::iota(1, argc + 1), ",a"));
 
-  connections_.push_back
-    (StatelessConnection(c, nullptr, new WStatelessSlot(jslot)));
+  connections_.emplace_back(c, nullptr, new WStatelessSlot(jslot));
 
   ownerRepaint();
 }
 
-#ifndef WT_CNOR
 bool EventSignalBase::isConnected() const
 {
   bool result = dummy_.isConnected();
@@ -331,7 +326,6 @@ bool EventSignalBase::isConnected() const
 
   return result;
 }
-#endif // WT_CNOR
 
 void EventSignalBase::exposeSignal()
 {

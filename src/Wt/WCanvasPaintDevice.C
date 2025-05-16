@@ -214,9 +214,9 @@ void WCanvasPaintDevice::render(const std::string& paintedWidgetJsRef,
        "})();";
 
   text->callJavaScript(tmp.str());
-
+#warning "not correct, reparenting destroy the text elements"
   for (unsigned i = 0; i < textElements_.size(); ++i)
-    text->addChild(textElements_[i]);
+    text->addChild(std::move(textElements_[i]));
 }
 
 void WCanvasPaintDevice::renderPaintCommands(std::stringstream& js_target,
@@ -579,7 +579,8 @@ void WCanvasPaintDevice::drawText(const WRectF& rect,
     {
         WPointF pos = painter()->combinedTransform().map(rect.topLeft());
 
-        DomElement e = DomElement::createNew(DomElementType::DIV);
+        auto& e = textElements_.emplace_back(DomElement::Mode::Create, DomElementType::DIV);
+        //DomElement e = DomElement::createNew(DomElementType::DIV);
         e.setProperty(Property::StylePosition, "absolute");
         e.setProperty(Property::StyleTop,
                        std::to_string(pos.y()) + "px");
@@ -590,46 +591,47 @@ void WCanvasPaintDevice::drawText(const WRectF& rect,
         e.setProperty(Property::StyleHeight,
                        std::to_string(rect.height()) + "px");
 
-        DomElement *t = &e;
-        auto tt = DomElement::createNew(DomElementType::DIV);
+        DomElement *tptr = &e;
+        //auto tt = DomElement::createNew(DomElementType::DIV);
 
         /*
        * HTML tricks to center things vertically -- does not work on IE,
        * (neither does canvas)
        */
         if (verticalAlign != AlignmentFlag::Top) {
-            t = &tt;
+            auto &t = e.addChild(DomElementType::DIV);
+            tptr = &t;
 
             if (verticalAlign == AlignmentFlag::Middle) {
                 e.setProperty(Property::StyleDisplay, "table");
-                t->setProperty(Property::StyleDisplay, "table-cell");
-                t->setProperty(Property::StyleVerticalAlign, "middle");
+                tptr->setProperty(Property::StyleDisplay, "table-cell");
+                tptr->setProperty(Property::StyleVerticalAlign, "middle");
             } else if (verticalAlign == AlignmentFlag::Bottom) {
-                t->setProperty(Property::StylePosition, "absolute");
-                t->setProperty(Property::StyleWidth, "100%");
-                t->setProperty(Property::StyleBottom, "0px");
+                tptr->setProperty(Property::StylePosition, "absolute");
+                tptr->setProperty(Property::StyleWidth, "100%");
+                tptr->setProperty(Property::StyleBottom, "0px");
             }
         }
 
-        t->setProperty(Property::InnerHTML,
+        tptr->setProperty(Property::InnerHTML,
                        WWebWidget::escapeText(text.toUTF8(), true));
 
         WFont f = painter()->font();
-        f.updateDomElement(*t, false, true);
+        f.updateDomElement(*tptr, false, true);
 
-        t->setProperty(Property::StyleColor, painter()->pen().color().cssText());
+        tptr->setProperty(Property::StyleColor, painter()->pen().color().cssText());
 
         if (horizontalAlign == AlignmentFlag::Right)
-            t->setProperty(Property::StyleTextAlign, "right");
+            tptr->setProperty(Property::StyleTextAlign, "right");
         else if (horizontalAlign == AlignmentFlag::Center)
-            t->setProperty(Property::StyleTextAlign, "center");
+            tptr->setProperty(Property::StyleTextAlign, "center");
         else
-            t->setProperty(Property::StyleTextAlign, "left");
+            tptr->setProperty(Property::StyleTextAlign, "left");
 
-        if (t != &e)
-            e.addChild(tt);
+        // if (tptr != &e)
+        //     e.addChild(std::move(tt));
 
-        textElements_.push_back(std::move(e));
+        //textElements_.push_back(std::move(e));
     }
     }
 }

@@ -29,7 +29,7 @@ public:
   StdLayoutItemImpl(Type type);
   virtual ~StdLayoutItemImpl();
 
-  constexpr WContainerWidget *container() const;
+  WContainerWidget *container() const;
   virtual WLayoutItem *layoutItem() const = 0;
 
   virtual int minimumWidth() const = 0;

@@ -126,54 +126,58 @@ void WProgressBar::updateBar(DomElement& bar)
 
 void WProgressBar::updateDom(DomElement& element, bool all)
 {
-  DomElement bar_ = changed_ ? DomElement::getForUpdate("bar" + id(), DomElementType::DIV) :DomElement::createNew(DomElementType::DIV);
-  DomElement label_ = changed_ ? DomElement::getForUpdate("lbl" + id(), DomElementType::DIV) : DomElement::createNew(DomElementType::DIV);
-  DomElement *bar = nullptr, *label = nullptr;
+  //DomElement bar = changed_ ? DomElement::getForUpdate("bar" + id(), DomElementType::DIV) :DomElement::createNew(DomElementType::DIV);
+  //DomElement label = changed_ ? DomElement::getForUpdate("lbl" + id(), DomElementType::DIV) : DomElement::createNew(DomElementType::DIV);
+  DomElement *barptr = nullptr, *labelptr = nullptr;
+
 
   auto app = WApplication::instance();
   auto bs5Theme = std::dynamic_pointer_cast<Wt::WBootstrap5Theme>(app->theme());
 
+  auto& bar = changed_ ? element.addChild("bar" + id(), DomElementType::DIV) : element.addChild(DomElementType::DIV);
+  auto& label = bs5Theme ? bar : changed_ ? element.addChild("lbl" + id(), DomElementType::DIV) : element.addChild(DomElementType::DIV);
+
   if (all) {
-      bar = &bar_;// DomElement::createNew(DomElementType::DIV);
-    bar->setId("bar" + id());
-    bar->setProperty(Property::Class, valueStyleClass_);
-    app->theme()->apply(this, *bar, ProgressBarBar);
+    barptr = &bar;// DomElement::createNew(DomElementType::DIV);
+    barptr->setId("bar" + id());
+    barptr->setProperty(Property::Class, valueStyleClass_);
+    app->theme()->apply(this, bar, ProgressBarBar);
 
     if (bs5Theme) {
-      label = bar;
+      labelptr = barptr;
     } else {
-      label = &label_;DomElement::createNew(DomElementType::DIV);
-      label->setId("lbl" + id());
-      app->theme()->apply(this, *label, ProgressBarLabel);
+      labelptr = &label; //DomElement::createNew(DomElementType::DIV);
+      labelptr->setId("lbl" + id());
+      app->theme()->apply(this, label, ProgressBarLabel);
     }
   }
 
   if (changed_ || all) {
-    if (!bar)
-      bar = &bar_;//DomElement::getForUpdate("bar" + id(), DomElementType::DIV);
-    if (!label) {
+    if (!barptr)
+      barptr = &bar;//DomElement::getForUpdate("bar" + id(), DomElementType::DIV);
+    if (!labelptr) {
       if (bs5Theme) {
-        label = bar;
+        labelptr = barptr;
       } else {
-        label = &label_;//DomElement::getForUpdate("lbl" + id(), DomElementType::DIV);
+        labelptr = &label;//DomElement::getForUpdate("lbl" + id(), DomElementType::DIV);
       }
     }
 
-    updateBar(bar_);
+    updateBar(bar);
 
     WString s = text();
     removeScript(s);
 
-    label->setProperty(Property::InnerHTML, s.toUTF8());
+    labelptr->setProperty(Property::InnerHTML, s.toUTF8());
 
     changed_ = false;
   }
 
-  if (bar)
-    element.addChild(bar_);
+  // if (barptr)
+  //   element.addChild(bar);
 
-  if (label && !bs5Theme)
-    element.addChild(label_);
+  // if (labelptr && !bs5Theme)
+  //   element.addChild(label);
 
   WInteractWidget::updateDom(element, all);
 }

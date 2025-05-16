@@ -219,9 +219,7 @@ namespace Wt {
     template <typename T>
     inline void insert(std::vector<T> &result, const std::vector<T> &elements)
     {
-#ifndef WT_CNOR
       result.insert(result.end(), elements.begin(), elements.end());
-#endif // WT_CNOR
     }
 
     template <typename T>

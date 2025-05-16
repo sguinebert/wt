@@ -194,13 +194,13 @@ std::unique_ptr<WAbstractArea> WImage::removeArea(WAbstractArea *area)
 void WImage::updateDom(DomElement& element, bool all)
 {
    auto img_ = DomElement::createNew(DomElementType::IMG);
-  DomElement *img = &element;
+  DomElement *imgptr = &element;
   if (all && element.type() == DomElementType::SPAN) {
-    DomElement map = map_->createSDomElement(WApplication::instance());
-    element.addChild(map);
+    element.addChild(map_->createSDomElement(WApplication::instance()));
+    auto& img = element.addChild(DomElementType::IMG);
 
-    img = &img_; //DomElement::createNew(DomElementType::IMG);
-    img->setId("i" + id());
+    imgptr = &img; //DomElement::createNew(DomElementType::IMG);
+    imgptr->setId("i" + id());
   }
 
   if (flags_.test(BIT_IMAGE_LINK_CHANGED) || all) {
@@ -213,25 +213,25 @@ void WImage::updateDom(DomElement& element, bool all)
       url = app->onePixelGifUrl();
     }
 
-    img->setProperty(Wt::Property::Src, url);
+    imgptr->setProperty(Wt::Property::Src, url);
 
     flags_.reset(BIT_IMAGE_LINK_CHANGED);
   }
 
   if (flags_.test(BIT_ALT_TEXT_CHANGED) || all) {
-    img->setAttribute("alt", altText_.toUTF8());
+    imgptr->setAttribute("alt", altText_.toUTF8());
     flags_.reset(BIT_ALT_TEXT_CHANGED);
   }
 
   if (flags_.test(BIT_MAP_CREATED) || (all && map_)) {
-    img->setAttribute("usemap", '#' + map_->id());
+    imgptr->setAttribute("usemap", '#' + map_->id());
     flags_.reset(BIT_MAP_CREATED);
   }
 
-  WInteractWidget::updateDom(*img, all);
+  WInteractWidget::updateDom(*imgptr, all);
 
-  if (&element != img)
-    element.addChild(img_);
+  // if (&element != img)
+  //   element.addChild(std::move(img_));
 }
 
 void WImage::getDomChanges(std::vector<DomElement>& result, WApplication *app)

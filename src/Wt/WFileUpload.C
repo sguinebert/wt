@@ -550,7 +550,7 @@ void WFileUpload::updateDom(DomElement& element, bool all)
   }
 
   if (inputE)
-    element.addChild(input);
+    element.addChild(std::move(input));
 
   WWebWidget::updateDom(element, all);
 }
@@ -592,7 +592,13 @@ DomElement WFileUpload::createDomElement(WApplication *app)
   EventSignal<> *change = voidEventSignal(CHANGE_SIGNAL, false);
 
   if (fileUploadTarget_) {
-    DomElement i = DomElement::createNew(DomElementType::IFRAME);
+    /*
+     * wrap iframe in an extra span to work around bug in IE which does
+     * not set the name use DOM methods
+     */
+    auto& d = result.addChild(DomElementType::SPAN);
+    auto& i = d.addChild(DomElementType::IFRAME); //IE DEPRECATED TODO:REWRITE
+    //DomElement i = DomElement::createNew(DomElementType::IFRAME);
     i.setProperty(Property::Class, "Wt-resource");
     i.setProperty(Property::Src, fileUploadTarget_->url());
     i.setName("if" + id());
@@ -617,17 +623,15 @@ DomElement WFileUpload::createDomElement(WApplication *app)
     result.setAttribute("enctype", "multipart/form-data", true);
     result.setProperty(Property::Target, "if" + id());
 
-    /*
-     * wrap iframe in an extra span to work around bug in IE which does
-     * not set the name use DOM methods
-     */
-    DomElement d = DomElement::createNew(DomElementType::SPAN);
-    d.addChild(i);
+
+    // DomElement d = DomElement::createNew(DomElementType::SPAN); //deprecated...
+    //d.addChild(std::move(i));
 
     //form->addChild(d);
-    result.addChild(d);
+    //result.addChild(std::move(d));
 
-    DomElement input = DomElement::createNew(DomElementType::INPUT);
+    auto& input = result.addChild(DomElementType::INPUT);
+    //DomElement input = DomElement::createNew(DomElementType::INPUT);
     app->theme()->apply(this, input, FileUploadInput);
     input.setAttribute("type", "file", true);
     if (flags_.test(BIT_MULTIPLE))
@@ -644,7 +648,7 @@ DomElement WFileUpload::createDomElement(WApplication *app)
       updateSignalConnection(input, *change, "change", true);
 
     //form->addChild(input);
-    result.addChild(input);
+    //result.addChild(std::move(input));
 
     doJavaScript("var a =" + jsRef() + ".action;"
 		 "var f = function(event) {"

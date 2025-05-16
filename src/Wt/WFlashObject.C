@@ -103,7 +103,8 @@ void WFlashObject::updateDom(DomElement& element, bool all)
 {
   if (all) {
     //http://latrine.dgx.cz/how-to-correctly-insert-a-flash-into-xhtml
-    DomElement obj = DomElement::createNew(DomElementType::OBJECT);
+    auto& obj = element.addChild(DomElementType::OBJECT);
+    //DomElement obj = DomElement::createNew(DomElementType::OBJECT);
 
     if (isInLayout()) {
       // Layout-manager managed sizes need some CSS magic to display
@@ -162,10 +163,11 @@ void WFlashObject::updateDom(DomElement& element, bool all)
     for(std::map<std::string, WString>::const_iterator i = parameters_.begin();
       i != parameters_.end(); ++i) {
         if (i->first != "flashvars") {
-          DomElement param = DomElement::createNew(DomElementType::PARAM);
+          auto& param = obj.addChild(DomElementType::PARAM);
+          //DomElement param = DomElement::createNew(DomElementType::PARAM);
           param.setAttribute("name", i->first);
           param.setAttribute("value", i->second.toUTF8());
-          obj.addChild(param);
+          //obj.addChild(std::move(param));
         }
     }
     if (wApp->environment().agentIsIElt(9)) {
@@ -174,10 +176,11 @@ void WFlashObject::updateDom(DomElement& element, bool all)
       //obj->setAttribute("codebase",
       //"http://download.macromedia.com/pub/shockwave/cabs/flash/
       //swflash.cab#version=6,0,0,0");
-      DomElement param = DomElement::createNew(DomElementType::PARAM);
+      auto& param = obj.addChild(DomElementType::PARAM);
+      //DomElement param = DomElement::createNew(DomElementType::PARAM);
       param.setAttribute("name", "movie", true);
       param.setAttribute("value", url_);
-      obj.addChild(param);
+      //obj.addChild(std::move(param));
     }
     if (variables_.size() > 0) {
 #warning "TODO add formatter specialization for std::pair<std::string, WString>"
@@ -190,10 +193,11 @@ void WFlashObject::updateDom(DomElement& element, bool all)
           ss << Wt::Utils::urlEncode(i->first) << "="
             << Wt::Utils::urlEncode(i->second.toUTF8());
       }
-      DomElement param = DomElement::createNew(DomElementType::PARAM);
+      auto& param = obj.addChild(DomElementType::PARAM);
+      //DomElement param = DomElement::createNew(DomElementType::PARAM);
       param.setAttribute("name", "flashvars", true);
       param.setAttribute("value", ss.str());
-      obj.addChild(param);
+      //obj.addChild(std::move(param));
     }
     if (alternative_) {
       // Internet explorer simply eliminates the inner elements if they are
@@ -205,7 +209,8 @@ void WFlashObject::updateDom(DomElement& element, bool all)
       // a call to alternative_->createDomElement().
       if (wApp->environment().javaScript() &&
           wApp->environment().agentIsIElt(9)) {
-        DomElement dummyDiv = DomElement::createNew(DomElementType::DIV);
+        auto& dummyDiv = obj.addChild(DomElementType::DIV);
+        //DomElement dummyDiv = DomElement::createNew(DomElementType::DIV);
         dummyDiv.setId(alternative_->id());
         // As if it ain't bad enough, the altnerative content is only
         // inserted in the DOM after 'a while', so we can't test for it with
@@ -216,12 +221,12 @@ void WFlashObject::updateDom(DomElement& element, bool all)
         // so we added a helper function.
         dummyDiv.setAttribute("style",
           fmt::format("width: expression({}._p_.ieAlternative(this));", wApp->javaScriptClass()));
-        obj.addChild(dummyDiv);
+        //obj.addChild(std::move(dummyDiv));
       } else {
         obj.addChild(alternative_->createSDomElement(wApp));
       }
     }
-    element.addChild(obj);
+    //element.addChild(std::move(obj));
   }
 
   WWebWidget::updateDom(element, all);

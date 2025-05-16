@@ -59,8 +59,9 @@ static inline constexpr std::string_view chunked_head = "\0\0\0\0\0\0\0\0\0\0";
 static inline constexpr std::string_view chunked_end = "0\r\n\r\n";
 static inline constexpr std::string_view CRLF = "\r\n";
 
-static thread_local std::chrono::steady_clock::time_point last_time_{std::chrono::steady_clock::now()};
-static thread_local std::string last_gmt_date_str_ {64, '\0'};
+static thread_local std::chrono::steady_clock::time_point last_time_{std::chrono::steady_clock::now() - 2s};
+static thread_local std::array<char, 64> last_gmt_date_buf_ {0};
+static thread_local std::string_view last_gmt_date_str_{};
 
 using namespace std::literals;
 
@@ -403,11 +404,11 @@ class response final : safe_noncopyable {
     str += detail::utils::get_response_line(minor_version_ * 1000 + status_);
     // headers
     const auto now = std::chrono::steady_clock::now();
-    if (now - last_time_ > std::chrono::seconds{1}) {
-      last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
-      last_time_ = now;
-    }
-    str += last_gmt_date_str_;
+    // if (now - last_time_ > std::chrono::seconds{1}) {
+    //   last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
+    //   last_time_ = now;
+    // }
+    // str += last_gmt_date_str_;
     for (const auto& header : headers_) {
       fmt::format_to(std::back_inserter(str), FMT_COMPILE("{}: {}\r\n"), header.first, header.second);
       //str += fmt::format("{}: {}\r\n", header.first, header.second);
@@ -491,8 +492,8 @@ class response final : safe_noncopyable {
     const auto now = std::chrono::steady_clock::now();
     if (now >= last_time_) {
         const auto sys_now = std::chrono::system_clock::now();
-        auto ret = fmt::format_to_n(last_gmt_date_str_.begin(), 64, FMT_COMPILE("{:%a, %d %b %Y %T} GMT\r\n"), fmt::gmtime(sys_now));
-        last_gmt_date_str_.erase(ret.size);
+        auto ret = fmt::format_to_n(last_gmt_date_buf_.begin(), 64, FMT_COMPILE("Date: {:%a, %d %b %Y %T} GMT\r\n"), fmt::gmtime(sys_now));
+        last_gmt_date_str_ = std::string_view(last_gmt_date_buf_.data(), ret.size);
         //last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
         last_time_ = now + std::chrono::seconds{1};
     }
@@ -521,6 +522,8 @@ class response final : safe_noncopyable {
 
     sgbuffers.emplace_back(asio::buffer(headers_buffer_.data(), headers_buffer_.size()));
 
+    std::cerr << "deflated_body_ size : " << headers_buffer_.size() << " -> " << fmt::to_string(headers_buffer_) << std::endl;
+    std::cerr << "body_ : " <<fmt::to_string(body_buffer_) << std::endl;
     //buf_.asioBuffers(sgbuffers);
     if(content_length_)
         deflated_body_.empty() ? sgbuffers.emplace_back(asio::buffer(body_buffer_.data(), body_buffer_.size())) : sgbuffers.emplace_back(asio::buffer(deflated_body_));
@@ -561,8 +564,8 @@ class response final : safe_noncopyable {
     const auto now = std::chrono::steady_clock::now();
     if (now >= last_time_) {
         const auto sys_now = std::chrono::system_clock::now();
-        auto ret = fmt::format_to_n(last_gmt_date_str_.begin(), 64, FMT_COMPILE("{:%a, %d %b %Y %T} GMT\r\n"), fmt::gmtime(sys_now));
-        last_gmt_date_str_.erase(ret.size);
+        auto ret = fmt::format_to_n(last_gmt_date_buf_.begin(), 64, FMT_COMPILE("Date: {:%a, %d %b %Y %T} GMT\r\n"), fmt::gmtime(sys_now));
+        last_gmt_date_str_ = std::string_view(last_gmt_date_buf_.data(), ret.size);
         last_time_ = now + std::chrono::seconds{1};
     }
 
@@ -622,8 +625,8 @@ class response final : safe_noncopyable {
       const auto now = std::chrono::steady_clock::now();
       if (now >= last_time_) {
           const auto sys_now = std::chrono::system_clock::now();
-          auto ret = fmt::format_to_n(last_gmt_date_str_.begin(), 64, FMT_COMPILE("{:%a, %d %b %Y %T} GMT\r\n"), fmt::gmtime(sys_now));
-          last_gmt_date_str_.erase(ret.size);
+          auto ret = fmt::format_to_n(last_gmt_date_buf_.begin(), 64, FMT_COMPILE("Date: {:%a, %d %b %Y %T} GMT\r\n"), fmt::gmtime(sys_now));
+          last_gmt_date_str_ = std::string_view(last_gmt_date_buf_.data(), ret.size);
           last_time_ = now + std::chrono::seconds{1};
       }
       headers_buffer_.append(last_gmt_date_str_);
@@ -646,7 +649,7 @@ class response final : safe_noncopyable {
     // const auto now = std::chrono::steady_clock::now();
     // if (now >= last_time_) {
     //   const auto sys_now = std::chrono::system_clock::now();
-    //   auto ret = fmt::format_to_n(last_gmt_date_str_.begin(), 64, FMT_COMPILE("{:%a, %d %b %Y %T} GMT\r\n"), fmt::gmtime(sys_now));
+    //   auto ret = fmt::format_to_n(last_gmt_date_str_.begin(), 64, FMT_COMPILE("Date: {:%a, %d %b %Y %T} GMT\r\n"), fmt::gmtime(sys_now));
     //   last_gmt_date_str_.erase(ret.size);
     //   last_time_ = now + std::chrono::seconds{1};
     // }

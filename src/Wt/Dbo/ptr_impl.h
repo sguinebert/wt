@@ -105,6 +105,7 @@ awaitable<void> MetaDbo<C>::flush()
   co_return;
 }
 
+#warning "FIX ME this code is shit "
 template<class C>
 void MetaDbo<C>::flush(std::function<void ()>&& cb)
 {
@@ -114,7 +115,7 @@ void MetaDbo<C>::flush(std::function<void ()>&& cb)
     state_ &= ~NeedsDelete;
 
     try {
-      co_spawn(*thread_context, session()->implDelete(*this), [cb = std::move(cb)] (auto ec) { cb(); });
+      //co_spawn(*thread_context, session()->implDelete(*this), [cb = std::move(cb)] (auto ec) { cb(); });
       setTransactionState(DeletedInTransaction);
     } catch (...) {
       setTransactionState(DeletedInTransaction);
@@ -126,7 +127,7 @@ void MetaDbo<C>::flush(std::function<void ()>&& cb)
 
     try {
       //co_await session()->implSave(*this);
-      co_spawn(*thread_context, session()->implSave(*this), [cb = std::move(cb)] (auto ec) { cb(); });
+      //co_spawn(*thread_context, session()->implSave(*this), [cb = std::move(cb)] (auto ec) { cb(); });
       setTransactionState(SavedInTransaction);
     } catch (...) {
       setTransactionState(SavedInTransaction);

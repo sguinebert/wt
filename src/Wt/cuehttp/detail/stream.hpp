@@ -133,7 +133,7 @@ public:
                     if (name == ":method") {
                         ctx.request_.method_ = value;
                     } else if (name == ":path") {
-                        ctx.request_.url_ = value;
+                        ctx.request_.path_ = value;
                         // Parse URL components using ada
                         auto uri = ada::parse<ada::url_aggregator>(value);
                         if (uri) {

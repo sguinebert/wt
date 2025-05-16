@@ -345,8 +345,7 @@ protected:
     awaitable<void> coro_http(auto sft) {
         for (;;) {
             auto buffer = context_.req().buffer();
-            auto [ec, bytes] = co_await socket_.async_read_some(
-                asio::buffer(buffer.first, buffer.second), use_nothrow_awaitable);
+            auto [ec, bytes] = co_await socket_.async_read_some(asio::buffer(buffer.first, buffer.second), use_nothrow_awaitable);
             if (ec) {
                 if (ec == asio::error::eof) {
                     boost::system::error_code shutdown_ec;
@@ -378,16 +377,19 @@ protected:
                         break;
                     } else {
                         co_await handle();
+                        break;
                     }
                 }
                 if (!finished) continue;
                 break;
             case -2:
+                std::cerr << "case: -2" << std::endl;
                 finished = false;
                 continue;
             default:
                 continue;
             }
+            std::cerr << "finished: " << finished << std::endl;
             if (!context_.flush_) {
                 co_await context_.wait_flush(asio::use_awaitable);
             }
@@ -426,7 +428,9 @@ protected:
             ws_helper_ = std::make_unique<ws_helper>();
             ws_helper_->websocket_ = context_.websocket_ptr();
         }
+        //std::cerr << "handle request: " << std::string_view(req.buffer().first, req.buffer().second) << std::endl;
         co_await handler_(context_);
+        //std::cerr << "handle response: " << res.status() << std::endl;
         co_return;
     }
 

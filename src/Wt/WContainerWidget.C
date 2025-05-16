@@ -619,8 +619,8 @@ void WContainerWidget::createDomChildren(DomElement& parent, WApplication *app)
     bool fitHeight = true;
 
     if(!layoutImpl()->checkParent(&parent, app)) {
-        DomElement c = layoutImpl()->createDomElement(&parent, fitWidth, fitHeight, app);
-        parent.addChild(c);
+        //DomElement c = layoutImpl()->createDomElement(&parent, fitWidth, fitHeight, app);
+        parent.addChild(layoutImpl()->createDomElement(&parent, fitWidth, fitHeight, app));
     }
 
     flags_.reset(BIT_LAYOUT_NEEDS_RERENDER);
@@ -659,12 +659,12 @@ void WContainerWidget::updateDomChildren(DomElement& parent, WApplication *app)
 	for (unsigned i = 0; i < orderedInserts.size(); ++i) {
 	  int pos = orderedInserts[i];
 	
-      DomElement c = (children_)[pos]->createSDomElement(app);
+      //DomElement c = (children_)[pos]->createSDomElement(app);
 
 	  if (pos + (addedCount - insertCount) == totalCount)
-	    parent.addChild(c);
+        parent.addChild((children_)[pos]->createSDomElement(app));
 	  else
-        parent.insertChildAt(std::move(c), pos + firstChildIndex());
+        parent.insertChildAt((children_)[pos]->createSDomElement(app), pos + firstChildIndex());
 
 	  ++insertCount;
 	}
@@ -773,22 +773,21 @@ bool WContainerWidget::isGlobalUnfocussed() const
 
 void WContainerWidget::setFormData(const FormData& formData)
 {
-  if (!Utils::isEmpty(formData.values)) {
-    std::vector<std::string> attributes;
-    boost::split(attributes, formData.values[0], boost::is_any_of(";"));
+    if (!Utils::isEmpty(formData.values)) {
+        std::vector<std::string> attributes;
+        boost::split(attributes, formData.values[0], boost::is_any_of(";"));
 
-    if (attributes.size() == 2) {
-      try {
-    scrollTop_ = (int)Utils::stod(attributes[0]);
-    scrollLeft_ = (int)Utils::stod(attributes[1]);
+        if (attributes.size() == 2) {
+            try {
+                scrollTop_ = Utils::stoi(attributes[0]);
+                scrollLeft_ = Utils::stoi(attributes[1]);
 
-      }catch (const std::exception& e) {
-    throw WException("WContainerWidget: error parsing: " + formData.values[0] + ": " + e.what());
-      }
-    } else 
-      throw WException("WContainerWidget: error parsing: " + formData.values[0]);
-  }
-
+            }catch (const std::exception& e) {
+                throw WException("WContainerWidget: error parsing: " + formData.values[0] + ": " + e.what());
+            }
+        } else
+            throw WException("WContainerWidget: error parsing: " + formData.values[0]);
+    }
 }
 
 }
