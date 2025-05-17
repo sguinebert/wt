@@ -16,6 +16,9 @@
   };
 
   const { x, y } = computePopupPos(width, height);
+  console.log(`Popup position: x=${x}, y=${y}`);
+  console.log(`Popup size: width=${width}, height=${height}`);
+  console.log(`Popup URL: ${url}`);
 
   const features = `width=${width},height=${height},status=yes,location=yes,resizable=yes,scrollbars=yes,left=${x},top=${y}`;
 

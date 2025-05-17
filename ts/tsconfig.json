@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "rootDir": "src",            // <-- where .ts files live
+    "outDir": "public/js",            // <-- compiled JS goes here
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "sourceMap": true            // nice for browser dev-tools
+  },
+  "include": ["/"]
+}

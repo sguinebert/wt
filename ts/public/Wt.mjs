@@ -854,10 +854,18 @@ export default class WtApp {
   //Content-Security-Policy: script-src 'self' blob: https://trusted.cdn.com; object-src 'none'; base-uri 'self'; report-uri /csp-violation-report-endpoint;
   async #doJavaScript(js){
     if(!js) return;
-    const blob = new Blob(['export default function(Wtc, Wt){', js, '}'], { type: 'text/javascript' });
+    const blob = new Blob(['export default async function(Wtc, Wt){', js, '}'], { type: 'text/javascript' });
+    //const blob = new Blob([js], { type: 'text/javascript' });
     const url = URL.createObjectURL(blob); 
-    const module = await import(url).catch(err => {console.error("Import failed:", err)}).then(() => URL.revokeObjectURL(url)); 
-    module?.default(this.WTc, this);//this === appInstance && appInstance?._p_?.doAutoJavaScript();
+    try {
+      await import(url).then(m => m.default(this.WTc, this)); 
+    } catch (err) {
+      console.error("Error importing module:", err);
+    }
+    finally {
+      URL.revokeObjectURL(url);
+    }
+    //this === appInstance && appInstance?._p_?.doAutoJavaScript();
     this.doAutoJavaScript?.();
   }
   
