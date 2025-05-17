@@ -1,4 +1,4 @@
-//import {computePosition} from './popper.min.js';
+//import { computePosition, offset, flip, shift } from './vendor/floating-ui/floating-ui.core.browser.min.mjs';
 
 const graphemes = str => [...str];              // code‑point / grapheme array
 const toUnits = (str, cpIndex) => graphemes(str).slice(0, cpIndex).join('').length;
@@ -102,15 +102,15 @@ export class WtCore {
     
     // Consider max dimensions for dynamic widgets
     if (!element.classList.contains("Wt-tooltip")) {
-      dimensions.width = this.WT.px(element, "maxWidth") || dimensions.width;
-      dimensions.height = this.WT.px(element, "maxHeight") || dimensions.height;
+      dimensions.width = this.px(element, "maxWidth") || dimensions.width;
+      dimensions.height = this.px(element, "maxHeight") || dimensions.height;
     }
     
     // Get parent and viewport information
     const offsetParent = element.offsetParent;
     if (!offsetParent) return;
     
-    const parentCoords = this.WT.widgetPageCoordinates(offsetParent);
+    const parentCoords = this.widgetPageCoordinates(offsetParent);
     const viewport = {
       width: window.innerWidth,
       height: window.innerHeight,
@@ -128,12 +128,12 @@ export class WtCore {
       const scrollX = offsetParent === document.body ? window.scrollX : offsetParent.scrollLeft;
       
       rightx = rightx - parentCoords.x + scrollX;
-      x = offsetParent.clientWidth - (rightx + this.WT.px(element, "marginRight"));
+      x = offsetParent.clientWidth - (rightx + this.px(element, "marginRight"));
       hside = 1;
     } else {
       // Fits to right of x - adjust for parent offset
       const scrollX = offsetParent === document.body ? 0 : offsetParent.scrollLeft;
-      x = x - parentCoords.x + scrollX - this.WT.px(element, "marginLeft");
+      x = x - parentCoords.x + scrollX - this.px(element, "marginLeft");
     }
   
     // Determine vertical positioning
@@ -151,13 +151,13 @@ export class WtCore {
       
       bottomy = bottomy - parentCoords.y + scrollY;
       y = offsetParent.clientHeight - 
-          (bottomy + this.WT.px(element, "marginBottom") + this.WT.px(element, "borderBottomWidth"));
+          (bottomy + this.px(element, "marginBottom") + this.px(element, "borderBottomWidth"));
       vside = 1;
     } else {
       // Fits below y - adjust for parent offset
       const scrollY = offsetParent === document.body ? 0 : offsetParent.scrollTop;
       y = y - parentCoords.y + scrollY - 
-      this.WT.px(element, "marginTop") + this.WT.px(element, "borderTopWidth");
+      this.px(element, "marginTop") + this.px(element, "borderTopWidth");
     }
   
     // Apply final positioning
@@ -172,7 +172,7 @@ export class WtCore {
     else if (!html.includes('<') && !html.includes('&') && element.childNodes.length === 1 && element.firstChild.nodeType === Node.TEXT_NODE)
         element.firstChild.textContent = html; // Update text node directly (more efficient +30%)
     else {
-        //WT.saveReparented(element);
+        //saveReparented(element);
         element.innerHTML = html;
     }
   }
@@ -184,20 +184,20 @@ export class WtCore {
     el.querySelectorAll('.wt-reparented').forEach(node => root.append(node)); // append() moves, no manual remove needed
   };
   remove(id) {
-    const e = this.WT.getElement(id);
+    const e = this.getElement(id);
     if (e) {
-      //WT.saveReparented(e);
+      //saveReparented(e);
       e.parentNode.removeChild(e);
     }
   }
   replaceWith(w1Id, w2) {
-    this.WT.$(w1Id).replaceWith(w2);
+    this.$(w1Id).replaceWith(w2);
 
     /* Reapply client-side validation, bootstrap applys validation classes
        also outside the element into its ancestors */
-    if (w2.wtValidate && this.WT.validate) {
+    if (w2.wtValidate && this.validate) {
       setTimeout(function() {
-        this.WT.validate(w2);
+        this.validate(w2);
       }, 0);
     }
   }
@@ -239,6 +239,7 @@ export class WtCore {
   };
   
   getElement(id) {
+    if (id instanceof HTMLElement) return id;
     return document.getElementById(id);
   }
 
@@ -334,16 +335,16 @@ export class WtCore {
   }
 
   px(element, prop) {
-    return parseFloat(css(element)[prop]) || 0;
+    return parseFloat(this.css(element)[prop]) || 0;
   }
-  pxSelf  = (el, prop) => px(el, prop); //deprecated 
+  pxSelf  = (el, prop) => this.px(el, prop); //deprecated 
   pctSelf = (el, prop) => this.px(el, prop); //deprecated 
   styleAttribute = prop => prop; //deprecated 
   inlinePx(element, prop) {
     return parseFloat(element.style[prop]) || 0;
   }
   boxSizing(element) {
-    return css(element).boxSizing === 'border-box';
+    return this.css(element).boxSizing === 'border-box';
   }
   isHidden(el) {
     return el.offsetParent === null;
@@ -355,16 +356,16 @@ export class WtCore {
     return el.clientHeight;
   }
   hide(o) {
-    this.WT.getElement(o).style.display = "none";
+    this.getElement(o).style.display = "none";
   }
   inline(o) {
-    this.WT.getElement(o).style.display = "inline";
+    this.getElement(o).style.display = "inline";
   }
   block(o) {
-    this.WT.getElement(o).style.display = "block";
+    this.getElement(o).style.display = "block";
   }
   show(o, s) {
-    this.WT.getElement(o).style.display = s;
+    this.getElement(o).style.display = s;
   }
   target = e => e?.target || null;
 
@@ -391,17 +392,17 @@ export class WtCore {
   }
 
   positionAtWidget(id, atId, orientation, delta = 0) {
-    const w = this.WT.getElement(id);
-    const atw = this.WT.getElement(atId);
+    const w = this.getElement(id);
+    const atw = this.getElement(atId);
     if (!atw || !w) return;
 
-    const { x: atX, y: atY } = this.WT.widgetPageCoordinates(atw);
+    const { x: atX, y: atY } = this.widgetPageCoordinates(atw);
     let x, y, rightx, bottomy;
 
     w.style.position = "absolute";
-    if (this.WT.css(w, "display") === "none") w.style.display = "block";
+    if (this.css(w, "display") === "none") w.style.display = "block";
 
-    if (orientation === this.WT.Horizontal) {
+    if (orientation === this.Horizontal) {
       x = atX + atw.offsetWidth;
       y = atY + delta;
       rightx = atX;
@@ -417,7 +418,7 @@ export class WtCore {
     while (!p.classList.contains("Wt-domRoot")) {
       if (p.wtReparentBarrier) break;
       if (
-        this.WT.css(p, "display") !== "inline" &&
+        this.css(p, "display") !== "inline" &&
         p.clientHeight > 100 &&
         (["scroll", "auto"].includes(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight ||
          ["scroll", "auto"].includes(getComputedStyle(p).overflowX) && p.scrollWidth > p.clientWidth)
@@ -425,23 +426,23 @@ export class WtCore {
       p = p.parentNode;
     }
 
-    const posP = this.WT.css(p, "position");
+    const posP = this.css(p, "position");
     if (!["absolute", "relative"].includes(posP)) p.style.position = "relative";
 
     w.parentNode.removeChild(w);
     p.appendChild(w);
     w.classList.add("wt-reparented");
 
-    this.WT.fitToWindow(w, x, y, rightx, bottomy);
+    this.fitToWindow(w, x, y, rightx, bottomy);
     w.style.visibility = "";
   }
   
   positionXY(id, x, y) {
-    const w = this.WT.getElement(id);
+    const w = this.getElement(id);
 
-    if (!this.WT.isHidden(w)) {
+    if (!this.isHidden(w)) {
       w.style.display = "block";
-      this.WT.fitToWindow(w, x, y);
+      this.fitToWindow(w, x, y);
     }
   }
 
@@ -498,7 +499,7 @@ export class WtCore {
 }
 
 export class GlobalEventManager {
-  #handlers = new WeakMap();
+  #handlers = new Map();
 
   constructor() {
     ['keydown', 'keyup'].forEach(event =>

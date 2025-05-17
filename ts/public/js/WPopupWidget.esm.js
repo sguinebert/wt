@@ -79,16 +79,20 @@ export default class WPopupWidget {
 
     this.#el.hidden = false;
 
+    console.log('WPopupWidget: element must have an id', this.#el, this.#el.hidden);
     // Your own geometry helper keeps its job
-    if (anchor) WT.positionAtWidget(this.#el, anchor, side);
+    if (anchor) WT.positionAtWidget(this.#el.id, anchor, side);
+
+    this.#el.style.setProperty('display', 'block');
 
     this.#handleShown();
   }
 
   /** Hides the popup if visible */
-  hide () {
+  hide() {
     if (this.#el.hidden) return;
     this.#el.hidden = true;
+    this.#el.style.setProperty('display', 'none');
     this.#handleHidden();
   }
 
