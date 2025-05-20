@@ -11,6 +11,35 @@ import WTimeEdit from './js/WTimeEdit.esm.js';
 import WSuggestionPopup from './js/WSuggestionPopup.esm.js';
 import WDateEdit from './js/WDateEdit.esm.js';
 
+import Sortable from './vendor/sortablejs/sortable.core.esm.js';
+import {   Editors,
+  Formatters,
+  SlickGlobalEditorLock,
+  SlickRowSelectionModel,
+  SlickColumnPicker,
+  SlickDataView,
+  SlickGridMenu,
+  SlickGridPager,
+  SlickGrid,
+  Utils, } from '../vendor/slickgrid/slick.grid.esm.min.js';
+//import './vendor/slickgrid/slick-alpine-theme.min.css';
+
+import { Chart } from './vendor/chartjs/chartjs/auto/auto.js';
+
+
+window.Sortable = Sortable;
+
+function addStylesheet(href) {
+  // Skip if the sheet is already present
+  if (!document.head.querySelector(`link[rel="stylesheet"][href="${href}"]`)) {
+    const link = document.createElement('link');
+    link.rel  = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+}
+addStylesheet('./vendor/slickgrid/slick-alpine-theme.min.css');
+
 export function initGallery() {
   // Create main layout structure
   const container = document.createElement('div');
@@ -31,6 +60,8 @@ export function initGallery() {
             <li><a href="#popup">Popup Widgets</a></li>
             <li><a href="#date">Date & Time Widgets</a></li>
             <li><a href="#dialog">Dialog Widgets</a></li>
+            <li><a href="#grid">Data Grid</a></li>
+            <li><a href="#chart">Charts</a></li>
           </ul>
         </nav>
         
@@ -57,6 +88,15 @@ export function initGallery() {
           
           <section id="dialog" class="widget-section">
             <h2>Dialog Widgets</h2>
+            <div class="widget-grid"></div>
+          </section>
+
+          <section id="grid" class="widget-section">
+            <h2>Data Grid</h2>
+            <div class="widget-grid"></div>
+          </section>
+          <section id="chart" class="widget-section">
+            <h2>Chart Widgets</h2>
             <div class="widget-grid"></div>
           </section>
         </main>
@@ -168,6 +208,70 @@ export function initGallery() {
       margin-top: 15px;
     }
   `;
+  style.textContent += `
+  .full-width-card {
+    grid-column: 1 / -1;
+  }
+  
+  .slick-grid-container {
+    width: 100%;
+    height: 350px;
+    border: 1px solid #ddd;
+    margin-top: 10px;
+  }
+  
+  .slick-headerrow-column {
+    background: #f0f0f0;
+    text-overflow: clip;
+    box-sizing: border-box;
+  }
+  
+  .slick-header-column {
+    background: #e6e6e6;
+    border-right: 1px solid #ccc;
+    font-weight: bold;
+  }
+  
+  .slick-cell {
+    border: 1px solid #ddd;
+    padding: 4px 5px;
+  }
+  
+  .slick-row.odd {
+    background-color: #f8f8f8;
+  }
+  
+  .slick-row:hover {
+    background-color: #e8f0ff;
+  }
+  
+  .progress-bar {
+    height: 14px;
+    border-radius: 7px;
+    text-align: center;
+    font-size: 11px;
+    line-height: 14px;
+    color: #333;
+  }
+`;
+
+style.textContent += `
+  .chart-container {
+    height: 250px;
+    position: relative;
+  }
+  
+  /* Make the full-width card taller for better chart display */
+  .full-width-chart {
+    grid-column: 1 / -1;
+    height: 400px;
+  }
+  
+  /* Add some spacing for chart legends */
+  canvas {
+    margin-bottom: 10px;
+  }
+`;
   document.head.appendChild(style);
   document.body.appendChild(container);
   
@@ -177,6 +281,9 @@ export function initGallery() {
   initPopupWidgets();
   initDateTimeWidgets();
   initDialogWidgets();
+  initGridWidgets();
+  initChartWidgets();
+  initGridLayoutTest();
   
   // Set up navigation
   const navLinks = document.querySelectorAll('.gallery-sidebar a');
@@ -772,5 +879,887 @@ function createWidgetCard(title, demoHTML, description) {
   return card;
 }
 
+export function initGridWidgets() {
+  /*** ---------- build the DOM card ---------- ***/
+  const container = document.querySelector('#grid .widget-grid');
+
+  const card = document.createElement('div');
+  card.className = 'widget-card full-width-card';
+  card.innerHTML = `
+    <h3>SlickGrid (ES-module, no jQuery)</h3>
+
+    <!-- filter bar -->
+    <div class="filter-bar">
+      <input id="filterTitle" placeholder="Filter by title…" />
+      <select id="filterPriority">
+        <option value="">All priorities</option>
+        <option value="1">High</option><option value="2">Medium</option><option value="3">Low</option>
+      </select>
+    </div>
+
+    <!-- grid -->
+    <div class="slick-grid-container" id="slickGridDemo"></div>
+
+    <div class="widget-description">
+      Sorting • column filters • inline editing • responsive resize • 100 demo rows
+    </div>
+  `;
+  container.appendChild(card);
+
+  /*** ---------- grid definitions ---------- ***/
+  const columns = [
+    { id: 'sel', name: '', field: 'sel', width: 28,
+      formatter: () => '<input type="checkbox" class="row-select">',
+      resizable: false }
+      , { id: 'id',     name: 'ID',       field: 'id',     width: 50,  sortable: true }
+      , { id: 'title',  name: 'Task',     field: 'title',  width: 180, sortable: true,
+          editor: Editors.Text }
+      , { id: 'priority', name: 'Priority', field: 'priorityLabel', width: 80,
+          sortable: true, formatter: Formatters.Text }                                   // built-in text
+      , { id: 'percent', name: 'Progress', field: 'percent', width: 110, sortable: true,
+          formatter: Formatters.PercentCompleteBar }                                     // native bar
+      , { id: 'start',  name: 'Start',    field: 'start',  width: 110, sortable: true,
+          formatter: Formatters.DateIso }                                                // native ISO date
+      , { id: 'finish', name: 'Finish',   field: 'finish', width: 110, sortable: true,
+          formatter: Formatters.DateIso }
+      ];
+
+  const options = {
+    columnPicker: {
+      columnTitle: "Columns",
+      hideForceFitButton: false,
+      hideSyncResizeButton: false,
+      forceFitTitle: "Force fit columns",
+      syncResizeTitle: "Synchronous resize",
+    },
+    gridMenu: {
+      iconCssClass: "sgi sgi-menu sgi-17px",
+      columnTitle: "Columns",
+      hideForceFitButton: false,
+      hideSyncResizeButton: false,
+      forceFitTitle: "Force fit columns",
+      syncResizeTitle: "Synchronous resize",
+    },
+    editable: true,
+    enableAddRow: true,
+    enableCellNavigation: true,
+    asyncEditorLoading: true,
+    forceFitColumns: false,
+    topPanelHeight: 35,
+    rowHeight: 28
+  };
+
+  /*** ---------- sample data ---------- ***/
+  const data = Array.from({ length: 100 }, (_, i) => {
+    const p = Math.floor(Math.random() * 3) + 1;
+    const pc = Math.round(Math.random() * 100);
+    const start = Date.now() - Math.random() * 3.15e10;         // ~year back
+    return {
+      id: i,
+      title: `Task ${i}`,
+      priority: p,
+      percent: pc,
+      start,
+      finish: start + Math.random() * 1.5e10,
+      sel: false
+    };
+  });
+
+  /*** ---------- DataView + Grid ---------- ***/
+  const dataView = new SlickDataView({ inlineFilters: true });
+  dataView.setItems(data);
+
+  const gridElem = document.getElementById('slickGridDemo');
+  const grid = new SlickGrid(gridElem, dataView, columns, options);
+
+  /*** ---------- sorting ---------- ***/
+  grid.onSort.subscribe((_e, { sortCol, sortAsc }) => {
+    dataView.sort((a, b) => {
+      const x = a[sortCol.field], y = b[sortCol.field];
+      return (x === y ? 0 : x > y ? 1 : -1) * (sortAsc ? 1 : -1);
+    });
+  });
+
+  /*** ---------- filtering ---------- ***/
+  const filterTitle = document.getElementById('filterTitle');
+  const filterPriority = document.getElementById('filterPriority');
+
+  function filterFn(item) {
+    const matchTitle = item.title.toLowerCase().includes(filterTitle.value.trim().toLowerCase());
+    const matchPrio  = filterPriority.value === '' || String(item.priority) === filterPriority.value;
+    return matchTitle && matchPrio;
+  }
+
+  filterTitle.addEventListener('input', () => { dataView.refresh(); });
+  filterPriority.addEventListener('change', () => { dataView.refresh(); });
+  dataView.setFilter(filterFn);
+
+  /*** ---------- row-selection (checkbox) ---------- ***/
+  grid.onClick.subscribe((_e, args) => {
+    if (args.cell === 0) {
+      const item = dataView.getItem(args.row);
+      item.sel = !item.sel;
+      dataView.updateItem(item.id, item);
+    }
+  });
+
+  /*** ---------- resize handling ---------- ***/
+  function resize() { grid.resizeCanvas(); }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /*** ---------- initial render ---------- ***/
+  dataView.refresh();  // applies initial filter / sort
+}
+
+export function initChartWidgets() {
+  const container = document.querySelector('#chart .widget-grid');
+  
+  // Line Chart
+  const lineChartCard = createWidgetCard(
+    'Line Chart',
+    `<div class="chart-container">
+      <canvas id="lineChart"></canvas>
+    </div>`,
+    'Time series data visualization with interactive tooltips'
+  );
+  container.appendChild(lineChartCard);
+  
+  // Bar Chart
+  const barChartCard = createWidgetCard(
+    'Bar Chart',
+    `<div class="chart-container">
+      <canvas id="barChart"></canvas>
+    </div>`,
+    'Compare values across categories with customizable colors'
+  );
+  container.appendChild(barChartCard);
+  
+  // Pie Chart
+  const pieChartCard = createWidgetCard(
+    'Pie Chart',
+    `<div class="chart-container">
+      <canvas id="pieChart"></canvas>
+    </div>`,
+    'Proportional visualization of data categories'
+  );
+  container.appendChild(pieChartCard);
+  
+  // Radar Chart
+  const radarChartCard = createWidgetCard(
+    'Radar Chart',
+    `<div class="chart-container">
+      <canvas id="radarChart"></canvas>
+    </div>`,
+    'Multi-variable data visualization on a two-dimensional chart'
+  );
+  container.appendChild(radarChartCard);
+  
+  // Initialize charts after DOM has fully updated
+  setTimeout(() => {
+    // Line chart data and options
+    const lineData = {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      datasets: [{
+        label: 'Sales 2025',
+        data: [65, 59, 80, 81, 56, 55],
+        borderColor: '#3498db',
+        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+        tension: 0.4,
+        fill: true
+      }, {
+        label: 'Sales 2024',
+        data: [28, 48, 40, 19, 86, 27],
+        borderColor: '#2ecc71',
+        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+        tension: 0.4,
+        fill: true
+      }]
+    };
+    
+    const lineOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        title: {
+          display: true,
+          text: 'Monthly Sales Comparison'
+        },
+        tooltip: {
+          usePointStyle: true
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Revenue ($1000)'
+          }
+        }
+      }
+    };
+    
+    // Bar chart data and options
+    const barData = {
+      labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+      datasets: [{
+        label: 'Revenue',
+        data: [120, 190, 170, 220],
+        backgroundColor: 'rgba(52, 152, 219, 0.6)'
+      }, {
+        label: 'Expenses',
+        data: [80, 110, 90, 130],
+        backgroundColor: 'rgba(231, 76, 60, 0.6)'
+      }]
+    };
+    
+    const barOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Quarterly Financial Performance'
+        },
+        legend: {
+          position: 'top'
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Amount ($1000)'
+          }
+        }
+      }
+    };
+    
+    // Pie chart data and options
+    const pieData = {
+      labels: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
+      datasets: [{
+        data: [25, 20, 30, 15, 10],
+        backgroundColor: [
+          'rgba(52, 152, 219, 0.7)',  // Blue
+          'rgba(46, 204, 113, 0.7)',  // Green
+          'rgba(155, 89, 182, 0.7)',  // Purple
+          'rgba(230, 126, 34, 0.7)',  // Orange
+          'rgba(241, 196, 15, 0.7)'   // Yellow
+        ],
+        borderColor: 'white',
+        borderWidth: 1
+      }]
+    };
+    
+    const pieOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Product Sales Distribution'
+        },
+        legend: {
+          position: 'right'
+        }
+      }
+    };
+    
+    // Radar chart data and options
+    const radarData = {
+      labels: ['Speed', 'Reliability', 'Comfort', 'Safety', 'Efficiency', 'Design'],
+      datasets: [{
+        label: 'Model X',
+        data: [90, 85, 70, 95, 80, 75],
+        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+        borderColor: 'rgba(52, 152, 219, 0.8)',
+        pointBackgroundColor: 'rgba(52, 152, 219, 1)',
+      }, {
+        label: 'Model Y',
+        data: [75, 90, 85, 80, 95, 90],
+        backgroundColor: 'rgba(46, 204, 113, 0.2)',
+        borderColor: 'rgba(46, 204, 113, 0.8)',
+        pointBackgroundColor: 'rgba(46, 204, 113, 1)',
+      }]
+    };
+    
+    const radarOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Vehicle Performance Metrics'
+        }
+      },
+      scales: {
+        r: {
+          min: 0,
+          max: 100,
+          ticks: {
+            stepSize: 20
+          }
+        }
+      }
+    };
+    
+    // Create chart instances
+    new Chart(document.getElementById('lineChart'), {
+      type: 'line',
+      data: lineData,
+      options: lineOptions
+    });
+    
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: barData,
+      options: barOptions
+    });
+    
+    new Chart(document.getElementById('pieChart'), {
+      type: 'pie',
+      data: pieData,
+      options: pieOptions
+    });
+    
+    new Chart(document.getElementById('radarChart'), {
+      type: 'radar',
+      data: radarData,
+      options: radarOptions
+    });
+  }, 100); // Small delay to ensure DOM is ready
+}
+
+import StdLayout2 from './js/StdGridLayoutImpl2.esm.js';
+
+export function initGridLayoutTest() {
+  const container = document.createElement('div');
+  container.id = 'gridLayoutTestContainer';
+  container.classList.add('Wt-domRoot');
+  
+  // Add the CSS styles
+  const style = document.createElement('style');
+  style.textContent = `
+    #gridLayoutTestContainer {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    
+    .test-section {
+      margin-bottom: 40px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    
+    .test-section h2 {
+      margin-top: 0;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+    
+    .test-section .description {
+      margin-bottom: 20px;
+      font-size: 0.9em;
+      color: #666;
+    }
+    
+    .test-layout-root {
+      position: relative;
+      border: 2px dashed #ccc;
+      background: #f9f9f9;
+      margin: 20px 0;
+      min-height: 300px;
+    }
+    
+    .grid-item {
+      background-color: #ecf0f1;
+      border: 1px solid #bdc3c7;
+      padding: 10px;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      overflow: auto;
+    }
+    
+    .grid-item.primary {
+      background-color: #3498db;
+      color: white;
+    }
+    
+    .grid-item.secondary {
+      background-color: #2ecc71;
+      color: white;
+    }
+    
+    .grid-item.tertiary {
+      background-color: #e74c3c;
+      color: white;
+    }
+    
+    .grid-item.highlight {
+      background-color: #f39c12;
+      color: white;
+    }
+    
+    .control-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .control-panel button {
+      padding: 8px 12px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .control-panel button:hover {
+      background: #2980b9;
+    }
+    
+    .metrics {
+      font-family: monospace;
+      font-size: 0.9em;
+      margin-top: 10px;
+      display: block;
+    }
+    
+    .resize-handle {
+      position: absolute;
+      bottom: -10px;
+      right: -10px;
+      width: 20px;
+      height: 20px;
+      background: #3498db;
+      border-radius: 50%;
+      cursor: nwse-resize;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Create the test sections
+  container.innerHTML = `
+    <h1>StdGridLayout2 Test Suite</h1>
+    <p>This test suite demonstrates the capabilities of the StdGridLayout2 class for creating flexible grid layouts.</p>
+    
+    <div id="basicTest" class="test-section">
+      <h2>1. Basic Grid Layout</h2>
+      <div class="description">
+        A simple 2x2 grid demonstrating the basic layout capabilities with equal sizing.
+      </div>
+      <div class="control-panel">
+        <button id="basic-measure">Measure</button>
+        <button id="basic-apply">Apply</button>
+      </div>
+      <div id="basicLayoutRoot" class="test-layout-root" style="height: 300px;">
+        <div id="basic-cell-1" class="grid-item">Cell 1</div>
+        <div id="basic-cell-2" class="grid-item primary">Cell 2</div>
+        <div id="basic-cell-3" class="grid-item secondary">Cell 3</div>
+        <div id="basic-cell-4" class="grid-item tertiary">Cell 4</div>
+      </div>
+    </div>
+    
+    <div id="stretchTest" class="test-section">
+      <h2>2. Stretch Factors</h2>
+      <div class="description">
+        Demonstrates how stretch factors control proportional sizing of rows and columns.
+      </div>
+      <div class="control-panel">
+        <button id="stretch-measure">Measure</button>
+        <button id="stretch-apply">Apply</button>
+      </div>
+      <div id="stretchLayoutRoot" class="test-layout-root" style="height: 400px;">
+        <div id="stretch-cell-1" class="grid-item">Stretch 1</div>
+        <div id="stretch-cell-2" class="grid-item primary">Stretch 2</div>
+        <div id="stretch-cell-3" class="grid-item secondary">Stretch 1</div>
+        <div id="stretch-cell-4" class="grid-item tertiary">Fixed Size</div>
+        <div id="stretch-cell-5" class="grid-item highlight">Stretch 3</div>
+      </div>
+    </div>
+    
+    <div id="dynamicTest" class="test-section">
+      <h2>3. Dynamic Content</h2>
+      <div class="description">
+        Tests how the layout responds to dynamic content changes.
+      </div>
+      <div class="control-panel">
+        <button id="dynamic-add">Add Content</button>
+        <button id="dynamic-remove">Remove Content</button>
+        <button id="dynamic-resize">Resize Content</button>
+      </div>
+      <div id="dynamicLayoutRoot" class="test-layout-root" style="height: 300px;">
+        <div id="dynamic-cell-1" class="grid-item">Dynamic Content</div>
+        <div id="dynamic-cell-2" class="grid-item primary">Resize Me</div>
+      </div>
+    </div>
+    
+    <div id="rtlTest" class="test-section">
+      <h2>4. RTL Support</h2>
+      <div class="description">
+        Tests right-to-left layout direction support.
+      </div>
+      <div class="control-panel">
+        <button id="rtl-toggle">Toggle RTL</button>
+      </div>
+      <div id="rtlLayoutRoot" class="test-layout-root" style="height: 300px;" dir="ltr">
+        <div id="rtl-cell-1" class="grid-item">Left</div>
+        <div id="rtl-cell-2" class="grid-item primary">Center</div>
+        <div id="rtl-cell-3" class="grid-item secondary">Right</div>
+      </div>
+    </div>
+    
+    <div id="sizeConstraintTest" class="test-section">
+      <h2>5. Size Constraints</h2>
+      <div class="description">
+        Demonstrates minimum and preferred size handling.
+      </div>
+      <div class="control-panel">
+        <button id="constraint-toggle">Toggle Size Constraints</button>
+      </div>
+      <div id="constraintLayoutRoot" class="test-layout-root" style="height: 300px;">
+        <div id="constraint-cell-1" class="grid-item" style="min-width: 100px; min-height: 50px;">
+          Min size: 100×50px
+        </div>
+        <div id="constraint-cell-2" class="grid-item primary" style="width: 200px; height: 150px;">
+          Preferred: 200×150px
+        </div>
+        <div id="constraint-cell-3" class="grid-item secondary">
+          No constraints
+        </div>
+      </div>
+    </div>
+    
+    <div id="resizableTest" class="test-section">
+      <h2>6. Interactive Resizing</h2>
+      <div class="description">
+        Tests how the layout adapts when the container is resized by the user.
+      </div>
+      <div id="resizableLayoutRoot" class="test-layout-root" style="height: 300px; width: 100%; resize: both; overflow: auto;">
+        <div id="resize-cell-1" class="grid-item">Top Left</div>
+        <div id="resize-cell-2" class="grid-item primary">Top Right</div>
+        <div id="resize-cell-3" class="grid-item secondary">Bottom Left</div>
+        <div id="resize-cell-4" class="grid-item tertiary">Bottom Right</div>
+      </div>
+      <p>Resize the container using the bottom-right corner</p>
+    </div>
+    
+    <div id="complexTest" class="test-section">
+      <h2>7. Complex Layout Example</h2>
+      <div class="description">
+        A more complex layout demonstrating a realistic application interface.
+      </div>
+      <div id="complexLayoutRoot" class="test-layout-root" style="height: 500px;">
+        <div id="complex-header" class="grid-item" style="min-height: 50px;">Header</div>
+        <div id="complex-sidebar" class="grid-item primary" style="min-width: 150px;">Sidebar</div>
+        <div id="complex-content" class="grid-item secondary">Main Content Area</div>
+        <div id="complex-panel" class="grid-item tertiary" style="min-width: 180px;">Right Panel</div>
+        <div id="complex-footer" class="grid-item" style="min-height: 40px;">Footer</div>
+      </div>
+    </div>
+  `;
+  
+  // Append to the body
+  document.body.appendChild(container);
+  
+  // Initialize the test layouts
+  initBasicTest();
+  initStretchTest();
+  initDynamicTest();
+  initRtlTest();
+  initSizeConstraintTest();
+  initResizableTest();
+  initComplexTest();
+}
+
+function initBasicTest() {
+  const layout = new StdLayout2({
+    root: document.getElementById('basicLayoutRoot'),
+    rows: [
+      { stretch: 1 },
+      { stretch: 1 }
+    ],
+    columns: [
+      { stretch: 1 },
+      { stretch: 1 }
+    ],
+    items: [
+      { el: 'basic-cell-1', row: 0, col: 0 },
+      { el: 'basic-cell-2', row: 0, col: 1 },
+      { el: 'basic-cell-3', row: 1, col: 0 },
+      { el: 'basic-cell-4', row: 1, col: 1 }
+    ]
+  });
+  
+  document.getElementById('basic-measure').addEventListener('click', () => {
+    layout.measure();
+  });
+  
+  document.getElementById('basic-apply').addEventListener('click', () => {
+    layout.refresh();
+  });
+  
+  // Initial layout
+  layout.refresh();
+}
+
+function initStretchTest() {
+  const layout = new StdLayout2({
+    root: document.getElementById('stretchLayoutRoot'),
+    rows: [
+      { stretch: 1 },
+      { stretch: 2 },
+      { stretch: 0, min: 80 } // Fixed height row
+    ],
+    columns: [
+      { stretch: 1 },
+      { stretch: 2 },
+      { stretch: 3 }
+    ],
+    items: [
+      { el: 'stretch-cell-1', row: 0, col: 0 }, // Stretch 1×1
+      { el: 'stretch-cell-2', row: 0, col: 1 }, // Stretch 1×2
+      { el: 'stretch-cell-3', row: 1, col: 0 }, // Stretch 2×1
+      { el: 'stretch-cell-4', row: 2, col: 0 }, // Fixed height
+      { el: 'stretch-cell-5', row: 1, col: 2 }  // Stretch 2×3
+    ]
+  });
+  
+  document.getElementById('stretch-measure').addEventListener('click', () => {
+    layout.measure();
+  });
+  
+  document.getElementById('stretch-apply').addEventListener('click', () => {
+    layout.refresh();
+  });
+  
+  // Initial layout
+  layout.refresh();
+}
+
+function initDynamicTest() {
+  const layout = new StdLayout2({
+    root: document.getElementById('dynamicLayoutRoot'),
+    rows: [
+      { stretch: 1 },
+      { stretch: 1 }
+    ],
+    columns: [
+      { stretch: 1 },
+      { stretch: 1 }
+    ],
+    items: [
+      { el: 'dynamic-cell-1', row: 0, col: 0 },
+      { el: 'dynamic-cell-2', row: 1, col: 1 }
+    ]
+  });
+  
+  let contentAdded = false;
+  let expanded = false;
+  
+  document.getElementById('dynamic-add').addEventListener('click', () => {
+    if (!contentAdded) {
+      const newCell = document.createElement('div');
+      newCell.id = 'dynamic-cell-3';
+      newCell.className = 'grid-item tertiary';
+      newCell.textContent = 'New Content';
+      document.getElementById('dynamicLayoutRoot').appendChild(newCell);
+
+            // Add to layout and refresh
+      layout.addItem({
+        el: 'dynamic-cell-3', 
+        row: 0, 
+        col: 1
+      }).refresh();
+      contentAdded = true;
+    }
+  });
+  
+  document.getElementById('dynamic-remove').addEventListener('click', () => {
+    if (contentAdded) {
+      const cell = document.getElementById('dynamic-cell-3');
+      if (cell) {
+        cell.remove();
+        layout.refresh();
+        contentAdded = false;
+      }
+    }
+  });
+  
+  document.getElementById('dynamic-resize').addEventListener('click', () => {
+    const cell = document.getElementById('dynamic-cell-2');
+    if (expanded) {
+      cell.style.height = '';
+      cell.style.width = '';
+      cell.textContent = 'Resize Me';
+    } else {
+      cell.style.height = '800px';
+      cell.style.width = '250px';
+      cell.textContent = 'I am bigger now!';
+    }
+    expanded = !expanded;
+    layout.refresh();
+  });
+  
+  // Initial layout
+  layout.refresh();
+}
+function initRtlTest() {
+  let isRtl = false;
+  const rootEl = document.getElementById('rtlLayoutRoot');
+
+  const layout = new StdLayout2({
+    root: rootEl,
+    rows:    [ { stretch: 1 } ],
+    columns: [ { stretch: 1 }, { stretch: 1 }, { stretch: 1 } ],
+    items:   [
+      { el: 'rtl-cell-1', row: 0, col: 0 },
+      { el: 'rtl-cell-2', row: 0, col: 1 },
+      { el: 'rtl-cell-3', row: 0, col: 2 }
+    ]
+  });
+
+  document.getElementById('rtl-toggle').addEventListener('click', () => {
+    isRtl = !isRtl;
+    rootEl.dir = isRtl ? 'rtl' : 'ltr';   // optional: update DOM attribute
+    layout.setRTL(isRtl);                 // 🔄 single call does it all
+  });
+  // Initial layout
+  layout.refresh();
+}
+function initSizeConstraintTest() {
+  const layout = new StdLayout2({
+    root: document.getElementById('constraintLayoutRoot'),
+    rows: [
+      { stretch: 1 }
+    ],
+    columns: [
+      { stretch: 1 },
+      { stretch: 1 },
+      { stretch: 1 }
+    ],
+    items: [
+      { el: 'constraint-cell-1', row: 0, col: 0 },
+      { el: 'constraint-cell-2', row: 0, col: 1 },
+      { el: 'constraint-cell-3', row: 0, col: 2 }
+    ]
+  });
+  
+  let constraintsOn = true;
+  
+  document.getElementById('constraint-toggle').addEventListener('click', () => {
+    const cell1 = document.getElementById('constraint-cell-1');
+    const cell2 = document.getElementById('constraint-cell-2');
+    
+    if (constraintsOn) {
+      // Remove constraints
+      cell1.style.minWidth = '';
+      cell1.style.minHeight = '';
+      cell1.textContent = 'No constraints';
+      
+      cell2.style.width = '';
+      cell2.style.height = '';
+      cell2.textContent = 'No preferred size';
+    } else {
+      // Add constraints back
+      cell1.style.minWidth = '100px';
+      cell1.style.minHeight = '50px';
+      cell1.textContent = 'Min size: 100×50px';
+      
+      cell2.style.width = '200px';
+      cell2.style.height = '150px';
+      cell2.textContent = 'Preferred: 200×150px';
+    }
+    
+    constraintsOn = !constraintsOn;
+    layout.refresh();
+  });
+  
+  // Initial layout
+  layout.refresh();
+}
+
+function initResizableTest() {
+  const layout = new StdLayout2({
+    root: document.getElementById('resizableLayoutRoot'),
+    rows: [
+      { stretch: 1 },
+      { stretch: 1 }
+    ],
+    columns: [
+      { stretch: 1 },
+      { stretch: 1 }
+    ],
+    items: [
+      { el: 'resize-cell-1', row: 0, col: 0 },
+      { el: 'resize-cell-2', row: 0, col: 1 },
+      { el: 'resize-cell-3', row: 1, col: 0 },
+      { el: 'resize-cell-4', row: 1, col: 1 }
+    ]
+  });
+  
+  // ResizeObserver should handle this automatically
+  
+  // Initial layout
+  layout.refresh();
+}
+
+function initComplexTest() {
+  const layout = new StdLayout2({
+    root: document.getElementById('complexLayoutRoot'),
+    rows: [
+      { stretch: 0, min: 50 },  // Header (fixed height)
+      { stretch: 1 },           // Content area (stretchy)
+      { stretch: 0, min: 40 }   // Footer (fixed height)
+    ],
+    columns: [
+      { stretch: 0, min: 150 }, // Sidebar (fixed width)
+      { stretch: 1 },           // Main content (stretchy)
+      { stretch: 0, min: 180 }  // Right panel (fixed width)
+    ],
+    items: [
+      // Header spans all columns
+      { el: 'complex-header', row: 0, col: 0, colSpan: 3 },
+      
+      // Sidebar in the middle row, first column
+      { el: 'complex-sidebar', row: 1, col: 0 },
+      
+      // Main content area
+      { el: 'complex-content', row: 1, col: 1 },
+      
+      // Right panel
+      { el: 'complex-panel', row: 1, col: 2 },
+      
+      // Footer spans all columns
+      { el: 'complex-footer', row: 2, col: 0, colSpan: 3 }
+    ]
+  });
+  
+  // Initial layout
+  layout.refresh();
+}
+
+
 // Initialize the gallery when imported
 initGallery();
+document.addEventListener('DOMContentLoaded', initGridLayoutTest);
