@@ -1,6 +1,4 @@
 // SuggestionPopup.js --------------------------------------------------------
-import { positionAtWidget } from './wt-utils.js';
-
 /* ------------------------------------------------------------------
  *  StdMatcher –        replacement for WSuggestionPopupStdMatcher
  * ------------------------------------------------------------------ */
@@ -27,15 +25,14 @@ export class StdMatcher {
     wordRegexp            = '',
     appendReplacedText    = ''
   } = {}) {
-    Object.assign(this, {
-      #highlightStart : highlightBeginTag,
-      #highlightEnd   : highlightEndTag,
-      #listSep        : listSeparator,
-      #white          : whiteSpace,
-      #wordSep        : wordSeparators,
-      #wordRE         : wordRegexp,
-      #append         : appendReplacedText
-    });
+      this.#highlightStart = highlightBeginTag;
+      this.#highlightEnd   = highlightEndTag;
+      this.#listSep        = listSeparator;
+      this.#white          = whiteSpace;
+      this.#wordSep        = wordSeparators;
+      this.#wordRE         = wordRegexp;
+      this.#append         = appendReplacedText;
+
   }
 
   /* --- internal helpers ------------------------------------------------- */

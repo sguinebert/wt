@@ -16,7 +16,7 @@
  *    });
  * ------------------------------------------------------------------ */
 
-export class WLineEdit {
+export default class WLineEdit {
   /**
    * @param {HTMLInputElement} input
    * @param {Object} opt

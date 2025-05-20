@@ -7,5 +7,4 @@ const { openPopupWindow } = await import(new URL('/js/PopupWindow.esm.js', windo
 /** @type {import('../src/js/ToolTip.esm.js')} */
 const { Tooltip } = await import(new URL('/js/ToolTip.esm.js', window.location.href).href);   
 
-initHelloWorld();
 
