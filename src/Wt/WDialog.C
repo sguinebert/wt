@@ -405,7 +405,7 @@ void WDialog::render(WFlags<RenderFlag> flags)
                     impl_->resolveWidget("layout")->setMaximumSize(999999,
                                                                    maximumHeight());
 
-        auto js = fmt::format(FMT_COMPILE("new " WT_CLASS ".WDialog.CenterJS({},{},{},{:d},{:d},{:d},\"{}\",\"{}\",\"{}\");"),
+        auto js = fmt::format(FMT_COMPILE("new " WT_CLASS ".WDialog({},{},{},{:d},{:d},{:d},\"{}\",\"{}\",\"{}\");"),
                               app->javaScriptClass(),
                               jsRef(),
                               titleBar_->jsRef(),

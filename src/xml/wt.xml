@@ -92,7 +92,7 @@
   <message id="Wt.WDateValidator.WrongDateRange">The date must be between {0} and {1}</message>
   <message id="Wt.WDateValidator.WrongFormat">Must be a date in the format '{0}'</message>
 
-  <message id="Wt.WTimeValidator.TimeTooEarly">The time must be after {0</message>
+  <message id="Wt.WTimeValidator.TimeTooEarly">The time must be after {0}</message>
   <message id="Wt.WTimeValidator.TimeTooLate">The time must be before {0}</message>
   <message id="Wt.WTimeValidator.WrongTimeRange">The time must be between {0} and {1}</message>
   <message id="Wt.WTimeValidator.WrongFormat">Must be a time in the format '{0}'</message>
