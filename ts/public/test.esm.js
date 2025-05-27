@@ -1355,6 +1355,42 @@ export function initGridLayoutTest() {
       border-radius: 50%;
       cursor: nwse-resize;
     }
+          /* Styles for StdLayout2 resize handles */
+    .layout-col-handle {
+      position: absolute; /* Managed by StdLayout2's #positionHandle */
+      width: 7px; /* Make it a bit wider for easier grabbing */
+      top: 0;
+      bottom: 0;
+      background-color: rgba(0, 123, 255, 0.3); /* Default color */
+      cursor: col-resize;
+      z-index: 100;
+      transition: background-color 0.2s ease;
+    }
+    .layout-col-handle:hover {
+      background-color: rgba(0, 123, 255, 0.6); /* Darker on hover */
+    }
+
+    .layout-row-handle {
+      position: absolute; /* Managed by StdLayout2's #positionHandle */
+      height: 7px; /* Make it a bit wider for easier grabbing */
+      left: 0;
+      right: 0;
+      background-color: rgba(0, 123, 255, 0.3); /* Default color */
+      cursor: row-resize;
+      z-index: 100;
+      transition: background-color 0.2s ease;
+    }
+    .layout-row-handle:hover {
+      background-color: rgba(0, 123, 255, 0.6); /* Darker on hover */
+    }
+
+    /* Style for the resizable container in test 6 */
+    #handleLayoutRoot {
+      resize: both; /* Allows user to resize the whole container */
+      overflow: auto; /* Important for the 'resize' property to work well */
+      min-width: 200px; /* Prevent it from becoming too small */
+      min-height: 200px;
+    }
   `;
   document.head.appendChild(style);
   
@@ -1463,6 +1499,21 @@ export function initGridLayoutTest() {
       </div>
       <p>Resize the container using the bottom-right corner</p>
     </div>
+
+    <div id="resizableTest" class="test-section">
+      <h2>6. Interactive Resizing (Rows & Columns)</h2>
+      <div class="description">
+        Tests interactive resizing of grid rows and columns using drag handles.
+        The handles should appear between rows and columns.
+      </div>
+      <div id="handleLayoutRoot" class="test-layout-root" style="height: 300px; width: 100%;">
+        <div id="resize-cell-5" class="grid-item">Top Left</div>
+        <div id="resize-cell-6" class="grid-item primary">Top Right</div>
+        <div id="resize-cell-7" class="grid-item secondary">Bottom Left</div>
+        <div id="resize-cell-8" class="grid-item tertiary">Bottom Right</div>
+      </div>
+      <p>Try dragging the faint blue lines between rows/columns.</p>
+    </div>
     
     <div id="complexTest" class="test-section">
       <h2>7. Complex Layout Example</h2>
@@ -1490,6 +1541,7 @@ export function initGridLayoutTest() {
   initSizeConstraintTest();
   initResizableTest();
   initComplexTest();
+  initResizableHandle();
 }
 
 function initBasicTest() {
@@ -1529,7 +1581,7 @@ function initStretchTest() {
     rows: [
       { stretch: 1 },
       { stretch: 2 },
-      { stretch: 0, min: 80 } // Fixed height row
+      { stretch: 0, min: 80, preferred: 80, max: 80 } // Fixed height row
     ],
     columns: [
       { stretch: 1 },
@@ -1609,12 +1661,12 @@ function initDynamicTest() {
   document.getElementById('dynamic-resize').addEventListener('click', () => {
     const cell = document.getElementById('dynamic-cell-2');
     if (expanded) {
-      cell.style.height = '';
-      cell.style.width = '';
+      cell.style.minHeight = '';
+      cell.style.minWidth = '';
       cell.textContent = 'Resize Me';
     } else {
-      cell.style.height = '800px';
-      cell.style.width = '250px';
+      cell.style.minHeight = '800px';
+      cell.style.minWidth = '250px';
       cell.textContent = 'I am bigger now!';
     }
     expanded = !expanded;
@@ -1655,7 +1707,7 @@ function initSizeConstraintTest() {
     ],
     columns: [
       { stretch: 1 },
-      { stretch: 1 },
+      { stretch: 1, preferred: 200 },
       { stretch: 1 }
     ],
     items: [
@@ -1677,8 +1729,10 @@ function initSizeConstraintTest() {
       cell1.style.minHeight = '';
       cell1.textContent = 'No constraints';
       
-      cell2.style.width = '';
-      cell2.style.height = '';
+      // cell2.style.maxWidth = '';
+      // cell2.style.maxHeight = '';
+      layout.setColSize(1, 0); // Set preferred size
+      layout.setRowSize(0, 0); 
       cell2.textContent = 'No preferred size';
     } else {
       // Add constraints back
@@ -1686,8 +1740,10 @@ function initSizeConstraintTest() {
       cell1.style.minHeight = '50px';
       cell1.textContent = 'Min size: 100×50px';
       
-      cell2.style.width = '200px';
-      cell2.style.height = '150px';
+      // cell2.style.maxWidth = '200px';
+      // cell2.style.maxHeight = '150px';
+      layout.setColSize(1, 200); // Set preferred size
+      layout.setRowSize(0, 150); // Set preferred size
       cell2.textContent = 'Preferred: 200×150px';
     }
     
@@ -1757,6 +1813,30 @@ function initComplexTest() {
   
   // Initial layout
   layout.refresh();
+}
+
+function initResizableHandle() {
+  const layout = new StdLayout2({
+    root: document.getElementById('handleLayoutRoot'),
+    rows: [
+      { stretch: 1, min: 50 }, // Add min sizes to make resizing more robust
+      { stretch: 1, min: 50 }
+    ],
+    columns: [
+      { stretch: 1, min: 50 }, // Add min sizes
+      { stretch: 1, min: 50 }
+    ],
+    items: [
+      { el: 'resize-cell-5', row: 0, col: 0 },
+      { el: 'resize-cell-6', row: 0, col: 1 },
+      { el: 'resize-cell-7', row: 1, col: 0 },
+      { el: 'resize-cell-8', row: 1, col: 1 }
+    ]
+  });
+  
+  // The StdLayout2 constructor calls refresh(), which should create and position handles.
+  // No extra calls needed here if StdLayout2 is implemented as expected.
+  // layout.refresh(); // Already called by constructor typically, or ensure it is.
 }
 
 

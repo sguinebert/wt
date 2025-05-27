@@ -15,13 +15,13 @@ export class PaintedWidget {
    * @param {number}             h     –  canvas height (device pixels)
    */
   constructor (root, w = 300, h = 150){
-    this.host      = typeof root === 'string' ? document.getElementById(root) : root;
-    this.canvas    = document.createElement('canvas');
+    this.host = typeof root === 'string' ? document.getElementById(root) : root;
+    this.canvas = document.createElement('canvas');
     this.canvas.width  = w;
     this.canvas.height = h;
 
     this.host.appendChild(this.canvas);
-    this.ctx       = this.canvas.getContext('2d');
+    this.ctx = this.canvas.getContext('2d');
 
     /* -------- image pre-loading --------------- */
     /** @type {HTMLImageElement[]} */
