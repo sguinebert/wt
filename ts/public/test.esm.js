@@ -1823,7 +1823,7 @@ function initResizableHandle() {
       { stretch: 1, min: 50 }
     ],
     columns: [
-      { stretch: 1, min: 50 }, // Add min sizes
+      { stretch: 1, min: 50, resizable: true }, // Add min sizes
       { stretch: 1, min: 50 }
     ],
     items: [
