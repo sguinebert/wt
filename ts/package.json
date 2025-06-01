@@ -1,0 +1,39 @@
+{
+  "name": "wt-cardinal",
+  "description": "Frontend for the Wt project, built with TypeScript and various libraries.",
+  "author": "Sylvain Guinebert",
+  "license": "MIT",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev":   "tsx watch src/index.ts"
+  },
+
+  "dependencies": {
+    "swup": "^4.8.2",
+    "chart.js": "^4.4.9",
+    "slickgrid": "^5.15.3",
+    "sortablejs": "^1.15.6",
+    "@floating-ui/dom": "^1.7.0"
+  },
+
+  "devDependencies": {
+    "@types/slickgrid": "^5.15.3",
+    "@types/sortablejs": "^1.15.6",
+    "typescript": "^5.4.5",
+    "tsx": "^4.7.0",
+    "rimraf": "^5.0.0"
+  },
+
+  "scripts": {
+    "dev:vite": "vite",
+    "build:vite": "vite build",
+
+    "dev:esbuild": "node esbuild.config.mjs --watch",
+    "build:esbuild": "node esbuild.config.mjs",
+
+    "dev:webpack": "webpack serve --mode development",
+    "build:webpack": "webpack --mode production"
+  }
+}

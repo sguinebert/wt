@@ -4,6 +4,22 @@ import WPopupWidget from './js/WPopupWidget.esm.js';
 import { attachTooltip } from './js/ToolTip.esm.js';
 import openPopupWindow from './js/PopupWindow.esm.js';
 
+if (typeof window.Wt === 'undefined') {
+  window.Wt = {
+    emit: function(el, eventName, ...args) {
+      // Optional: dispatch a DOM event instead
+      if (typeof eventName === 'string') {
+        const event = new CustomEvent(eventName, { 
+          detail: { args } 
+        });
+        el.dispatchEvent(event);
+      }
+      // For debugging
+      console.log(`Wt event '${eventName}' would be emitted with args:`, args);
+    }
+  };
+}
+
 // New widget imports
 import WLineEdit from './js/WLineEdit.esm.js';
 import WSpinBox from './js/WSpinBox.esm.js';
@@ -11,23 +27,24 @@ import WTimeEdit from './js/WTimeEdit.esm.js';
 import WSuggestionPopup from './js/WSuggestionPopup.esm.js';
 import WDateEdit from './js/WDateEdit.esm.js';
 
-import Sortable from './vendor/sortablejs/sortable.core.esm.js';
-import {   Editors,
-  Formatters,
-  SlickGlobalEditorLock,
-  SlickRowSelectionModel,
-  SlickColumnPicker,
-  SlickDataView,
-  SlickGridMenu,
-  SlickGridPager,
-  SlickGrid,
-  Utils, } from '../vendor/slickgrid/slick.grid.esm.min.js';
+import WTableView, { WtFormatters, Editors, Formatters } from './js/WTableView.esm.js';
+// import Sortable from './vendor/sortablejs/sortable.core.esm.js';
+// window.Sortable = Sortable;
+// import {   Editors,
+//   Formatters,
+//   SlickGlobalEditorLock,
+//   SlickRowSelectionModel,
+//   SlickColumnPicker,
+//   SlickDataView,
+//   SlickGridMenu,
+//   SlickGridPager,
+//   SlickGrid,
+//   Utils, } from '../vendor/slickgrid/slick.grid.esm.min.js';
 //import './vendor/slickgrid/slick-alpine-theme.min.css';
 
 import { Chart } from './vendor/chartjs/chartjs/auto/auto.js';
 
 
-window.Sortable = Sortable;
 
 function addStylesheet(href) {
   // Skip if the sheet is already present
@@ -91,10 +108,21 @@ export function initGallery() {
             <div class="widget-grid"></div>
           </section>
 
+          <section id="stree" class="widget-section">
+            <h2>Data tree</h2>
+            <div class="widget-grid"></div>
+          </section>
+
           <section id="grid" class="widget-section">
             <h2>Data Grid</h2>
             <div class="widget-grid"></div>
           </section>
+
+          <section id="tree" class="widget-section">
+            <h2>Data tree</h2>
+            <div class="widget-grid"></div>
+          </section>
+
           <section id="chart" class="widget-section">
             <h2>Chart Widgets</h2>
             <div class="widget-grid"></div>
@@ -205,54 +233,27 @@ export function initGallery() {
     .widget-description {
       font-size: 0.9rem;
       color: #666;
-      margin-top: 15px;
+      margin-top: 45px;
     }
   `;
   style.textContent += `
   .full-width-card {
     grid-column: 1 / -1;
   }
-  
-  .slick-grid-container {
-    width: 100%;
-    height: 350px;
-    border: 1px solid #ddd;
-    margin-top: 10px;
-  }
-  
-  .slick-headerrow-column {
-    background: #f0f0f0;
-    text-overflow: clip;
-    box-sizing: border-box;
-  }
-  
-  .slick-header-column {
-    background: #e6e6e6;
-    border-right: 1px solid #ccc;
-    font-weight: bold;
-  }
-  
+  .slick-header-column,
   .slick-cell {
-    border: 1px solid #ddd;
-    padding: 4px 5px;
+    box-sizing: border-box;
+    padding: 0 4px;                 /* match SlickGrid’s default inner padding */
+    border-left: 1px solid transparent;
+    border-right: 1px solid transparent;
   }
   
-  .slick-row.odd {
-    background-color: #f8f8f8;
-  }
-  
-  .slick-row:hover {
-    background-color: #e8f0ff;
-  }
-  
-  .progress-bar {
-    height: 14px;
-    border-radius: 7px;
-    text-align: center;
-    font-size: 11px;
-    line-height: 14px;
-    color: #333;
-  }
+.grid-container {
+  width: 100%;         /* full width of parent */
+  height: 400px;       /* or whatever fixed height you need */
+  position: relative;  /* required by SlickGrid */
+}
+
 `;
 
 style.textContent += `
@@ -272,6 +273,54 @@ style.textContent += `
     margin-bottom: 10px;
   }
 `;
+
+style.textContent += `
+  .tree-controls {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+  }
+  
+  .tree-controls button {
+    padding: 5px 10px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .tree-controls button:hover {
+    background: #2980b9;
+  }
+  
+  /* Tree node styling */
+  .wt-tree-toggle {
+    cursor: pointer;
+    margin-right: 5px;
+    display: inline-block;
+  }
+  
+  .wt-tree-toggle.expanded:before {
+    content: "▼";
+    font-size: 10px;
+  }
+  
+  .wt-tree-toggle.collapsed:before {
+    content: "►";
+    font-size: 10px;
+  }
+  
+  .wt-tree-leaf {
+    display: inline-block;
+    width: 12px;
+    margin-right: 5px;
+  }
+  
+  .wt-tree-icon {
+    margin-right: 5px;
+  }
+`;
   document.head.appendChild(style);
   document.body.appendChild(container);
   
@@ -281,7 +330,9 @@ style.textContent += `
   initPopupWidgets();
   initDateTimeWidgets();
   initDialogWidgets();
+  initSimpleTreeExample();
   initGridWidgets();
+  initTreeViewExample();
   initChartWidgets();
   initGridLayoutTest();
   
@@ -401,27 +452,95 @@ function initInputWidgets() {
   // WSpinBox
   const spinBoxCard = createWidgetCard(
     'WSpinBox',
-    `<div class="wt-spinbox">
-      <button class="spinbox-down">-</button>
-      <input type="text" class="spinbox-input" value="0">
-      <button class="spinbox-up">+</button>
-    </div>`,
-    'Numeric spinner with increment/decrement buttons'
+    `<div class="spinbox-demo">
+      <h4>Basic Integer SpinBox</h4>
+      <div class="field-container">
+        <label>Quantity:</label>
+        <input type="number" id="basicSpinBox" value="5" min="0" max="10" step="1">
+        <div><small>Value: <span id="basicValue">5</span></small></div>
+      </div>
+
+      <h4>Decimal SpinBox with Prefix/Suffix</h4>
+      <div class="field-container">
+        <label>Price:</label>
+        <input type="number" id="priceSpinBox" value="24.99" min="0" max="100" step="0.25">
+        <div><small>Value: <span id="priceValue">$24.99</span></small></div>
+      </div>
+
+      <h4>SpinBox with Wrapping</h4>
+      <div class="field-container">
+        <label>Hours (0-23):</label>
+        <input type="number" id="hourSpinBox" value="12" min="0" max="23" step="1">
+        <div><small>Value: <span id="hourValue">12</span></small></div>
+      </div>
+    </div>
+    <style>
+      .spinbox-demo .field-container {
+        margin-bottom: 15px;
+      }
+      .spinbox-demo input {
+        width: 120px;
+      }
+    </style>`,
+    'Numeric input with increment/decrement controls, keyboard navigation, and mouse wheel support'
   );
-  
-  const spinInput = spinBoxCard.querySelector('.spinbox-input');
-  const upBtn = spinBoxCard.querySelector('.spinbox-up');
-  const downBtn = spinBoxCard.querySelector('.spinbox-down');
-  
-  upBtn.addEventListener('click', () => {
-    spinInput.value = parseInt(spinInput.value || 0) + 1;
-  });
-  
-  downBtn.addEventListener('click', () => {
-    spinInput.value = Math.max(0, parseInt(spinInput.value || 0) - 1);
-  });
-  
   container.appendChild(spinBoxCard);
+  
+  // Initialize the SpinBox widgets
+  const basicSpin = new WSpinBox({
+    input: document.getElementById('basicSpinBox'),
+    min: 0,
+    max: 10,
+    step: 1
+  });
+
+  const priceSpin = new WSpinBox({
+    input: document.getElementById('priceSpinBox'),
+    precision: 2,
+    prefix: '$ ',
+    min: 0,
+    max: 100,
+    step: 0.25
+  });
+
+  const hourSpin = new WSpinBox({
+    input: document.getElementById('hourSpinBox'),
+    min: 0,
+    max: 23,
+    step: 1,
+    wrap: true // Enables wrap-around instead of clamping
+  });
+    
+  // Update value displays
+  basicSpin.onChange = (value, finished) => {
+    document.getElementById('basicValue').textContent = value;
+  };
+
+  priceSpin.onChange = (value, finished) => {
+    document.getElementById('priceValue').textContent = `$${value.toFixed(2)}`;
+  };
+
+  hourSpin.onChange = (value, finished) => {
+    document.getElementById('hourValue').textContent = value;
+  };
+  // Add a feature explanation section
+  const spinBoxInfoCard = createWidgetCard(
+    'WSpinBox Features',
+    `<div class="feature-list">
+      <ul>
+        <li><strong>Keyboard Navigation</strong>: Press Up/Down arrow keys to increment/decrement values</li>
+        <li><strong>Mouse Wheel</strong>: Hover over input and use mouse wheel to change values</li>
+        <li><strong>Drag Controls</strong>: Click and drag in the arrow zone (rightmost 16px) to change values</li>
+        <li><strong>Number Formatting</strong>: Locale-aware formatting for decimal and group separators</li>
+        <li><strong>Prefix/Suffix</strong>: Add text before or after the number (like currency symbols)</li>
+        <li><strong>Precision Control</strong>: Set decimal places for floating-point values</li>
+        <li><strong>Min/Max Limits</strong>: Constrain input within specified ranges</li>
+        <li><strong>Wrap Mode</strong>: Optionally wrap around instead of clamping at limits</li>
+      </ul>
+    </div>`,
+    'Try out these interactions on the examples above'
+  );
+  container.appendChild(spinBoxInfoCard);
 }
 
 function initPopupWidgets() {
@@ -478,15 +597,21 @@ function initPopupWidgets() {
     
     if (menuVisible) {
       popupEl.style.display = 'block';
-      popupEl.style.position = 'absolute';
+      popupEl.style.position = 'fixed';
       
       const updatePosition = () => {
         computePosition(popupBtn, popupEl, {
-          platform, 
+          platform,
+          strategy: 'fixed', 
           placement: 'bottom',
           middleware: [offset(8), flip(), shift()]
         }).then(({x, y}) => {
-          Object.assign(popupEl.style, { left: `${x}px`, top: `${y}px` });
+          Object.assign(popupEl.style, { 
+            left: `${x}px`, top: `${y}px`
+            // left: '0px', top: '0px',
+            // willChange: 'transform',
+            // transform: `translate3d(${x}px, ${y}px, 0)`
+          });
         });
       };
       
@@ -543,6 +668,30 @@ function initPopupWidgets() {
                  'Cherry', 'Coconut', 'Grape', 'Kiwi', 'Lemon', 'Lime', 'Mango', 
                  'Orange', 'Peach', 'Pear', 'Pineapple', 'Plum', 'Raspberry', 'Strawberry'];
   
+      
+  const updatePos = () => {
+      // Position suggestion popup
+      computePosition(fruitInput, suggestionPopup, {
+        platform,
+        strategy: 'fixed', 
+        placement: 'bottom-start',
+        middleware: [offset(2), flip(), shift()]
+      }).then(({x, y}) => {
+        Object.assign(suggestionPopup.style, {
+          position: 'fixed',
+          width: `${fruitInput.offsetWidth}px`,
+          left: `${x}px`, top: `${y}px`,
+          // left: '0px', top: '0px',
+          // willChange: 'transform',
+          // transform: `translate3d(${x}px, ${y}px, 0)`
+        });
+      });
+  };
+  // const resizeObserver = new ResizeObserver(() => updatePosition());
+  // resizeObserver.observe(popupBtn);
+  // resizeObserver.observe(document.body);
+  window.addEventListener('scroll', () => { updatePos(); }, true);
+
   fruitInput.addEventListener('input', () => {
     const value = fruitInput.value.toLowerCase();
     if (value.length < 1) {
@@ -558,19 +707,7 @@ function initPopupWidgets() {
       
       suggestionPopup.style.display = 'block';
       
-      // Position suggestion popup
-      computePosition(fruitInput, suggestionPopup, {
-        platform,
-        placement: 'bottom-start',
-        middleware: [offset(2), flip(), shift()]
-      }).then(({x, y}) => {
-        Object.assign(suggestionPopup.style, {
-          position: 'absolute',
-          left: `${x}px`,
-          top: `${y}px`,
-          width: `${fruitInput.offsetWidth}px`
-        });
-      });
+      updatePos();
       
       // Add click handlers to suggestions
       suggestionPopup.querySelectorAll('.suggestion-item').forEach(item => {
@@ -878,7 +1015,241 @@ function createWidgetCard(title, demoHTML, description) {
   
   return card;
 }
-
+// Create a tree example with WTree
+export function initSimpleTreeExample() {
+  const container = document.querySelector('#stree .widget-grid');
+  
+  // Create a simple tree card
+  const treeCard = document.createElement('div');
+  treeCard.className = 'widget-card full-width-card';
+  treeCard.innerHTML = `
+    <h3>Simple WTree Example</h3>
+    <div class="tree-controls">
+      <button id="tree-expand-all">Expand All</button>
+      <button id="tree-collapse-all">Collapse All</button>
+      <button id="tree-add-node">Add Node</button>
+    </div>
+    <div class="simple-tree-container" style="height: 300px; overflow: auto; border: 1px solid #ccc; padding: 10px;"></div>
+    <div class="tree-selection-info" style="margin-top: 10px;">Selected: None</div>
+    <div class="widget-description">
+      Lightweight tree with custom icons and event handling
+    </div>
+  `;
+  
+  container.appendChild(treeCard);
+  
+  // Import WTree
+  import("./js/WTree.esm.js").then(({ WTreeNode, WTree }) => {
+    // Create a tree structure
+    const rootNode = new WTreeNode("Root Folder", { 
+      expanded: true,
+      checkboxes: true,
+      icon: '<i class="fas fa-folder-open" style="color: #f8d775;"></i>'
+    });
+    
+    // Add first level children
+    const docsNode = new WTreeNode("Documents", { 
+      expanded: true,
+      icon: '<i class="fas fa-folder-open" style="color: #f8d775;"></i>'
+    });
+    rootNode.addChild(docsNode);
+    
+    const picturesNode = new WTreeNode("Pictures", {
+      icon: '<i class="fas fa-folder" style="color: #f8d775;"></i>'
+    });
+    rootNode.addChild(picturesNode);
+    
+    const musicNode = new WTreeNode("Music", {
+      icon: '<i class="fas fa-folder" style="color: #f8d775;"></i>'
+    });
+    rootNode.addChild(musicNode);
+    
+    // Add some documents
+    docsNode.addChild(new WTreeNode("Resume.pdf", { 
+      icon: '<i class="fas fa-file-pdf" style="color: #e74c3c;"></i>' 
+    }));
+    docsNode.addChild(new WTreeNode("Budget.xlsx", { 
+      icon: '<i class="fas fa-file-excel" style="color: #27ae60;"></i>' 
+    }));
+    
+    // Add some pictures
+    picturesNode.addChild(new WTreeNode("Vacation.jpg", { 
+      icon: '<i class="fas fa-file-image" style="color: #3498db;"></i>' 
+    }));
+    picturesNode.addChild(new WTreeNode("Family.png", { 
+      icon: '<i class="fas fa-file-image" style="color: #3498db;"></i>' 
+    }));
+    
+    // Add some music
+    musicNode.addChild(new WTreeNode("Favorite Song.mp3", { 
+      icon: '<i class="fas fa-file-audio" style="color: #9b59b6;"></i>' 
+    }));
+    
+    // Create a tree view
+    const tree = new WTree(rootNode, '.simple-tree-container', {
+      show_root: true
+    });
+    
+    // Add event listeners to nodes
+    rootNode.on('toggle_expanded', () => {
+      // Update icon based on expanded state
+      rootNode.setOption('icon', rootNode.expanded ? 
+        '<i class="fas fa-folder-open" style="color: #f8d775;"></i>' : 
+        '<i class="fas fa-folder" style="color: #f8d775;"></i>');
+      tree.reload();
+    });
+    
+    docsNode.on('toggle_expanded', () => {
+      docsNode.setOption('icon', docsNode.expanded ? 
+        '<i class="fas fa-folder-open" style="color: #f8d775;"></i>' : 
+        '<i class="fas fa-folder" style="color: #f8d775;"></i>');
+      tree.reload();
+    });
+    
+    picturesNode.on('toggle_expanded', () => {
+      picturesNode.setOption('icon', picturesNode.expanded ? 
+        '<i class="fas fa-folder-open" style="color: #f8d775;"></i>' : 
+        '<i class="fas fa-folder" style="color: #f8d775;"></i>');
+      tree.reload();
+    });
+    
+    musicNode.on('toggle_expanded', () => {
+      musicNode.setOption('icon', musicNode.expanded ? 
+        '<i class="fas fa-folder-open" style="color: #f8d775;"></i>' : 
+        '<i class="fas fa-folder" style="color: #f8d775;"></i>');
+      tree.reload();
+    });
+    
+    // Track selections
+    const selectionInfo = document.querySelector('.tree-selection-info');
+    const updateSelectionInfo = () => {
+      const selected = tree.selectedNodes;
+      if (selected.length === 0) {
+        selectionInfo.textContent = 'Selected: None';
+      } else {
+        selectionInfo.textContent = `Selected: ${selected.map(n => n.toString()).join(', ')}`;
+      }
+    };
+    
+    // Apply selection tracking to all nodes
+    const addSelectionTracking = (node) => {
+      node.on('toggle_selected', updateSelectionInfo);
+      node.children.forEach(addSelectionTracking);
+    };
+    addSelectionTracking(rootNode);
+    
+    // Add leaf node click handler for "open" action
+    const addOpenHandler = (node) => {
+      node.on('open', () => {
+        alert(`Opening: ${node.toString()}`);
+      });
+      node.children.forEach(addOpenHandler);
+    };
+    addOpenHandler(rootNode);
+    
+    // Add context menu handler
+    const addContextHandler = (node) => {
+      node.on('contextmenu', (e) => {
+        console.log(`Context menu for: ${node.toString()}`);
+        // You could show a custom context menu here
+      });
+      node.children.forEach(addContextHandler);
+    };
+    addContextHandler(rootNode);
+    
+    // Add button handlers
+    document.getElementById('tree-expand-all').addEventListener('click', () => {
+      tree.expandAll();
+    });
+    
+    document.getElementById('tree-collapse-all').addEventListener('click', () => {
+      tree.collapseAll();
+    });
+    
+    document.getElementById('tree-add-node').addEventListener('click', () => {
+      // Generate a random node name
+      const nodeTypes = ['Document', 'Image', 'Audio', 'Video', 'Archive'];
+      const nodeType = nodeTypes[Math.floor(Math.random() * nodeTypes.length)];
+      const nodeName = `New ${nodeType} ${Math.floor(Math.random() * 100)}`;
+      
+      // Add icon based on node type
+      let icon = '<i class="fas fa-file"></i>';
+      switch (nodeType) {
+        case 'Document': 
+          icon = '<i class="fas fa-file-alt" style="color: #3498db;"></i>';
+          break;
+        case 'Image': 
+          icon = '<i class="fas fa-file-image" style="color: #2ecc71;"></i>';
+          break;
+        case 'Audio': 
+          icon = '<i class="fas fa-file-audio" style="color: #9b59b6;"></i>';
+          break;
+        case 'Video': 
+          icon = '<i class="fas fa-file-video" style="color: #e74c3c;"></i>';
+          break;
+        case 'Archive': 
+          icon = '<i class="fas fa-file-archive" style="color: #f39c12;"></i>';
+          break;
+      }
+      
+      // Create and add the new node
+      const newNode = new WTreeNode(nodeName, { icon });
+      docsNode.addChild(newNode);
+      
+      // Make sure docs node is expanded
+      docsNode.expanded = true;
+      
+      // Refresh the tree
+      tree.reload();
+    });
+    
+    // Add basic CSS for the tree
+    const style = document.createElement('style');
+    style.textContent = `
+      .tj_container ul {
+        list-style-type: none;
+        padding-left: 20px;
+      }
+      
+      .tj_container > ul {
+        padding-left: 0;
+      }
+      
+      .tj_description {
+        cursor: pointer;
+        padding: 3px;
+        display: inline-block;
+        border-radius: 3px;
+      }
+      
+      .tj_description:hover {
+        background-color: #f0f0f0;
+      }
+      
+      .tj_description.selected {
+        background-color: #e0e0ff;
+      }
+      
+      .tj_mod_icon, .tj_icon {
+        margin-right: 5px;
+      }
+      
+      [aria-disabled="true"] .tj_description {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    `;
+    document.head.appendChild(style);
+  });
+  
+  // Add Font Awesome for icons if not already loaded
+  if (!document.querySelector('link[href*="font-awesome"]')) {
+    const linkElement = document.createElement('link');
+    linkElement.rel = 'stylesheet';
+    linkElement.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css';
+    document.head.appendChild(linkElement);
+  }
+}
 export function initGridWidgets() {
   /*** ---------- build the DOM card ---------- ***/
   const container = document.querySelector('#grid .widget-grid');
@@ -898,7 +1269,7 @@ export function initGridWidgets() {
     </div>
 
     <!-- grid -->
-    <div class="slick-grid-container" id="slickGridDemo"></div>
+    <div class="grid-container" id="slickGridDemo"></div>
 
     <div class="widget-description">
       Sorting • column filters • inline editing • responsive resize • 100 demo rows
@@ -925,26 +1296,27 @@ export function initGridWidgets() {
       ];
 
   const options = {
-    columnPicker: {
-      columnTitle: "Columns",
-      hideForceFitButton: false,
-      hideSyncResizeButton: false,
-      forceFitTitle: "Force fit columns",
-      syncResizeTitle: "Synchronous resize",
-    },
-    gridMenu: {
-      iconCssClass: "sgi sgi-menu sgi-17px",
-      columnTitle: "Columns",
-      hideForceFitButton: false,
-      hideSyncResizeButton: false,
-      forceFitTitle: "Force fit columns",
-      syncResizeTitle: "Synchronous resize",
-    },
+    // columnPicker: {
+    //   columnTitle: "Columns",
+    //   hideForceFitButton: false,
+    //   hideSyncResizeButton: false,
+    //   forceFitTitle: "Force fit columns",
+    //   syncResizeTitle: "Synchronous resize",
+    // },
+    // gridMenu: {
+    //   iconCssClass: "sgi sgi-menu sgi-17px",
+    //   columnTitle: "Columns",
+    //   hideForceFitButton: false,
+    //   hideSyncResizeButton: false,
+    //   forceFitTitle: "Force fit columns",
+    //   syncResizeTitle: "Synchronous resize",
+    // },
     editable: true,
+    syncColumnCellResize: true,
+    forceFitColumns: true,        // <— stretch/shrink to fill
     enableAddRow: true,
     enableCellNavigation: true,
     asyncEditorLoading: true,
-    forceFitColumns: false,
     topPanelHeight: 35,
     rowHeight: 28
   };
@@ -959,30 +1331,112 @@ export function initGridWidgets() {
       title: `Task ${i}`,
       priority: p,
       percent: pc,
-      start,
+      start: start,
       finish: start + Math.random() * 1.5e10,
       sel: false
     };
   });
 
-  /*** ---------- DataView + Grid ---------- ***/
-  const dataView = new SlickDataView({ inlineFilters: true });
-  dataView.setItems(data);
 
-  const gridElem = document.getElementById('slickGridDemo');
-  const grid = new SlickGrid(gridElem, dataView, columns, options);
-
-  /*** ---------- sorting ---------- ***/
-  grid.onSort.subscribe((_e, { sortCol, sortAsc }) => {
-    dataView.sort((a, b) => {
-      const x = a[sortCol.field], y = b[sortCol.field];
-      return (x === y ? 0 : x > y ? 1 : -1) * (sortAsc ? 1 : -1);
+    // Create a mock data URL function that returns our sample data
+  const mockDataUrl = ({ page, from, to }) => {
+    // Return a Promise to simulate async data loading
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve({
+          items: data.slice(from, to),
+          done: to >= data.length,
+          total: data.length
+        });
+      }, 100); // Simulate network delay
     });
+  };
+
+  /*** ---------- Initialize WTableView ---------- ***/
+  const tableView = new WTableView({
+    el: '#slickGridDemo',
+    columns: columns,
+    dataUrl: mockDataUrl,
+    pageSize: 25,
+    options: {
+      editable: true,
+      syncColumnCellResize: true,
+      forceFitColumns: false,
+      enableAddRow: true,
+      enableCellNavigation: true,
+      asyncEditorLoading: true,
+      rowHeight: 28
+    },
+    showHeaderRow: false,
+    // Uncomment to enable advanced features
+    // columnGroups: [
+    //   { name: 'Task Details', columns: ['id', 'title', 'priority'] },
+    //   { name: 'Progress', columns: ['percent', 'start', 'finish'] }
+    // ],
+    // grouping: {
+    //   getter: 'priorityLabel',
+    //   formatter: g => `${g.value} Priority (${g.count} items)`
+    // },
+    validators: {
+      title: value => value.length >= 3 || 'Title must be at least 3 characters'
+    }
   });
+
+  // /*** ---------- DataView + Grid ---------- ***/
+  // const dataView = new SlickDataView({ inlineFilters: true });
+  // dataView.setItems(data);
+
+  // const gridElem = document.getElementById('slickGridDemo');
+  // const grid = new SlickGrid(gridElem, dataView, columns, options);
+
+  // const ro = new ResizeObserver(() => grid.resizeCanvas());
+  // ro.observe(gridElem);
+
+  // /*** ---------- sorting ---------- ***/
+  // grid.onSort.subscribe((_e, { sortCol, sortAsc }) => {
+  //   console.log(`Sorting by ${sortCol.field} (${sortAsc ? 'asc' : 'desc'})`);
+  //   // Update the DataView with the new sort order
+  //   dataView.sort((a, b) => {
+  //       const x = a[sortCol.field];
+  //       const y = b[sortCol.field];
+        
+  //       // Handle different data types appropriately
+  //       if (typeof x === 'string' && typeof y === 'string') {
+  //         return sortAsc ? x.localeCompare(y) : y.localeCompare(x);
+  //       } else {
+  //         return sortAsc ? (x === y ? 0 : (x > y ? 1 : -1)) : (x === y ? 0 : (x > y ? -1 : 1));
+  //       }
+  //   });
+  //   // Force grid to refresh after sorting
+  //   grid.invalidate();
+  //   grid.render();
+  // });
+
 
   /*** ---------- filtering ---------- ***/
   const filterTitle = document.getElementById('filterTitle');
   const filterPriority = document.getElementById('filterPriority');
+
+ // Setup column filters
+  const applyFilters = () => {
+    const filters = {};
+    
+    if (filterTitle.value) {
+      filters.title = filterTitle.value;
+    }
+    
+    if (filterPriority.value) {
+      filters.priority = filterPriority.value;
+    }
+    
+    tableView.applyColumnFilters(filters);
+  };
+
+  filterTitle.addEventListener('input', applyFilters);
+  filterPriority.addEventListener('change', applyFilters);
+
+  // Set initial filters
+  applyFilters();
 
   function filterFn(item) {
     const matchTitle = item.title.toLowerCase().includes(filterTitle.value.trim().toLowerCase());
@@ -990,27 +1444,164 @@ export function initGridWidgets() {
     return matchTitle && matchPrio;
   }
 
-  filterTitle.addEventListener('input', () => { dataView.refresh(); });
-  filterPriority.addEventListener('change', () => { dataView.refresh(); });
-  dataView.setFilter(filterFn);
+  // filterTitle.addEventListener('input', () => { dataView.refresh(); });
+  // filterPriority.addEventListener('change', () => { dataView.refresh(); });
+  // dataView.setFilter(filterFn);
 
-  /*** ---------- row-selection (checkbox) ---------- ***/
-  grid.onClick.subscribe((_e, args) => {
-    if (args.cell === 0) {
-      const item = dataView.getItem(args.row);
-      item.sel = !item.sel;
-      dataView.updateItem(item.id, item);
+  // /*** ---------- row-selection (checkbox) ---------- ***/
+  // grid.onClick.subscribe((_e, args) => {
+  //   if (args.cell === 0) {
+  //     const item = dataView.getItem(args.row);
+  //     item.sel = !item.sel;
+  //     dataView.updateItem(item.id, item);
+  //   }
+  // });
+
+  // /*** ---------- resize handling ---------- ***/
+  // function resize() { grid.resizeCanvas(); }
+  // window.addEventListener('resize', resize);
+  // resize();
+
+  // /*** ---------- initial render ---------- ***/
+  // dataView.refresh();  // applies initial filter / sort
+
+  setTimeout(() => {
+    tableView.refresh();
+    // grid.resizeCanvas();
+    // dataView.refresh();
+    // grid.invalidate();
+    // grid.render();    
+  }, 100);
+
+}
+
+
+export function initTreeViewExample() {
+  const container = document.querySelector('#tree .widget-grid');
+  
+  // Create a tree view card
+  const treeViewCard = document.createElement('div');
+  treeViewCard.className = 'widget-card full-width-card';
+  treeViewCard.innerHTML = `
+    <h3>WTreeView Example</h3>
+    <div class="tree-controls">
+      <button id="expandAll">Expand All</button>
+      <button id="collapseAll">Collapse All</button>
+      <button id="addNode">Add Node</button>
+    </div>
+    <div class="grid-container" id="treeViewDemo" style="height: 400px;"></div>
+    <div class="widget-description">
+      Hierarchical data with expand/collapse functionality, checkboxes, and custom icons
+    </div>
+  `;
+  
+  container.appendChild(treeViewCard);
+  
+  // Sample hierarchical data
+  const treeData = [
+    { id: 1, name: "Documents", size: "-", type: "folder", expanded: true },
+    { id: 2, name: "Projects", parentId: 1, size: "-", type: "folder" },
+    { id: 3, name: "Reports", parentId: 1, size: "-", type: "folder", expanded: true },
+    { id: 4, name: "Personal", parentId: 1, size: "-", type: "folder" },
+    { id: 5, name: "Project A", parentId: 2, size: "-", type: "folder" },
+    { id: 6, name: "Project B", parentId: 2, size: "-", type: "folder" },
+    { id: 7, name: "Q1 Report.pdf", parentId: 3, size: "2.5 MB", type: "pdf" },
+    { id: 8, name: "Q2 Report.pdf", parentId: 3, size: "3.1 MB", type: "pdf" },
+    { id: 9, name: "Budget.xlsx", parentId: 3, size: "1.8 MB", type: "excel" },
+    { id: 10, name: "Notes.txt", parentId: 4, size: "12 KB", type: "text" },
+    { id: 11, name: "Photos", parentId: 4, size: "-", type: "folder" },
+    { id: 12, name: "Vacation.jpg", parentId: 11, size: "4.2 MB", type: "image" },
+    { id: 13, name: "Family.jpg", parentId: 11, size: "3.8 MB", type: "image" },
+    { id: 14, name: "Specifications.docx", parentId: 5, size: "1.2 MB", type: "word" },
+    { id: 15, name: "Presentation.pptx", parentId: 5, size: "6.7 MB", type: "powerpoint" }
+  ];
+
+  // Add file type icons
+  const getFileIcon = (type) => {
+    switch(type) {
+      case "folder": return `<i class="far fa-folder" style="color: #f8d775;"></i>`;
+      case "pdf": return `<i class="far fa-file-pdf" style="color: #e74c3c;"></i>`;
+      case "excel": return `<i class="far fa-file-excel" style="color: #27ae60;"></i>`;
+      case "word": return `<i class="far fa-file-word" style="color: #3498db;"></i>`;
+      case "powerpoint": return `<i class="far fa-file-powerpoint" style="color: #e67e22;"></i>`;
+      case "text": return `<i class="far fa-file-alt" style="color: #95a5a6;"></i>`;
+      case "image": return `<i class="far fa-file-image" style="color: #9b59b6;"></i>`;
+      default: return `<i class="far fa-file"></i>`;
     }
+  };
+
+  // Add icons to the data
+  treeData.forEach(item => {
+    item.icon = getFileIcon(item.type);
   });
 
-  /*** ---------- resize handling ---------- ***/
-  function resize() { grid.resizeCanvas(); }
-  window.addEventListener('resize', resize);
-  resize();
+  // Define columns for the tree
+  const columns = [
+    { id: "name", name: "Name", field: "name", width: 280 },
+    { id: "size", name: "Size", field: "size", width: 80 },
+    { id: "type", name: "Type", field: "type", width: 100 }
+  ];
 
-  /*** ---------- initial render ---------- ***/
-  dataView.refresh();  // applies initial filter / sort
+  // Create WTreeView instance
+  import("./js/WTreeView.esm.js").then(({ default: WTreeView }) => {
+    const treeView = new WTreeView({
+      el: '#treeViewDemo',
+      columns: columns,
+      checkboxes: true, // Enable selection checkboxes
+      idField: 'id',
+      parentIdField: 'parentId',
+      expandedField: 'expanded',
+      iconField: 'icon',
+      indentation: 16,
+      dragDrop: true
+    });
+
+    // Set data
+    treeView.setData(treeData);
+
+    // Hook up control buttons
+    document.getElementById('expandAll').addEventListener('click', () => {
+      treeView.expandAll();
+    });
+
+    document.getElementById('collapseAll').addEventListener('click', () => {
+      treeView.collapseAll();
+    });
+
+    // Add a new node when the button is clicked
+    let newNodeId = 16; // Start IDs after the existing ones
+    document.getElementById('addNode').addEventListener('click', () => {
+      const newNode = {
+        id: newNodeId++,
+        name: `New Item ${newNodeId-16}`,
+        parentId: 4, // Add to Personal folder
+        size: "1 KB",
+        type: "text",
+        icon: getFileIcon("text")
+      };
+      
+      // Get current data, add new item, and refresh
+      const currentData = treeView.getDataView().getItems();
+      const newData = [...currentData, newNode];
+      treeView.setData(newData);
+      
+      // Make sure the parent is expanded to see the new node
+      treeView.revealNode(newNode.id);
+    });
+
+    // Listen for selection changes
+    document.querySelector('#treeViewDemo').addEventListener('selectionchanged', e => {
+      console.log('Selected items:', e.detail.selected);
+    });
+  });
+  
+  // Add Font Awesome for icons
+  const linkElement = document.createElement('link');
+  linkElement.rel = 'stylesheet';
+  linkElement.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css';
+  document.head.appendChild(linkElement);
 }
+
 
 export function initChartWidgets() {
   const container = document.querySelector('#chart .widget-grid');
@@ -1405,8 +1996,7 @@ export function initGridLayoutTest() {
         A simple 2x2 grid demonstrating the basic layout capabilities with equal sizing.
       </div>
       <div class="control-panel">
-        <button id="basic-measure">Measure</button>
-        <button id="basic-apply">Apply</button>
+        <button id="basic-measure">Refresh</button>
       </div>
       <div id="basicLayoutRoot" class="test-layout-root" style="height: 300px;">
         <div id="basic-cell-1" class="grid-item">Cell 1</div>
@@ -1422,8 +2012,7 @@ export function initGridLayoutTest() {
         Demonstrates how stretch factors control proportional sizing of rows and columns.
       </div>
       <div class="control-panel">
-        <button id="stretch-measure">Measure</button>
-        <button id="stretch-apply">Apply</button>
+        <button id="stretch-measure">Refresh</button>
       </div>
       <div id="stretchLayoutRoot" class="test-layout-root" style="height: 400px;">
         <div id="stretch-cell-1" class="grid-item">Stretch 1</div>
@@ -1564,10 +2153,6 @@ function initBasicTest() {
   });
   
   document.getElementById('basic-measure').addEventListener('click', () => {
-    layout.measure();
-  });
-  
-  document.getElementById('basic-apply').addEventListener('click', () => {
     layout.refresh();
   });
   
@@ -1598,13 +2183,9 @@ function initStretchTest() {
   });
   
   document.getElementById('stretch-measure').addEventListener('click', () => {
-    layout.measure();
-  });
-  
-  document.getElementById('stretch-apply').addEventListener('click', () => {
     layout.refresh();
   });
-  
+    
   // Initial layout
   layout.refresh();
 }

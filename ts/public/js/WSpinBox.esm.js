@@ -61,6 +61,12 @@
       maximumFractionDigits: precision
     });
 
+    // Change input type to text if we have prefix/suffix or non-standard formatting
+    if (prefix || suffix) {
+      input.type = "text";
+      console.warn('SpinBox with prefix/suffix should use type="text" instead of type="number"');
+    }
+
     // behaviour flags
     this.#arrowZone = 16;              // px from right edge that acts as arrow area
 
@@ -106,8 +112,25 @@
 
   #parse(str) {
     const raw = str.replace(this.#prefix, "").replace(this.#suffix, "");
-    const num = Number(raw.replaceAll(this.#fmt.format(1111).charAt(1), "")); // crude remove group sep
-    return isNaN(num) ? null : num;
+    
+    // Get decimal and group separators for the current locale
+    const parts = new Intl.NumberFormat(navigator.language).formatToParts(1234.5);
+    const decimalSeparator = parts.find(part => part.type === 'decimal')?.value || '.';
+    const groupSeparator = parts.find(part => part.type === 'group')?.value || ',';
+    
+    // First, remove group separators
+    let normalized = raw.replace(new RegExp('\\' + groupSeparator, 'g'), '');
+    
+    // Then, replace decimal separator with standard period for JS parsing
+    if (decimalSeparator !== '.') {
+      normalized = normalized.replace(new RegExp('\\' + decimalSeparator, 'g'), '.');
+    }
+    
+    // Now parse the normalized string
+    const num = parseFloat(normalized);
+    //console.log(`Parsing "${str}" → ${num} (normalized: "${normalized}")`);
+    
+    return isNaN(num) ? 0 : num;
   }
 
   #format(num) {
@@ -166,7 +189,7 @@
   #onWheel(e) {
     if (this.#el.readOnly) return;
     e.preventDefault();
-    const dir = Math.sign(e.deltaY);
+    const dir = -Math.sign(e.deltaY);
     this.#nudge(dir);
     this.onChange(this.getValue(), true);
   }
@@ -175,7 +198,7 @@
     if (this.#el.readOnly) return;
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       e.preventDefault();
-      const dir = e.key === "ArrowUp" ? -1 : 1;
+      const dir = e.key === "ArrowUp" ? 1 : -1;
       // first step immediately
       this.#nudge(dir);
       // then repeat while held

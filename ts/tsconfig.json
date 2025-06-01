@@ -1,13 +1,29 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "rootDir": "src",            // <-- where .ts files live
-    "outDir": "public/js",            // <-- compiled JS goes here
+    //Pick the matching npm run build:<tool> or npm run dev:<tool> script.
+    /* language & module target ------------------------------------------ */
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",   // ← plays nicely with modern ESM libs
+
+    /* project structure -------------------------------------------------- */
+    "rootDir": "src",
+    "outDir": "public/js",
+
+    /* strictness & ergonomics ------------------------------------------- */
     "strict": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
-    "sourceMap": true            // nice for browser dev-tools
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,             // speeds up compile; safe with vetted libs
+    "sourceMap": true                 // browser-friendly debugging
   },
-  "include": ["/"]
+
+  "scripts": {
+    "clean": "rimraf public/js",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "dev":   "tsx watch src/index.ts"
+  },
+
+  /* include only real sources (was “/” before) -------------------------- */
+  "include": ["src/**/*"]
 }

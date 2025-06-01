@@ -8,7 +8,7 @@
 // • Pure‑CSS Grid for layout ‑‑ no hand‑crafted absolute maths anymore
 // -----------------------------------------------------------------------------
 
-import { size } from "../vendor/floating-ui/floating-ui.core.browser.min.mjs";
+//import { size } from "../vendor/floating-ui/floating-ui.core.browser.min.mjs";
 
 /* eslint-disable max-lines */
 
