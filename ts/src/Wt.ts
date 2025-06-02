@@ -980,7 +980,7 @@ export default class WtApp {
 
   isSymbolDefined = (symbol: string | null): boolean => {
     if (!symbol) return false;
-    return !!symbol.split('.').reduce((o, p) => o?.[p], window);
+    return !!symbol.split('.').reduce((o, p) => o ? (o as Record<string, any>)[p] : undefined, window as Record<string, any>);
   }
 
   isScriptLoaded(path: string): boolean {
@@ -1140,13 +1140,14 @@ export default class WtApp {
     this.clearTimer(id);
   
     const handler = () => {
-      try {
-        action.call(context ?? element ?? this, element);
-        if (repeat === -1) this.timers.delete(id);
-      } catch (error) {
-        console.error(`Error in timer event for ${id}:`, error);
-      }
-    };
+        try {
+          // Use Function type assertion to avoid TypeScript incompatibility with event handlers
+          (action as Function).call(context ?? element ?? this, element);
+          if (repeat === -1) this.timers.delete(id);
+        } catch (error) {
+          console.error(`Error in timer event for ${id}:`, error);
+        }
+      };
   
     const timerId = repeat === -1 ? 
       window.setTimeout(handler, delay) : 

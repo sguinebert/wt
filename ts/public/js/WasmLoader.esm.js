@@ -13,8 +13,123 @@
  *   loader.load();
  * ------------------------------------------------------------------------- */
 
+async function unregisterServiceWorkers() {
+  if (!navigator.serviceWorker) return false;
+  
+  try {
+    // Get all registered service workers
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    
+    // Unregister each one
+    await Promise.all(
+      registrations.map(registration => {
+        console.log('[SW] Unregistering:', registration.scope);
+        return registration.unregister();
+      })
+    );
+    
+    console.log('[SW] All service workers unregistered');
+    window.swReg = null;
+    return true;
+  } catch (err) {
+    console.error('[SW] Error unregistering service workers:', err);
+    return false;
+  }
+}
+//await unregisterServiceWorkers();
+
+  if(navigator.serviceWorker && (!window.swReg || !window.swReg.installing)) {
+    /* -----------------------------------------------------------
+    * Register the service worker
+    * This will cache the assets listed in the service worker
+    * --------------------------------------------------------- */
+      //window.swReg = await navigator.serviceWorker.register('./js/wasm-sw.js', { scope: '/js/' });
+      window.swReg = await navigator.serviceWorker.register('./wasm-sw.js', { scope: '/' });
+      console.log('Service Worker registered:', window.swReg);
+
+  // Only wait for controllerchange if the page isn't already controlled
+    // if (!navigator.serviceWorker.controller) {
+    //   console.log("Waiting for service worker to control the page...");
+      
+    //   // Add timeout to prevent infinite hanging
+    //   await Promise.race([
+    //     new Promise(resolve => {
+    //       navigator.serviceWorker.addEventListener('controllerchange', () => {
+    //         console.log("Service worker now controlling page");
+    //         resolve();
+    //       });
+    //     }),
+    //     new Promise(resolve => {
+    //       // Timeout after 3 seconds
+    //       setTimeout(() => {
+    //         console.warn("Service worker controllerchange timeout - continuing anyway");
+    //         resolve();
+    //       }, 3000);
+    //     })
+    //   ]);
+    // } else {
+    //   console.log("Page already controlled by service worker:", 
+    //               navigator.serviceWorker.controller.scriptURL);
+    // }
+  }
+
+  /*  Now you can postMessage to register url to catch and cache, 
+  * swReg.active.postMessage({ type: 'CACHE_ASSETS', urls: ['/module.wasm'] }); */
+  // -------------------------------------------------------------------------
+
+
+
  export default class WasmLoader {
+    /* --------------------------------------------------- private fields */
+    #sw;                // service worker active?
+    #cfg;               // normalised user config
+    #status = 'NotStarted'; // current status of the loader
+    #restartCount = 0;
+    #module   = null;   // Emscripten module instance once running
+    #wasmCache = null;  // IndexedDB helper (lazy)
+
     /* -------------------------------------------------------------------
+     * Constructor / private state ( # fields )
+     * ----------------------------------------------------------------- */
+    /** @param {Object} cfg */
+    constructor(cfg = {}) {
+      this.#cfg = {
+        path: '',
+        restartMode: 'DoNotRestart',     // DoNotRestart | RestartOnExit | RestartOnCrash
+        restartLimit: 5,
+        stdoutEnabled: true,
+        stderrEnabled: true,
+        environment: {},
+        ...cfg,
+      };
+      this.#sw = !!navigator.serviceWorker && !!window.swReg && !!window.swReg.active;
+      if (!this.#cfg.applicationName) {
+        throw new Error('applicationName is required in WasmLoader config');
+      }
+      if (!this.#cfg.path) {
+        throw new Error('path is required in WasmLoader config');
+      }
+      if (this.#cfg.restartMode !== 'DoNotRestart' && this.#cfg.restartMode !== 'RestartOnExit' && this.#cfg.restartMode !== 'RestartOnCrash') {
+        throw new Error('Invalid restartMode in WasmLoader config');
+      }
+      const base = this.#cfg.path.endsWith('/') ? this.#cfg.path : `${this.#cfg.path}/`;
+      const app = this.#cfg.applicationName;
+      this.jsUrl = new URL(`${base}${app}.js`, window.location.href).href;
+      this.wasmUrl = new URL(`${base}${app}.wasm`, window.location.href).href;
+      if(this.#sw) {
+        // Register the service worker to cache assets
+        window.swReg.active.postMessage({
+          type: 'CACHE_ASSETS',
+          urls: [
+                  this.wasmUrl,
+                  this.jsUrl
+                ],
+        });
+      }
+
+    }
+
+      /* -------------------------------------------------------------------
      * Public API
      * ----------------------------------------------------------------- */
     get module()      { return this.#module; }
@@ -38,261 +153,323 @@
       const app  = this.#cfg.applicationName;
   
       try {
-        const [jsSource, wasmModule] = await Promise.all([
-          this.#fetchText(`${base}${app}.js`),
-          this.#getOrCompileWasm(`${base}${app}.wasm`),
-        ]);
-        await this.#bootEmscripten(jsSource, wasmModule);
+       //const jsSource = await this.#loadScriptFile(`${base}${app}.js`);
+       //const wasmModule = await this.#getOrCompileWasm(`${base}${app}.wasm`);
+        // const [jsSource, wasmModule] = await Promise.all([
+        //   this.#loadScriptFile(`${base}${app}.js`),
+        //   this.#getOrCompileWasm(`${base}${app}.wasm`),
+        // ]);
+        const wasmModule = {
+          url: this.wasmUrl,
+          memory: new WebAssembly.Memory({ 
+            initial: this.#cfg.initialMemory || 32,
+            maximum: this.#cfg.maximumMemory || undefined
+          }),
+          table: new WebAssembly.Table({ 
+            initial: this.#cfg.initialTable || 0, 
+            element: 'anyfunc' 
+          })
+        };
+    
+        await this.#bootEmscripten(this.jsUrl, wasmModule);
       } catch (e) {
         this.#handleAbort(e);
         throw e;
       }
     }
   
-    /* -------------------------------------------------------------------
-     * Constructor / private state ( # fields )
-     * ----------------------------------------------------------------- */
-    /** @param {Object} cfg */
-    constructor(cfg = {}) {
-      this.#cfg = {
-        path: '',
-        restartMode: 'DoNotRestart',     // DoNotRestart | RestartOnExit | RestartOnCrash
-        restartLimit: 5,
-        stdoutEnabled: true,
-        stderrEnabled: true,
-        environment: {},
-        ...cfg,
-      };
-    }
-  
-    /* --------------------------------------------------- private fields */
-    #cfg;               // normalised user config
-    #status = 'NotStarted'; // current status of the loader
-    #restartCount = 0;
-    #module   = null;   // Emscripten module instance once running
-    #wasmCache = null;  // IndexedDB helper (lazy)
+
   
     /* -------------------------------------------------------------------
      * Network helpers
      * ----------------------------------------------------------------- */
-    async #fetchText(url) {
-      const cache = await caches.open('loader-text');
-      let res = await cache.match(url);
+    // async #fetchText(url) {
+    //   let res = await fetch(url, this.#cfg.integrity ? { integrity: this.#cfg.integrity } : {});
+    //   if (!res.ok) {
+    //     throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
+    //   }
+    //   return res.text();
+    // }
+    // async #loadScriptFile(fileUrl) {
+    //   // Create script element
+    //   const scriptElement = document.createElement('script');
       
-      if (!res) {
-        res = await fetch(url, this.#cfg.integrity ? { integrity: this.#cfg.integrity } : {});
-        if (!res.ok) throw new Error(`${url} – ${res.status} ${res.statusText}`);
-        await cache.put(url, res.clone());
-      }
+    //   // Return promise that resolves when script loads
+    //   await new Promise((resolve, reject) => {
+    //     scriptElement.onload = resolve;
+    //     scriptElement.onerror = (e) => reject(new Error(`Failed to load script from ${fileUrl}: ${e}`));
+        
+    //     // Set src to direct file URL instead of blob
+    //     scriptElement.src = fileUrl;
+    //     document.head.appendChild(scriptElement);
+    //   });
       
-      return res.text();
-    }
+    //   // Script has loaded - clean up
+    //   return scriptElement;
+    // }
       
     /* ---------------- WASM caching pipeline --------------------------- */
-    async #getOrCompileWasm(url){
-      const idb = await this.#openWasmDB();
-
-      console.log('idb', idb);
-      // 1) compiled module cache
-      const cached = await idb.get(url);
-      console.log('cached', cached);
-      if (cached instanceof WebAssembly.Module) {
-        console.log(`[WASM Cache] ✅ Found compiled module in IndexedDB cache`);
-        return cached;
-      } else if (cached instanceof ArrayBuffer) {
-        // Handle ArrayBuffer fallback case - compile it now
-        console.log(`[WASM Cache] ✅ Found ArrayBuffer in cache, compiling...`);
-        try {
-          const module = await WebAssembly.compile(cached);
-          console.log(`[WASM Cache] Compiled successfully from cached ArrayBuffer`);
-          return module;
-        } catch (compileErr) {
-          console.error(`[WASM Cache] Failed to compile cached ArrayBuffer:`, compileErr);
-          // Fall through to fetch new copy
-        }
-      }
-
-      console.log(`[WASM Cache] ❌ No cached module found, fetching from network`);
-
-
-      // 2) fetch (Cache‑Storage first)
-      const module = await this.#fetchAndCompile(url);
-
-      // 3) compile only (no instantiation)
-      // let module;
-      // if (WebAssembly.compileStreaming){
-      //   module = await WebAssembly.compileStreaming(response.clone());
-      // } else {
-      //   module = await WebAssembly.compile(await response.clone().arrayBuffer());
-      // }
-
-      // 4) store compiled module (best‑effort)
-      try {
-        console.log(`[WASM Cache] Storing compiled module in IndexedDB for ${url}`);
-        await idb.set(url, module).catch(err => {
-          console.warn(`[WASM Cache] Failed to store in IndexedDB:`, err);
-        });
-        console.log(`[WASM Cache] Storage operation completed`);
-      } catch (storeErr) {
-        console.warn(`[WASM Cache] Exception during storage:`, storeErr);
-        // Continue despite error - this is best-effort
-      }
-      return module;
-    }
   
-    async #fetchAndCompile(url){
-      const cache    = await caches.open('loader-wasm');
-      let   response = await cache.match(url);            
+    // async #fetchAndCompile(url){
+    //   const cache    = await caches.open('loader-wasm');
+    //   let   response = await cache.match(url);            
 
-      /* ---------- fetch + cache on a cold start ---------- */
-      if (!response) {
-        response = await fetch(url, { integrity: this.#cfg.integrity });
-        if (!response.ok) {
-          throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
-        }
-        await cache.put(url, response.clone());           // raw bytes saved for next launch
-      }
+    //   /* ---------- fetch + cache on a cold start ---------- */
+    //   if (!response) {
+    //     response = await fetch(url, { integrity: this.#cfg.integrity });
+    //     if (!response.ok) {
+    //       throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+    //     }
+    //     await cache.put(url, response.clone());           // raw bytes saved for next launch
+    //   }
 
-      /* ---------- compile (streaming if possible) ---------- */
-      try {
-        if (WebAssembly.compileStreaming) {
-          return await WebAssembly.compileStreaming(response.clone());
-        }
-        const buf = await response.arrayBuffer();         // Safari ≤ 16
-        return await WebAssembly.compile(buf);
-      } catch (err) {
-        console.error(`WASM compile failed for ${url}:`, err);
-        throw new Error(`Failed to compile WebAssembly module from ${url}`);
-      }
-    }
-  
-    /* ---------------- IndexedDB helper ------------------------------- */
-    async #openWasmDB() {
-      if (this.#wasmCache) return this.#wasmCache;
+    //   /* ---------- compile (streaming if possible) ---------- */
+    //   try {
+    //     if (WebAssembly.compileStreaming) {
+    //       return await WebAssembly.compileStreaming(response.clone());
+    //     }
+    //     const buf = await response.arrayBuffer();         // Safari ≤ 16
+    //     return await WebAssembly.compile(buf);
+    //   } catch (err) {
+    //     console.error(`WASM compile failed for ${url}:`, err);
+    //     throw new Error(`Failed to compile WebAssembly module from ${url}`);
+    //   }
+    // }
 
-      const db = await new Promise((ok,err) => {
-        const req = indexedDB.open('LoaderWasmCache', 1);
-        req.onupgradeneeded = () => req.result.createObjectStore('wasm');
-        req.onsuccess = () => ok(req.result);
-        req.onerror = () => err(req.error);
+    /* small utility: inject a <script> and return when onload fires */
+    #loadScriptTag(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
       });
-
-      const wrap = {
-        get: (k) => new Promise(r => {
-          console.log(`[IDB] Attempting to get ${k}`);
-          const request = db.transaction('wasm').objectStore('wasm').get(k);
-          request.onsuccess = e => {
-            const result = e.target.result;
-            const resultType = result ? 
-              (result instanceof WebAssembly.Module ? 'WebAssembly.Module' : 
-              result instanceof ArrayBuffer ? 'ArrayBuffer' : typeof result) : 'null';
-            console.log(`[IDB] Got result type: ${resultType}`);
-            r(result || null);
-          };
-          request.onerror = e => {
-            console.error(`[IDB] Error getting ${k}:`, e.target.error);
-            r(null);
-          };
-        }),
-        set: (k, v) => new Promise((resolve, reject) => {
-          const valueType = v instanceof WebAssembly.Module ? 'WebAssembly.Module' : 
-                          v instanceof ArrayBuffer ? 'ArrayBuffer' : typeof v;
-          console.log(`[IDB] Setting ${k} with type: ${valueType}`);
-          
-          try {
-            const tx = db.transaction('wasm', 'readwrite');
-            const store = tx.objectStore('wasm');
-            const request = store.put(v, k);
-            
-            request.onsuccess = () => {
-              console.log(`[IDB] Successfully stored ${k}`);
-              resolve();
-            };
-            request.onerror = (e) => {
-              console.error(`[IDB] Error storing ${k}:`, e.target.error);
-              reject(e.target.error);
-            };
-          } catch (err) {
-            console.error(`[IDB] Exception in set operation:`, err);
-            reject(err);
-          }
-        }),
-      };
-      
-      return (this.#wasmCache = wrap);
     }
-      
+    /* utility: wait for the classic stub’s runtime to finish initialising */
+    #waitForRuntime(Module) {
+      return new Promise((res) => {
+        if (Module.calledRun || Module._main) {          // already ready
+          res();
+        } else if (typeof Module.onRuntimeInitialized === 'function') {
+          const old = Module.onRuntimeInitialized;
+          Module.onRuntimeInitialized = (...args) => {
+            old(...args);
+            res();
+          };
+        } else {
+          // very old stubs: poll
+          const t = setInterval(() => {
+            if (Module.calledRun) { clearInterval(t); res(); }
+          }, 16);
+        }
+      });
+    }
     /* ---------------- Boot Emscripten runtime ------------------------- */
-    async #bootEmscripten(jsSource, wasmModule){
-      const cfg = this.#cfg;
-      const modCfg = {
-        locateFile:(f)=>`${cfg.path}${f}`,
-        instantiateWasm:(imports,cb)=>{
-            console.log("Is wasmModule a WebAssembly.Module?", wasmModule instanceof WebAssembly.Module);
-          WebAssembly.instantiate(wasmModule, imports)
-            .then(instance => {
-              // For pre-compiled modules, we get the instance directly
-              console.log("WASM instantiated successfully");
-              return cb(instance, wasmModule);
-            })
-            .catch(err => {
-              console.error("WASM instantiation failed:", err);
-              this.#handleAbort(err);
-            });
-          return {};
-        },
-        print:  cfg.stdoutEnabled ? console.log : ()=>{},
-        printErr: cfg.stderrEnabled ? console.error : ()=>{},
-        onAbort: (m)=>this.#handleAbort(m),
-        quit:    (c,e)=>this.#handleQuit(c,e),
-        preRun: [m => {
-          if (!m.ENV) m.ENV = {};
-          if (cfg.environment) Object.assign(m.ENV, cfg.environment);
-        }],
-        setStatus:(txt)=>{ if(txt.startsWith('Running')) this.#setStatus('Running'); },
+    async #bootEmscripten(jsUrl, wasmModule){
+      console.log('WasmLoader: booting Emscripten runtime', jsUrl, wasmModule);
+      if(this.#cfg.qt)
+        return this.qtLoad(this.#cfg);
+      if (!jsUrl || !wasmModule) {
+        throw new Error('JS source or WASM module is missing');
+      }
+      const envImports = {
+        env: {
+          memory: wasmModule.memory ?? new WebAssembly.Memory({ initial: 32 }),
+          table:  wasmModule.table  ?? new WebAssembly.Table({ initial: 0, element: 'anyfunc' }),
+          ...this.#cfg.environment,
+        }
       };
 
-
-      //window.eval(jsSource);
-    
+      /* -----------------------------------------------------------------
+      * STEP 1 — try dynamic import  (MODULARIZE / EXPORT_ES6 builds)
+      * ----------------------------------------------------------------- */
       try {
-        // Define global Module that the Emscripten code will use
-        window.Module = modCfg;
-        
-        // Execute the JS code directly rather than trying to import it as a module
-        const scriptElement = document.createElement('script');
-        const scriptBlob = new Blob([jsSource], { type: 'text/javascript' });
-        const scriptURL = URL.createObjectURL(scriptBlob);
-        
-        // Wait for the script to load and execute
-        await new Promise((resolve, reject) => {
-          scriptElement.onload = resolve;
-          scriptElement.onerror = (e) => reject(new Error("Failed to load WASM JS: " + e));
-          scriptElement.src = scriptURL;
-          document.head.appendChild(scriptElement);
-        });
-        
-        // Store the Module instance
-        this.#module = window.Module;
-        this.#setStatus('Running');
-        
-        // Clean up
-        document.head.removeChild(scriptElement);
-        URL.revokeObjectURL(scriptURL);
-        
+        const m = await import(/* @vite-ignore */ jsUrl);
+        if (typeof m.default === 'function') {
+          this.#module = await m.default(envImports);   // factory returns promise
+          this.#setStatus('Running');
+          return;
+        }
       } catch (err) {
-        console.error("Error initializing Emscripten module:", err);
-        this.#handleAbort(err);
-        throw err;
-      } 
+        // Syntax-error or MIME-error means it wasn’t an ES-module -> fall through
+        console.debug('WasmLoader: dynamic import failed, falling back:', err.message);
+      }
 
+      /* -----------------------------------------------------------------
+      * STEP 2 — FALLBACK inject <script>  (monolithic stub builds)
+      * ----------------------------------------------------------------- */
+      try {
+        await this.#loadScriptTag(jsUrl);
+        if (window.Module) {                         // global stub
+          // await this.#waitForRuntime(window.Module);
+          // this.#module = window.Module;
+          this.#setStatus('Running');
+          return;
+        }
+      } catch (err) {
+        console.debug('WasmLoader: script-tag path failed, will try standalone:', err.message);
+      }
 
-      // const blobURL = URL.createObjectURL(new Blob([jsSource],{type:'text/javascript'}));
-      // const moduleFactory = (await import(blobURL)).default;
-      // URL.revokeObjectURL(blobURL);
-  
-      // this.#module = await moduleFactory(modCfg);
+      /* -----------------------------------------------------------------
+      * STEP 3 — FALLBACK stand-alone .wasm  (STANDALONE_WASM or Qt helper)
+      * ----------------------------------------------------------------- */
+      const { instance } = await WebAssembly.instantiateStreaming(fetch(wasmModule.url), envImports);
+      this.#module = instance.exports;
       this.#setStatus('Running');
+    }
+   /**
+     * Load and initialize a Qt WASM application
+     * @param {Object} config - Configuration object for Qt WASM app
+     * @returns {Promise<Object>} The instantiated module
+     */
+    async qtLoad(config) {
+      // Validate config
+      if (!config?.qt?.entryFunction || typeof config.qt.entryFunction !== 'function') {
+        throw new Error('config.qt.entryFunction is required and must be a function');
+      }
+
+      // Apply defaults and prepare config
+      config.qt.qtdir ??= 'qt';
+      config.qt.preload ??= [];
+      
+      // Move Qt-specific properties to emscripten-compatible locations
+      config.qtContainerElements = config.qt.containerElements;
+      config.qtFontDpi = config.qt.fontDpi;
+      delete config.qt.containerElements;
+      delete config.qt.fontDpi;
+      
+      // Save original values
+      const { noInitialRun = false, arguments: originalArgs } = config;
+      config.noInitialRun = true; // Take control of main() execution
+      
+      // Set up circuit breaker for handling instantiation failures
+      let circuitBreakerReject;
+      const circuitBreaker = new Promise((_, reject) => { circuitBreakerReject = reject; });
+      
+      // Configure WebAssembly instantiation if module is provided
+      if (config.qt.module) {
+        config.instantiateWasm = async (imports, successCallback) => {
+          try {
+            const module = await config.qt.module;
+            successCallback(await WebAssembly.instantiate(module, imports), module);
+          } catch (e) {
+            circuitBreakerReject(e);
+          }
+        };
+      }
+      
+      // Fetch and prepare preload files
+      const filesToPreload = await Promise.all(
+        config.qt.preload.map(async path => {
+          const response = await fetch(path);
+          if (!response.ok) throw new Error(`Could not fetch preload file: ${path}`);
+          return response.json();
+        })
+      ).then(results => results.flat());
+      
+      // Set up preRun to handle environment and file preloading
+      const qtPreRun = instance => {
+        // Verify ENV export if environment variables are used
+        if (config.qt.environment && Object.keys(config.qt.environment).length > 0) {
+          const envDescriptor = Object.getOwnPropertyDescriptor(instance, 'ENV');
+          if (typeof envDescriptor?.value !== 'object') {
+            throw new Error(
+              'ENV must be exported if environment variables are passed, ' +
+              'add it to QT_WASM_EXTRA_EXPORTED_METHODS CMake target property'
+            );
+          }
+          
+          // Copy environment variables
+          Object.assign(instance.ENV, config.qt.environment);
+        }
+        
+        // Handle file preloading
+        if (filesToPreload.length > 0) {
+          if (typeof instance.FS !== 'object') {
+            throw new Error('FS must be exported if preload is used');
+          }
+          
+          for (const file of filesToPreload) {
+            // Create directory structure
+            const parts = file.destination.split('/');
+            const filename = parts.pop();
+            const dir = parts.join('/');
+            
+            // Ensure directories exist
+            let path = '/';
+            for (const part of parts.filter(Boolean)) {
+              path += part + '/';
+              try {
+                instance.FS.mkdir(path);
+              } catch (error) {
+                if (error.errno !== 20) throw error; // EEXIST = 20
+              }
+            }
+            
+            // Create the file
+            const source = file.source.replace('$QTDIR', config.qt.qtdir);
+            instance.FS.createPreloadedFile(dir, filename, source, true, true);
+          }
+        }
+      };
+      
+      // Add to preRun hooks
+      config.preRun = [...(config.preRun || []), qtPreRun];
+      
+      // Set up event handlers
+      config.onRuntimeInitialized = () => {
+        config.onRuntimeInitialized?.();
+        config.qt.onLoaded?.();
+      };
+      
+      // Configure file locator
+      const originalLocateFile = config.locateFile;
+      config.locateFile = filename => {
+        const locatedFilename = originalLocateFile?.(filename) ?? filename;
+        return locatedFilename.startsWith('libQt6') 
+          ? `${config.qt.qtdir}/lib/${locatedFilename}` 
+          : locatedFilename;
+      };
+      
+      // Set up exit handling
+      let onExitCalled = false;
+      const handleExit = (details) => {
+        if (onExitCalled) return;
+        onExitCalled = true;
+        config.qt.onExit?.(details);
+      };
+      
+      config.onExit = code => {
+        config.onExit?.();
+        handleExit({ code, crashed: false });
+      };
+      
+      config.onAbort = text => {
+        config.onAbort?.();
+        handleExit({ text, crashed: true });
+      };
+      
+      // Initialize and run
+      try {
+        const instance = await Promise.race([
+          circuitBreaker,
+          config.qt.entryFunction(config)
+        ]);
+        
+        // Call main if original config didn't disable it
+        if (!noInitialRun) instance.callMain(originalArgs);
+        
+        return instance;
+      } catch (e) {
+        // Normal exit via app.exec()
+        if (e === "unwind") return;
+        
+        // Handle crash
+        handleExit({ text: e.message, crashed: true });
+        throw e;
+      }
     }
   
     /* ---------------- Error / exit handling -------------------------- */

@@ -30,7 +30,7 @@ const WasmLoader  = (await import(new URL('/js/WasmLoader.esm.js', window.locati
   // Note: 'path' should be a directory, not a file
   const loader = new WasmLoader({
     applicationName: 'wasm-helloworld', // This will look for 'helloworld.wasm'
-    path: './',                    // Directory where the WASM file is located
+    path: './js/',                    // Directory where the WASM file is located
     restartMode: 'DoNotRestart',
     stdoutEnabled: true,           // Show stdout in console
     environment: {                 // Optional environment variables

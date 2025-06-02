@@ -1,198 +1,300 @@
-/* -------------------------------------------------------------------------
- * QtLoader – modern ES2022+ rewrite with progressive‑enhancement, offline
- * caching, and WebAssembly.instantiateStreaming()
- * -------------------------------------------------------------------------
- * Usage:
- *   import QtLoader from './QtLoader.js';
- *   const loader = new QtLoader({
- *     applicationName: 'myApp',
- *     containerElements: [document.getElementById('app')],
- *     path: '/wasm/',
- *     restartMode: 'RestartOnCrash',
- *   });
- *   loader.load();
- * ------------------------------------------------------------------------- */
+// QtLoader.js — ES2022+ rewrite (rev‑6)
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
 
- export default class QtLoader {
-    /* -------------------------------------------------------------------
-     * Public API
-     * ----------------------------------------------------------------- */
-    get module()      { return this.#module; }
-    get status()      { return this.#status; }
-    get wasmSupported(){ return typeof WebAssembly !== 'undefined'; }
-    get webglSupported(){
-      try {
-        const c = document.createElement('canvas');
-        return !!window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'));
-      } catch { return false; }
+export default class QtLoader {
+  /*──────────────── public enums ────────────────*/
+  static Status = /** @type {const} */ ({
+    Created:  "Created",
+    Loading:  "Loading",
+    Running:  "Running",
+    Exited:   "Exited"
+  });
+
+  /*──────────────── browsers feature probes ─────*/
+  static get wasmSupported() {
+    return typeof WebAssembly !== "undefined";
+  }
+  static get webglSupported() {
+    try {
+      const c = document.createElement("canvas");
+      return (
+        !!window.WebGLRenderingContext &&
+        (c.getContext("webgl") || c.getContext("experimental-webgl"))
+      );
+    } catch {
+      return false;
     }
-  
-    /** Begin loading Qt (JS runtime + wasm) */
-    async load() {
-      if (!this.wasmSupported) throw new Error('WebAssembly not supported');
-      if (!this.webglSupported) throw new Error('WebGL not supported');
-  
-      this.#setStatus('Loading');
-  
-      const base = this.#cfg.path.endsWith('/') ? this.#cfg.path : `${this.#cfg.path}/`;
-      const app  = this.#cfg.applicationName;
-  
+  }
+
+  /*──────────────── private static utilities ───*/
+  static #ensureCanvas(el) {
+    if (el.tagName === "CANVAS") return el;
+    const c = document.createElement("canvas");
+    c.style.cssText =
+      "width:100%;height:100%;outline:0 solid transparent;caret-color:transparent;cursor:default;";
+    el.appendChild(c);
+    return c;
+  }
+
+  static #mkdirs(FS, fullPath) {
+    const parts = fullPath.split("/").slice(0, -1);
+    let cur = "/";
+    for (const p of parts) {
+      if (!p) continue;
+      cur += p + "/";
       try {
-        const [jsSource, wasmModule] = await Promise.all([
-          this.#fetchText(`${base}${app}.js`),
-          this.#getOrCompileWasm(`${base}${app}.wasm`),
-        ]);
-        await this.#bootEmscripten(jsSource, wasmModule);
+        FS.mkdir(cur);
       } catch (e) {
-        this.#handleAbort(e);
-        throw e;
+        const EEXIST = 20;
+        if (e.errno !== EEXIST) throw e;
       }
     }
-  
-    /* -------------------------------------------------------------------
-     * Constructor / private state ( # fields )
-     * ----------------------------------------------------------------- */
-    /** @param {Object} cfg */
-    constructor(cfg = {}) {
-      this.#cfg = {
-        path: '',
-        restartMode: 'DoNotRestart',     // DoNotRestart | RestartOnExit | RestartOnCrash
-        restartLimit: 5,
-        stdoutEnabled: true,
-        stderrEnabled: true,
-        environment: {},
-        ...cfg,
-      };
-    }
-  
-    /* --------------------------------------------------- private fields */
-    #cfg;               // normalised user config
-    #status = 'Created';
-    #restartCount = 0;
-    #module   = null;   // Emscripten module instance once running
-    #wasmCache = null;  // IndexedDB helper (lazy)
-  
-    /* -------------------------------------------------------------------
-     * Network helpers
-     * ----------------------------------------------------------------- */
-    async #fetchText(url){
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`${url} – ${res.status} ${res.statusText}`);
-      return res.text();
-    }
-  
-    /* ---------------- WASM caching pipeline --------------------------- */
-    async #getOrCompileWasm(url){
-      const idb = await this.#openWasmDB();
-  
-      // 1) compiled module cache
-      const cached = await idb.get(url);
-      if (cached instanceof WebAssembly.Module) return cached;
-  
-      // 2) fetch (Cache‑Storage first)
-      const response = await this.#fetchAndCache(url);
-  
-      // 3) compile / instantiateStreaming
-      let module;
-      if (WebAssembly.instantiateStreaming){
-        ({module} = await WebAssembly.instantiateStreaming(response.clone(), {}));
-      } else if (WebAssembly.compileStreaming){
-        module = await WebAssembly.compileStreaming(response.clone());
-      } else {
-        module = await WebAssembly.compile(await response.clone().arrayBuffer());
+  }
+
+  static #split(p) {
+    const arr = p.split("/");
+    const name = arr.pop();
+    return { dir: arr.join("/"), name };
+  }
+
+  static #wasiStubs() {
+    const notImpl = (n) => (...a) => {
+      console.warn(`WASI stub '${n}' called`, a);
+      return 0;
+    };
+    return {
+      proc_exit: (code) => {
+        throw new Error(`WASM exited via proc_exit(${code})`);
+      },
+      fd_write: notImpl("fd_write"),
+      fd_close: notImpl("fd_close"),
+      fd_seek: notImpl("fd_seek"),
+      fd_read: notImpl("fd_read"),
+      environ_sizes_get: notImpl("environ_sizes_get"),
+      environ_get: notImpl("environ_get"),
+      clock_time_get: notImpl("clock_time_get")
+    };
+  }
+
+  /*──────────────── private fields ─────────────*/
+  #cfg;
+  #status = QtLoader.Status.Created;
+  #module = null;
+  #canvases = [];
+  #restartCount = 0;
+
+  /*──────────────── constructor ────────────────*/
+  /** @param {QtLoader.Config} cfg */
+  constructor(cfg) {
+    if (!cfg?.applicationName) throw new Error("applicationName is required");
+    if (!cfg?.path) throw new Error("path is required");
+
+    const def = {
+      path: "./",
+      applicationName: "app",
+      environment: {},
+      containerElements: [],
+      fontDpi: 96,
+      preload: [],
+      module: undefined,
+      onLoaded: undefined,
+      onExit: undefined,
+      entryFunction: undefined,
+      restartMode: "DoNotRestart",
+      restartLimit: 5,
+      statusChanged: undefined,
+      debug: false
+    };
+    this.#cfg = { ...def, ...cfg };
+    if (!this.#cfg.path.endsWith("/")) this.#cfg.path += "/";
+
+    this.#canvases = (this.#cfg.containerElements ?? []).map(QtLoader.#ensureCanvas);
+  }
+
+  /*──────────────── getters ────────────────────*/
+  get status() {
+    return this.#status;
+  }
+  get module() {
+    return this.#module;
+  }
+
+  /*──────────────── public API ─────────────────*/
+  async load() {
+    if (!QtLoader.wasmSupported) throw new Error("WebAssembly not supported");
+    if (!QtLoader.webglSupported) throw new Error("WebGL not supported");
+
+    this.#setStatus(QtLoader.Status.Loading);
+
+    const jsUrl = `${this.#cfg.path}${this.#cfg.applicationName}.js`;
+    const wasmUrl = `${this.#cfg.path}${this.#cfg.applicationName}.wasm`;
+
+    try {
+      // 1️⃣ try ES‑module / MODULARIZE
+      this.#debug("Attempting dynamic import …");
+      const factory = await this.#tryImportFactory(jsUrl);
+      if (factory) {
+        await this.#bootWithFactory(factory);
+        return this.#module;
       }
-  
-      // 4) store compiled module (best‑effort)
-      idb.set(url, module).catch(()=>{/* ignore */});
-  
-      return module;
-    }
-  
-    async #fetchAndCache(url){
-      const cache = await caches.open('qtloader‑wasm');
-      let res = await cache.match(url);
-      if (!res){
-        res = await fetch(url, { integrity: this.#cfg.integrity });
-        if (!res.ok) throw new Error(`Failed to fetch ${url}`);
-        cache.put(url, res.clone());
+
+      // 2️⃣ try monolithic stub via <script>
+      this.#debug("Falling back to <script> stub …");
+      const stub = await this.#tryScriptLoader(jsUrl);
+      if (stub) {
+        this.#module = stub;
+        this.#setStatus(QtLoader.Status.Running);
+        this.#cfg.onLoaded?.();
+        return stub;
       }
-      return res;
+
+      // 3️⃣ stand‑alone WASM
+      this.#debug("Manual instantiateStreaming …");
+      const { instance } = await WebAssembly.instantiateStreaming(fetch(wasmUrl), this.#makeImports());
+      this.#module = instance.exports;
+      this.#setStatus(QtLoader.Status.Running);
+      this.#cfg.onLoaded?.();
+      return this.#module;
+    } catch (err) {
+      this.#handleExit({ crashed: true, text: err?.message, code: err?.code });
+      throw err;
     }
-  
-    /* ---------------- IndexedDB helper ------------------------------- */
-    async #openWasmDB(){
-      if (this.#wasmCache) return this.#wasmCache;
-  
-      const db = await new Promise((ok,err)=>{
-        const req = indexedDB.open('QtLoaderWasmCache',1);
-        req.onupgradeneeded=()=>req.result.createObjectStore('wasm');
-        req.onsuccess=()=>ok(req.result);
-        req.onerror =()=>err(req.error);
-      });
-  
-      const wrap = {
-        get:(k)=>new Promise(r=>{
-          db.transaction('wasm').objectStore('wasm').get(k).onsuccess=e=>r(e.target.result||null);
-        }),
-        set:(k,v)=>new Promise(r=>{
-          const tx=db.transaction('wasm','readwrite');
-          tx.objectStore('wasm').put(v,k).onsuccess=()=>r();
-        }),
-      };
-      return (this.#wasmCache = wrap);
-    }
-  
-    /* ---------------- Boot Emscripten runtime ------------------------- */
-    async #bootEmscripten(jsSource, wasmModule){
-      const cfg = this.#cfg;
-      const modCfg = {
-        locateFile:(f)=>`${cfg.path}${f}`,
-        instantiateWasm:(imports,cb)=>{
-          WebAssembly.instantiate(wasmModule,imports).then(({instance})=>cb(instance,wasmModule));
+  }
+
+  /*──────────────── private helpers ───────────*/
+  async #bootWithFactory(factory) {
+    const customInstantiate = this.#cfg.module
+      ? (imports, ok) => {
+          this.#cfg.module.then((mod) =>
+            WebAssembly.instantiate(mod, imports).then((inst) => ok(inst, mod))
+          );
           return {};
-        },
-        print:  cfg.stdoutEnabled ? console.log : ()=>{},
-        printErr: cfg.stderrEnabled ? console.error : ()=>{},
-        onAbort: (m)=>this.#handleAbort(m),
-        quit:    (c,e)=>this.#handleQuit(c,e),
-        preRun:[m=>Object.assign(m.ENV,cfg.environment)],
-        setStatus:(txt)=>{ if(txt.startsWith('Running')) this.#setStatus('Running'); },
-      };
-  
-      const blobURL = URL.createObjectURL(new Blob([jsSource],{type:'text/javascript'}));
-      const moduleFactory = (await import(blobURL)).default;
-      URL.revokeObjectURL(blobURL);
-  
-      this.#module = await moduleFactory(modCfg);
-      this.#setStatus('Running');
+        }
+      : undefined;
+
+    const Module = {
+      ENV: { ...this.#cfg.environment },
+      qtContainerElements: this.#canvases,
+      qtFontDpi: this.#cfg.fontDpi,
+      locateFile: (n) => (n.startsWith("libQt6") ? `${this.#cfg.path}qt/lib/${n}` : n),
+      instantiateWasm: customInstantiate,
+      noInitialRun: true,
+      preRun: [this.#preRunHook.bind(this)],
+      onRuntimeInitialized: () => {
+        this.#cfg.onLoaded?.();
+        if (!this.#cfg.entryFunction) this.#module.callMain?.([]);
+      },
+      quit: (code) => this.#handleExit({ code, crashed: false }),
+      onAbort: (t) => this.#handleExit({ text: t, crashed: true }),
+      print: (t) => console.log("[stdout]", t),
+      printErr: (t) => console.warn("[stderr]", t)
+    };
+
+    this.#module = await factory(Module);
+    if (this.#cfg.entryFunction) this.#module.ccall(this.#cfg.entryFunction);
+    this.#setStatus(QtLoader.Status.Running);
+  }
+
+  #preRunHook(instance) {
+    if (!this.#cfg.preload?.length) return;
+    if (!instance.FS) throw new Error("FS export needed for preload");
+    for (const file of this.#cfg.preload) {
+      const src = file.source.replace("$QTDIR", `${this.#cfg.path}qt`);
+      QtLoader.#mkdirs(instance.FS, file.destination);
+      const { dir, name } = QtLoader.#split(file.destination);
+      instance.FS.createPreloadedFile(dir, name, src, true, true);
     }
-  
-    /* ---------------- Error / exit handling -------------------------- */
-    #handleAbort(msg){
-      console.error('QtLoader abort:',msg);
-      this.#setStatus('Error');
-      this.#cfg.onAbort?.(msg);
+  }
+
+  async #tryImportFactory(url) {
+    try {
+      const mod = await import(/* webpackIgnore: true */ url + `?v=${Date.now()}`);
+      if (typeof mod.default === "function") return mod.default;
+    } catch {}
+    return null;
+  }
+
+  async #tryScriptLoader(url) {
+    await new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = url + `?v=${Date.now()}`;
+      s.async = true;
+      s.onload = res;
+      s.onerror = () => rej(new Error("Failed to load runtime script"));
+      document.head.appendChild(s);
+    });
+
+    // classic Module global
+    if (globalThis.Module && typeof globalThis.Module === "object") {
+      await new Promise((ok) => {
+        if (globalThis.Module.calledRun) return ok();
+        const prev = globalThis.Module.onRuntimeInitialized;
+        globalThis.Module.onRuntimeInitialized = (...a) => {
+          prev?.(...a);
+          ok();
+        };
+      });
+      return globalThis.Module;
     }
-  
-    #handleQuit(code,exc){
-      if(code===0) return; // clean exit
-      console.warn('QtLoader quit:',code,exc);
-      this.#setStatus('Exited');
-      this.#cfg.onQuit?.(code,exc);
-      if(this.#cfg.restartMode==='RestartOnCrash') this.#tryRestart();
+
+    // UMD factory (MODULARIZE without EXPORT_ES6)
+    const factoryName = this.#cfg.applicationName.replace(/[^A-Za-z0-9_$]/g, "_") + "_entry";
+    const fn = globalThis[factoryName];
+    if (typeof fn === "function") {
+      this.#debug(`Found UMD factory '${factoryName}' …`);
+      const mod = await fn({
+        qtContainerElements: this.#canvases,
+        ENV: { ...this.#cfg.environment },
+        noInitialRun: true,
+        preRun: [this.#preRunHook.bind(this)],
+        onRuntimeInitialized: () => this.#cfg.onLoaded?.(),
+        locateFile: (n) => (n.startsWith("libQt6") ? `${this.#cfg.path}qt/lib/${n}` : n),
+        quit: (code) => this.#handleExit({ code, crashed: false }),
+        onAbort: (t) => this.#handleExit({ text: t, crashed: true })
+      });
+      return mod;
     }
-  
-    #tryRestart(){
-      if(++this.#restartCount>this.#cfg.restartLimit) return;
-      this.load().catch(e=>console.error('Restart failed:',e));
+
+    return null;
+  }
+
+  #makeImports() {
+    const env = {
+      memory: new WebAssembly.Memory({ initial: 32 }),
+      ...this.#cfg.environment
+    };
+    return { env, wasi_snapshot_preview1: QtLoader.#wasiStubs() };
+  }
+
+  #handleExit({ text = "", code = undefined, crashed = false }) {
+    this.#setStatus(QtLoader.Status.Exited);
+    this.#cfg.onExit?.({ text, code, crashed });
+    if (this.#shouldRestart(crashed)) {
+      this.#restartCount += 1;
+      this.load();
     }
-  
-    /* ---------------- Status ----------------------------------------- */
-    #status;
-    #setStatus(s){
-      if(this.#status===s) return;
+  }
+
+  #shouldRestart(crashed) {
+    const { restartMode, restartLimit } = this.#cfg;
+    if (this.#restartCount >= restartLimit) return false;
+    if (restartMode === "RestartOnExit" && !crashed) return true;
+    if (restartMode === "RestartOnCrash" && crashed) return true;
+    return false;
+  }
+
+  #setStatus(s) {
+    if (this.#status !== s) {
       this.#status = s;
       this.#cfg.statusChanged?.(s);
     }
   }
-  
+
+  #debug(...m) {
+    if (this.#cfg.debug) console.debug("[QtLoader]", ...m);
+  }
+}
+
+
