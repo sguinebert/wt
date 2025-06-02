@@ -3,22 +3,7 @@ import WDialog from './js/WDialog.esm.js';
 import WPopupWidget from './js/WPopupWidget.esm.js';
 import { attachTooltip } from './js/ToolTip.esm.js';
 import openPopupWindow from './js/PopupWindow.esm.js';
-
-if (typeof window.Wt === 'undefined') {
-  window.Wt = {
-    emit: function(el, eventName, ...args) {
-      // Optional: dispatch a DOM event instead
-      if (typeof eventName === 'string') {
-        const event = new CustomEvent(eventName, { 
-          detail: { args } 
-        });
-        el.dispatchEvent(event);
-      }
-      // For debugging
-      console.log(`Wt event '${eventName}' would be emitted with args:`, args);
-    }
-  };
-}
+import FlexLayout from './js/FlexLayoutImpl.esm.js';
 
 // New widget imports
 import WLineEdit from './js/WLineEdit.esm.js';
@@ -108,6 +93,11 @@ export function initGallery() {
             <div class="widget-grid"></div>
           </section>
 
+          <section id="chart" class="widget-section">
+            <h2>Chart Widgets</h2>
+            <div class="widget-grid"></div>
+          </section>
+
           <section id="stree" class="widget-section">
             <h2>Data tree</h2>
             <div class="widget-grid"></div>
@@ -118,13 +108,14 @@ export function initGallery() {
             <div class="widget-grid"></div>
           </section>
 
+
           <section id="tree" class="widget-section">
             <h2>Data tree</h2>
             <div class="widget-grid"></div>
           </section>
 
-          <section id="chart" class="widget-section">
-            <h2>Chart Widgets</h2>
+          <section id="flex" class="widget-section">
+            <h2>Flex Layout</h2>
             <div class="widget-grid"></div>
           </section>
         </main>
@@ -335,6 +326,7 @@ style.textContent += `
   initTreeViewExample();
   initChartWidgets();
   initGridLayoutTest();
+  initFlexLayoutTest();
   
   // Set up navigation
   const navLinks = document.querySelectorAll('.gallery-sidebar a');
@@ -2418,6 +2410,395 @@ function initResizableHandle() {
   // The StdLayout2 constructor calls refresh(), which should create and position handles.
   // No extra calls needed here if StdLayout2 is implemented as expected.
   // layout.refresh(); // Already called by constructor typically, or ensure it is.
+}
+
+export function initFlexLayoutTest() {
+  const container = document.querySelector('#flex .widget-grid');
+  
+  // Create the main demo card
+  const flexLayoutCard = document.createElement('div');
+  flexLayoutCard.className = 'widget-card full-width-card';
+  
+  flexLayoutCard.innerHTML = `
+    <h3>FlexLayout Demo</h3>
+    
+    <div class="flex-layout-demos">
+      <div class="demo-section">
+        <h4>1. Basic Flex Distribution</h4>
+        <div class="description">Elements grow proportionally to fill available space</div>
+        <div class="control-panel">
+          <button id="basic-layout-reset">Reset</button>
+        </div>
+        <div id="basic-flex-container" class="test-flex-container">
+          <div class="flex-item" style="background-color: #3498db;">Item 1</div>
+          <div class="flex-item" style="background-color: #2ecc71;">Item 2</div>
+          <div class="flex-item" style="background-color: #e74c3c;">Item 3</div>
+        </div>
+      </div>
+      
+      <div class="demo-section">
+        <h4>2. Grow Factors</h4>
+        <div class="description">Testing different grow factors and non-growing items</div>
+        <div class="control-panel">
+          <button id="toggle-grow-factor">Toggle Grow Factors</button>
+        </div>
+        <div id="grow-factor-container" class="test-flex-container">
+          <div class="flex-item" style="background-color: #3498db;" flg="1">
+            Grow: 1
+          </div>
+          <div class="flex-item" style="background-color: #2ecc71;" flg="2">
+            Grow: 2
+          </div>
+          <div class="flex-item" style="background-color: #e74c3c;" flg="0">
+            Grow: 0 (Fixed Size)
+          </div>
+        </div>
+      </div>
+      
+      <div class="demo-section">
+        <h4>3. Dynamic Content</h4>
+        <div class="description">Testing adding, removing, and visibility changes</div>
+        <div class="control-panel">
+          <button id="add-flex-item">Add Item</button>
+          <button id="remove-flex-item">Remove Item</button>
+          <button id="toggle-item-visibility">Toggle Visibility</button>
+        </div>
+        <div id="dynamic-flex-container" class="test-flex-container">
+          <div class="flex-item" style="background-color: #3498db;">Original Item</div>
+        </div>
+        <div id="removal-log" class="event-log">Removal events will appear here</div>
+      </div>
+      
+      <div class="demo-section">
+        <h4>4. Resizing Response</h4>
+        <div class="description">Testing how layout responds to content and container size changes</div>
+        <div class="control-panel">
+          <button id="resize-content">Resize Item Content</button>
+          <button id="toggle-container-size">Toggle Container Size</button>
+        </div>
+        <div id="resize-flex-container" class="test-flex-container">
+          <div class="flex-item" style="background-color: #3498db;">Item 1</div>
+          <div class="flex-item" style="background-color: #2ecc71;">
+            <div id="resizable-content">Resizable Content</div>
+          </div>
+          <div class="flex-item" style="background-color: #e74c3c;">Item 3</div>
+        </div>
+      </div>
+      
+      <div class="demo-section">
+        <h4>5. Attribute Observation</h4>
+        <div class="description">Testing layout updates when attributes change</div>
+        <div class="control-panel">
+          <button id="toggle-class">Toggle Class</button>
+          <button id="toggle-style">Toggle Style</button>
+          <button id="toggle-flg-attr">Toggle FLG Attribute</button>
+        </div>
+        <div id="attr-flex-container" class="test-flex-container">
+          <div id="attr-item-1" class="flex-item" style="background-color: #3498db;" flg="1">Item 1</div>
+          <div id="attr-item-2" class="flex-item" style="background-color: #2ecc71;" flg="1">Item 2</div>
+          <div id="attr-item-3" class="flex-item" style="background-color: #e74c3c;" flg="1">Item 3</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="widget-description">
+      FlexLayout provides a responsive, flexible layout system that automatically distributes space among child elements.
+    </div>
+  `;
+  
+  container.appendChild(flexLayoutCard);
+  
+  // Add style for the FlexLayout demos
+  const style = document.createElement('style');
+  style.textContent = `
+    .flex-layout-demos {
+      margin-top: 20px;
+    }
+    
+    .demo-section {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .demo-section h4 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+    
+    .test-flex-container {
+      display: flex;
+      height: 100px;
+      margin: 15px 0;
+      border: 2px dashed #ccc;
+      background: #f9f9f9;
+      overflow: hidden;
+      transition: height 0.3s ease;
+    }
+    
+    .test-flex-container.large {
+      height: 200px;
+    }
+    
+    .flex-item {
+      padding: 10px;
+      color: white;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      box-sizing: border-box;
+      min-width: 100px;
+      transition: all 0.3s ease;
+    }
+    
+    .flex-item.highlighted {
+      box-shadow: 0 0 0 3px yellow;
+    }
+    
+    .event-log {
+      margin-top: 10px;
+      padding: 8px;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+    
+    #resizable-content {
+      padding: 5px;
+      transition: all 0.3s ease;
+    }
+    
+    #resizable-content.expanded {
+      width: 300px;
+      height: 80px;
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  function initBasicFlexLayout() {
+    const container = document.getElementById('basic-flex-container');
+    const layout = new FlexLayout(container);
+    
+    document.getElementById('basic-layout-reset').addEventListener('click', () => {
+      // This will cause the layout to be re-applied
+      layout.refresh();
+    });
+  }
+  // Testing grow factors
+  function initGrowFactorDemo() {
+    const container = document.getElementById('grow-factor-container');
+    const layout = new FlexLayout(container);
+    const items = container.querySelectorAll('.flex-item');
+    let toggled = false;
+    
+    document.getElementById('toggle-grow-factor').addEventListener('click', () => {
+      toggled = !toggled;
+      
+      if (toggled) {
+        // Change grow factors
+        items[0].setAttribute('flg', '3');
+        items[0].textContent = 'Grow: 3';
+        
+        items[1].setAttribute('flg', '1');
+        items[1].textContent = 'Grow: 1';
+        
+        items[2].setAttribute('flg', '2');
+        items[2].textContent = 'Grow: 2';
+      } else {
+        // Reset grow factors
+        items[0].setAttribute('flg', '1');
+        items[0].textContent = 'Grow: 1';
+        
+        items[1].setAttribute('flg', '2');
+        items[1].textContent = 'Grow: 2';
+        
+        items[2].setAttribute('flg', '0');
+        items[2].textContent = 'Grow: 0 (Fixed Size)';
+      }
+      
+      // The layout should update automatically due to attribute changes
+      // But we'll call refresh explicitly to be sure
+      layout.refresh();
+    });
+  }
+// Testing dynamic content
+function initDynamicContentDemo() {
+  const container = document.getElementById('dynamic-flex-container');
+  const removalLog = document.getElementById('removal-log');
+  let itemCount = 1;
+  
+  // Create FlexLayout with removal callback
+  const layout = new FlexLayout(container, (removedNode) => {
+    const timestamp = new Date().toLocaleTimeString();
+    removalLog.textContent = `${timestamp}: Element removed - ${removedNode.textContent}`;
+  });
+  
+  // Also listen for the custom event
+  container.addEventListener('flex-layout:removed', (e) => {
+    const timestamp = new Date().toLocaleTimeString();
+    removalLog.textContent += `\n${timestamp}: Event captured - ${e.detail.textContent}`;
+  });
+  
+  // Add item button
+  document.getElementById('add-flex-item').addEventListener('click', () => {
+    itemCount++;
+    const newItem = document.createElement('div');
+    newItem.className = 'flex-item';
+    newItem.textContent = `Item ${itemCount}`;
+    
+    // Assign a random color
+    const colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    newItem.style.backgroundColor = randomColor;
+    
+    container.appendChild(newItem);
+    // Layout should update automatically due to DOM mutation
+  });
+  
+  // Remove item button
+  document.getElementById('remove-flex-item').addEventListener('click', () => {
+    if (itemCount > 1) {
+      const lastItem = container.lastElementChild;
+      if (lastItem) {
+        lastItem.remove();
+        itemCount--;
+      }
+    }
+  });
+  
+  // Toggle visibility button
+  document.getElementById('toggle-item-visibility').addEventListener('click', () => {
+    const items = container.querySelectorAll('.flex-item');
+    if (items.length > 1) {
+      const lastItem = items[items.length - 1];
+      
+      if (lastItem.style.display === 'none') {
+        lastItem.style.display = '';
+      } else {
+        lastItem.style.display = 'none';
+      }
+    }
+  });
+}
+
+// Testing resize responsiveness
+function initResizingDemo() {
+  const container = document.getElementById('resize-flex-container');
+  const content = document.getElementById('resizable-content');
+  const layout = new FlexLayout(container);
+  let expanded = false;
+  let containerLarge = false;
+  
+  // Resize content button
+  document.getElementById('resize-content').addEventListener('click', () => {
+    expanded = !expanded;
+    content.classList.toggle('expanded', expanded);
+    // ResizeObserver should handle this automatically
+  });
+  
+  // Toggle container size button
+  document.getElementById('toggle-container-size').addEventListener('click', () => {
+    containerLarge = !containerLarge;
+    container.classList.toggle('large', containerLarge);
+    // ResizeObserver should handle this automatically
+  });
+}
+
+// Testing attribute observation
+function initAttributeObservationDemo() {
+  const container = document.getElementById('attr-flex-container');
+  const item1 = document.getElementById('attr-item-1');
+  const item2 = document.getElementById('attr-item-2');
+  const item3 = document.getElementById('attr-item-3');
+  
+  const layout = new FlexLayout(container);
+  
+  // Toggle class button
+  document.getElementById('toggle-class').addEventListener('click', () => {
+    item1.classList.toggle('highlighted');
+  });
+  
+  // Toggle style button
+  document.getElementById('toggle-style').addEventListener('click', () => {
+    if (item2.style.minWidth === '200px') {
+      item2.style.minWidth = '100px';
+    } else {
+      item2.style.minWidth = '200px';
+    }
+  });
+  
+  // Toggle flg attribute button
+  document.getElementById('toggle-flg-attr').addEventListener('click', () => {
+    const currentFlg = item3.getAttribute('flg');
+    if (currentFlg === '1') {
+      item3.setAttribute('flg', '0');
+      item3.textContent = 'FLG: 0';
+    } else {
+      item3.setAttribute('flg', '1');
+      item3.textContent = 'FLG: 1';
+    }
+  });
+}
+
+// Make sure to add this section to your gallery container HTML
+// Add this to the gallery HTML
+function addFlexSectionToGallery() {
+  // Get the gallery-content element to add our new section
+  const galleryContent = document.querySelector('.gallery-content');
+  if (!galleryContent) return;
+  
+  // Create the flex section
+  const flexSection = document.createElement('section');
+  flexSection.id = 'flex';
+  flexSection.className = 'widget-section';
+  flexSection.innerHTML = `
+    <h2>Flex Layout</h2>
+    <div class="widget-grid"></div>
+  `;
+  
+  // Add it before the grid section or at an appropriate position
+  const gridSection = document.getElementById('grid');
+  if (gridSection) {
+    galleryContent.insertBefore(flexSection, gridSection);
+  } else {
+    galleryContent.appendChild(flexSection);
+  }
+  
+  // Also add link to sidebar navigation
+  const sidebarNav = document.querySelector('.gallery-sidebar ul');
+  if (sidebarNav) {
+    const flexNavItem = document.createElement('li');
+    flexNavItem.innerHTML = `<a href="#flex">Flex Layout</a>`;
+    
+    // Insert before the Data Grid link or at an appropriate position
+    const gridNavItem = Array.from(sidebarNav.querySelectorAll('li')).find(li => 
+      li.querySelector('a[href="#grid"]')
+    );
+    
+    if (gridNavItem) {
+      sidebarNav.insertBefore(flexNavItem, gridNavItem);
+    } else {
+      sidebarNav.appendChild(flexNavItem);
+    }
+  }
+}
+  // Initialize all the demos once the DOM is ready
+  setTimeout(() => {
+    initBasicFlexLayout();
+    initGrowFactorDemo();
+    initDynamicContentDemo();
+    initResizingDemo();
+    initAttributeObservationDemo();
+  }, 0);
 }
 
 
