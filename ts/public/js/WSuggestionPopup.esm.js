@@ -24,7 +24,7 @@ export class StdMatcher {
     wordSeparators        = '',
     wordRegexp            = '',
     appendReplacedText    = ''
-  } = {}) {
+  }) {
       this.#highlightStart = highlightBeginTag;
       this.#highlightEnd   = highlightEndTag;
       this.#listSep        = listSeparator;
@@ -32,7 +32,7 @@ export class StdMatcher {
       this.#wordSep        = wordSeparators;
       this.#wordRE         = wordRegexp;
       this.#append         = appendReplacedText;
-
+      
   }
 
   /* --- internal helpers ------------------------------------------------- */
@@ -46,7 +46,7 @@ export class StdMatcher {
   }
 
   /* ----------------------------------------------------------------------
-   * Public API expected by SuggestionPopup
+   * Public API expected by WSuggestionPopup
    * -------------------------------------------------------------------- */
   createMatcher (editElement){
     const {start,end}=this.#parseEdit(editElement);
@@ -90,7 +90,7 @@ export class StdMatcher {
 /* ------------------------------------------------------------------
  *  SuggestionPopup – modernised WSuggestionPopup
  * ------------------------------------------------------------------ */
-export default class SuggestionPopup {
+export default class WSuggestionPopup {
   /** @type {HTMLUListElement} */           #ul;
   /** @type {HTMLInputElement|HTMLTextAreaElement|null} */ #edit = null;
   /** @type {StdMatcher} */                 #matcher;
@@ -103,6 +103,7 @@ export default class SuggestionPopup {
   /** @type {HTMLElement|null} */           #selected = null;
   #droppedDown = false;
   #hideTimer   = null;
+  #position = 'bottom-start'; // default position for the popup
 
   /* ---- external callbacks -------------------------------------------- */
   onSelect = (_text,_value)=>{};
@@ -121,7 +122,7 @@ export default class SuggestionPopup {
    * @param {boolean}     [opts.dropDownIconUnfiltered=false]
    * @param {boolean}     [opts.autoSelect=true] – auto-select first match
    */
-  constructor(listElement,{
+  constructor(listElement, Wt,{
       matcher,
       replacer ,
       filterMinLength = 0,
@@ -133,6 +134,7 @@ export default class SuggestionPopup {
     if(!(listElement instanceof HTMLElement))
       throw new TypeError('SuggestionPopup: listElement must be an element');
 
+    this.Wt = Wt;
     this.#ul             = listElement;
     this.#matcher        = matcher;
     this.#replacer       = replacer;
@@ -193,6 +195,7 @@ export default class SuggestionPopup {
 
     /* hide when element loses focus (but let clicks in popup through) */
     editElement.addEventListener('blur',    ()=> this.#scheduleHide());
+    this.preventAutocomplete(editElement); // apply protection against browser autocomplete
   }
   /** Remove all listeners from current edit field */
   detach(){
@@ -214,6 +217,7 @@ export default class SuggestionPopup {
     if(this.#ul.hidden) return;
     this.#clearHide();
     this.#ul.hidden = true;
+    this.#ul.style.display = 'none';  // hide from layout
     this.onHide();
   }
 
@@ -275,6 +279,8 @@ export default class SuggestionPopup {
   #refilter(explicitText = null){
     if(!this.#edit) return;
 
+    console.log('refilter', explicitText, this.#edit.value);
+
     const text = explicitText ?? this.#edit.value;
     if(!this.#droppedDown && text.length < this.#minLen){
       this.hide();
@@ -304,7 +310,7 @@ export default class SuggestionPopup {
     /* show & position */
     if(this.#ul.hidden){
       this.#ul.hidden = false;
-      WT.positionAtWidget(this.#ul, this.#edit, 'vertical');
+      this.Wt.WT.positionAtWidget(this.#ul, this.#edit, 'bottom-start');
       this.onShow();
     }
 
@@ -331,6 +337,7 @@ export default class SuggestionPopup {
   }
 
   #select(li){
+    console.log('select', li);
     if(this.#selected){
       this.#selected.classList.remove('active');
     }
@@ -348,5 +355,101 @@ export default class SuggestionPopup {
     this.onSelect(sug, raw);
     this.hide();
     this.#edit.focus();
+  }
+  /**
+   * Applies comprehensive protection against browser autocomplete/autofill
+   * on an input element
+   * 
+   * @param {HTMLInputElement|HTMLTextAreaElement} inputElement - The input to protect
+   * @param {Object} options - Configuration options
+   * @param {boolean} options.addDummyFields - Whether to add hidden dummy fields (default: true)
+   * @param {boolean} options.useTypeSwap - Whether to use the type-swapping technique (default: true)
+   * @param {boolean} options.addRandomizer - Whether to add random attribute names (default: true)
+   * @return {Function} Cleanup function to remove any added elements
+   */
+  preventAutocomplete(inputElement, options = {}) {
+    const {
+      addDummyFields = true,
+      useTypeSwap = true,
+      addRandomizer = true
+    } = options;
+    
+    // Store original values
+    const originalType = inputElement.type;
+    const originalValue = inputElement.value;
+    const originalName = inputElement.name;
+    
+    // Basic attributes (these should work in most cases)
+    inputElement.setAttribute('autocomplete', 'off');
+    inputElement.setAttribute('autocorrect', 'off');
+    inputElement.setAttribute('autocapitalize', 'off');
+    inputElement.setAttribute('spellcheck', 'false');
+    
+    // Additional, more aggressive attributes
+    inputElement.setAttribute('autocomplete', 'new-password'); // This helps in Chrome
+    inputElement.setAttribute('data-form-type', 'other');
+    
+    // Add a random attribute (helps confuse some browsers)
+    if (addRandomizer) {
+      const randomAttr = `data-random-${Math.random().toString(36).substring(2, 9)}`;
+      inputElement.setAttribute(randomAttr, 'true');
+    }
+    
+    // Create hidden fields to absorb the autocomplete
+    const addedElements = [];
+    
+    if (addDummyFields) {
+      // Add hidden wrapper with dummy inputs
+      const wrapper = document.createElement('div');
+      wrapper.style.display = 'none';
+      wrapper.setAttribute('aria-hidden', 'true');
+      
+      // Create dummy fields with common names that browsers like to fill
+      const dummyFields = [
+        { type: 'text', name: 'prevent_autofill' },
+        { type: 'email', name: 'email_prevent_autofill' },
+        { type: 'password', name: 'password_prevent_autofill' },
+        // Add more dummy fields that match common autofill targets
+        { type: 'text', name: originalName ? `fake_${originalName}` : 'username' }
+      ];
+      
+      dummyFields.forEach(field => {
+        const dummy = document.createElement('input');
+        dummy.type = field.type;
+        dummy.name = field.name;
+        dummy.tabIndex = -1;
+        wrapper.appendChild(dummy);
+      });
+      
+      // Insert the wrapper before the input element
+      if (inputElement.parentNode) {
+        inputElement.parentNode.insertBefore(wrapper, inputElement);
+        addedElements.push(wrapper);
+      }
+    }
+    
+    // Type swap technique (more aggressive)
+    if (useTypeSwap && originalType !== 'password') { // Don't swap passwords - security issue
+      // This temporarily changes the type and value to confuse autocomplete
+      inputElement.type = 'email'; // Change type temporarily
+      inputElement.value = `no-autofill-${Math.random()}@example.com`;
+      
+      // Restore after a very short delay
+      setTimeout(() => {
+        inputElement.type = originalType;
+        inputElement.value = originalValue;
+      }, 1);
+      
+      // Add a form attribute with random ID
+      if (inputElement.form === null) {
+        const randomFormId = `random-form-${Math.random().toString(36).substring(2, 9)}`;
+        inputElement.setAttribute('form', randomFormId);
+      }
+    }
+    
+    // Return cleanup function
+    return function cleanup() {
+      addedElements.forEach(el => el.parentNode?.removeChild(el));
+    };
   }
 }
