@@ -291,15 +291,7 @@ style.textContent += `
     display: inline-block;
   }
   
-  .wt-tree-toggle.expanded:before {
-    content: "▼";
-    font-size: 10px;
-  }
-  
-  .wt-tree-toggle.collapsed:before {
-    content: "►";
-    font-size: 10px;
-  }
+
   
   .wt-tree-leaf {
     display: inline-block;
@@ -1513,8 +1505,6 @@ export function initGridWidgets() {
   }, 100);
 
 }
-
-
 export function initTreeViewExample() {
   const container = document.querySelector('#tree .widget-grid');
   
@@ -1536,7 +1526,7 @@ export function initTreeViewExample() {
   
   container.appendChild(treeViewCard);
   
-  // Sample hierarchical data
+  // Sample hierarchical data - CORRECTLY STRUCTURED FOR WTREEVIEW
   const treeData = [
     { id: 1, name: "Documents", size: "-", type: "folder", expanded: true },
     { id: 2, name: "Projects", parentId: 1, size: "-", type: "folder" },
@@ -1555,10 +1545,17 @@ export function initTreeViewExample() {
     { id: 15, name: "Presentation.pptx", parentId: 5, size: "6.7 MB", type: "powerpoint" }
   ];
 
-  // Add file type icons
-  const getFileIcon = (type) => {
+  // Only add icons for file types - NOT for folders
+  treeData.forEach(item => {
+    // Skip folders - let WTreeView handle those with its built-in folder icons
+    if (item.type !== "folder") {
+      item.icon = getFileIcon(item.type);
+    }
+  });
+
+  // Helper function for file icons
+  function getFileIcon(type) {
     switch(type) {
-      case "folder": return `<i class="far fa-folder" style="color: #f8d775;"></i>`;
       case "pdf": return `<i class="far fa-file-pdf" style="color: #e74c3c;"></i>`;
       case "excel": return `<i class="far fa-file-excel" style="color: #27ae60;"></i>`;
       case "word": return `<i class="far fa-file-word" style="color: #3498db;"></i>`;
@@ -1567,12 +1564,7 @@ export function initTreeViewExample() {
       case "image": return `<i class="far fa-file-image" style="color: #9b59b6;"></i>`;
       default: return `<i class="far fa-file"></i>`;
     }
-  };
-
-  // Add icons to the data
-  treeData.forEach(item => {
-    item.icon = getFileIcon(item.type);
-  });
+  }
 
   // Define columns for the tree
   const columns = [
@@ -1581,22 +1573,22 @@ export function initTreeViewExample() {
     { id: "type", name: "Type", field: "type", width: 100 }
   ];
 
-  // Create WTreeView instance
+  // Import and create WTreeView with correct configuration
   import("./js/WTreeView.esm.js").then(({ default: WTreeView }) => {
     const treeView = new WTreeView({
       el: '#treeViewDemo',
+      data: treeData,
       columns: columns,
-      checkboxes: true, // Enable selection checkboxes
+      checkboxes: true,
       idField: 'id',
       parentIdField: 'parentId',
       expandedField: 'expanded',
-      iconField: 'icon',
       indentation: 16,
-      dragDrop: true
+      iconField: 'icon',
+      folderIconOpen: '<i class="far fa-folder-open" style="color: #f8d775;"></i>',
+      folderIconClosed: '<i class="far fa-folder" style="color: #f8d775;"></i>',
+      checkboxPlacement: 'inline', // Place checkboxes inline with text
     });
-
-    // Set data
-    treeView.setData(treeData);
 
     // Hook up control buttons
     document.getElementById('expandAll').addEventListener('click', () => {
@@ -1625,6 +1617,7 @@ export function initTreeViewExample() {
       treeView.setData(newData);
       
       // Make sure the parent is expanded to see the new node
+      treeView.expandNode(4);
       treeView.revealNode(newNode.id);
     });
 
@@ -1634,11 +1627,13 @@ export function initTreeViewExample() {
     });
   });
   
-  // Add Font Awesome for icons
-  const linkElement = document.createElement('link');
-  linkElement.rel = 'stylesheet';
-  linkElement.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css';
-  document.head.appendChild(linkElement);
+  // Add Font Awesome for icons if not already loaded
+  if (!document.querySelector('link[href*="font-awesome"]')) {
+    const linkElement = document.createElement('link');
+    linkElement.rel = 'stylesheet';
+    linkElement.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css';
+    document.head.appendChild(linkElement);
+  }
 }
 
 

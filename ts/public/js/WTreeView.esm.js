@@ -60,6 +60,7 @@ import WTableView from './WTableView.esm.js';
 export default class WTreeView extends WTableView {
   // Private fields using proper # syntax
   #cascadeSelection = false;
+  #checkboxes = false;
   #defaultIcons = {
     leaf: "<span>&#128441;</span>",
     parent: "<span>&#128449;</span>",
@@ -74,6 +75,7 @@ export default class WTreeView extends WTableView {
    * @param {string|Function} config.dataUrl - URL or function for loading data
    * @param {Array<Object>} config.columns - Column definitions
    * @param {boolean} config.checkboxes - Whether to show checkboxes (default: false)
+   * @param {string} config.checkboxPlacement - Where to place checkboxes ('column' or 'inline', default: 'column')
    * @param {string} config.idField - ID field name (default: 'id')
    * @param {string} config.parentIdField - Parent ID field name (default: 'parentId')
    * @param {string} config.expandedField - Expanded state field name (default: 'expanded')
@@ -94,6 +96,7 @@ export default class WTreeView extends WTableView {
     
     // Ensure first column has tree formatting
     const treeField = config.columns[0].field;
+    const checkboxPlacement = config.checkboxPlacement || 'column';
     
     // Setup tree configuration
     const treeOptions = {
@@ -102,11 +105,12 @@ export default class WTreeView extends WTableView {
       expandedField: config.expandedField || 'expanded',
       treeField: treeField,
       indentation: config.indentation || 16,
-      iconField: config.iconField || 'icon'
+      iconField: config.iconField || 'icon',
+      checkboxPlacement: checkboxPlacement
     };
     
     // Add checkbox column if requested
-    if (config.checkboxes) {
+    if (config.checkboxes && checkboxPlacement === 'column') {
       config.columns.unshift({
         id: 'checkbox',
         name: '',
@@ -114,7 +118,8 @@ export default class WTreeView extends WTableView {
         width: 40,
         formatter: (_row, _cell, _value, _columnDef, dataItem) => {
           const checked = dataItem._selected ? 'checked' : '';
-          return `<input type="checkbox" ${checked}>`;
+          const indeterminate = dataItem._indeterminate ? 'indeterminate="true"' : '';
+          return `<input type="checkbox" ${checked} ${indeterminate} class="tree-checkbox">`;
         }
       });
     }
@@ -133,15 +138,22 @@ export default class WTreeView extends WTableView {
           
           // Determine if item has children
           const hasChildren = dataItem._hasChildren || false;
+
+          if (config.checkboxes && checkboxPlacement === 'inline') {
+            const checked = dataItem._selected ? 'checked' : '';
+            const indeterminate = dataItem._indeterminate ? 'indeterminate="true"' : '';
+            treeHtml += `<input type="checkbox" ${checked} ${indeterminate} 
+                        class="tree-checkbox inline" style="margin-right:4px;">`;
+          }
           
           // Create toggle HTML
-          if (hasChildren) {
-            const expanded = dataItem[treeOptions.expandedField];
-            treeHtml = `<span class="wt-tree-toggle ${expanded ? 'expanded' : 'collapsed'}" 
-              style="margin-left:${indent}px" data-id="${dataItem[treeOptions.idField]}"></span>`;
-          } else {
-            treeHtml = `<span class="wt-tree-leaf" style="margin-left:${indent}px"></span>`;
-          }
+          // if (hasChildren) {
+          //   const expanded = dataItem[treeOptions.expandedField];
+          //   treeHtml = `<span class="wt-tree-toggle ${expanded ? 'expanded' : 'collapsed'}" 
+          //     style="margin-left:${indent}px" data-id="${dataItem[treeOptions.idField]}"></span>`;
+          // } else {
+          //   treeHtml = `<span class="wt-tree-leaf" style="margin-left:${indent}px"></span>`;
+          // }
           
           // Add custom icon if available
           if (dataItem[treeOptions.iconField]) {
@@ -166,19 +178,22 @@ export default class WTreeView extends WTableView {
       treeOptions
     });
     
-    // Set up checkbox handling if enabled
-    if (config.checkboxes) {
-      this.#setupCheckboxes();
-    }
-    
+
     // Set up drag and drop if enabled
     if (config.dragDrop) {
       this.#setupDragDrop();
     }
-  this.#setupTreeFormatting();
-  this.#setupTreeFiltering();
-  this.setupTreeSorting();
+
+    this.#setupTreeFormatting();
+    this.#setupTreeFiltering();
+    if(config.data)
+      this.setData(config.data);
     this.#setupToggleHandlers();
+    // Set up checkbox handling if enabled
+    if (config.checkboxes) {
+      this.#checkboxes = true;
+      this.#setupCheckboxes();
+    }
   }
   // Add to your WTreeView constructor or add as a method
 #setupTreeFormatting() {
@@ -211,29 +226,28 @@ export default class WTreeView extends WTableView {
   
   // Set up the tree filter function
   dataView.setFilter(item => {
-    if (!item) return true;
+    if (!item) return false;
     
-    // If this item has no parent, always show it
+    // Always show root items
     if (!item[treeOptions.parentIdField]) return true;
     
-    // Find parent chain and check if any are collapsed
+    // Check parent chain to see if any are collapsed
     let currentParentId = item[treeOptions.parentIdField];
-    let parentVisible = true;
     
-    while (currentParentId && parentVisible) {
+    while (currentParentId) {
       const parent = dataView.getItemById(currentParentId);
       if (!parent) break;
       
-      // If any parent is collapsed, hide this item
-      if (!parent[treeOptions.expandedField]) {
-        parentVisible = false;
+      // If a parent is collapsed, hide this item
+      if (parent._collapsed) {
+        return false;
       }
       
       // Move up to next parent
       currentParentId = parent[treeOptions.parentIdField];
     }
     
-    return parentVisible;
+    return true;
   });
 }
   /**
@@ -248,14 +262,122 @@ export default class WTreeView extends WTableView {
     const dataView = this.dataView;
     dataView.beginUpdate();
     dataView.setItems(processedData);
+
+    // Initialize checkbox states if enabled
+    if (this.#checkboxes) {
+      // Calculate initial parent checkbox states
+      const items = dataView.getItems();
+      const rootItems = items.filter(item => !item[this.getTreeOptions().parentIdField]);
+      
+      rootItems.forEach(root => {
+        this.#updateParentCheckboxStates(root);
+      });
+    }
+
     this.refreshTreeView(); // Updates visibility based on expanded state
     dataView.endUpdate();
+
+    this.setupTreeSorting();
     
     return this;
   }
   
-
-  
+  /**
+   * Update checkbox state for a node and all its children
+   * @private
+   */
+  #cascadeCheckboxToChildren(item, checked) {
+    const dataView = this.dataView;
+    const treeOptions = this.getTreeOptions();
+    const items = dataView.getItems();
+    const idField = treeOptions.idField;
+    
+    // Start batch update
+    dataView.beginUpdate();
+    
+    // Function to process a node and its children recursively
+    const processNode = (node) => {
+      // Update this node
+      node._selected = checked;
+      node._indeterminate = false;
+      dataView.updateItem(node[idField], node);
+      
+      // Find and update all children
+      items.forEach(childItem => {
+        if (childItem[treeOptions.parentIdField] === node[idField]) {
+          processNode(childItem);
+        }
+      });
+    };
+    
+    // Start processing with the clicked item
+    processNode(item);
+    
+    // End batch update
+    dataView.endUpdate();
+  }
+  /**
+   * Update parent nodes based on children's states
+   * @private
+   */
+  #updateParentCheckboxStates(item) {
+    const dataView = this.dataView;
+    const treeOptions = this.getTreeOptions();
+    const items = dataView.getItems();
+    const idField = treeOptions.idField;
+    const parentIdField = treeOptions.parentIdField;
+    
+    // Start batch update
+    dataView.beginUpdate();
+    
+    // Function to process a node and update its state
+    const updateNodeState = (node) => {
+      // Find all direct children
+      const children = items.filter(child => 
+        child[parentIdField] === node[idField]);
+      
+      if (children.length === 0) return;
+      
+      // Count selected and indeterminate children
+      const selectedCount = children.filter(child => 
+        child._selected || child._indeterminate).length;
+      
+      // Update node state
+      if (selectedCount === 0) {
+        // None selected
+        node._selected = false;
+        node._indeterminate = false;
+      } else if (selectedCount === children.length) {
+        // All selected
+        node._selected = true;
+        node._indeterminate = false;
+      } else {
+        // Some selected - indeterminate state
+        node._selected = false;
+        node._indeterminate = true;
+      }
+      
+      // Update in data view
+      dataView.updateItem(node[idField], node);
+      
+      // Process parent of this node recursively
+      const parentId = node[parentIdField];
+      if (parentId) {
+        const parent = items.find(p => p[idField] === parentId);
+        if (parent) updateNodeState(parent);
+      }
+    };
+    
+    // Find the parent of the clicked item
+    const parentId = item[parentIdField];
+    if (parentId) {
+      const parent = items.find(p => p[idField] === parentId);
+      if (parent) updateNodeState(parent);
+    }
+    
+    // End batch update
+    dataView.endUpdate();
+  }
   /**
    * Pre-process data to add necessary tree properties
    * @private
@@ -265,33 +387,47 @@ export default class WTreeView extends WTableView {
     
     // Clone the data to avoid modifying originals
     const processedData = JSON.parse(JSON.stringify(data));
+    const treeOptions = this.getTreeOptions();
     
-    // Add _hasChildren flag to each item
-    const idField = this.getTreeOptions().idField;
-    const parentIdField = this.getTreeOptions().parentIdField;
-    
-    // First pass - create a map of all IDs
-    const idMap = new Map();
+    // Build parent-child relationships and compute levels
+    const idToItem = new Map();
     processedData.forEach(item => {
-      idMap.set(item[idField], true);
+      idToItem.set(item[treeOptions.idField], item);
     });
     
-    // Second pass - mark items with children
+    // Calculate levels and check for children
     processedData.forEach(item => {
-      // Count how many items have this as parent
-      let hasChildren = false;
-      for (const potentialChild of processedData) {
-        if (potentialChild[parentIdField] === item[idField]) {
-          hasChildren = true;
-          break;
-        }
-      }
-      item._hasChildren = hasChildren;
+      // Set default values
+      item._level = 0;
+      item._hasChildren = false;
+      item._collapsed = item._collapsed ?? !item[treeOptions.expandedField];
       
-      // Set default expanded state if not specified
-      if (typeof item[this.getTreeOptions().expandedField] === 'undefined') {
-        item[this.getTreeOptions().expandedField] = false;
+      // Calculate level by traversing parents
+      let parent = idToItem.get(item[treeOptions.parentIdField]);
+      while (parent) {
+        item._level++;
+        parent._hasChildren = true;
+        parent = idToItem.get(parent[treeOptions.parentIdField]);
       }
+    });
+    
+    // Sort by hierarchy to ensure parents come before children
+    processedData.sort((a, b) => {
+      // Sort by parent chain first
+      let aParent = a[treeOptions.parentIdField];
+      let bParent = b[treeOptions.parentIdField];
+      
+      if (aParent !== bParent) {
+        return (aParent || 0) - (bParent || 0);
+      }
+      
+      // Then by display order if available
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      
+      // Default to name sorting
+      return (a[treeOptions.treeField] || '').localeCompare(b[treeOptions.treeField] || '');
     });
     
     return processedData;
@@ -319,25 +455,54 @@ export default class WTreeView extends WTableView {
    */
   #setupCheckboxes() {
     this.grid.onClick.subscribe((e, args) => {
-      if (e.target.type === 'checkbox') {
+      const target = e.target;
+      
+      // Check if clicked on checkbox
+      if (target.type === 'checkbox' && target.classList.contains('tree-checkbox')) {
+        e.stopImmediatePropagation();
+        
         const dataView = this.dataView;
         const item = dataView.getItem(args.row);
         if (!item) return;
         
-        // Toggle selection state
-        item._selected = !item._selected;
+        // Update the checkbox state immediately for better UX
+        const checked = target.checked;
         
-        // Update children recursively if needed
-        if (item._hasChildren && this.#cascadeSelection) {
-          this.#applySelectionToChildren(item, item._selected);
-        }
+        // 1. Cascade to children
+        this.#cascadeCheckboxToChildren(item, checked);
         
-        // Update the UI
-        dataView.updateItem(item[this.getTreeOptions().idField], item);
+        // 2. Update parent states
+        this.#updateParentCheckboxStates(item);
         
-        // Trigger selection changed event
+        // 3. Refresh grid display
+        this.grid.invalidate();
+        
+        // 4. Trigger selection changed event
         this.#triggerSelectionChanged();
       }
+    });
+    
+    // Add special handling for indeterminate checkboxes
+    this.grid.onHeaderRowCellRendered.subscribe((e, args) => {
+      const cells = document.querySelectorAll('.slick-cell input.tree-checkbox');
+      cells.forEach(checkbox => {
+        // Set indeterminate property since HTML attributes can't set this directly
+        if (checkbox.getAttribute('indeterminate') === 'true') {
+          checkbox.indeterminate = true;
+        }
+      });
+    });
+    
+    // Also set indeterminate state after grid render
+    this.grid.onRendered.subscribe(() => {
+      setTimeout(() => {
+        const cells = document.querySelectorAll('.slick-cell input.tree-checkbox');
+        cells.forEach(checkbox => {
+          if (checkbox.getAttribute('indeterminate') === 'true') {
+            checkbox.indeterminate = true;
+          }
+        });
+      }, 0);
     });
   }
   
@@ -368,21 +533,17 @@ export default class WTreeView extends WTableView {
    * @private
    */
   #setupToggleHandlers() {
-    this.grid.onClick.subscribe((e, args) => {
-      console.log('Click event:', e, args);
-      // Check if the click was on a toggle element
-      if (e.target.classList.contains('wt-tree-toggle') || 
-          e.target.parentElement.classList.contains('wt-tree-toggle')) {
+  this.grid.onClick.subscribe((e, args) => {
+      // Check if clicked on toggle icon
+      const target = e.target;
+      if (target.classList.contains('toggle') || 
+          target.closest('.toggle')) {
+        e.stopImmediatePropagation();
         
-        // Get the node ID from the data attribute
-        const toggleEl = e.target.classList.contains('wt-tree-toggle') ? 
-                        e.target : e.target.parentElement;
-        const nodeId = toggleEl.getAttribute('data-id');
-        
-        if (nodeId) {
-          // Toggle the node expanded state
-          this.toggleNode(nodeId);
-          e.stopPropagation(); // Prevent other click handlers
+        // Get the item from the current row
+        const item = this.dataView.getItem(args.row);
+        if (item) {
+          this.toggleNode(item[this.getTreeOptions().idField]);
         }
       }
     });
@@ -393,7 +554,6 @@ export default class WTreeView extends WTableView {
    */
   #triggerSelectionChanged() {
     const selectedItems = this.getSelectedItems();
-    console.log('Selection changed:', selectedItems);
     // document.querySelector(this.el).dispatchEvent(new CustomEvent('selectionchanged', {
     //   detail: { selected: selectedItems }
     // }));
@@ -463,96 +623,111 @@ export default class WTreeView extends WTableView {
     const dataView = this.dataView;
     const item = dataView.getItemById(id);
     
-    if (item && item._hasChildren) {
-      // Toggle expanded state
-      item[this.getTreeOptions().expandedField] = !item[this.getTreeOptions().expandedField];
+    if (item) {
+      // Toggle collapsed state (use SlickGrid's approach)
+      item._collapsed = !item._collapsed;
+      
+      // Store in expanded field too for compatibility
+      item[this.getTreeOptions().expandedField] = !item._collapsed;
       
       // Update the data view to reflect changes
       dataView.updateItem(id, item);
       
-      // Refresh the tree to update visibility of children
-      this.refreshTreeView();
+      // Refresh the data view to update visibility
+      dataView.refresh();
     }
     
     return this;
   }
 
   setupTreeSorting() {
-  this.grid.onSort.subscribe((e, args) => {
-    const dataView = this.dataView;
-    const treeOptions = this.getTreeOptions();
-    const items = dataView.getItems();
+    this.grid.onSort.subscribe((e, args) => {
+      const dataView = this.dataView;
+      const treeOptions = this.getTreeOptions();
+      const items = dataView.getItems();
+      
+      // Get proper field names
+      const idField = treeOptions.idField;
+      const parentIdField = treeOptions.parentIdField;
+      
+      // Group items by parentId
+      const itemsByParent = this.#groupByParent(items, parentIdField);
+      
+      // Sort each group of siblings
+      for (const parentId in itemsByParent) {
+        const siblingItems = itemsByParent[parentId];
+        siblingItems.sort((a, b) => {
+          for (const sortCol of args.sortCols) {
+            const field = sortCol.sortCol.field;
+            const sign = sortCol.sortAsc ? 1 : -1;
+            const valueA = a[field];
+            const valueB = b[field];
+            
+            // Handle undefined values
+            if (valueA === undefined && valueB === undefined) continue;
+            if (valueA === undefined) return 1 * sign;
+            if (valueB === undefined) return -1 * sign;
+            
+            // Compare values
+            const result = (valueA === valueB ? 0 : (valueA > valueB ? 1 : -1)) * sign;
+            if (result !== 0) return result;
+          }
+          return 0;
+        });
+      }
+      
+      // Rebuild the flat array while preserving hierarchy
+      const sortedItems = this.#flattenTree(itemsByParent["null"] || [], itemsByParent, idField);
+      
+      // Update the data view
+      dataView.beginUpdate();
+      dataView.setItems(sortedItems);
+      dataView.endUpdate();
+    });
+    this.grid.onSort.notify({
+      multiColumnSort: true,
+      sortCols: [
+        { sortCol: { field: "_level" }, sortAsc: true },
+        { sortCol: { field: this.getTreeOptions().parentIdField }, sortAsc: true }
+      ]
+    });
+  }
+
+  // Helper method to group items by parentId
+  #groupByParent(items, parentIdField) {
+    const groups = {};
     
-    // Group items by parentId
-    const itemsByParent = this.#groupByParent(items, treeOptions.parentIdField);
+    items.forEach(item => {
+      const parentId = item[parentIdField] || "null";
+      if (!groups[parentId]) {
+        groups[parentId] = [];
+      }
+      groups[parentId].push(item);
+    });
     
-    // Sort each group of siblings
-    for (const parentId in itemsByParent) {
-      const siblingItems = itemsByParent[parentId];
-      siblingItems.sort((a, b) => {
-        for (const sortCol of args.sortCols) {
-          const field = sortCol.sortCol.field;
-          const sign = sortCol.sortAsc ? 1 : -1;
-          const valueA = a[field];
-          const valueB = b[field];
-          
-          // Handle undefined values
-          if (valueA === undefined && valueB === undefined) continue;
-          if (valueA === undefined) return 1 * sign;
-          if (valueB === undefined) return -1 * sign;
-          
-          // Compare values
-          const result = (valueA === valueB ? 0 : (valueA > valueB ? 1 : -1)) * sign;
-          if (result !== 0) return result;
+    return groups;
+  }
+
+  // Helper method to flatten grouped items back into an array
+  #flattenTree(rootItems, itemsByParent, idField) {
+    const result = [];
+    
+    function addItemsRecursively(items) {
+      if (!items) return;
+      
+      for (const item of items) {
+        result.push(item);
+        // Use the item's ID (using the configured idField) to look up children
+        const childItems = itemsByParent[item[idField]];
+        if (childItems) {
+          addItemsRecursively(childItems);
         }
-        return 0;
-      });
-    }
-    
-    // Rebuild the flat array while preserving hierarchy
-    const sortedItems = this.#flattenTree(itemsByParent["null"] || [], itemsByParent);
-    
-    // Update the data view
-    dataView.beginUpdate();
-    dataView.setItems(sortedItems);
-    dataView.endUpdate();
-  });
-}
-
-// Helper method to group items by parentId
-#groupByParent(items, parentIdField) {
-  const groups = {};
-  
-  items.forEach(item => {
-    const parentId = item[parentIdField] || "null";
-    if (!groups[parentId]) {
-      groups[parentId] = [];
-    }
-    groups[parentId].push(item);
-  });
-  
-  return groups;
-}
-
-// Helper method to flatten grouped items back into an array
-#flattenTree(rootItems, itemsByParent) {
-  const result = [];
-  
-  function addItemsRecursively(items) {
-    if (!items) return;
-    
-    for (const item of items) {
-      result.push(item);
-      const childItems = itemsByParent[item.id];
-      if (childItems) {
-        addItemsRecursively(childItems);
       }
     }
+    
+    addItemsRecursively(rootItems);
+    return result;
   }
-  
-  addItemsRecursively(rootItems);
-  return result;
-}
   
   /**
    * Expand all nodes
@@ -635,7 +810,8 @@ export default class WTreeView extends WTableView {
    * @returns {Array} - Array of selected items
    */
   getSelectedItems() {
-    return this.dataView.getItems().filter(item => item._selected);
+    return this.dataView.getItems().filter(item => 
+      item._selected || item._indeterminate);
   }
   
   /**
