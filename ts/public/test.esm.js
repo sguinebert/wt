@@ -3,13 +3,12 @@ import WDialog from './js/WDialog.esm.js';
 import WPopupWidget from './js/WPopupWidget.esm.js';
 import { attachTooltip } from './js/ToolTip.esm.js';
 import openPopupWindow from './js/PopupWindow.esm.js';
-import FlexLayout from './js/FlexLayoutImpl.esm.js';
 
 // New widget imports
 import WLineEdit from './js/WLineEdit.esm.js';
 import WSpinBox from './js/WSpinBox.esm.js';
 import WTimeEdit from './js/WTimeEdit.esm.js';
-import WSuggestionPopup from './js/WSuggestionPopup.esm.js';
+import WSuggestionPopup, {StdMatcher} from './js/WSuggestionPopup.esm.js';
 import WDateEdit from './js/WDateEdit.esm.js';
 
 import WTableView, { WtFormatters, Editors, Formatters } from './js/WTableView.esm.js';
@@ -27,8 +26,9 @@ import WTableView, { WtFormatters, Editors, Formatters } from './js/WTableView.e
 //   Utils, } from '../vendor/slickgrid/slick.grid.esm.min.js';
 //import './vendor/slickgrid/slick-alpine-theme.min.css';
 
-import { Chart } from './vendor/chartjs/chartjs/auto/auto.js';
-
+//import { Chart } from './vendor/chartjs/chartjs/auto/auto.js';//
+import  WChart  from './js/WChart.esm.js';
+import WAxisSliderWidget from '../js/WAxisSliderWidget.esm.js';
 
 
 function addStylesheet(href) {
@@ -93,11 +93,6 @@ export function initGallery() {
             <div class="widget-grid"></div>
           </section>
 
-          <section id="chart" class="widget-section">
-            <h2>Chart Widgets</h2>
-            <div class="widget-grid"></div>
-          </section>
-
           <section id="stree" class="widget-section">
             <h2>Data tree</h2>
             <div class="widget-grid"></div>
@@ -108,15 +103,19 @@ export function initGallery() {
             <div class="widget-grid"></div>
           </section>
 
-
           <section id="tree" class="widget-section">
             <h2>Data tree</h2>
             <div class="widget-grid"></div>
           </section>
 
-          <section id="flex" class="widget-section">
-            <h2>Flex Layout</h2>
+          <section id="chart" class="widget-section">
+            <h2>Chart Widgets</h2>
             <div class="widget-grid"></div>
+          </section>
+
+          <section id="chartContainer" class="widget-section">
+            <h2>Chart Widgets</h2>
+            <div class="grid-container"></div>
           </section>
         </main>
       </div>
@@ -325,8 +324,8 @@ style.textContent += `
   initGridWidgets();
   initTreeViewExample();
   initChartWidgets();
+  initWAxisSliderTest();
   initGridLayoutTest();
-  initFlexLayoutTest();
   
   // Set up navigation
   const navLinks = document.querySelectorAll('.gallery-sidebar a');
@@ -568,77 +567,91 @@ function initPopupWidgets() {
   const popupEl = popupWidgetCard.querySelector('#demoPopup');
   let menuVisible = false;
   let cleanup = null;
-  
-  const platform = {
-    isRTL: () => document.documentElement.dir === 'rtl',
-    getElementRects: ({ reference, floating }) => ({
-      reference: reference.getBoundingClientRect(),
-      floating: floating.getBoundingClientRect()
-    }),
-    getDimensions: (element) => {
-      const rect = element.getBoundingClientRect();
-      return { width: rect.width, height: rect.height };
-    },
-    getClippingRect: () => ({
-      width: window.innerWidth, height: window.innerHeight, x: 0, y: 0
-    })
-  };
-  
+
+  const popupWidget = new WPopupWidget(popupEl, {
+    transient: true,
+    autoHideDelay: 300,
+    shown: false
+  });
+
   popupBtn.addEventListener('click', () => {
-    menuVisible = !menuVisible;
-    
-    if (menuVisible) {
-      popupEl.style.display = 'block';
-      popupEl.style.position = 'fixed';
-      
-      const updatePosition = () => {
-        computePosition(popupBtn, popupEl, {
-          platform,
-          strategy: 'fixed', 
-          placement: 'bottom',
-          middleware: [offset(8), flip(), shift()]
-        }).then(({x, y}) => {
-          Object.assign(popupEl.style, { 
-            left: `${x}px`, top: `${y}px`
-            // left: '0px', top: '0px',
-            // willChange: 'transform',
-            // transform: `translate3d(${x}px, ${y}px, 0)`
-          });
-        });
-      };
-      
-      updatePosition();
-      
-      const resizeObserver = new ResizeObserver(() => updatePosition());
-      resizeObserver.observe(popupBtn);
-      resizeObserver.observe(document.body);
-      
-      const scrollListener = () => updatePosition();
-      window.addEventListener('scroll', scrollListener, true);
-      
-      let previousRect = popupBtn.getBoundingClientRect();
-      const layoutShiftObserver = new IntersectionObserver(() => {
-        const currentRect = popupBtn.getBoundingClientRect();
-        if (previousRect.x !== currentRect.x || previousRect.y !== currentRect.y) {
-          updatePosition();
-          previousRect = currentRect;
-        }
-      }, { threshold: 0.5 });
-      layoutShiftObserver.observe(popupBtn);
-      
-      cleanup = () => {
-        layoutShiftObserver.disconnect();
-        resizeObserver.disconnect();
-        window.removeEventListener('scroll', scrollListener, true);
-      };
+    if (popupWidget.visible) {
+      popupWidget.hide();
     } else {
-      popupEl.style.display = 'none';
-      if (cleanup) {
-        cleanup();
-        cleanup = null;
-      }
+      popupWidget.show(popupBtn, 'vertical');
     }
   });
+  
+  // const platform = {
+  //   isRTL: () => document.documentElement.dir === 'rtl',
+  //   getElementRects: ({ reference, floating }) => ({
+  //     reference: reference.getBoundingClientRect(),
+  //     floating: floating.getBoundingClientRect()
+  //   }),
+  //   getDimensions: (element) => {
+  //     const rect = element.getBoundingClientRect();
+  //     return { width: rect.width, height: rect.height };
+  //   },
+  //   getClippingRect: () => ({
+  //     width: window.innerWidth, height: window.innerHeight, x: 0, y: 0
+  //   })
+  // };
+  
+  // popupBtn.addEventListener('click', () => {
+  //   menuVisible = !menuVisible;
+    
+  //   if (menuVisible) {
+  //     popupEl.style.display = 'block';
+  //     popupEl.style.position = 'fixed';
+      
+  //     const updatePosition = () => {
+  //       computePosition(popupBtn, popupEl, {
+  //         platform,
+  //         strategy: 'fixed', 
+  //         placement: 'bottom',
+  //         middleware: [offset(8), flip(), shift()]
+  //       }).then(({x, y}) => {
+  //         Object.assign(popupEl.style, { 
+  //           left: `${x}px`, top: `${y}px`
+  //           // left: '0px', top: '0px',
+  //           // willChange: 'transform',
+  //           // transform: `translate3d(${x}px, ${y}px, 0)`
+  //         });
+  //       });
+  //     };
+      
+  //     updatePosition();
+      
+  //     const resizeObserver = new ResizeObserver(() => updatePosition());
+  //     resizeObserver.observe(popupBtn);
+  //     resizeObserver.observe(document.body);
+      
+  //     const scrollListener = () => updatePosition();
+  //     window.addEventListener('scroll', scrollListener, true);
+      
+  //     let previousRect = popupBtn.getBoundingClientRect();
+  //     const layoutShiftObserver = new IntersectionObserver(() => {
+  //       const currentRect = popupBtn.getBoundingClientRect();
+  //       if (previousRect.x !== currentRect.x || previousRect.y !== currentRect.y) {
+  //         updatePosition();
+  //         previousRect = currentRect;
+  //       }
+  //     }, { threshold: 0.5 });
+  //     layoutShiftObserver.observe(popupBtn);
+      
+  //     cleanup = () => {
+  //       layoutShiftObserver.disconnect();
+  //       resizeObserver.disconnect();
+  //       window.removeEventListener('scroll', scrollListener, true);
+  //     };
+  //   } else {
+  //     popupEl.style.display = 'none';
+  //     if (cleanup) {
+  //       cleanup();
+  //       cleanup = null;
+  //     }
+  //   }
+  // });
   
   container.appendChild(popupWidgetCard);
   
@@ -648,77 +661,111 @@ function initPopupWidgets() {
     `<div class="suggestion-container">
       <label for="fruitInput">Fruit:</label>
       <input type="text" id="fruitInput" class="wt-line-edit" placeholder="Type a fruit">
-      <div id="suggestionPopup" class="suggestion-popup" style="display: none;"></div>
+      <ul id="fruitSuggestions" class="suggestion-list" style="display: none; position: absolute; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; z-index: 1000;"></ul>
     </div>`,
     'Dropdown suggestions as you type'
   );
   
   const fruitInput = suggestionCard.querySelector('#fruitInput');
-  const suggestionPopup = suggestionCard.querySelector('#suggestionPopup');
+  const suggestionList = suggestionCard.querySelector('#fruitSuggestions');
   
   const fruits = ['Apple', 'Apricot', 'Avocado', 'Banana', 'Blackberry', 'Blueberry', 
                  'Cherry', 'Coconut', 'Grape', 'Kiwi', 'Lemon', 'Lime', 'Mango', 
                  'Orange', 'Peach', 'Pear', 'Pineapple', 'Plum', 'Raspberry', 'Strawberry'];
+  fruits.forEach(fruit => {
+    const li = document.createElement('li');
+    li.textContent = fruit;
+    li.style.padding = '5px 10px';
+    li.style.cursor = 'pointer';
+    li.addEventListener('mouseenter', () => li.style.backgroundColor = '#f0f0f0');
+    li.addEventListener('mouseleave', () => li.style.backgroundColor = '');
+    suggestionList.appendChild(li);
+  });
+
+    // Create matcher
+  const matcher = new StdMatcher({
+    highlightBeginTag: '<strong>',
+    highlightEndTag: '</strong>',
+    whiteSpace: ' \t'
+  });
   
-      
-  const updatePos = () => {
-      // Position suggestion popup
-      computePosition(fruitInput, suggestionPopup, {
-        platform,
-        strategy: 'fixed', 
-        placement: 'bottom-start',
-        middleware: [offset(2), flip(), shift()]
-      }).then(({x, y}) => {
-        Object.assign(suggestionPopup.style, {
-          position: 'fixed',
-          width: `${fruitInput.offsetWidth}px`,
-          left: `${x}px`, top: `${y}px`,
-          // left: '0px', top: '0px',
-          // willChange: 'transform',
-          // transform: `translate3d(${x}px, ${y}px, 0)`
-        });
-      });
+  // Initialize suggestion popup
+  const suggestionPopup = new WSuggestionPopup(suggestionList, Wt, {
+    matcher: matcher,
+    replacer: (el, text) => {
+      el.value = text;
+    },
+    filterMinLength: 1,
+    filterMore: true,
+    autoSelect: true
+  });
+  
+  // Attach input
+  suggestionPopup.attachInput(fruitInput);
+  
+  // Add callback example
+  suggestionPopup.onSelect = (text) => {
+    console.log(`Selected: ${text}`);
   };
+      
+  // const updatePos = () => {
+  //     // Position suggestion popup
+  //     computePosition(fruitInput, suggestionPopup, {
+  //       platform,
+  //       strategy: 'fixed', 
+  //       placement: 'bottom-start',
+  //       middleware: [offset(2), flip(), shift()]
+  //     }).then(({x, y}) => {
+  //       Object.assign(suggestionPopup.style, {
+  //         position: 'fixed',
+  //         width: `${fruitInput.offsetWidth}px`,
+  //         left: `${x}px`, top: `${y}px`,
+  //         // left: '0px', top: '0px',
+  //         // willChange: 'transform',
+  //         // transform: `translate3d(${x}px, ${y}px, 0)`
+  //       });
+  //     });
+  // };
   // const resizeObserver = new ResizeObserver(() => updatePosition());
   // resizeObserver.observe(popupBtn);
   // resizeObserver.observe(document.body);
-  window.addEventListener('scroll', () => { updatePos(); }, true);
+  //window.addEventListener('scroll', () => { updatePos(); }, true);
 
-  fruitInput.addEventListener('input', () => {
-    const value = fruitInput.value.toLowerCase();
-    if (value.length < 1) {
-      suggestionPopup.style.display = 'none';
-      return;
-    }
+  // fruitInput.addEventListener('input', () => {
+  //   const value = fruitInput.value.toLowerCase();
+  //   if (value.length < 1) {
+  //     suggestionPopup.style.display = 'none';
+  //     return;
+  //   }
     
-    const matches = fruits.filter(f => f.toLowerCase().includes(value));
-    if (matches.length > 0) {
-      suggestionPopup.innerHTML = matches.map(m => 
-        `<div class="suggestion-item">${m}</div>`
-      ).join('');
+  //   const matches = fruits.filter(f => f.toLowerCase().includes(value));
+  //   if (matches.length > 0) {
+  //     suggestionPopup.innerHTML = matches.map(m => 
+  //       `<div class="suggestion-item">${m}</div>`
+  //     ).join('');
       
-      suggestionPopup.style.display = 'block';
+  //     suggestionPopup.style.display = 'block';
       
-      updatePos();
+  //     updatePos();
       
-      // Add click handlers to suggestions
-      suggestionPopup.querySelectorAll('.suggestion-item').forEach(item => {
-        item.addEventListener('click', () => {
-          fruitInput.value = item.textContent;
-          suggestionPopup.style.display = 'none';
-        });
-      });
-    } else {
-      suggestionPopup.style.display = 'none';
-    }
-  });
+  //     // Add click handlers to suggestions
+  //     suggestionPopup.querySelectorAll('.suggestion-item').forEach(item => {
+  //       item.addEventListener('click', () => {
+  //         fruitInput.value = item.textContent;
+  //         suggestionPopup.style.display = 'none';
+  //       });
+  //     });
+  //   } else {
+  //     suggestionPopup.style.display = 'none';
+  //   }
+  // });
   
   // Hide suggestions when clicking outside
-  document.addEventListener('click', (e) => {
-    if (e.target !== fruitInput && !suggestionPopup.contains(e.target)) {
-      suggestionPopup.style.display = 'none';
-    }
-  });
+  // document.addEventListener('click', (e) => {
+  //   if (e.target !== fruitInput && !suggestionPopup.contains(e.target)) {
+  //     suggestionPopup.style.display = 'none';
+  //   }
+  // });
   
   container.appendChild(suggestionCard);
 }
@@ -1602,7 +1649,7 @@ export function initChartWidgets() {
   const lineChartCard = createWidgetCard(
     'Line Chart',
     `<div class="chart-container">
-      <canvas id="lineChart"></canvas>
+      <div id="lineChart"></div>
     </div>`,
     'Time series data visualization with interactive tooltips'
   );
@@ -1612,7 +1659,7 @@ export function initChartWidgets() {
   const barChartCard = createWidgetCard(
     'Bar Chart',
     `<div class="chart-container">
-      <canvas id="barChart"></canvas>
+      <div id="barChart"></div>
     </div>`,
     'Compare values across categories with customizable colors'
   );
@@ -1622,7 +1669,7 @@ export function initChartWidgets() {
   const pieChartCard = createWidgetCard(
     'Pie Chart',
     `<div class="chart-container">
-      <canvas id="pieChart"></canvas>
+      <div id="pieChart"></div>
     </div>`,
     'Proportional visualization of data categories'
   );
@@ -1632,7 +1679,7 @@ export function initChartWidgets() {
   const radarChartCard = createWidgetCard(
     'Radar Chart',
     `<div class="chart-container">
-      <canvas id="radarChart"></canvas>
+      <div id="radarChart"></div>
     </div>`,
     'Multi-variable data visualization on a two-dimensional chart'
   );
@@ -1794,25 +1841,25 @@ export function initChartWidgets() {
     };
     
     // Create chart instances
-    new Chart(document.getElementById('lineChart'), {
+    new WChart(document.getElementById('lineChart'), {
       type: 'line',
       data: lineData,
       options: lineOptions
     });
     
-    new Chart(document.getElementById('barChart'), {
+    new WChart(document.getElementById('barChart'), {
       type: 'bar',
       data: barData,
       options: barOptions
     });
     
-    new Chart(document.getElementById('pieChart'), {
+    new WChart(document.getElementById('pieChart'), {
       type: 'pie',
       data: pieData,
       options: pieOptions
     });
     
-    new Chart(document.getElementById('radarChart'), {
+    new WChart(document.getElementById('radarChart'), {
       type: 'radar',
       data: radarData,
       options: radarOptions
@@ -2412,394 +2459,268 @@ function initResizableHandle() {
   // layout.refresh(); // Already called by constructor typically, or ensure it is.
 }
 
-export function initFlexLayoutTest() {
-  const container = document.querySelector('#flex .widget-grid');
+function initWAxisSliderTest() {
+  let container = document.querySelector('#chartContainer .grid-container');
+  if (!container) {
+    console.error('Container element not provided');
+    return;
+  }
+
+  // Create chart container
+  const chartContainer = document.createElement('div');
+  chartContainer.id = 'main-chart';
+  chartContainer.style.height = '400px';
+  chartContainer.style.marginBottom = '20px';
+  container.appendChild(chartContainer);
   
-  // Create the main demo card
-  const flexLayoutCard = document.createElement('div');
-  flexLayoutCard.className = 'widget-card full-width-card';
+  // Create slider container
+  const sliderContainer = document.createElement('div');
+  sliderContainer.id = 'axis-slider';
+  sliderContainer.style.height = '100px';
+  sliderContainer.style.position = 'relative';
+  container.appendChild(sliderContainer);
+
+  // Create slider canvas
+  const sliderCanvas = document.createElement('canvas');
+  sliderCanvas.style.width = '100%';
+  sliderCanvas.style.height = '100%';
+  sliderContainer.appendChild(sliderCanvas);
   
-  flexLayoutCard.innerHTML = `
-    <h3>FlexLayout Demo</h3>
+  function generateRandomData(days = 60) {
+    const labels = [];
+    const data1 = [];
+    const data2 = [];
     
-    <div class="flex-layout-demos">
-      <div class="demo-section">
-        <h4>1. Basic Flex Distribution</h4>
-        <div class="description">Elements grow proportionally to fill available space</div>
-        <div class="control-panel">
-          <button id="basic-layout-reset">Reset</button>
-        </div>
-        <div id="basic-flex-container" class="test-flex-container">
-          <div class="flex-item" style="background-color: #3498db;">Item 1</div>
-          <div class="flex-item" style="background-color: #2ecc71;">Item 2</div>
-          <div class="flex-item" style="background-color: #e74c3c;">Item 3</div>
-        </div>
-      </div>
+    const now = new Date();
+    for (let i = days; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(now.getDate() - i);
+      labels.push(date.toISOString().split('T')[0]);
       
-      <div class="demo-section">
-        <h4>2. Grow Factors</h4>
-        <div class="description">Testing different grow factors and non-growing items</div>
-        <div class="control-panel">
-          <button id="toggle-grow-factor">Toggle Grow Factors</button>
-        </div>
-        <div id="grow-factor-container" class="test-flex-container">
-          <div class="flex-item" style="background-color: #3498db;" flg="1">
-            Grow: 1
-          </div>
-          <div class="flex-item" style="background-color: #2ecc71;" flg="2">
-            Grow: 2
-          </div>
-          <div class="flex-item" style="background-color: #e74c3c;" flg="0">
-            Grow: 0 (Fixed Size)
-          </div>
-        </div>
-      </div>
-      
-      <div class="demo-section">
-        <h4>3. Dynamic Content</h4>
-        <div class="description">Testing adding, removing, and visibility changes</div>
-        <div class="control-panel">
-          <button id="add-flex-item">Add Item</button>
-          <button id="remove-flex-item">Remove Item</button>
-          <button id="toggle-item-visibility">Toggle Visibility</button>
-        </div>
-        <div id="dynamic-flex-container" class="test-flex-container">
-          <div class="flex-item" style="background-color: #3498db;">Original Item</div>
-        </div>
-        <div id="removal-log" class="event-log">Removal events will appear here</div>
-      </div>
-      
-      <div class="demo-section">
-        <h4>4. Resizing Response</h4>
-        <div class="description">Testing how layout responds to content and container size changes</div>
-        <div class="control-panel">
-          <button id="resize-content">Resize Item Content</button>
-          <button id="toggle-container-size">Toggle Container Size</button>
-        </div>
-        <div id="resize-flex-container" class="test-flex-container">
-          <div class="flex-item" style="background-color: #3498db;">Item 1</div>
-          <div class="flex-item" style="background-color: #2ecc71;">
-            <div id="resizable-content">Resizable Content</div>
-          </div>
-          <div class="flex-item" style="background-color: #e74c3c;">Item 3</div>
-        </div>
-      </div>
-      
-      <div class="demo-section">
-        <h4>5. Attribute Observation</h4>
-        <div class="description">Testing layout updates when attributes change</div>
-        <div class="control-panel">
-          <button id="toggle-class">Toggle Class</button>
-          <button id="toggle-style">Toggle Style</button>
-          <button id="toggle-flg-attr">Toggle FLG Attribute</button>
-        </div>
-        <div id="attr-flex-container" class="test-flex-container">
-          <div id="attr-item-1" class="flex-item" style="background-color: #3498db;" flg="1">Item 1</div>
-          <div id="attr-item-2" class="flex-item" style="background-color: #2ecc71;" flg="1">Item 2</div>
-          <div id="attr-item-3" class="flex-item" style="background-color: #e74c3c;" flg="1">Item 3</div>
-        </div>
-      </div>
-    </div>
+      // Generate random values with some correlation
+      const base = Math.random() * 50 + 50;
+      data1.push(Math.round(base + Math.random() * 20));
+      data2.push(Math.round(base - 10 + Math.random() * 15));
+    }
     
-    <div class="widget-description">
-      FlexLayout provides a responsive, flexible layout system that automatically distributes space among child elements.
-    </div>
-  `;
+    return { labels, data1, data2 };
+  }
+  // Generate random time series data
+  const { labels, data1, data2 } = generateRandomData();
   
-  container.appendChild(flexLayoutCard);
+  // Create main chart
+  const mainChart = new WChart(chartContainer, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Revenue',
+          data: data1,
+          borderColor: 'rgba(52, 152, 219, 1)',
+          backgroundColor: 'rgba(52, 152, 219, 0.2)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Expenses',
+          data: data2,
+          borderColor: 'rgba(231, 76, 60, 1)',
+          backgroundColor: 'rgba(231, 76, 60, 0.2)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        title: {
+          display: true,
+          text: 'Financial Performance (with Axis Slider)'
+        },
+        tooltip: {
+          enabled: true,
+          mode: 'index',
+          intersect: false
+        },
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'x'
+          },
+          zoom: {
+            wheel: {
+              enabled: false // Using the slider instead
+            },
+            pinch: {
+              enabled: true
+            },
+            mode: 'x'
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit: 'day',
+            tooltipFormat: 'MMM d, yyyy'
+          },
+          title: {
+            display: true,
+            text: 'Date'
+          }
+        },
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Amount ($)'
+          }
+        }
+      }
+    }
+  });
   
-  // Add style for the FlexLayout demos
-  const style = document.createElement('style');
-  style.textContent = `
-    .flex-layout-demos {
-      margin-top: 20px;
+  // Create the overview chart (will be used for the slider visual)
+  const overviewChart = new WChart(sliderCanvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Overview',
+          data: data1,
+          borderColor: 'rgba(52, 152, 219, 0.5)',
+          backgroundColor: 'rgba(52, 152, 219, 0.2)',
+          borderWidth: 1,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          enabled: false
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          type: 'time',
+          time: {
+            unit: 'month'
+          },
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          display: false,
+          beginAtZero: true
+        }
+      }
     }
-    
-    .demo-section {
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #eee;
-    }
-    
-    .demo-section h4 {
-      margin-top: 0;
-      margin-bottom: 10px;
-      color: #2c3e50;
-    }
-    
-    .test-flex-container {
-      display: flex;
-      height: 100px;
-      margin: 15px 0;
-      border: 2px dashed #ccc;
-      background: #f9f9f9;
-      overflow: hidden;
-      transition: height 0.3s ease;
-    }
-    
-    .test-flex-container.large {
-      height: 200px;
-    }
-    
-    .flex-item {
-      padding: 10px;
-      color: white;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      box-sizing: border-box;
-      min-width: 100px;
-      transition: all 0.3s ease;
-    }
-    
-    .flex-item.highlighted {
-      box-shadow: 0 0 0 3px yellow;
-    }
-    
-    .event-log {
-      margin-top: 10px;
-      padding: 8px;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-family: monospace;
-      font-size: 12px;
-      max-height: 100px;
-      overflow-y: auto;
-    }
-    
-    #resizable-content {
-      padding: 5px;
-      transition: all 0.3s ease;
-    }
-    
-    #resizable-content.expanded {
-      width: 300px;
-      height: 80px;
-      background-color: rgba(255, 255, 255, 0.3);
-      border-radius: 4px;
-    }
-  `;
-  document.head.appendChild(style);
+  });
   
-  function initBasicFlexLayout() {
-    const container = document.getElementById('basic-flex-container');
-    const layout = new FlexLayout(container);
+  // Initialize the WAxisSliderWidget
+  const chart = mainChart.chart;
+  const target = overviewChart.chart;
+  
+  // Setup the slider widget
+  const axisSlider = new WAxisSliderWidget({
+    widget: sliderContainer,           // outer div
+    canvas: target.canvas,             // canvas used for slider
+    chart: chart,                      // main chart object
+    series: 0,                         // series index
+    target: target,                    // the overview chart
+    rect: () => {                      // function returning current slider rectangle
+      const chartArea = target.chartArea;
+      return [chartArea.left, chartArea.top, chartArea.width, chartArea.height];
+    },
+    drawArea: [0, 0, sliderContainer.offsetWidth, sliderContainer.offsetHeight],
+    transform: [1, 0, 0, 1, 0, 0],     // initial transform (no zoom)
+    updateYAxis: false,                // don't update Y axis on zoom
     
-    document.getElementById('basic-layout-reset').addEventListener('click', () => {
-      // This will cause the layout to be re-applied
-      layout.refresh();
+    // Add a changeRange function to handle range updates
+    changeRange: (u, v) => {
+      // u and v are normalized coordinates (0-1)
+      const min = labels[Math.floor(u * labels.length)];
+      const max = labels[Math.ceil(v * labels.length - 1)];
+      
+      // Update main chart's x-axis range
+      if (min && max) {
+        mainChart.updateOptions({
+          scales: {
+            x: {
+              min,
+              max
+            }
+          }
+        });
+      }
+    }
+  });
+  
+  // Add reset button
+  const resetButton = document.createElement('button');
+  resetButton.textContent = 'Reset View';
+  resetButton.className = 'btn btn-primary mt-3';
+  resetButton.style.marginTop = '10px';
+  resetButton.style.padding = '8px 16px';
+  resetButton.style.backgroundColor = '#3498db';
+  resetButton.style.color = 'white';
+  resetButton.style.border = 'none';
+  resetButton.style.borderRadius = '4px';
+  resetButton.style.cursor = 'pointer';
+  
+  resetButton.addEventListener('click', () => {
+    // Reset main chart zoom
+    mainChart.updateOptions({
+      scales: {
+        x: {
+          min: undefined,
+          max: undefined
+        }
+      }
     });
-  }
-  // Testing grow factors
-  function initGrowFactorDemo() {
-    const container = document.getElementById('grow-factor-container');
-    const layout = new FlexLayout(container);
-    const items = container.querySelectorAll('.flex-item');
-    let toggled = false;
     
-    document.getElementById('toggle-grow-factor').addEventListener('click', () => {
-      toggled = !toggled;
-      
-      if (toggled) {
-        // Change grow factors
-        items[0].setAttribute('flg', '3');
-        items[0].textContent = 'Grow: 3';
-        
-        items[1].setAttribute('flg', '1');
-        items[1].textContent = 'Grow: 1';
-        
-        items[2].setAttribute('flg', '2');
-        items[2].textContent = 'Grow: 2';
-      } else {
-        // Reset grow factors
-        items[0].setAttribute('flg', '1');
-        items[0].textContent = 'Grow: 1';
-        
-        items[1].setAttribute('flg', '2');
-        items[1].textContent = 'Grow: 2';
-        
-        items[2].setAttribute('flg', '0');
-        items[2].textContent = 'Grow: 0 (Fixed Size)';
-      }
-      
-      // The layout should update automatically due to attribute changes
-      // But we'll call refresh explicitly to be sure
-      layout.refresh();
+    // Reset slider
+    axisSlider.updateConfig({
+      transform: [1, 0, 0, 1, 0, 0]
     });
-  }
-// Testing dynamic content
-function initDynamicContentDemo() {
-  const container = document.getElementById('dynamic-flex-container');
-  const removalLog = document.getElementById('removal-log');
-  let itemCount = 1;
-  
-  // Create FlexLayout with removal callback
-  const layout = new FlexLayout(container, (removedNode) => {
-    const timestamp = new Date().toLocaleTimeString();
-    removalLog.textContent = `${timestamp}: Element removed - ${removedNode.textContent}`;
   });
   
-  // Also listen for the custom event
-  container.addEventListener('flex-layout:removed', (e) => {
-    const timestamp = new Date().toLocaleTimeString();
-    removalLog.textContent += `\n${timestamp}: Event captured - ${e.detail.textContent}`;
+  container.appendChild(resetButton);
+  
+  // Make charts responsive
+  window.addEventListener('resize', () => {
+    axisSlider.updateConfig({
+      drawArea: [0, 0, sliderContainer.offsetWidth, sliderContainer.offsetHeight]
+    });
   });
   
-  // Add item button
-  document.getElementById('add-flex-item').addEventListener('click', () => {
-    itemCount++;
-    const newItem = document.createElement('div');
-    newItem.className = 'flex-item';
-    newItem.textContent = `Item ${itemCount}`;
-    
-    // Assign a random color
-    const colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    newItem.style.backgroundColor = randomColor;
-    
-    container.appendChild(newItem);
-    // Layout should update automatically due to DOM mutation
-  });
-  
-  // Remove item button
-  document.getElementById('remove-flex-item').addEventListener('click', () => {
-    if (itemCount > 1) {
-      const lastItem = container.lastElementChild;
-      if (lastItem) {
-        lastItem.remove();
-        itemCount--;
-      }
-    }
-  });
-  
-  // Toggle visibility button
-  document.getElementById('toggle-item-visibility').addEventListener('click', () => {
-    const items = container.querySelectorAll('.flex-item');
-    if (items.length > 1) {
-      const lastItem = items[items.length - 1];
-      
-      if (lastItem.style.display === 'none') {
-        lastItem.style.display = '';
-      } else {
-        lastItem.style.display = 'none';
-      }
-    }
-  });
+  return {
+    mainChart,
+    overviewChart,
+    axisSlider
+  };
 }
 
-// Testing resize responsiveness
-function initResizingDemo() {
-  const container = document.getElementById('resize-flex-container');
-  const content = document.getElementById('resizable-content');
-  const layout = new FlexLayout(container);
-  let expanded = false;
-  let containerLarge = false;
-  
-  // Resize content button
-  document.getElementById('resize-content').addEventListener('click', () => {
-    expanded = !expanded;
-    content.classList.toggle('expanded', expanded);
-    // ResizeObserver should handle this automatically
-  });
-  
-  // Toggle container size button
-  document.getElementById('toggle-container-size').addEventListener('click', () => {
-    containerLarge = !containerLarge;
-    container.classList.toggle('large', containerLarge);
-    // ResizeObserver should handle this automatically
-  });
-}
-
-// Testing attribute observation
-function initAttributeObservationDemo() {
-  const container = document.getElementById('attr-flex-container');
-  const item1 = document.getElementById('attr-item-1');
-  const item2 = document.getElementById('attr-item-2');
-  const item3 = document.getElementById('attr-item-3');
-  
-  const layout = new FlexLayout(container);
-  
-  // Toggle class button
-  document.getElementById('toggle-class').addEventListener('click', () => {
-    item1.classList.toggle('highlighted');
-  });
-  
-  // Toggle style button
-  document.getElementById('toggle-style').addEventListener('click', () => {
-    if (item2.style.minWidth === '200px') {
-      item2.style.minWidth = '100px';
-    } else {
-      item2.style.minWidth = '200px';
-    }
-  });
-  
-  // Toggle flg attribute button
-  document.getElementById('toggle-flg-attr').addEventListener('click', () => {
-    const currentFlg = item3.getAttribute('flg');
-    if (currentFlg === '1') {
-      item3.setAttribute('flg', '0');
-      item3.textContent = 'FLG: 0';
-    } else {
-      item3.setAttribute('flg', '1');
-      item3.textContent = 'FLG: 1';
-    }
-  });
-}
-
-// Make sure to add this section to your gallery container HTML
-// Add this to the gallery HTML
-function addFlexSectionToGallery() {
-  // Get the gallery-content element to add our new section
-  const galleryContent = document.querySelector('.gallery-content');
-  if (!galleryContent) return;
-  
-  // Create the flex section
-  const flexSection = document.createElement('section');
-  flexSection.id = 'flex';
-  flexSection.className = 'widget-section';
-  flexSection.innerHTML = `
-    <h2>Flex Layout</h2>
-    <div class="widget-grid"></div>
-  `;
-  
-  // Add it before the grid section or at an appropriate position
-  const gridSection = document.getElementById('grid');
-  if (gridSection) {
-    galleryContent.insertBefore(flexSection, gridSection);
-  } else {
-    galleryContent.appendChild(flexSection);
-  }
-  
-  // Also add link to sidebar navigation
-  const sidebarNav = document.querySelector('.gallery-sidebar ul');
-  if (sidebarNav) {
-    const flexNavItem = document.createElement('li');
-    flexNavItem.innerHTML = `<a href="#flex">Flex Layout</a>`;
-    
-    // Insert before the Data Grid link or at an appropriate position
-    const gridNavItem = Array.from(sidebarNav.querySelectorAll('li')).find(li => 
-      li.querySelector('a[href="#grid"]')
-    );
-    
-    if (gridNavItem) {
-      sidebarNav.insertBefore(flexNavItem, gridNavItem);
-    } else {
-      sidebarNav.appendChild(flexNavItem);
-    }
-  }
-}
-  // Initialize all the demos once the DOM is ready
-  setTimeout(() => {
-    initBasicFlexLayout();
-    initGrowFactorDemo();
-    initDynamicContentDemo();
-    initResizingDemo();
-    initAttributeObservationDemo();
-  }, 0);
-}
 
 
 // Initialize the gallery when imported

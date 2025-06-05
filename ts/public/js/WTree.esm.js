@@ -8,7 +8,7 @@
     │   └── Simple selection
     │
     └── WTreeView (complex, SlickGrid-based)
-        ├── All WTree features
+        ├── All Tree features
         ├── Column management
         ├── Virtualization
         ├── Advanced sorting/filtering

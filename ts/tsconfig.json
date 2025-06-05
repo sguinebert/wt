@@ -25,5 +25,5 @@
   },
 
   /* include only real sources (was “/” before) -------------------------- */
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "src/types/*.d.ts"]
 }

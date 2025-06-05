@@ -1,4 +1,4 @@
-//import { computePosition, offset, flip, shift } from './vendor/floating-ui/floating-ui.core.browser.min.mjs';
+import { computePosition, offset, flip, shift } from './vendor/floating-ui/floating-ui.core.browser.min.mjs';
 
 const graphemes = str => [...str];              // code‑point / grapheme array
 const toUnits = (str, cpIndex) => graphemes(str).slice(0, cpIndex).join('').length;
@@ -391,50 +391,128 @@ export class WtCore {
     });
   }
 
-  positionAtWidget(id, atId, orientation, delta = 0) {
+/**
+ * Positions a widget relative to another widget
+ * @param {HTMLElement|string} id - Element to position
+ * @param {HTMLElement|string} atId - Reference element
+ * @param {string} orientation - Placement:
+ *   'top' | 'top-start' | 'top-end' | 
+ *   'right' | 'right-start' | 'right-end' | 
+ *   'bottom' | 'bottom-start' | 'bottom-end' | 
+ *   'left' | 'left-start' | 'left-end'
+ * @param {number} delta - Offset in pixels
+ */
+  positionAtWidget(id, atId, placement, delta = 0) {
     const w = this.getElement(id);
     const atw = this.getElement(atId);
     if (!atw || !w) return;
-
-    const { x: atX, y: atY } = this.widgetPageCoordinates(atw);
-    let x, y, rightx, bottomy;
-
-    w.style.position = "absolute";
-    if (this.css(w, "display") === "none") w.style.display = "block";
-
-    if (orientation === this.Horizontal) {
-      x = atX + atw.offsetWidth;
-      y = atY + delta;
-      rightx = atX;
-      bottomy = atY + atw.offsetHeight - delta;
-    } else {
-      x = atX;
-      y = atY + atw.offsetHeight;
-      rightx = atX + atw.offsetWidth;
-      bottomy = atY;
+    if(placement === 'horizontal') {
+      placement = 'right';
     }
+    if(placement === 'vertical') {
+      placement = 'bottom';
+    }
+
+    const platform = {
+      isRTL: () => document.documentElement.dir === 'rtl',
+      getElementRects: ({ reference, floating }) => ({
+        reference: reference.getBoundingClientRect(),
+        floating: floating.getBoundingClientRect()
+      }),
+      getDimensions: (element) => {
+        const rect = element.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      },
+      getClippingRect: () => {
+        // Find any scrollable parents that might clip the element
+        let scrollParent = atw;
+        while (scrollParent && scrollParent !== document.body) {
+          const style = getComputedStyle(scrollParent);
+          if (/(auto|scroll)/.test(style.overflow + style.overflowX + style.overflowY)) {
+            const rect = scrollParent.getBoundingClientRect();
+            return { width: rect.width, height: rect.height, x: rect.left, y: rect.top };
+          }
+          scrollParent = scrollParent.parentElement;
+        }
+        return { width: window.innerWidth, height: window.innerHeight, x: 0, y: 0 };
+      }
+    };
+
+    const updatePosition = () => {
+      computePosition(atw, w, {
+        platform,
+        strategy: 'fixed', 
+        placement: placement || 'bottom',
+        middleware: [offset(delta), flip(), shift()]
+      }).then(({x, y}) => {
+        if(w.style.display === "none") {
+          resizeObserver.disconnect();
+          window.removeEventListener('scroll', scrollListener, true);
+          return;
+        }
+        Object.assign(w.style, { 
+          left: `${x}px`, top: `${y}px`,
+          position: 'fixed',
+          visibility: '',
+          // left: '0px', top: '0px',
+          // willChange: 'transform',
+          // transform: `translate3d(${x}px, ${y}px, 0)`
+        });
+      });
+    };
+    
+
+    const resizeObserver = new ResizeObserver(() => updatePosition());
+    resizeObserver.observe(atw);
+    resizeObserver.observe(document.body);
+      
+    const scrollListener = () => updatePosition();
+    window.addEventListener('scroll', scrollListener, true);
+
+
+
+    // const { x: atX, y: atY } = this.widgetPageCoordinates(atw);
+    // let x, y, rightx, bottomy;
+
+    // w.style.position = "absolute";
+    // if (this.css(w, "display") === "none") w.style.display = "block";
+
+    // if (orientation === this.Horizontal) {
+    //   x = atX + atw.offsetWidth;
+    //   y = atY + delta;
+    //   rightx = atX;
+    //   bottomy = atY + atw.offsetHeight - delta;
+    // } else {
+    //   x = atX;
+    //   y = atY + atw.offsetHeight;
+    //   rightx = atX + atw.offsetWidth;
+    //   bottomy = atY;
+    // }
 
     let p = atw.parentNode;
     while (!p.classList.contains("Wt-domRoot")) {
       if (p.wtReparentBarrier) break;
+      let st = this.css(p);
       if (
-        this.css(p, "display") !== "inline" &&
+        st.display !== "inline" &&
         p.clientHeight > 100 &&
-        (["scroll", "auto"].includes(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight ||
-         ["scroll", "auto"].includes(getComputedStyle(p).overflowX) && p.scrollWidth > p.clientWidth)
+        (["scroll", "auto"].includes(st.overflowY) && p.scrollHeight > p.clientHeight ||
+         ["scroll", "auto"].includes(st.overflowX) && p.scrollWidth > p.clientWidth)
       ) break;
       p = p.parentNode;
     }
 
-    const posP = this.css(p, "position");
+    const posP = this.css(p).position;
     if (!["absolute", "relative"].includes(posP)) p.style.position = "relative";
 
     w.parentNode.removeChild(w);
     p.appendChild(w);
     w.classList.add("wt-reparented");
 
-    this.fitToWindow(w, x, y, rightx, bottomy);
-    w.style.visibility = "";
+    // this.fitToWindow(w, x, y, rightx, bottomy);
+    // w.style.visibility = "";
+    w.style.display = "block"; // Ensure it is visible before positioning
+    updatePosition();
   }
   
   positionXY(id, x, y) {
