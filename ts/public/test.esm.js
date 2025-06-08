@@ -12,21 +12,7 @@ import WSuggestionPopup, {StdMatcher} from './js/WSuggestionPopup.esm.js';
 import WDateEdit from './js/WDateEdit.esm.js';
 
 import WTableView, { WtFormatters, Editors, Formatters } from './js/WTableView.esm.js';
-// import Sortable from './vendor/sortablejs/sortable.core.esm.js';
-// window.Sortable = Sortable;
-// import {   Editors,
-//   Formatters,
-//   SlickGlobalEditorLock,
-//   SlickRowSelectionModel,
-//   SlickColumnPicker,
-//   SlickDataView,
-//   SlickGridMenu,
-//   SlickGridPager,
-//   SlickGrid,
-//   Utils, } from '../vendor/slickgrid/slick.grid.esm.min.js';
-//import './vendor/slickgrid/slick-alpine-theme.min.css';
 
-//import { Chart } from './vendor/chartjs/chartjs/auto/auto.js';//
 import  WChart  from './js/WChart.esm.js';
 import WAxisSliderWidget from '../js/WAxisSliderWidget.esm.js';
 
@@ -761,179 +747,268 @@ function initPopupWidgets() {
   
   container.appendChild(suggestionCard);
 }
-
 function initDateTimeWidgets() {
   const container = document.querySelector('#date .widget-grid');
   
-  // WTimeEdit
-  const timeEditCard = createWidgetCard(
-    'WTimeEdit',
-    `<div class="wt-time-edit">
-      <input type="text" class="time-hour" value="12" maxlength="2">
-      <span>:</span>
-      <input type="text" class="time-minute" value="00" maxlength="2">
-      <span class="ampm-container">
-        <select class="time-ampm">
-          <option value="AM">AM</option>
-          <option value="PM">PM</option>
-        </select>
-      </span>
-    </div>`,
-    'Time input with hours and minutes'
-  );
-  
-  const hourInput = timeEditCard.querySelector('.time-hour');
-  const minuteInput = timeEditCard.querySelector('.time-minute');
-  
-  hourInput.addEventListener('input', () => {
-    let value = parseInt(hourInput.value);
-    if (isNaN(value) || value < 1) hourInput.value = '1';
-    if (value > 12) hourInput.value = '12';
-  });
-  
-  minuteInput.addEventListener('input', () => {
-    let value = parseInt(minuteInput.value);
-    if (isNaN(value) || value < 0) minuteInput.value = '00';
-    if (value > 59) minuteInput.value = '59';
-    if (minuteInput.value.length === 1) minuteInput.value = '0' + minuteInput.value;
-  });
-  
-  container.appendChild(timeEditCard);
-  
-  // WDateEdit
-  const dateEditCard = createWidgetCard(
-    'WDateEdit',
-    `<div class="wt-date-edit">
-      <input type="text" class="date-input" placeholder="YYYY-MM-DD">
-      <button class="calendar-button">📅</button>
-      <div class="calendar-popup" style="display: none;">
-        <div class="calendar-header">
-          <button class="prev-month">◀</button>
-          <div class="current-month">May 2025</div>
-          <button class="next-month">▶</button>
-        </div>
-        <div class="calendar-grid">
-          <div class="weekday">Su</div>
-          <div class="weekday">Mo</div>
-          <div class="weekday">Tu</div>
-          <div class="weekday">We</div>
-          <div class="weekday">Th</div>
-          <div class="weekday">Fr</div>
-          <div class="weekday">Sa</div>
-          <!-- Days go here -->
-        </div>
-      </div>
-    </div>`,
-    'Date input with popup calendar'
-  );
-  
-  const dateInput = dateEditCard.querySelector('.date-input');
-  const calendarBtn = dateEditCard.querySelector('.calendar-button');
-  const calendarPopup = dateEditCard.querySelector('.calendar-popup');
-  const calendarGrid = dateEditCard.querySelector('.calendar-grid');
-  const currentMonthEl = dateEditCard.querySelector('.current-month');
-  const prevMonthBtn = dateEditCard.querySelector('.prev-month');
-  const nextMonthBtn = dateEditCard.querySelector('.next-month');
-  
-  // Date validation
-  dateInput.addEventListener('input', () => {
-    const value = dateInput.value;
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    
-    if (value && !dateRegex.test(value)) {
-      dateInput.style.borderColor = 'red';
-      return;
-    }
-    
-    const date = new Date(value);
-    if (value && (isNaN(date) || date.toString() === 'Invalid Date')) {
-      dateInput.style.borderColor = 'red';
-    } else {
-      dateInput.style.borderColor = '';
-    }
-  });
-  
-  // Calendar rendering
-  let currentDate = new Date();
-  
-  const renderCalendar = () => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    
-    // Set header
-    currentMonthEl.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
-    
-    // Clear previous days
-    calendarGrid.querySelectorAll('.day').forEach(day => day.remove());
-    
-    // Get first day of month and total days
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    // Add empty cells for days before first of month
-    for (let i = 0; i < firstDay; i++) {
-      const dayEl = document.createElement('div');
-      dayEl.classList.add('day', 'empty');
-      calendarGrid.appendChild(dayEl);
-    }
-    
-    // Add days of month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dayEl = document.createElement('div');
-      dayEl.classList.add('day');
-      dayEl.textContent = day;
-      
-      dayEl.addEventListener('click', () => {
-        const date = new Date(year, month, day);
-        dateInput.value = date.toISOString().split('T')[0]; // YYYY-MM-DD
-        calendarPopup.style.display = 'none';
-        dateInput.style.borderColor = '';
-      });
-      
-      calendarGrid.appendChild(dayEl);
-    }
-  };
-  
-  prevMonthBtn.addEventListener('click', () => {
-    currentDate.setMonth(currentDate.getMonth() - 1);
-    renderCalendar();
-  });
-  
-  nextMonthBtn.addEventListener('click', () => {
-    currentDate.setMonth(currentDate.getMonth() + 1);
-    renderCalendar();
-  });
-  
-  calendarBtn.addEventListener('click', () => {
-    if (calendarPopup.style.display === 'none') {
-      calendarPopup.style.display = 'block';
-      renderCalendar();
-      
-      // Position calendar popup
-      computePosition(dateInput, calendarPopup, {
-        placement: 'bottom-start',
-        middleware: [offset(4), flip(), shift()]
-      }).then(({x, y}) => {
-        Object.assign(calendarPopup.style, {
-          position: 'absolute',
-          left: `${x}px`,
-          top: `${y}px`
+  // Import necessary modules
+  import("./js/WTimeEdit.esm.js").then(({ default: WTimeEdit }) => {
+    import("./js/WDateEdit.esm.js").then(({ default: WDateEdit }) => {
+      import("./js/WTimeValidator.esm.js").then(({ default: WTimeValidator }) => {
+        import("./js/WDateValidator.esm.js").then(({ default: WDateValidator }) => {
+          setupTimeWidget(WTimeEdit, WTimeValidator);
+          setupDateWidget(WDateEdit, WDateValidator);
         });
       });
-    } else {
-      calendarPopup.style.display = 'none';
+    });
+  });
+
+  // Setup time widget with proper validation
+  function setupTimeWidget(WTimeEdit, WTimeValidator) {
+    // WTimeEdit
+    const timeEditCard = createWidgetCard(
+      'WTimeEdit',
+      `<div class="wt-time-edit-container">
+        <input type="text" class="time-input" placeholder="HH:MM" value="12:00">
+        <ul class="time-popup" style="display: none; position: absolute; background: white; 
+            border: 1px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+            list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; z-index: 1000;">
+          <li data-value="06:00">6:00 AM</li>
+          <li data-value="07:00">7:00 AM</li>
+          <li data-value="08:00">8:00 AM</li>
+          <li data-value="09:00">9:00 AM</li>
+          <li data-value="10:00">10:00 AM</li>
+          <li data-value="11:00">11:00 AM</li>
+          <li data-value="12:00">12:00 PM</li>
+          <li data-value="13:00">1:00 PM</li>
+          <li data-value="14:00">2:00 PM</li>
+          <li data-value="15:00">3:00 PM</li>
+          <li data-value="16:00">4:00 PM</li>
+          <li data-value="17:00">5:00 PM</li>
+          <li data-value="18:00">6:00 PM</li>
+        </ul>
+        <div class="validation-message"></div>
+      </div>`,
+      'Time input with dropdown selection and validation'
+    );
+    
+    const timeInput = timeEditCard.querySelector('.time-input');
+    const timePopup = timeEditCard.querySelector('.time-popup');
+    const timeValidationMsg = timeEditCard.querySelector('.validation-message');
+    
+    // Add popup API required by WTimeEdit
+    timePopup.wtPopup = {
+      show: (anchor, placement) => {
+        const rect = anchor.getBoundingClientRect();
+        timePopup.style.left = `${rect.left + window.scrollX}px`;
+        timePopup.style.top = `${rect.bottom + window.scrollY + 4}px`;
+        timePopup.style.width = `${rect.width}px`;
+        timePopup.style.display = 'block';
+        
+        // Close when clicking outside
+        const closeHandler = (e) => {
+          if (e.target !== timeInput && !timePopup.contains(e.target)) {
+            timePopup.style.display = 'none';
+            document.removeEventListener('click', closeHandler);
+            if (this.onHide) this.onHide();
+          }
+        };
+        
+        setTimeout(() => {
+          document.addEventListener('click', closeHandler);
+        }, 0);
+      },
+      onHide: null
+    };
+    
+    // Handle clicks on time options
+    timePopup.querySelectorAll('li').forEach(item => {
+      item.addEventListener('click', () => {
+        timeInput.value = item.dataset.value;
+        timePopup.style.display = 'none';
+        validateTime(timeInput.value);
+        if (timePopup.wtPopup.onHide) timePopup.wtPopup.onHide();
+      });
+    });
+    
+    // Initialize WTimeEdit
+    const timeEdit = new WTimeEdit(timeInput, timePopup);
+    
+    // Create time validator
+    const timeValidator = new WTimeValidator({
+      mandatory: true,
+      formats: [
+        {
+          regexp: '(\\d{1,2}):(\\d{2})(?:\\s*(am|pm))?',
+          getHour: match => parseInt(match[1], 10),
+          getMin: match => parseInt(match[2], 10)
+        }
+      ],
+      min: new Date(0, 0, 0, 6, 0), // 6:00 AM
+      max: new Date(0, 0, 0, 22, 0), // 10:00 PM
+      messages: {
+        blank: 'Time is required',
+        format: 'Invalid time format, use HH:MM',
+        tooSmall: 'Time must be after 6:00 AM',
+        tooLarge: 'Time must be before 10:00 PM'
+      }
+    });
+    
+    // Validate time function
+    function validateTime(value) {
+      const result = timeValidator.validate(value);
+      timeValidationMsg.textContent = result.valid ? '' : result.message;
+      timeValidationMsg.style.color = result.valid ? 'green' : 'red';
+      return result.valid;
+    }
+    
+    // Add validation on input
+    timeInput.addEventListener('input', () => {
+      validateTime(timeInput.value);
+    });
+    
+    // Initialize with validation
+    validateTime(timeInput.value);
+    
+    container.appendChild(timeEditCard);
+  }
+function setupDateWidget(WDateEdit, WDateValidator) {
+  // Create widget card
+  const dateEditCard = createWidgetCard(
+    'WDateEdit',
+    `<div class="wt-date-edit-container">
+      <input type="text" class="date-input" placeholder="YYYY-MM-DD" value="2025-06-06">
+      <div class="calendar-popup" style="display: none;"></div>
+    </div>`,
+    'Date input with calendar and validation'
+  );
+  
+  // Add calendar styles
+  const style = document.createElement('style');
+  style.textContent = `
+    .wt-calendar {
+      border-collapse: collapse;
+      font-family: Arial, sans-serif;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      border-radius: 4px;
+    }
+    .wt-calendar th, .wt-calendar td { text-align: center; padding: 5px; }
+    .wt-calendar th.caption { background-color: #f0f0f0; padding: 8px; }
+    .wt-calendar a {
+      display: block;
+      text-decoration: none;
+      color: #333;
+      border-radius: 3px;
+      padding: 5px;
+    }
+    .wt-calendar a:hover { background-color: #f0f0f0; }
+    .wt-calendar a.selected { background-color: #3498db; color: white; }
+    .wt-calendar a.today { font-weight: bold; border: 1px solid #3498db; }
+    .wt-calendar .other-month { color: #ccc; }
+    
+    /* Input styling with calendar icon */
+    .date-input {
+      padding-right: 30px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+    .date-input.hover { background-color: #f8f8f8; }
+    .date-input.active { background-color: #e6e6e6; }
+    .validation-message { color: red; font-size: 0.8em; margin-top: 4px; }
+  `;
+  document.head.appendChild(style);
+  
+  const dateInput = dateEditCard.querySelector('.date-input');
+  const calendarPopup = dateEditCard.querySelector('.calendar-popup');
+  
+  // Initialize WDateEdit with validation and WT positioning
+  const dateEdit = new WDateEdit(dateInput, calendarPopup, {
+    validator: {
+      mandatory: true,
+      formats: [
+        {
+          regexp: '(\\d{4})-(\\d{1,2})-(\\d{1,2})',
+          getYear: match => parseInt(match[1], 10),
+          getMonth: match => parseInt(match[2], 10) - 1,  // 0-based month
+          getDay: match => parseInt(match[3], 10)
+        }
+      ],
+      min: new Date(2025, 0, 1),
+      max: new Date(2026, 11, 31),
+      messages: {
+        blank: 'Date is required',
+        format: 'Invalid date format, use YYYY-MM-DD',
+        tooSmall: 'Date must be after January 1, 2025',
+        tooLarge: 'Date must be before December 31, 2026'
+      }
+    },
+    onDateSelected: (date) => {
+      console.log('Selected date:', date);
     }
   });
   
-  // Hide calendar when clicking outside
-  document.addEventListener('click', (e) => {
-    if (e.target !== calendarBtn && e.target !== dateInput && 
-        !calendarPopup.contains(e.target)) {
-      calendarPopup.style.display = 'none';
-    }
-  });
+  // Use WT.positionAtWidget for popup positioning if WT is available
+  if (typeof WT !== 'undefined' && WT.positionAtWidget) {
+    // Create MutationObserver to detect when popup becomes visible
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'style' && 
+            calendarPopup.style.display === 'block') {
+          
+          // First render the calendar
+          dateEdit.render(calendarPopup);
+          
+          // Then position it using WT
+          WT.positionAtWidget(calendarPopup, dateInput, 'bottom', 4);
+        }
+      });
+    });
+    
+    // Start observing the popup element
+    observer.observe(calendarPopup, { attributes: true });
+  }
   
   container.appendChild(dateEditCard);
+  return dateEdit;
+}
+  // Add styles for date and time widgets
+  const style = document.createElement('style');
+  style.textContent = `
+    .wt-time-edit-container, .wt-date-edit-container {
+      position: relative;
+      margin-bottom: 5px;
+    }
+    
+    .time-input, .date-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    .time-popup li {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    
+    .time-popup li:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .validation-message {
+      font-size: 0.8em;
+      margin-top: 5px;
+      min-height: 1.2em;
+    }
+    
+    .unselectable {
+      user-select: none;
+    }
+  `;
+  document.head.appendChild(style);
 }
 
 function initDialogWidgets() {
@@ -1413,37 +1488,6 @@ export function initGridWidgets() {
     }
   });
 
-  // /*** ---------- DataView + Grid ---------- ***/
-  // const dataView = new SlickDataView({ inlineFilters: true });
-  // dataView.setItems(data);
-
-  // const gridElem = document.getElementById('slickGridDemo');
-  // const grid = new SlickGrid(gridElem, dataView, columns, options);
-
-  // const ro = new ResizeObserver(() => grid.resizeCanvas());
-  // ro.observe(gridElem);
-
-  // /*** ---------- sorting ---------- ***/
-  // grid.onSort.subscribe((_e, { sortCol, sortAsc }) => {
-  //   console.log(`Sorting by ${sortCol.field} (${sortAsc ? 'asc' : 'desc'})`);
-  //   // Update the DataView with the new sort order
-  //   dataView.sort((a, b) => {
-  //       const x = a[sortCol.field];
-  //       const y = b[sortCol.field];
-        
-  //       // Handle different data types appropriately
-  //       if (typeof x === 'string' && typeof y === 'string') {
-  //         return sortAsc ? x.localeCompare(y) : y.localeCompare(x);
-  //       } else {
-  //         return sortAsc ? (x === y ? 0 : (x > y ? 1 : -1)) : (x === y ? 0 : (x > y ? -1 : 1));
-  //       }
-  //   });
-  //   // Force grid to refresh after sorting
-  //   grid.invalidate();
-  //   grid.render();
-  // });
-
-
   /*** ---------- filtering ---------- ***/
   const filterTitle = document.getElementById('filterTitle');
   const filterPriority = document.getElementById('filterPriority');
@@ -1474,27 +1518,6 @@ export function initGridWidgets() {
     const matchPrio  = filterPriority.value === '' || String(item.priority) === filterPriority.value;
     return matchTitle && matchPrio;
   }
-
-  // filterTitle.addEventListener('input', () => { dataView.refresh(); });
-  // filterPriority.addEventListener('change', () => { dataView.refresh(); });
-  // dataView.setFilter(filterFn);
-
-  // /*** ---------- row-selection (checkbox) ---------- ***/
-  // grid.onClick.subscribe((_e, args) => {
-  //   if (args.cell === 0) {
-  //     const item = dataView.getItem(args.row);
-  //     item.sel = !item.sel;
-  //     dataView.updateItem(item.id, item);
-  //   }
-  // });
-
-  // /*** ---------- resize handling ---------- ***/
-  // function resize() { grid.resizeCanvas(); }
-  // window.addEventListener('resize', resize);
-  // resize();
-
-  // /*** ---------- initial render ---------- ***/
-  // dataView.refresh();  // applies initial filter / sort
 
   setTimeout(() => {
     tableView.refresh();

@@ -3,36 +3,46 @@
    ------------------------------------------------------------------ */
 
    export default class WDateValidator {
-    /**
-     * @param {boolean}         mandatory     – empty input is an error?
-     * @param {Array<Object>}   formats       – [{regexp, getDay,getMonth,getYear}]
-     * @param {?Date}           bottom        – min allowed date   (or null)
-     * @param {?Date}           top           – max allowed date   (or null)
-     * @param {string}          blankError    – “field empty”      message
-     * @param {string}          formatError   – “bad format”       message
-     * @param {string}          tooSmallError – “< bottom”         message
-     * @param {string}          tooLargeError – “> top”            message
-     */
-    constructor (
-      mandatory,
-      formats,
-      bottom,
-      top,
-      blankError,
-      formatError,
-      tooSmallError,
-      tooLargeError
-    ) {
-      // -----------------------------------------------------------------
-      // ☛ store config (frozen so callers can’t mutate behind our back)
-      // -----------------------------------------------------------------
-      this.cfg = Object.freeze({
-        mandatory,
-        formats,
-        bottom,
-        top,
-        msgs: { blankError, formatError, tooSmallError, tooLargeError }
-      });
+  /**
+   * @param {Object|boolean} config - Configuration object or mandatory flag
+   * @param {boolean} [config.mandatory] - Whether the field is required
+   * @param {Array<Object>} [config.formats] - Array of format objects
+   * @param {Date} [config.min] - Minimum allowed date
+   * @param {Date} [config.max] - Maximum allowed date
+   * @param {Object} [config.messages] - Error messages
+   * @param {string} [config.messages.blank] - Empty field error
+   * @param {string} [config.messages.format] - Invalid format error
+   * @param {string} [config.messages.tooSmall] - Date too early error
+   * @param {string} [config.messages.tooLarge] - Date too late error
+   */
+      constructor(config, formats, bottom, top, blankError, formatError, tooSmallError, tooLargeError) {
+ {
+        // Check if first argument is a configuration object
+        if (typeof config === 'object') {
+          // Object-style initialization
+          this.cfg = Object.freeze({
+            mandatory: config.mandatory || false,
+            formats: config.formats || [],
+            bottom: config.min || null,
+            top: config.max || null,
+            msgs: {
+              blankError: config.messages?.blank || 'This field is required',
+              formatError: config.messages?.format || 'Invalid date format',
+              tooSmallError: config.messages?.tooSmall || 'Date is too early',
+              tooLargeError: config.messages?.tooLarge || 'Date is too late'
+            }
+          });
+        } else {
+          // Individual parameters initialization (legacy style)
+          this.cfg = Object.freeze({
+            mandatory: config, // First param is mandatory flag
+            formats,
+            bottom,
+            top,
+            msgs: { blankError, formatError, tooSmallError, tooLargeError }
+          });
+        }
+      }
     }
   
     /* -------------------------------------------------------------------
