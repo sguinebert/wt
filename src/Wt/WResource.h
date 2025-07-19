@@ -18,7 +18,19 @@
 #include <mutex>
 #endif // WT_THREADED
 
+#ifndef __EMSCRIPTEN__
 #include <Wt/cuehttp/context.hpp>
+#else
+namespace Wt {
+namespace http {
+    class context;
+    class request;
+    class response;
+    class Continuation;
+    class cookies;
+}
+}
+#endif
 #include <Wt/AsioWrapper/asio.hpp>
 
 namespace Wt {
@@ -357,9 +369,9 @@ public:
   void write(asio::streambuf& out)
   {
 
-      http::cookies cookies;
+      //http::cookies cookies;
       //std::streambuf test(out);
-      http::response response(cookies, out);
+      //http::response response(cookies, out);
       //http::request  request(true, response, cookies);
 
       asio::io_context ctx;
@@ -438,9 +450,12 @@ public:
 
 
   awaitable<void> waitForMoreData(http::response& response) {
+#ifndef __EMSCRIPTEN__
       auto& cs = cs_.emplace_back(std::make_shared<http::Continuation>(this, &response));
       response.continuation_ = cs.get();
       co_await response.wait_for_more_data(asio::bind_cancellation_slot(cancel_signal_.slot(), use_awaitable));
+#endif
+      co_return;
   }
 
   /*! \brief Set whether this resource takes the %WApplication's update lock

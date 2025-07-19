@@ -174,7 +174,7 @@ public:
       //#endif
       //    auto data = data_;
       //  }
-
+#ifndef __EMSCRIPTEN__
       if (!data_)
           co_return;
 
@@ -183,6 +183,8 @@ public:
       if (!data_->empty()) {
           response.buffer().append(data_->data(), data_->data() + data_->size());
       }
+#endif
+      co_return;
   }
 
 private:

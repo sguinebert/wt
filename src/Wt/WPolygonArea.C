@@ -12,17 +12,17 @@
 
 namespace fmt {
 
-template <>
-struct formatter<const Wt::WPointF> {
-    constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+// template <>
+// struct formatter<const Wt::WPointF> {
+//     constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
-  template <typename FormatContext>
-  auto format(const Wt::WPointF& p, FormatContext& ctx) const {
-    return fmt::format_to(ctx.out(), "{:.0},{:.0}", p.x(), p.y());
-  }
-};
+//   template <typename FormatContext>
+//   auto format(const Wt::WPointF& p, FormatContext& ctx) const {
+//     return fmt::format_to(ctx.out(), "{:.0},{:.0}", p.x(), p.y());
+//   }
+// };
 template <>
-struct fmt::formatter<Wt::WPointF> {
+struct formatter<Wt::WPointF> {
     // Parse the format specifiers (if any).
     constexpr auto parse(fmt::format_parse_context& ctx) {
         return ctx.begin();

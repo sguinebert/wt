@@ -385,7 +385,7 @@ std::string WString::resolveKey(TextFormat /*format*/) const
         ls = app->localizedStringsPack();
         locale = &WLocale::currentLocale();
     }
-
+#ifndef WT_WASM
     if (!ls) {
         WServer *server = WServer::instance();
         if (server) {
@@ -393,6 +393,7 @@ std::string WString::resolveKey(TextFormat /*format*/) const
             locale = &WLocale::currentLocale();
         }
     }
+#endif // __EMSCRIPTEN__
 
     if (ls) {
         if (impl_->n_ == -1) {

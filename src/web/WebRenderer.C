@@ -1013,7 +1013,7 @@ void WebRenderer::serveResponse(Wt::http::context *context)
 {
   session_.setTriggerUpdate(false);
 
-    std::cerr << "serveResponse: " << magic_enum::enum_name(context->responseType()) << std::endl;
+//std::cerr << "serveResponse: " << magic_enum::enum_name(context->responseType()) << std::endl;
 
   switch (context->responseType()) {
   case Wt::http::ResponseType::Update:
@@ -3988,6 +3988,7 @@ void WebRenderer::learningIncomplete()
 
 std::string WebRenderer::headDeclarations() const
 {
+#ifndef WT_WASM
     const Configuration& conf = session_.env().server()->configuration();
 
     std::vector<std::string_view> contents;
@@ -3997,6 +3998,9 @@ std::string WebRenderer::headDeclarations() const
         if (m.matches(session_.env().userAgent()))
             contents.push_back(m.contents());
     }
+#else
+    std::vector<std::string_view> contents;
+#endif
 
     std::vector<MetaHeader> metaHeaders;
     if (session_.app()) {

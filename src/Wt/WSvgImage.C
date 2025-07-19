@@ -918,9 +918,11 @@ void WSvgImage::handleRequest(const Http::Request& request,
 
 awaitable<void> WSvgImage::handleRequest(http::request &request, http::response &response)
 {
+#ifndef __EMSCRIPTEN__
   response.setContentType("image/svg+xml");
 
   streamResourceData(response.buffer());
+#endif
   co_return;
 }
 

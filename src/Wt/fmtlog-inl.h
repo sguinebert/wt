@@ -31,6 +31,8 @@ SOFTWARE.
 #define NOMINMAX
 #include <windows.h>
 #include <processthreadsapi.h>
+#elif defined(WT_WASM)
+#include <pthread.h>
 #else
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -282,8 +284,19 @@ public:
   void preallocate() {
     if (fmtlog::threadBuffer) return;
     fmtlog::threadBuffer = new fmtlog::ThreadBuffer();
+
+
+
 #ifdef _WIN32
     uint32_t tid = static_cast<uint32_t>(::GetCurrentThreadId());
+#elif defined(WT_WASM)
+#ifdef __EMSCRIPTEN_PTHREADS__
+    uint32_t tid = static_cast<uint32_t>(
+        reinterpret_cast<uintptr_t>(pthread_self()) & 0xFFFFFFFF);
+#else
+    // Build mono-thread : un seul « thread » → identifiant constant
+    uint32_t tid = 0u;
+#endif
 #else
     uint32_t tid = static_cast<uint32_t>(::syscall(SYS_gettid));
 #endif

@@ -572,7 +572,7 @@ private:
 }  // namespace cue
 
 /* messy def position */
-awaitable<void> Wt::http::response::http2_flush(bool deflate) {
+inline awaitable<void> Wt::http::response::http2_flush(bool deflate) {
     stream_->continuation_ = true;
     if(stream_->paused_)
         nghttp2_session_resume_data(stream_->session_, stream_->stream_id);

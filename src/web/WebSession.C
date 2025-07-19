@@ -36,6 +36,10 @@
 #include <process.h>
 #endif
 
+#ifdef WT_WASM
+#include "web/EntryPoint.h"
+#endif
+
 #ifdef WT_TARGET_JAVA
 #define RETHROW(e) throw e
 #else
@@ -228,29 +232,29 @@ void WebSession::setTriggerUpdate(bool update)
   triggerUpdate_ = update;
 }
 
-#ifndef WT_TARGET_JAVA
-WLogger& WebSession::logInstance() const
-{
-    return controller_->server()->logger();
-}
+// #ifndef WT_TARGET_JAVA
+// WLogger& WebSession::logInstance() const
+// {
+//     return controller_->server()->logger();
+// }
 
-WLogEntry WebSession::log(const std::string& type) const
-{
-  if (controller_->server()->customLogger()) {
-    return WLogEntry(*controller_->server()->customLogger(), type);
-  }
+// WLogEntry WebSession::log(const std::string& type) const
+// {
+//   if (controller_->server()->customLogger()) {
+//     return WLogEntry(*controller_->server()->customLogger(), type);
+//   }
 
-  WLogEntry e = controller_->server()->logger().entry(type);
+//   WLogEntry e = controller_->server()->logger().entry(type);
 
-#ifndef WT_TARGET_JAVA
-  e << WLogger::timestamp << WLogger::sep << getpid() << WLogger::sep
-    << '[' << deploymentPath_ << ' ' << sessionId()
-    << ']' << WLogger::sep << '[' << type << ']' << WLogger::sep;
-#endif // WT_TARGET_JAVA
+// #ifndef WT_TARGET_JAVA
+//   e << WLogger::timestamp << WLogger::sep << getpid() << WLogger::sep
+//     << '[' << deploymentPath_ << ' ' << sessionId()
+//     << ']' << WLogger::sep << '[' << type << ']' << WLogger::sep;
+// #endif // WT_TARGET_JAVA
 
-  return e;
-}
-#endif // WT_TARGET_JAVA
+//   return e;
+// }
+// #endif // WT_TARGET_JAVA
 
 WebSession::~WebSession()
 {
@@ -524,7 +528,11 @@ void WebSession::init(const WebRequest& request)
 
     bool useAbsoluteUrls;
 #ifndef WT_TARGET_JAVA
+#ifndef WT_WASM
     useAbsoluteUrls = env_->server()->readConfigurationProperty("baseURL", absoluteBaseUrl_);
+#else
+    useAbsoluteUrls = false; // WASM does not support absolute URLs
+#endif
 #else
     std::string* absoluteBaseUrl
         = app_->readConfigurationProperty("baseURL", absoluteBaseUrl_);
@@ -903,7 +911,11 @@ void WebSession::init(Wt::http::context *context)
 
   bool useAbsoluteUrls;
 #ifndef WT_TARGET_JAVA
+#ifndef WT_WASM
   useAbsoluteUrls = env_->server()->readConfigurationProperty("baseURL", absoluteBaseUrl_);
+#else
+  useAbsoluteUrls = false; // WASM does not support absolute URLs
+#endif
 #else
   std::string* absoluteBaseUrl
       = app_->readConfigurationProperty("baseURL", absoluteBaseUrl_);
@@ -3664,10 +3676,11 @@ void WebSession::generateNewSessionId()
     sessionIdCookieChanged_ = true;
     renderer().setCookie("Wt" + sessionIdCookie_, "1", WDateTime(), "", "", env_->urlScheme() == "https");
   }
-
+#ifndef WT_WASM
   if (controller_->server()->dedicatedSessionProcess()) {
     controller_->server()->updateProcessSessionId(sessionId_);
   }
+#endif
 }
 #endif // WT_TARGET_JAVA
 

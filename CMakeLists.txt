@@ -25,6 +25,9 @@ ENDIF(NOT SHARED_LIBS)
 #
 # Various things that must be configured by the user or packager ...
 #
+
+option(BUILD_WASM    "Build the client-only WebAssembly version" ON)
+
 OPTION(BUILD_EXAMPLES "Build examples" ON)
 OPTION(INSTALL_DOCUMENTATION "Install documentation (tutorials and reference)" OFF)
 OPTION(INSTALL_EXAMPLES "Install examples (binaries and source)" OFF)
@@ -51,6 +54,7 @@ OPTION(ENABLE_UNWIND "Build Wt with stacktrace support using libunwind" OFF)
 OPTION(ENABLE_URING "Build Wt with IO_URING for asio reactor using liburing" ON)
 OPTION(ENABLE_HTTP2 "Build Wt with LSQUIC for asio nexus using liblsquic.a" ON)
 OPTION(ENABLE_HTTP3 "Build Wt with LSQUIC for asio nexus using liblsquic.a" ON)
+
 
 IF(NOT CMAKE_CXX_STANDARD)
   SET(CMAKE_CXX_STANDARD 20)
@@ -296,7 +300,7 @@ ENDIF(ENABLE_QT4)
 
 IF(ENABLE_URING)
   SET(HAVE_URING TRUE)
-  add_definitions(-DASIO_HAS_IO_URING=1 -DASIO_DISABLE_EPOLL=1)
+ # add_definitions(-DASIO_HAS_IO_URING=1 -DASIO_DISABLE_EPOLL=1)
 ENDIF(ENABLE_URING)
 
 
@@ -504,6 +508,27 @@ IF(APPLE)
 ENDIF(APPLE)
 
 SUBDIRS(src)
+
+# ── 2) add the wasm sub-project via ExternalProject ───────────────
+include(ExternalProject)
+ExternalProject_Add(
+  wasm_client
+  SOURCE_DIR   ${CMAKE_SOURCE_DIR}/Wasm
+  BINARY_DIR   ${CMAKE_BINARY_DIR}/wasm-build
+  CMAKE_ARGS  -GNinja
+              -DCMAKE_BUILD_TYPE=Release
+              -DCMAKE_TOOLCHAIN_FILE=$ENV{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+              -DBUILD_SHARED_LIBS=OFF          # be explicit → static archive
+              -DBUILD_WASM=ON
+              -DCMAKE_C_FLAGS_INIT=-DWT_WASM  -Wno-deprecated-literal-operator -Wno-error=deprecated-literal-operator              #
+              -DCMAKE_CXX_FLAGS_INIT=-DWT_WASM  -Wno-deprecated-literal-operator -Wno-error=deprecated-literal-operator            #
+  BUILD_COMMAND  ${CMAKE_COMMAND} --build . --target WtWasm -j32
+  STEP_TARGETS   build                 # so 'make wasm_client-build' is available
+  ALL 1
+)
+#add_dependencies(all wasm_client-build)   # optional
+
+add_subdirectory(Wasm)
 
 IF(BUILD_EXAMPLES)
   IF(WIN32)

@@ -703,10 +703,11 @@ void inplaceUrlDecode(std::string &text)
     data_size_ += size;
     int code{0};
     if (continue_parse_body_) {
-//      body_ = {body_.data(),
-//               std::min(content_length_, static_cast<std::uint64_t>(data_size_ - (body_.data() - buffer_.data())))};
-      body_ = {buffer_.data() + parse_size_,
-               std::min(content_length_, static_cast<std::uint64_t>(data_size_ - parse_size_))};
+        using size_type = std::string_view::size_type;
+        auto length = std::min(content_length_,
+                               static_cast<std::uint64_t>(data_size_ - parse_size_));
+        body_ = {buffer_.data() + parse_size_,
+                 static_cast<size_type>(length)};
       //std::cout << "__________-----> " << body_ << std::endl;
       if (body_.length() < content_length_) {
         expand();
@@ -773,7 +774,13 @@ void inplaceUrlDecode(std::string &text)
         }
 
         if (content_length_ > 0) {
-          body_ = {buffer_.data() + code, std::min(content_length_, static_cast<std::uint64_t>(data_size_ - code))};
+            using size_type = std::string_view::size_type;
+            auto length = std::min(content_length_,
+                                   static_cast<std::uint64_t>(data_size_ - code));
+            body_ = {buffer_.data() + parse_size_,
+                     static_cast<size_type>(length)};
+
+          //body_ = {buffer_.data() + code, std::min(content_length_, static_cast<std::uint64_t>(data_size_ - code))};
           if (body_.length() < content_length_) {
             if(buffer_.size() < content_length_)
                 expand();

@@ -2,7 +2,6 @@
 
 #include "nano_function.hpp"
 #include "nano_observer.hpp"
-#include <iostream>
 
 namespace Nano
 {

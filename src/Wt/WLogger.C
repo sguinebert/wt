@@ -471,14 +471,14 @@ namespace Wt
 
     WLogger &logInstance()
     {
-#ifdef WT_DBO_LOGGER
+#if defined(WT_DBO_LOGGER) || defined(WT_WASM)
       return defaultLogger;
 #else  // WT_DBO_LOGGER
-    WebSession *session = WebSession::instance();
+    // WebSession *session = WebSession::instance();
 
-    if (session)
-      return session->logInstance();
-    else
+    // if (session)
+    //   return session->logInstance();
+    // else
     {
       WServer *server = WServer::instance();
 
@@ -493,15 +493,16 @@ namespace Wt
     bool logging(const std::string &type,
                  const std::string &scope) noexcept
     {
-#ifdef WT_DBO_LOGGER
-      if (customLogger_)
-        return customLogger_->logging(type, scope);
+#if defined(WT_DBO_LOGGER) || defined(WT_WASM)
+      // if (customLogger_)
+      //   return customLogger_->logging(type, scope);
 
       return true;
 #else  // WT_DBO_LOGGER
-    WebSession *session = WebSession::instance();
+    //WebSession *session = WebSession::instance();
 
-    Wt::WServer *server = session ? session->controller()->server() : WServer::instance();
+    //Wt::WServer *server = session ? session->controller()->server() : WServer::instance();
+    Wt::WServer *server = WServer::instance();
     if (server)
     {
       if (server->customLogger())
@@ -518,19 +519,19 @@ namespace Wt
 
     WLogEntry log(const std::string &type)
     {
-#ifdef WT_DBO_LOGGER
-      if (customLogger_)
-      {
-        return WLogEntry(*customLogger_, type);
-      }
+#if defined(WT_DBO_LOGGER) || defined(WT_WASM)
+      // if (customLogger_)
+      // {
+      //   return WLogEntry(*customLogger_, type);
+      // }
 
       return defaultLogger.entry(type);
 #else  // WT_DBO_LOGGER
-    WebSession *session = WebSession::instance();
+    // WebSession *session = WebSession::instance();
 
-    if (session)
-      return session->log(type);
-    else
+    // if (session)
+    //   return session->log(type);
+    // else
     {
       WServer *server = WServer::instance();
 

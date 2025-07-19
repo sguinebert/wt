@@ -125,10 +125,10 @@ public:
 
   void setApplication(WApplication *app);
 
-#ifndef WT_TARGET_JAVA
-  WLogger& logInstance() const;
-  WLogEntry log(const std::string& type) const;
-#endif // WT_TARGET_JAVA
+// #ifndef WT_TARGET_JAVA
+//   WLogger& logInstance() const;
+//   WLogEntry log(const std::string& type) const;
+// #endif // WT_TARGET_JAVA
 
   awaitable<void> externalNotify(const WEvent::Impl& e);
   awaitable<void> notify(const WEvent& e);

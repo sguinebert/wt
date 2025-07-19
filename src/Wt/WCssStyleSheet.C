@@ -15,7 +15,7 @@
 
 namespace fmt {
 template <>
-struct fmt::formatter<std::vector<Wt::WCssRule*>> {    // format specification storage
+struct formatter<std::vector<Wt::WCssRule*>> {    // format specification storage
     // parse format specification and store it:
     constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin()) {
         return ctx.begin(); // No custom format specifiers needed
@@ -31,7 +31,7 @@ struct fmt::formatter<std::vector<Wt::WCssRule*>> {    // format specification s
     }
 };
 template <>
-struct fmt::formatter<Wt::WCssRule*> {    // format specification storage
+struct formatter<Wt::WCssRule*> {    // format specification storage
     // parse format specification and store it:
     constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin()) {
         return ctx.begin(); // No custom format specifiers needed
@@ -48,7 +48,7 @@ struct fmt::formatter<Wt::WCssRule*> {    // format specification storage
 };
 
 template <>
-struct fmt::formatter<const Wt::WCssRule*> {    // format specification storage
+struct formatter<const Wt::WCssRule*> {    // format specification storage
     // parse format specification and store it:
     constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin()) {
         return ctx.begin(); // No custom format specifiers needed
@@ -63,6 +63,17 @@ struct fmt::formatter<const Wt::WCssRule*> {    // format specification storage
         return fmt::format_to(ctx.out(), "{} {{ {} }}\n", rule->selector(), ((Wt::WCssRule*)rule)->declarations());
     }
 };
+template <>
+struct formatter<std::unique_ptr<Wt::WCssRule>> {
+    constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin()) {
+        return ctx.begin(); // No custom format specifiers needed
+    }
+    template <typename FormatContext>
+    auto format(const std::unique_ptr<Wt::WCssRule>& rule, FormatContext& ctx) const -> decltype(ctx.out()) {
+        return fmt::format_to(ctx.out(), "{} {{ {} }}\n", rule->selector(), ((Wt::WCssRule*)rule.get())->declarations());
+    }
+};
+
 } // namespace fmt
 // template <>
 // struct fmt::formatter<Wt::WCssRule**> {
@@ -108,16 +119,7 @@ struct fmt::formatter<const Wt::WCssRule*> {    // format specification storage
 //         // return fmt::format_to(ctx.out(), "{}", rule->someField());
 //     }
 // };
-template <>
-struct fmt::formatter<std::unique_ptr<Wt::WCssRule>> {
-    constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin()) {
-        return ctx.begin(); // No custom format specifiers needed
-    }
-    template <typename FormatContext>
-    auto format(const std::unique_ptr<Wt::WCssRule>& rule, FormatContext& ctx) const -> decltype(ctx.out()) {
-        return fmt::format_to(ctx.out(), "{} {{ {} }}\n", rule->selector(), ((Wt::WCssRule*)rule.get())->declarations());
-    }
-};
+
 namespace Wt {
 
 class WCssTemplateWidget : public WWebWidget

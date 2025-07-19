@@ -588,6 +588,10 @@ SET(libsources ${libsources}
       Wt/Auth/bcrypt/crypt_gensalt.h Wt/Auth/bcrypt/crypt_gensalt.c
       Wt/Auth/bcrypt/wrapper.c)
 
+IF(HAVE_URING)
+  ADD_DEFINITIONS(-DASIO_HAS_IO_URING=1 -DASIO_DISABLE_EPOLL=1)
+ENDIF(HAVE_URING)
+
 IF(HAVE_HARU)
   SET(libsources ${libsources} Wt/WPdfImage.h Wt/WPdfImage.C Wt/Render/WPdfRenderer.h Wt/Render/WPdfRenderer.C)
   ADD_DEFINITIONS(-DHAVE_PDF_IMAGE)
@@ -685,7 +689,6 @@ endif (WT_ASIO_IS_STANDALONE_ASIO)
 TARGET_LINK_LIBRARIES(wt
   PUBLIC
     ${WT_SOCKET_LIBRARY}
-    Boost::url
     Boost::program_options
   PRIVATE
     ${WT_SAML_LIBS}

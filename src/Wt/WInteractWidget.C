@@ -8,7 +8,9 @@
 #include "Wt/WEnvironment.h"
 #include "Wt/WFormWidget.h"
 #include "Wt/WPopupWidget.h"
+#ifndef __EMSCRIPTEN__
 #include "Wt/WServer.h"
+#endif
 #include "Wt/WTheme.h"
 
 #include "Configuration.h"
@@ -486,9 +488,12 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
 
                 mouseClick->updateOk();
             }
-
+#ifndef WT_WASM
             const Configuration& conf = app->environment().server()->configuration();
             js << "}," << conf.doubleClickTimeout() << ");}";
+#else
+            js << "}," << 10 << ");}";
+#endif
         } else {
             if (mouseClick && mouseClick->needsUpdate(all)) {
                 js << mouseClick->javaScript();

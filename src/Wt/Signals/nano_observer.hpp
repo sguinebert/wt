@@ -5,14 +5,21 @@
 
 #include "nano_function.hpp"
 #include "nano_mutex.hpp"
-#include <iostream>
 
 #if __has_include("boost/asio.hpp")
 #include <boost/asio.hpp>
 using namespace boost;
+#ifndef BOOST_ASIO_HAS_CO_AWAIT
+#error "Boost.Asio version must support co_await. Please use Boost 1.71 or later."
+#endif
 #elif defined(ASIO_HPP)
 #include <asio.hpp>
+#ifndef ASIO_HAS_CO_AWAIT
+#error "Asio version must support co_await. Please use [min version] or later."
 #endif
+#endif
+
+
 
 namespace Nano
 {

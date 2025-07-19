@@ -12,9 +12,20 @@
 #include <string>
 #include <set>
 
+
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 108300
+#ifndef __EMSCRIPTEN__
+#define BOOST_CONCURENT_MAP 1
+#endif
+#endif
+
+#ifdef BOOST_CONCURENT_MAP
 #include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/concurrent_flat_set.hpp>
-#define BOOST_CONCURENT_MAP
+#else
+#include <unordered_map>
+#endif
 
 // even boost/poolfwd.hpp includes <windows.h> ...
 namespace boost {
@@ -1900,7 +1911,7 @@ public:
    * \sa \ref config_general
    * \endif
    */
-  WLogEntry log(const std::string& type) const;
+  //WLogEntry log(const std::string& type) const;
 #endif // WT_TARGET_JAVA
 
   /*! \brief Sets the loading indicator.

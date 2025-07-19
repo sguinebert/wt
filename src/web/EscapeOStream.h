@@ -22,11 +22,17 @@
 #include <string_view>
 #include <vector>
 #include <iostream>
-#include <immintrin.h> // For AVX2 intrinsics
+
 #ifdef _MSC_VER
 #include <intrin.h>  // MSVC
 #else
-#include <cpuid.h>   // GCC / Clang
+#if defined(__x86_64__) || defined(__i386__)
+#include <cpuid.h>
+#include <immintrin.h>   // for __m512i, _mm512_set1_epi8, etc.
+#else
+// On non-x86 (e.g. WASM) we skip the SIMD/CPUID path
+#endif
+
 #endif
 
 static inline bool hasAVX512() {
@@ -34,8 +40,11 @@ static inline bool hasAVX512() {
 
 #ifdef _MSC_VER
     __cpuidex(info, 7, 0);
-#else
+#elif !defined(__EMSCRIPTEN__)
     __cpuid_count(7, 0, info[0], info[1], info[2], info[3]);
+#else
+    // Emscripten does not support __cpuid_count, so we skip this check
+    return false;  // AVX512 is not supported in Emscripten
 #endif
 
     return (info[1] & (1 << 16)) != 0;  // Check AVX-512F (bit 16 of EBX)
@@ -45,8 +54,11 @@ static inline bool hasAVX2() {
 
 #ifdef _MSC_VER
     __cpuidex(info, 7, 0);
-#else
+#elif !defined(__EMSCRIPTEN__)
     __cpuid_count(7, 0, info[0], info[1], info[2], info[3]);
+#else
+    // Emscripten does not support __cpuid_count, so we skip this check
+    return false;  // AVX512 is not supported in Emscripten
 #endif
 
     return (info[1] & (1 << 5)) != 0;  // Check AVX2 (bit 5 of EBX)
@@ -159,6 +171,8 @@ constexpr auto getBitset() {
 //         }
 //     }
 // }
+
+#if defined(__AVX512F__) && defined(__AVX512VL__) && defined(__AVX512BW__)
 template<RuleSet RS>
 struct AVX512Optimized {
     static size_t escape(const char *in, size_t len, char *out) {
@@ -208,6 +222,7 @@ struct AVX512Optimized {
         return out - initout;
     }
 };
+#endif
 
 // Template struct to mix multiple rule sets
 template <RuleSet... RS>

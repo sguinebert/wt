@@ -16,7 +16,9 @@
 #include "Wt/WFileUpload.h"
 #include "Wt/WLinkedCssStyleSheet.h"
 #include "Wt/WMemoryResource.h"
+#if !defined(__EMSCRIPTEN__)
 #include "Wt/WServer.h"
+#endif // __EMSCRIPTEN__
 #include "Wt/WTimer.h"
 
 #include "WebSession.h"
@@ -158,12 +160,12 @@ WApplication::WApplication(const WEnvironment& env
      */
         if (static_cast<unsigned int>(environment().agent()) <
             static_cast<unsigned int>(UserAgent::IE9)) {
-            const Configuration& conf = environment().server()->configuration();
-            bool selectIE7 = conf.uaCompatible().find("IE8=IE7")
-                             != std::string::npos;
+            // const Configuration& conf = environment().server()->configuration();
+            // bool selectIE7 = conf.uaCompatible().find("IE8=IE7")
+            //                  != std::string::npos;
 
-            if (selectIE7)
-                addMetaHeader(MetaHeaderType::HttpHeader, "X-UA-Compatible", "IE=7");
+            // if (selectIE7)
+            //     addMetaHeader(MetaHeaderType::HttpHeader, "X-UA-Compatible", "IE=7");
         } else if (environment().agent() == UserAgent::IE9) {
             addMetaHeader(MetaHeaderType::HttpHeader, "X-UA-Compatible", "IE=9");
         } else if (environment().agent() == UserAgent::IE10) {
@@ -496,7 +498,11 @@ std::string WApplication::resourcesUrl()
 #ifndef WT_TARGET_JAVA
 std::string_view WApplication::appRoot()
 {
+#ifndef WT_WASM
     return WServer::instance()->appRoot();
+#else
+    return "app";
+#endif // __EMSCRIPTEN__
 }
 
 std::string_view WApplication::docRoot() const
@@ -783,12 +789,13 @@ void WApplication::doUnload()
 {
     if (session_->suspended())
         return;
-
+#ifndef WT_WASM
     const Configuration& conf = environment().server()->configuration();
 
     if (conf.reloadIsNewSession())
         unload();
     else
+#endif // __EMSCRIPTEN__
         session_->setState(WebSession::State::Loaded, 5);
 }
 
@@ -804,17 +811,21 @@ void WApplication::suspend(std::chrono::seconds duration) {
 
 void WApplication::doIdleTimeout()
 {
+#ifndef WT_WASM
     const Configuration& conf = environment().server()->configuration();
 
     if (conf.idleTimeout() != -1)
         idleTimeout();
+#endif
 }
 
 void WApplication::idleTimeout()
 {
+#ifndef WT_WASM
     const Configuration& conf = environment().server()->configuration();
     LOG_INFO("User idle for {} seconds, quitting due to idle timout", conf.idleTimeout());
     quit();
+#endif
 }
 
 void WApplication::handleJavaScriptError(std::string_view errorText)
@@ -1285,7 +1296,11 @@ WApplication *WApplication::instance()
 
 ::int64_t WApplication::maximumRequestSize() const
 {
+#ifndef WT_WASM
     return environment().server()->configuration().maxRequestSize();
+#else
+    return 0; // not applicable in emscripten
+#endif // __EMSCRIPTEN__
 }
 
 std::string WApplication::docType() const
@@ -1432,12 +1447,12 @@ std::string WApplication::bookmarkUrl(const std::string& internalPath) const
     return session_->bookmarkUrl(internalPath);
 }
 
-#ifndef WT_TARGET_JAVA
-WLogEntry WApplication::log(const std::string& type) const
-{
-    return session_->log(type);
-}
-#endif // WT_TARGET_JAVA
+// #ifndef WT_TARGET_JAVA
+// WLogEntry WApplication::log(const std::string& type) const
+// {
+//     return session_->log(type);
+// }
+// #endif // WT_TARGET_JAVA
 
 void WApplication::enableUpdates(bool enabled)
 {
@@ -1672,11 +1687,15 @@ bool WApplication::requireJQuery(const std::string& uri)
 bool WApplication::readConfigurationProperty(const std::string& name,
                                              std::string& value)
 {
+#ifndef WT_WASM
     WebSession *session = WebSession::instance();
     if (session)
         return session->env().server()->readConfigurationProperty(name, value);
     else
         return false;
+#else
+    return false; // not applicable in emscripten
+#endif // __EMSCRIPTEN__
 }
 #else
 std::string *WApplication::readConfigurationProperty(const std::string& name,

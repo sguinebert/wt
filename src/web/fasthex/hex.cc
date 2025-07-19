@@ -1,19 +1,32 @@
 #include "hex.h"
 
-#if defined(__GNUC__) // GCC, clang
-#ifdef __clang__
-#if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 4)
-#error("Requires clang >= 3.4")
-#endif // clang >=3.4
-#else
-#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 8)
-#error("Requires GCC >= 4.8")
-#endif // gcc >=4.8
-#endif // __clang__
+#if defined(__clang__)
+#  if __clang_major__ < 3 || (__clang_major__ == 3 && __clang_minor__ < 4)
+#    error "hex.h requires Clang ≥ 3.4 (for <immintrin.h>)"
+#  endif
+#elif defined(__GNUC__) && !defined(__EMSCRIPTEN__)
+#  if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 8)
+#    error "hex.h requires GCC ≥ 4.8 (for <immintrin.h>)"
+#  endif
+#endif
 
-#include <immintrin.h>
-#elif defined(_MSC_VER)
-#include <intrin.h>
+#if !defined(HEX_NO_SIMD) &&                                             \
+(defined(__AVX2__) ||                                                \
+ (defined(_MSC_VER) && (defined(__AVX2__) || (_MSC_VER >= 1900))))
+#  define HEX_HAS_AVX2 1
+#else
+#  define HEX_HAS_AVX2 0
+#endif
+
+/*─────────────────────────────────────────────────────────────────────────
+  3.  Intrinsic headers
+─────────────────────────────────────────────────────────────────────────*/
+#if HEX_HAS_AVX2
+#  if defined(_MSC_VER)
+#    include <intrin.h>
+#  else
+#    include <immintrin.h>
+#  endif
 #endif
 
 // ASCII -> hex value
@@ -65,7 +78,7 @@ static inline int8_t unhexA(uint8_t x) { return unhex_table4[x]; }
 static inline int8_t unhexBitManip(uint8_t x) {
   return 9 * (x >> 6) + (x & 0xf);
 }
-
+#if HEX_HAS_AVX2
 static const __m256i _9 = _mm256_set1_epi16(9);
 static const __m256i _15 = _mm256_set1_epi16(0xf);
 
@@ -94,11 +107,15 @@ inline static __m256i unhexBitManip(const __m256i value) {
   __m256i add = _mm256_add_epi16(mul, and15);
   return add;
 }
+#endif // HEX_HAS_AVX2
+
 
 static const char hex_table[16] = {
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
 };
 inline static char hex(uint8_t value) { return hex_table[value]; }
+
+#if HEX_HAS_AVX2
 static const __m256i HEX_LUTR = _mm256_setr_epi8(
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
@@ -132,6 +149,7 @@ inline static __m256i byte2nib(__m128i val) {
   bytes = _mm256_and_si256(bytes, _mm256_set1_epi8(0b1111));
   return bytes;
 }
+#endif // HEX_HAS_AVX2
 
 // len is number or dest bytes (i.e. half of src length)
 void decodeHexBMI(uint8_t* __restrict__ dest, const uint8_t* __restrict__ src, size_t len) {
@@ -144,6 +162,7 @@ void decodeHexBMI(uint8_t* __restrict__ dest, const uint8_t* __restrict__ src, s
   }
 }
 
+#if HEX_HAS_AVX2
 // len is number or dest bytes (i.e. half of src length)
 void decodeHexVec(uint8_t* __restrict__ dest, const uint8_t* __restrict__ src, size_t len) {
   const __m256i A_MASK = _mm256_setr_epi8(
@@ -182,6 +201,7 @@ void decodeHexVec(uint8_t* __restrict__ dest, const uint8_t* __restrict__ src, s
   dest = reinterpret_cast<uint8_t*>(dec256);
   decodeHexBMI(dest, src, len);
 }
+#endif // HEX_HAS_AVX2
 
 // len is number of dest bytes
 void decodeHexLUT(uint8_t* __restrict__ dest, const uint8_t* __restrict__ src, size_t len) {
@@ -215,7 +235,7 @@ void encodeHex(uint8_t* __restrict__ dest, const uint8_t* __restrict__ src, size
     *dest++ = hex(lo);
   }
 }
-
+#if HEX_HAS_AVX2
 // len is number of src bytes
 void encodeHexVec(uint8_t* __restrict__ dest, const uint8_t* __restrict__ src, size_t len) {
   const __m128i* input128 = reinterpret_cast<const __m128i*>(src);
@@ -232,3 +252,4 @@ void encodeHexVec(uint8_t* __restrict__ dest, const uint8_t* __restrict__ src, s
 
   encodeHex(dest + (vectLen << 5), src + (vectLen << 4), tailLen);
 }
+#endif // HEX_HAS_AVX2

@@ -23,8 +23,10 @@
 //#ifdef ENABLE_GZIP
 
 #include <zlib.h>
+#ifndef __EMSCRIPTEN__
 #include <brotli/encode.h>
 #include <brotli/decode.h>
+#endif // !__EMSCRIPTEN__
 
 #include <string>
 #include <array>

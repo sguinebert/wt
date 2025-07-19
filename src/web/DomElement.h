@@ -16,6 +16,7 @@
 #include <unordered_set>
 #include <vector>
 #include <string>
+#include <span>
 
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>

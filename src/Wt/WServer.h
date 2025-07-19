@@ -4,6 +4,14 @@
  *
  * See the LICENSE file for terms of use.
  */
+#ifdef WT_WASM
+#ifndef WSERVER_H_
+#define WSERVER_H_
+
+
+
+#endif // WT_WASM
+#endif
 #ifndef WSERVER_H_
 #define WSERVER_H_
 

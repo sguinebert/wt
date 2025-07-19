@@ -289,7 +289,7 @@ class response final : safe_noncopyable {
       return size == 0 || size >= cut;
   }
   /* http2 streaming */
-  awaitable<void> http2_flush(bool deflate);
+  inline awaitable<void> http2_flush(bool deflate);
 
   /* flush data manually for chunked transfers
    * why so many effort to use prepend body_buffer_ or deflated_body_ with size of the chunk?

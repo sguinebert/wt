@@ -22,9 +22,13 @@
 //#include "web/SocketNotifier.h"
 //#include <Wt/WSocketNotifier.h>
 
+
+#ifdef BOOST_CONCURENT_MAP
 #include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/concurrent_flat_set.hpp>
-#define BOOST_CONCURENT_MAP
+#else
+#include <unordered_map>
+#endif
 
 #if defined(WT_THREADED) && !defined(WT_TARGET_JAVA)
 #include <thread>

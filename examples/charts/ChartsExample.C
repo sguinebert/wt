@@ -35,35 +35,35 @@ namespace {
   /*
    * A standard item which converts text edits to numbers
    */
-  class NumericItem : public WStandardItem {
-  public:
+class NumericItem : public WStandardItem {
+public:
     virtual std::unique_ptr<WStandardItem> clone() const override {
-      return std::make_unique<NumericItem>();
+        return std::make_unique<NumericItem>();
     }
 
-    virtual void setData(const cpp17::any &data, ItemDataRole role = ItemDataRole::User) override {
-      cpp17::any dt;
+    virtual awaitable<void> setData(const cpp17::any &data, ItemDataRole role = ItemDataRole::User) override {
+        cpp17::any dt;
 
-      if (role == ItemDataRole::Edit) {
-        std::string s = asString(data).toUTF8();
-	char *endptr;
-	double d = strtod(s.c_str(), &endptr);
-	if (*endptr == 0)
-	  dt = cpp17::any(d);
-	else
-	  dt = data;
-      }
+        if (role == ItemDataRole::Edit) {
+            std::string s = asString(data).toUTF8();
+            char *endptr;
+            double d = strtod(s.c_str(), &endptr);
+            if (*endptr == 0)
+                dt = cpp17::any(d);
+            else
+                dt = data;
+        }
 
-      WStandardItem::setData(data, role);
+        co_await WStandardItem::setData(data, role);
     }
-  };
+};
 
   /*
    * Reads a CSV file as an (editable) standard item model.
    */
-  std::shared_ptr<WAbstractItemModel> readCsvFile(const std::string &fname,
-				  WContainerWidget *parent)
-  {
+std::shared_ptr<WAbstractItemModel> readCsvFile(const std::string &fname,
+                                                WContainerWidget *parent)
+{
     std::shared_ptr<WStandardItemModel> model
         = std::make_shared<WStandardItemModel>(0, 0);
     std::unique_ptr<NumericItem> prototype
@@ -72,32 +72,32 @@ namespace {
     std::ifstream f(fname.c_str());
 
     if (f) {
-      readFromCsv(f, model.get());
+        readFromCsv(f, model.get());
 
-      for (int row = 0; row < model->rowCount(); ++row)
-          for (int col = 0; col < model->columnCount(); ++col) {
-             model->item(row, col)->setFlags(ItemFlag::Selectable | ItemFlag::Editable);
+        for (int row = 0; row < model->rowCount(); ++row)
+            for (int col = 0; col < model->columnCount(); ++col) {
+                model->item(row, col)->setFlags(ItemFlag::Selectable | ItemFlag::Editable);
 
-	  /*
+      /*
 	    Example of tool tips (disabled here because they are not updated
 	    when editing data)
  	   */
 
-	  /*
+      /*
 	  WString toolTip = asString(model->headerData(col)) + ": "
 	    + asString(model->item(row, col)->data(DisplayRole), "%.f");
 	  model->item(row, col)->setToolTip(toolTip);
 	   */
-	}
+            }
 
-      return model;
+        return model;
     } else {
-      WString error(WString::tr("error-missing-data"));
-      error.arg(fname, CharEncoding::UTF8);
-      parent->addWidget(std::make_unique<WText>(error));
-      return 0;
+        WString error(WString::tr("error-missing-data"));
+        error.arg(fname, CharEncoding::UTF8);
+        parent->addWidget(std::make_unique<WText>(error));
+        return 0;
     }
-  }
+}
 }
 
 ChartsExample::ChartsExample()

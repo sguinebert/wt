@@ -74,7 +74,7 @@ namespace std {
 }
 */
 // clang-format on
-#if __cplusplus < 202002L
+#if __cplusplus < 202002L || defined(__EMSCRIPTEN__)
 #include <memory>
 #include <type_traits>
 namespace ofats {
@@ -371,7 +371,7 @@ __OFATS_ANY_INVOCABLE(const, &&, true, const&&)   // 121
 /* We define our own type */
 namespace Wt {
 namespace cpp23 {
-#if __cplusplus >= 202002L
+#if __cplusplus >= 202002L && !defined(__EMSCRIPTEN__)
     template <class T>
     using move_only_function = std::move_only_function<T>;
 #else

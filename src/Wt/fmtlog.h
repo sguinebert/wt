@@ -278,7 +278,12 @@ public:
     }
 
     static inline int64_t rdtsc() {
-#ifdef _WIN32
+#if defined(__EMSCRIPTEN__)
+        // single import call, ≈ 0.1 µs; good enough for Wasm
+        using clock = std::chrono::high_resolution_clock;
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(
+                   clock::now().time_since_epoch()).count();
+#elif defined (_WIN32)
       return __rdtsc();
 #else
       return __builtin_ia32_rdtsc();

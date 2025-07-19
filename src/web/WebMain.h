@@ -8,6 +8,7 @@
 #define WT_WEB_MAIN_H_
 
 #include "Wt/WServer.h"
+#include "Wt/WDllDefs.h"
 
 namespace Wt {
 

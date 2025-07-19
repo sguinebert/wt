@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <future>
+#include <coroutine>
 
 namespace Nano
 {

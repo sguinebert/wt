@@ -5,7 +5,8 @@
  */
 #pragma once
 
-#include <Wt/WServer.h>
+//#include <Wt/WServer.h>
+#include <Wt/WApplication.h>
 #include <Wt/WContainerWidget.h>
 #include <Wt/WMemoryResource.h>
 #include <Wt/Json/simdjson.h>

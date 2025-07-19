@@ -11,7 +11,7 @@
 #include "Wt/WStringStream.h"
 #include <Wt/fmt/format.h>
 
-#ifndef WT_DBO_STRINGSTREAM
+#if !defined(WT_DBO_STRINGSTREAM) //&& !defined(WT_WASM)
 #include <Wt/AsioWrapper/asio.hpp>
 #include "WebUtils.h"
 #endif // WT_DBO_STRINGSTREAM
@@ -266,7 +266,7 @@ std::string WStringStream::str() const
   return result;
 }
 
-#ifndef WT_DBO_STRINGSTREAM
+#if !defined(WT_DBO_STRINGSTREAM)
 void WStringStream::asioBuffers(std::vector<AsioWrapper::asio::const_buffer>& result) const
 {
   result.reserve(result.size() + bufs_.size() + 1);

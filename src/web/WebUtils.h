@@ -489,16 +489,32 @@ namespace Wt {
         return cv;
     }
     static inline double WT_API stod(const std::string_view v, double ifnot){
+#ifndef __EMSCRIPTEN__
         double cv;
         auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
         if(answer.ec != std::errc()) { return ifnot; }
         return cv;
+#else
+        {
+          // emscripten does not support std::from_chars for double yet
+          // so we use the old way
+          return std::stod(std::string(v));
+        }
+#endif
     }
     static inline float WT_API stof(const std::string_view v, float ifnot){
+#ifndef __EMSCRIPTEN__
         float cv;
         auto answer = std::from_chars(v.data(), v.data() + v.size(), cv);
         if(answer.ec != std::errc()) { return ifnot; }
         return cv;
+#else
+        {
+          // emscripten does not support std::from_chars for float yet
+          // so we use the old way
+          return static_cast<float>(std::stod(std::string(v)));
+        }
+#endif
     }
 
 // When parsing, rapidxml will collapse elements without content into

@@ -11,19 +11,24 @@
 #ifdef WT_ASIO_IS_BOOST_ASIO
 
 #include <boost/version.hpp>
-#if BOOST_VERSION < 108600 // Boost 1.86.0
-#error "Boost version 1.86.0 or higher is required"
+#if BOOST_VERSION < 108300 // Boost 1.86.0
+#error "Boost version 1.83.0 or higher is required"
 #endif
 
+#ifndef WT_WASM
 #define ASIO_HAS_IO_URING 1
 #define BOOST_ASIO_HAS_IO_URING 1
 #define ASIO_DISABLE_EPOLL 1
 #define BOOST_ASIO_DISABLE_EPOLL 1
 #define BOOST_ASIO_HAS_FILE 1
+#endif // WT_WASM
+
 #include <boost/asio.hpp>
 #include <boost/asio/error.hpp>
+#ifndef __EMSCRIPTEN__
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/stream_file.hpp>
+#endif
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 #include <boost/asio/experimental/as_tuple.hpp>
@@ -61,11 +66,13 @@ using namespace boost;
 #error "Asio version 1.21.0 or higher is required"
 #endif
 
+#ifndef WT_WASM
 #define ASIO_HAS_IO_URING 1
 #define BOOST_ASIO_HAS_IO_URING 1
 #define ASIO_DISABLE_EPOLL 1
 #define BOOST_ASIO_DISABLE_EPOLL 1
 #define BOOST_ASIO_HAS_FILE 1
+#endif // WT_WASM
 
 #include <asio.hpp>
 #include <asio/ssl.hpp>
