@@ -511,10 +511,11 @@ SUBDIRS(src)
 
 # ── 2) add the wasm sub-project via ExternalProject ───────────────
 include(ExternalProject)
+find_program(EMCMAKE NAMES emcmake REQUIRED)
 ExternalProject_Add(
   wasm_client
   SOURCE_DIR   ${CMAKE_SOURCE_DIR}/Wasm
-  BINARY_DIR   ${CMAKE_BINARY_DIR}/wasm-build
+  BINARY_DIR   ${CMAKE_BINARY_DIR}/build-wasm
   CMAKE_ARGS  -GNinja
               -DCMAKE_BUILD_TYPE=Release
               -DCMAKE_TOOLCHAIN_FILE=$ENV{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
@@ -526,9 +527,12 @@ ExternalProject_Add(
   STEP_TARGETS   build                 # so 'make wasm_client-build' is available
   ALL 1
 )
-#add_dependencies(all wasm_client-build)   # optional
-
-add_subdirectory(Wasm)
+# ── 3) add the wasm sub-project as a subdirectory just to show it in the ide (nnot compiled)─────────────────
+add_subdirectory(
+    Wasm                                 # ⬅ source dir you want to “see”
+    ${CMAKE_BINARY_DIR}/dummy-wasm       # ⬅ an arbitrary bin dir (keeps it tidy)
+    EXCLUDE_FROM_ALL                     # ⬅ **key flag**
+)
 
 IF(BUILD_EXAMPLES)
   IF(WIN32)

@@ -5,15 +5,17 @@ if (NOT BUILD_WASM)
 endif()
 
 cmake_minimum_required(VERSION 3.28)
-project(wasm_client LANGUAGES C CXX)
+project(WtWasm LANGUAGES C CXX)
 
 SET(VERSION_SERIES 4)
 SET(VERSION_MAJOR 7)
 SET(VERSION_MINOR 0)
 
 set(SRC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../src")
+#set(CMAKE_TOOLCHAIN_FILE $ENV{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake CACHE FILEPATH "" FORCE)
 
 message(STATUS "WebAssembly client sources root: ${SRC_ROOT}")
+message(STATUS "CMAKE_TOOLCHAIN_FILE sources root: ${CMAKE_TOOLCHAIN_FILE}")
 # 1) pull in Emscripten
 # if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 #   message(FATAL_ERROR
@@ -22,6 +24,7 @@ message(STATUS "WebAssembly client sources root: ${SRC_ROOT}")
 # set(CMAKE_TOOLCHAIN_FILE
 #     "${CMAKE_TOOLCHAIN_FILE}/cmake/Modules/Platform/Emscripten.cmake"
 #     CACHE STRING "")
+
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -72,6 +75,8 @@ set(WASM_REL_SOURCES
   Wt/Signals/nano_mutex.hpp
   Wt/Signals/nano_observer.hpp
   Wt/Signals/nano_signal_slot.hpp
+
+  Wt/Configuration.h Wt/Configuration.C
 
   # ─────────────────── utility / math ─────────────────
   Wt/Utils.h                  Wt/Utils.C
@@ -362,6 +367,14 @@ ADD_DEFINITIONS(-DHAS_REMOTE_API=0)  # nocurl API in wasm client
 
 # 4) build the wasm client
 add_library(WtWasm STATIC  ${WASM_SOURCES})
+
+if(NOT EMSCRIPTEN)      # means we are being built with the *host* compiler
+    message(WARNING
+        "Building with host tool‑chain; forcing Emscripten include path just "
+        "to keep the compiler quiet – link will still fail later!")
+    target_include_directories(WtWasm SYSTEM PRIVATE
+        $ENV{EMSDK}/upstream/emscripten/cache/sysroot/include)
+endif()
 
 target_include_directories(WtWasm PUBLIC
   ${SRC_ROOT}                   # for Wt/…

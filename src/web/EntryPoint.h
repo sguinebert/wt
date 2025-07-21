@@ -29,43 +29,43 @@ public:
                ApplicationCreator appCallback,
                const std::string& path,
                const std::string& favicon);
-  EntryPoint(WResource *resource, const std::string& path);
-  ~EntryPoint();
+    EntryPoint(WResource *resource, const std::string& path);
+    ~EntryPoint();
 
-  void setPath(const std::string& path);
+    void setPath(const std::string& path);
 
-  EntryPointType type() const { return type_; }
-  WResource *resource() const { return resource_; }
-  ApplicationCreator appCallback() const { return appCallback_; }
-  const std::string& path() const { return path_; }
-  const std::string& favicon() const { return favicon_; }
+    EntryPointType type() const { return type_; }
+    WResource *resource() const { return resource_; }
+    ApplicationCreator appCallback() const { return appCallback_; }
+    const std::string& path() const { return path_; }
+    const std::string& favicon() const { return favicon_; }
 
 private:
-  EntryPointType type_;
-  WResource *resource_;
-  ApplicationCreator appCallback_;
-  std::string path_;
-  std::string favicon_;
+    EntryPointType type_;
+    WResource *resource_;
+    ApplicationCreator appCallback_;
+    std::string path_;
+    std::string favicon_;
 };
 
 typedef std::deque<EntryPoint> EntryPointList;
 
 struct WT_API EntryPointMatch {
-  EntryPointMatch() noexcept
-    : entryPoint(nullptr),
-      extra(0)
-  { }
+    EntryPointMatch() noexcept
+        : entryPoint(nullptr),
+        extra(0)
+    { }
 
-  EntryPointMatch(
-      const EntryPoint *ep,
-      std::size_t x) noexcept
-    : entryPoint(ep),
-      extra(x)
-  { }
+    EntryPointMatch(
+        const EntryPoint *ep,
+        std::size_t x) noexcept
+        : entryPoint(ep),
+        extra(x)
+    { }
 
-  const EntryPoint *entryPoint;
-  std::vector<std::pair<std::string, std::string> > urlParams;
-  std::size_t extra;
+    const EntryPoint *entryPoint;
+    std::vector<std::pair<std::string, std::string> > urlParams;
+    std::size_t extra;
 };
 
 }

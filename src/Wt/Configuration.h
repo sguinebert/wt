@@ -48,7 +48,7 @@
 #endif // WT_TARGET_JAVA
 
 #ifndef WT_TARGET_JAVA
-//#include "../web/EntryPoint.h"
+#include "../web/EntryPoint.h"
 #endif // WT_TARGET_JAVA
 
 namespace boost {
@@ -153,9 +153,9 @@ public:
   typedef std::vector<std::string> AgentList;
 
   Configuration(const std::string& applicationPath,
-		const std::string& appRoot,
-		const std::string& configurationFile,
-		WServer *server);
+                const std::string& appRoot,
+                const std::string& configurationFile,
+                WServer *server);
 
   void rereadConfiguration();
 

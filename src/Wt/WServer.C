@@ -542,7 +542,7 @@ bool CatchSignals = true;
 
 WServer *WServer::instance_ = 0;
 
-WServer::Exception::Exception(const std::string &what) : WException(what) {}
+
 
 void WServer::init(const std::string &wtApplicationPath,
                    const std::string &configurationFile) {

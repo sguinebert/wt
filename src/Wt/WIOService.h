@@ -30,8 +30,11 @@ class WIOServiceImpl;
  *
  * An I/O service combines (boost::)asio::io_service with a thread pool.
  */
-
+#ifndef WT_WASM
 typedef Wt::http::detail::engines WIOService;
+#else
+typedef asio::io_context WIOService;
+#endif
 
 //class WT_API WIOService
 //{

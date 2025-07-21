@@ -246,7 +246,9 @@ Configuration::Configuration(const std::string& applicationPath,
     defaultEntryPoint_("/")
 {
     reset();
+#ifndef WT_WASM
     readConfiguration(false);
+#endif
 }
 
 void Configuration::reset()
