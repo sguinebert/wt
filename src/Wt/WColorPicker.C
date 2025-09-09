@@ -60,6 +60,10 @@ EventSignal<>& WColorPicker::colorInput()
 void WColorPicker::updateDom(DomElement& element, bool all)
 {
   if (all) {
+#ifndef WT_NO_WASM
+        if(all)
+            element.tryEmplaceAttribute("data-wt", "WColorPicker");
+#endif // WT_NO_WASM
     element.setAttribute("type", "color", true);
   }
 

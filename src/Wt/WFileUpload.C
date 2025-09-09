@@ -462,6 +462,10 @@ bool WFileUpload::empty() const
 
 void WFileUpload::updateDom(DomElement& element, bool all)
 {
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WFileUpload");
+#endif // WT_NO_WASM
   bool containsProgress = progressBar_ && progressBar_->parent() == this;
   DomElement *inputE = nullptr;
   DomElement input = DomElement::getForUpdate("in" + id(), DomElementType::INPUT);

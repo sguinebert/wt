@@ -362,133 +362,137 @@ WLength WContainerWidget::padding(Side side) const
 
 void WContainerWidget::updateDom(DomElement& element, bool all)
 {
-  element.setGlobalUnfocused(globalUnfocused_);
-  if (all && element.type() == DomElementType::LI && isInline())
-    element.setProperty(Property::StyleDisplay, "inline");
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WContainerWidget");
+#endif // WT_NO_WASM
+    element.setGlobalUnfocused(globalUnfocused_);
+    if (all && element.type() == DomElementType::LI && isInline())
+        element.setProperty(Property::StyleDisplay, "inline");
 
-  if (flags_.test(BIT_CONTENT_ALIGNMENT_CHANGED) || all) {
-    AlignmentFlag hAlign = contentAlignment_ & AlignHorizontalMask;
+    if (flags_.test(BIT_CONTENT_ALIGNMENT_CHANGED) || all) {
+        AlignmentFlag hAlign = contentAlignment_ & AlignHorizontalMask;
 
-    bool ltr = WApplication::instance()->layoutDirection() 
-      == LayoutDirection::LeftToRight;
+        bool ltr = WApplication::instance()->layoutDirection()
+                   == LayoutDirection::LeftToRight;
 
-    switch (hAlign) {
-    case AlignmentFlag::Left:
-      if (flags_.test(BIT_CONTENT_ALIGNMENT_CHANGED))
-	element.setProperty(Property::StyleTextAlign, ltr ? "left" : "right");
-      break;
-    case AlignmentFlag::Right:
-      element.setProperty(Property::StyleTextAlign, ltr ? "right" : "left");
-      break;
-    case AlignmentFlag::Center:
-      element.setProperty(Property::StyleTextAlign, "center");
-      break;
-    case AlignmentFlag::Justify:
+        switch (hAlign) {
+        case AlignmentFlag::Left:
+            if (flags_.test(BIT_CONTENT_ALIGNMENT_CHANGED))
+                element.setProperty(Property::StyleTextAlign, ltr ? "left" : "right");
+            break;
+        case AlignmentFlag::Right:
+            element.setProperty(Property::StyleTextAlign, ltr ? "right" : "left");
+            break;
+        case AlignmentFlag::Center:
+            element.setProperty(Property::StyleTextAlign, "center");
+            break;
+        case AlignmentFlag::Justify:
 #ifndef WT_NO_LAYOUT
-      if (!layout_)
+            if (!layout_)
 #endif // WT_NO_LAYOUT
-	element.setProperty(Property::StyleTextAlign, "justify");
-      break;
-    default:
-      break;
+                element.setProperty(Property::StyleTextAlign, "justify");
+            break;
+        default:
+            break;
+        }
+
+        if (domElementType() == DomElementType::TD) {
+            AlignmentFlag vAlign = contentAlignment_ & AlignVerticalMask;
+            switch (vAlign) {
+            case AlignmentFlag::Top:
+                if (flags_.test(BIT_CONTENT_ALIGNMENT_CHANGED))
+                    element.setProperty(Property::StyleVerticalAlign, "top");
+                break;
+            case AlignmentFlag::Middle:
+                element.setProperty(Property::StyleVerticalAlign, "middle");
+                break;
+            case AlignmentFlag::Bottom:
+                element.setProperty(Property::StyleVerticalAlign, "bottom");
+            default:
+                break;
+            }
+        }
     }
 
-    if (domElementType() == DomElementType::TD) {
-      AlignmentFlag vAlign = contentAlignment_ & AlignVerticalMask;
-      switch (vAlign) {
-      case AlignmentFlag::Top:
-	if (flags_.test(BIT_CONTENT_ALIGNMENT_CHANGED))
-	  element.setProperty(Property::StyleVerticalAlign, "top");
-	break;
-      case AlignmentFlag::Middle:
-	element.setProperty(Property::StyleVerticalAlign, "middle");
-	break;
-      case AlignmentFlag::Bottom:
-	element.setProperty(Property::StyleVerticalAlign, "bottom");
-      default:
-	break;
-      }
-    }
-  }
+    if (flags_.test(BIT_ADJUST_CHILDREN_ALIGN) ||
+        flags_.test(BIT_CONTENT_ALIGNMENT_CHANGED) || all) {
+        /*
+         * Welcome to CSS hell.
+         *
+         * Apparently, the text-align property only applies to inline elements.
+         * To center non-inline children, the standard says to set its left and
+         * right margin to 'auto'.
+         *
+         * I assume the same applies for aligning to the right ?
+         */
+        for (unsigned i = 0; i < children_.size(); ++i) {
+            WWidget *child = children_[i];
 
-  if (flags_.test(BIT_ADJUST_CHILDREN_ALIGN) || 
-      flags_.test(BIT_CONTENT_ALIGNMENT_CHANGED) || all) {
-    /*
-     * Welcome to CSS hell.
-     *
-     * Apparently, the text-align property only applies to inline elements.
-     * To center non-inline children, the standard says to set its left and
-     * right margin to 'auto'.
-     *
-     * I assume the same applies for aligning to the right ?
-     */
-    for (unsigned i = 0; i < children_.size(); ++i) {
-      WWidget *child = children_[i];
+            if (!child->isInline()) {
+                AlignmentFlag ha = contentAlignment_ & AlignHorizontalMask;
+                if (ha == AlignmentFlag::Center) {
+                    if (!child->margin(Side::Left).isAuto())
+                        child->setMargin(WLength::Auto, Side::Left);
+                    if (!child->margin(Side::Right).isAuto())
+                        child->setMargin(WLength::Auto, Side::Right);
+                } else if (ha == AlignmentFlag::Right) {
+                    if (!child->margin(Side::Left).isAuto())
+                        child->setMargin(WLength::Auto, Side::Left);
+                }
+            }
+        }
 
-      if (!child->isInline()) {
-	AlignmentFlag ha = contentAlignment_ & AlignHorizontalMask;
-	if (ha == AlignmentFlag::Center) {
-	  if (!child->margin(Side::Left).isAuto())
-	    child->setMargin(WLength::Auto, Side::Left);
-	  if (!child->margin(Side::Right).isAuto())
-	    child->setMargin(WLength::Auto, Side::Right);
-	} else if (ha == AlignmentFlag::Right) {
-	  if (!child->margin(Side::Left).isAuto())
-	    child->setMargin(WLength::Auto, Side::Left);
-	}
-      }
+        flags_.reset(BIT_CONTENT_ALIGNMENT_CHANGED);
+        flags_.reset(BIT_ADJUST_CHILDREN_ALIGN);
     }
 
-    flags_.reset(BIT_CONTENT_ALIGNMENT_CHANGED);
-    flags_.reset(BIT_ADJUST_CHILDREN_ALIGN);
-  }
+    if (flags_.test(BIT_PADDINGS_CHANGED)
+        || (all && padding_ &&
+            !(   padding_[0].isAuto() && padding_[1].isAuto()
+              && padding_[2].isAuto() && padding_[3].isAuto()))) {
 
-  if (flags_.test(BIT_PADDINGS_CHANGED)
-      || (all && padding_ &&
-	  !(   padding_[0].isAuto() && padding_[1].isAuto()
-	    && padding_[2].isAuto() && padding_[3].isAuto()))) {
+        if ((padding_[0] == padding_[1]) && (padding_[0] == padding_[2])
+            && (padding_[0] == padding_[3]))
+            element.setProperty(Property::StylePadding, padding_[0].cssText());
+        else {
+            WStringStream s;
+            for (unsigned i = 0; i < 4; ++i) {
+                if (i != 0)
+                    s << ' ';
+                s << (padding_[i].isAuto() ? "0" : padding_[i].cssText());
+            }
+            element.setProperty(Property::StylePadding, s.str());
+        }
 
-    if ((padding_[0] == padding_[1]) && (padding_[0] == padding_[2])
-	&& (padding_[0] == padding_[3]))
-      element.setProperty(Property::StylePadding, padding_[0].cssText());
-    else {
-      WStringStream s;
-      for (unsigned i = 0; i < 4; ++i) {
-	if (i != 0)
-	  s << ' ';
-	s << (padding_[i].isAuto() ? "0" : padding_[i].cssText());
-      }
-      element.setProperty(Property::StylePadding, s.str());
+        flags_.reset(BIT_PADDINGS_CHANGED);
     }
 
-    flags_.reset(BIT_PADDINGS_CHANGED);
-  }
+    WInteractWidget::updateDom(element, all);
 
-  WInteractWidget::updateDom(element, all);
+    if (flags_.test(BIT_OVERFLOW_CHANGED) ||
+        (all && overflow_ &&
+         !(overflow_[0] == Overflow::Visible &&
+           overflow_[1] == Overflow::Visible))) {
+        static const char *cssText[] = { "visible", "auto", "hidden", "scroll" };
 
-  if (flags_.test(BIT_OVERFLOW_CHANGED) ||
-      (all && overflow_ &&
-       !(overflow_[0] == Overflow::Visible &&
-	 overflow_[1] == Overflow::Visible))) {
-    static const char *cssText[] = { "visible", "auto", "hidden", "scroll" };
+        element.setProperty(Property::StyleOverflowX,
+                            cssText[static_cast<unsigned int>(overflow_[0])]);
+        element.setProperty(Property::StyleOverflowY,
+                            cssText[static_cast<unsigned int>(overflow_[1])]);
+        // enable form object to retrieve scroll state
+        setFormObject(true);
 
-    element.setProperty(Property::StyleOverflowX, 
-			cssText[static_cast<unsigned int>(overflow_[0])]);
-    element.setProperty(Property::StyleOverflowY,
-			cssText[static_cast<unsigned int>(overflow_[1])]);
-    // enable form object to retrieve scroll state
-    setFormObject(true);
-    
-    //declare javascript function Wt.encodeValue()
-    this->doJavaScript(this->jsRef()
-	+ ".wtEncodeValue = function() {"
-	+ "return " + this->jsRef() + ".scrollTop"
-	+ " + ';' + " + this->jsRef() + ".scrollLeft;"
-	+ "};");
+        //declare javascript function Wt.encodeValue()
+        this->doJavaScript(this->jsRef()
+                           + ".wtEncodeValue = function() {"
+                           + "return " + this->jsRef() + ".scrollTop"
+                           + " + ';' + " + this->jsRef() + ".scrollLeft;"
+                           + "};");
 
-    flags_.reset(BIT_OVERFLOW_CHANGED);
+        flags_.reset(BIT_OVERFLOW_CHANGED);
 
-    /* If a container widget has overflow, then, if ever something
+        /* If a container widget has overflow, then, if ever something
      * inside it has position scheme relative/absolute, it will not
      * scroll properly unless every element up to the container and including 
      * the container itself has overflow: relative.
@@ -496,13 +500,13 @@ void WContainerWidget::updateDom(DomElement& element, bool all)
      * The following fixes the common case:
      * container (overflow) - container - layout
      */
-    WApplication *app = WApplication::instance();
-    if (app->environment().agentIsIE()
-	&& (overflow_[0] == Overflow::Auto || 
-	    overflow_[0] == Overflow::Scroll))
-      if (positionScheme() == PositionScheme::Static)
-	element.setProperty(Property::StylePosition, "relative");
-  }
+        WApplication *app = WApplication::instance();
+        if (app->environment().agentIsIE()
+            && (overflow_[0] == Overflow::Auto ||
+                overflow_[0] == Overflow::Scroll))
+            if (positionScheme() == PositionScheme::Static)
+                element.setProperty(Property::StylePosition, "relative");
+    }
 }
 
 int WContainerWidget::firstChildIndex() const

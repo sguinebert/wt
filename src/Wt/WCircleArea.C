@@ -57,7 +57,7 @@ bool WCircleArea::updateDom(DomElement& element, bool all)
   // coords << static_cast<int>(x_) << ','
   //        << static_cast<int>(y_) << ','
   //        << static_cast<int>(r_);
-  auto coords = fmt::format("{},{},{}", x_, y_, r_);
+  auto coords = fmt::format(FMT_COMPILE("{},{},{}"), x_, y_, r_);
   element.setAttribute("coords", coords, true);
 
   return WAbstractArea::updateDom(element, all);
@@ -65,7 +65,7 @@ bool WCircleArea::updateDom(DomElement& element, bool all)
 
 std::string WCircleArea::updateAreaCoordsJS()
 {
-    return fmt::format("[{},[{:.2},{:.2},{:.2}]]", jsRef(), x_, y_, r_);
+    return fmt::format(FMT_COMPILE("[{},[{:.2},{:.2},{:.2}]]"), jsRef(), x_, y_, r_);
 
   // std::stringstream coords;
   // char buf[30];

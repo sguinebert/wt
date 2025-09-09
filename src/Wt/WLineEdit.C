@@ -132,6 +132,9 @@ void WLineEdit::setAutoComplete(bool enabled)
 void WLineEdit::updateDom(DomElement& element, bool all)
 {
   if (all || flags_.test(BIT_CONTENT_CHANGED)) {
+#ifndef WT_NO_WASM
+        element.tryEmplaceAttribute("data-wt", "WLineEdit");
+#endif // WT_NO_WASM
     WT_USTRING t = content_;
     if (!mask_.empty() && (inputMaskFlags_.test(InputMaskFlag::KeepMaskWhileBlurred)))
       t = displayContent_;

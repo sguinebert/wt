@@ -413,6 +413,14 @@ public:
       attributes_.emplace(attribute, std::move(value));
       removedAttributes_.erase(attribute);
   }
+  template <typename T>
+  requires (StringLiteral<T> || StdString<T>)
+  void tryEmplaceAttribute(const std::string& attribute, T&& value)
+  {
+      ++numManipulations_;
+      if(attributes_.try_emplace(attribute, EscapedString(/*CONSTEXPR_JS_ESCAPED*/(value))).second)
+          removedAttributes_.erase(attribute);
+  }
 
   template<typename T>
   requires std::is_arithmetic_v<T>
@@ -855,8 +863,8 @@ private:
   typedef boost::unordered_flat_set<std::string> AttributeSet;
   //typedef boost::unordered_flat_map<const char *, EventHandler> EventHandlerMap;
 
-  // typedef std::unordered_map<std::string, std::string> AttributeMap;
-  // typedef std::unordered_set<std::string> AttributeSet;
+  //typedef std::unordered_map<std::string, EscapedString> AttributeMap;
+  //typedef std::unordered_set<std::string> AttributeSet;
   typedef std::unordered_map<const char *, EventHandler> EventHandlerMap;
 
   bool willRenderInnerHtmlJS(WApplication *app) const;

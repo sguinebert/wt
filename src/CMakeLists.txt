@@ -1,12 +1,10 @@
 SUBDIRS(web Wt)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_C_STANDARD 23)
-set(CMAKE_C_COMPILER "clang-20")
-set(CMAKE_CXX_COMPILER "clang++-20")
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-steps=100000000 -ftemplate-depth=40960") # -fconstexpr-steps=100000000 -ftemplate-depth=40960
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-literal-operator -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -freflection-latest -Wno-deprecated-literal-operator -march=native")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mssse3")
 
 
@@ -403,6 +401,7 @@ Wt/Core/observing_ptr.hpp Wt/Core/observing_ptr.cpp
 Wt/cpp17/any.hpp Wt/cpp17/any/any.hpp
 Wt/cpp20/date.hpp Wt/cpp20/tz.hpp Wt/cpp20/async_mutex.cpp Wt/cpp20/async_mutex.h
 Wt/cpp23/MoveOnlyFunction.hpp
+Wt/cpp26/reflection.hpp
 Wt/Form/WAbstractFormDelegate.h Wt/Form/WAbstractFormDelegate.C
 Wt/Form/WFormDelegate.h Wt/Form/WFormDelegate.C
 Wt/Json/json.hpp 
@@ -670,7 +669,8 @@ ADD_LIBRARY(wt ${libsources}
     Wt/WTemplate_.C Wt/WTemplate_.h
     Wt/cpp20/async_mutex.hpp
     Wt/cpp23/embed.hpp
-    Wt/cpp23/httpresponse.hpp)
+    Wt/cpp23/httpresponse.hpp
+    Wt/cpp26/WWidget-impl.hpp)
 
 
 
@@ -845,6 +845,18 @@ if(WT_USE_OPENGL)
 else()
   MESSAGE("** Disabling server-side opengl rendering for WGLWidget: requires gl, glew and WRasterImage (GraphicsMagick or Direct2D).")
 endif()
+
+include(FetchContent)
+
+FetchContent_Declare(
+  glaze
+  GIT_REPOSITORY https://github.com/stephenberry/glaze.git
+  GIT_TAG main
+  GIT_SHALLOW TRUE
+)
+
+FetchContent_MakeAvailable(glaze)
+TARGET_LINK_LIBRARIES(wt PRIVATE glaze::glaze)
 
 #IF(HAVE_GL)
 #  INCLUDE_DIRECTORIES(${GL_INCLUDE_DIRS})

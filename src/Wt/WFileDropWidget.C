@@ -16,6 +16,7 @@
 #include <exception>
 #include <boost/lexical_cast.hpp>
 #include <fstream>
+#include "web/DomElement.h"
 
 #ifndef WT_DEBUG_JS
 #include "js/WFileDropWidget.min.js"
@@ -533,6 +534,10 @@ void WFileDropWidget::updateDom(DomElement& element, bool all)
 		   + (globalDropEnabled_ ? "true" : "false") + ");");
     }
     if (updateFlags_.test(BIT_JSFILTER_CHANGED) || all) {
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WFileDropWidget");
+#endif // WT_NO_WASM
       createWorkerResource();
       
       doJavaScript(jsRef() + ".setUploadWorker(\""

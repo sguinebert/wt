@@ -68,7 +68,11 @@ void WTextArea::resetContentChanged()
 
 void WTextArea::updateDom(DomElement& element, bool all)
 {
-  if (element.type() == DomElementType::TEXTAREA)
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WTextArea");
+#endif // WT_NO_WASM
+    WTextArea::updateDom(element, all);  if (element.type() == DomElementType::TEXTAREA)
     if (contentChanged_ || all) {
       element.setProperty(Property::Value, content_.toUTF8());
       contentChanged_ = false;

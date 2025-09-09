@@ -102,6 +102,9 @@ void WFlashObject::setFlashVariable(const std::string &name,
 void WFlashObject::updateDom(DomElement& element, bool all)
 {
   if (all) {
+#ifndef WT_NO_WASM
+    element.tryEmplaceAttribute("data-wt", "WFlashObject");
+#endif // WT_NO_WASM
     //http://latrine.dgx.cz/how-to-correctly-insert-a-flash-into-xhtml
     auto& obj = element.addChild(DomElementType::OBJECT);
     //DomElement obj = DomElement::createNew(DomElementType::OBJECT);

@@ -165,6 +165,10 @@ AlignmentFlag WText::textAlignment() const
 
 void WText::updateDom(DomElement &element, bool all)
 {
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WText");
+#endif // WT_NO_WASM
   if (flags_.test(BIT_TEXT_CHANGED) || all)
   {
     std::string text = formattedText();

@@ -60,7 +60,7 @@ protected:
   virtual void updateDom(DomElement& element, bool all) override
   {
     if (all)
-      element.setAttribute("name", id());
+        element.setAttribute("name", id());
 
     WContainerWidget::updateDom(element, all);
   }
@@ -193,6 +193,10 @@ std::unique_ptr<WAbstractArea> WImage::removeArea(WAbstractArea *area)
 
 void WImage::updateDom(DomElement& element, bool all)
 {
+#ifndef WT_NO_WASM
+    if (all)
+        element.tryEmplaceAttribute("data-wt", "WImage");
+#endif // WT_NO_WASM
    auto img_ = DomElement::createNew(DomElementType::IMG);
   DomElement *imgptr = &element;
   if (all && element.type() == DomElementType::SPAN) {

@@ -130,7 +130,6 @@ void WProgressBar::updateDom(DomElement& element, bool all)
   //DomElement label = changed_ ? DomElement::getForUpdate("lbl" + id(), DomElementType::DIV) : DomElement::createNew(DomElementType::DIV);
   DomElement *barptr = nullptr, *labelptr = nullptr;
 
-
   auto app = WApplication::instance();
   auto bs5Theme = std::dynamic_pointer_cast<Wt::WBootstrap5Theme>(app->theme());
 
@@ -138,6 +137,9 @@ void WProgressBar::updateDom(DomElement& element, bool all)
   auto& label = bs5Theme ? bar : changed_ ? element.addChild("lbl" + id(), DomElementType::DIV) : element.addChild(DomElementType::DIV);
 
   if (all) {
+#ifndef WT_NO_WASM
+    element.tryEmplaceAttribute("data-wt", "WProgressBar");
+#endif // WT_NO_WASM
     barptr = &bar;// DomElement::createNew(DomElementType::DIV);
     barptr->setId("bar" + id());
     barptr->setProperty(Property::Class, valueStyleClass_);

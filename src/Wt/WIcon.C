@@ -54,6 +54,11 @@ double WIcon::size() const
 void WIcon::updateDom(DomElement& element, bool all)
 {
   if (iconChanged_ || all) {
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WIcon");
+#endif // WT_NO_WASM
+
     std::string sc;
     if (!all)
       sc = styleClass().toUTF8();

@@ -622,6 +622,17 @@ CONFIGURE_FILE(
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 INSTALL_FILES(/include/Wt FILES ${WCONFIG_H_PATH})
 
+# include(FetchContent)
+
+# FetchContent_Declare(
+#   glaze
+#   GIT_REPOSITORY https://github.com/stephenberry/glaze.git
+#   GIT_TAG main
+#   GIT_SHALLOW TRUE
+# )
+
+# FetchContent_MakeAvailable(glaze)
+
 # add_custom_target(InstallGulpPackages ALL
 #   COMMAND npm install --save-dev gulp gulp-cli
 #   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

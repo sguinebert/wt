@@ -203,8 +203,10 @@ DomElementType WPushButton::domElementType() const
 
 void WPushButton::updateDom(DomElement& element, bool all)
 {
-    if (all && element.type() == DomElementType::BUTTON)
+    if (all && element.type() == DomElementType::BUTTON) {
+        element.tryEmplaceAttribute("data-wt", "WPushButton");
         element.setAttribute("type", "button", true);
+    }
 
     bool updateInnerHtml = !icon_.isNull() && flags_.test(BIT_TEXT_CHANGED);
 

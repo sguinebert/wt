@@ -94,6 +94,10 @@ std::string WDoubleSpinBox::jsMinMaxStep() const
 void WDoubleSpinBox::updateDom(DomElement& element, bool all)
 {
   if (all || changed_) {
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WDoubleSpinBox");
+#endif // WT_NO_WASM
     if (nativeControl()) {
       element.setAttribute("min", min_);
       element.setAttribute("max", max_);

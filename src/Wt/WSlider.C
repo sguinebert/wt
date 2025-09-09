@@ -631,6 +631,10 @@ void WSlider::updateDom(DomElement& element, bool all)
         paintedSlider_->doUpdateDom(element, all);
     else {
         if (all || changed_) {
+#ifndef WT_NO_WASM
+            if(all)
+                element.tryEmplaceAttribute("data-wt", "WSlider");
+#endif // WT_NO_WASM
             element.setAttribute("type", "range", true);
             element.setProperty(Wt::Property::Value, std::to_string(value_));
             element.setAttribute("min", minimum_);

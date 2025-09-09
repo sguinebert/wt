@@ -36,6 +36,10 @@ void WGroupBox::setTitle(const WString& title)
 void WGroupBox::updateDom(DomElement& element, bool all)
 {
   if (all || titleChanged_) {
+#ifndef WT_NO_WASM
+        if(all)
+            element.tryEmplaceAttribute("data-wt", "WGroupBox");
+#endif // WT_NO_WASM
     DomElement legend = all ? DomElement::createNew(DomElementType::LEGEND) :
       DomElement::getForUpdate(id() + "l", DomElementType::LEGEND);
     if (all) {

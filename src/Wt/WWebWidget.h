@@ -312,6 +312,7 @@ protected:
   virtual void setHideWithOffsets(bool how = true) override;
   virtual WStatelessSlot *getStateless(Method method) override;
 
+
   WWidget *selfWidget();
 
   void doLoad(WWidget *w);

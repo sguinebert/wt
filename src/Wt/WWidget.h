@@ -24,6 +24,8 @@
 #include <type_traits>
 #endif // WT_TARGET_JAVA
 
+#include <Wt/cpp26/reflection.hpp>
+
 namespace Wt {
 
 enum class RepaintFlag {
@@ -1437,6 +1439,9 @@ protected:
   virtual std::string renderRemoveJs(bool recursive) = 0;
 
   bool isComposite_ = false;
+
+  void registerWidget(DomElement& domElement);
+  void registerWidget(WWidget* widget);
 
 private:
   /*

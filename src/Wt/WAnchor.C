@@ -169,6 +169,10 @@ bool WAnchor::setFirstFocus()
 
 void WAnchor::updateDom(DomElement& element, bool all)
 {
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WAnchor");
+#endif // WT_NO_WASM
   bool needsUrlResolution = false;
 
   if (flags_.test(BIT_LINK_CHANGED) || all) {

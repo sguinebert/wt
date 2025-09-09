@@ -4,7 +4,7 @@ if (NOT BUILD_WASM)
   return()
 endif()
 
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.30)
 project(WtWasm LANGUAGES C CXX)
 
 SET(VERSION_SERIES 4)
@@ -367,6 +367,17 @@ ADD_DEFINITIONS(-DHAS_REMOTE_API=0)  # nocurl API in wasm client
 
 # 4) build the wasm client
 add_library(WtWasm STATIC  ${WASM_SOURCES})
+
+include(FetchContent)
+FetchContent_Declare(
+  glaze
+  GIT_REPOSITORY https://github.com/stephenberry/glaze.git
+  GIT_TAG main
+  GIT_SHALLOW TRUE
+)
+
+FetchContent_MakeAvailable(glaze)
+TARGET_LINK_LIBRARIES(WtWasm PRIVATE glaze::glaze)
 
 if(NOT EMSCRIPTEN)      # means we are being built with the *host* compiler
     message(WARNING

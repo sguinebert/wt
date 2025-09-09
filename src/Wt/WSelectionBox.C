@@ -95,6 +95,10 @@ bool WSelectionBox::supportsNoSelection() const
 void WSelectionBox::updateDom(DomElement& element, bool all)
 {
   if (configChanged_ || all) {
+#ifndef WT_NO_WASM
+        if(all)
+            element.tryEmplaceAttribute("data-wt", "WSelectionBox");
+#endif // WT_NO_WASM
     element.setAttribute("size", verticalSize_);
 
     if (!all || (selectionMode_ == SelectionMode::Extended)) {

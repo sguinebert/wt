@@ -15,6 +15,7 @@
 #include "WebUtils.h"
 #include <exception>
 #include <fstream>
+#include "web/DomElement.h"
 
 namespace Wt {
 class WDropZone::WDropZoneResource final : public WResource
@@ -659,6 +660,10 @@ awaitable<void> WDropZone::onDataExceeded(::uint64_t dataExceeded)
 
 void WDropZone::updateDom(DomElement& element, bool all)
 {
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WDropZone");
+#endif // WT_NO_WASM
     WApplication *app = WApplication::instance();
     if (app->environment().ajax()) {
 //        if (updateFlags_.test(BIT_HOVERSTYLE_CHANGED) || all)

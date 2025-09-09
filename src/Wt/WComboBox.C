@@ -257,6 +257,10 @@ bool WComboBox::supportsNoSelection() const
 void WComboBox::updateDom(DomElement& element, bool all)
 {
     if (itemsChanged_ || all) {
+#ifndef WT_NO_WASM
+        if(all)
+            element.tryEmplaceAttribute("data-wt", "WComboBox");
+#endif // WT_NO_WASM
         if (!all) {
             element.removeAllChildren();
 
@@ -279,8 +283,7 @@ void WComboBox::updateDom(DomElement& element, bool all)
             item.setProperty(Property::InnerHTML,
                               escapeText(asString(model_->data(i, modelColumn_)).toUTF8()));
 
-            if (!(model_->flags(model_->index(i, modelColumn_)) &
-                  ItemFlag::Selectable))
+            if (!(model_->flags(model_->index(i, modelColumn_)) & ItemFlag::Selectable))
                 item.setProperty(Property::Disabled, "true");
 
             if (isSelected(i))
@@ -292,8 +295,7 @@ void WComboBox::updateDom(DomElement& element, bool all)
 
 
             // Read out opt-group
-            WString groupname = Wt::asString(model_->data(i, modelColumn_,
-                                                          ItemDataRole::Level));
+            WString groupname = Wt::asString(model_->data(i, modelColumn_, ItemDataRole::Level));
 
             bool isSoloItem = false;
             if (groupname.empty()) { // no group

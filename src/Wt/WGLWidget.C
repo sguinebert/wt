@@ -174,6 +174,10 @@ void WGLWidget::repaintGL(WFlags<GLClientSideRenderer> which)
 void WGLWidget::updateDom(DomElement &element, bool all)
 {
   if (all || valueChanged_) {
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WGLWidget");
+#endif // WT_NO_WASM
     valueChanged_ = false;
   }
   if (webGlNotAvailable_)

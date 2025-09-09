@@ -23,12 +23,16 @@ WTimerWidget::~WTimerWidget()
 
 std::string WTimerWidget::renderRemoveJs(bool recursive)
 {
- return "{"
-   "var obj=" + jsRef() + ";"
-   "if (obj && obj.timer) {"
-   """clearTimeout(obj.timer);"
-   """obj.timer = null;"
-   "}" WT_CLASS ".remove('" + id() + "');}";
+    return fmt::format(FMT_COMPILE("{{var obj={};if(obj&&obj.timer){{"
+                                   "clearTimeout(obj.timer);obj.timer=null;}}"
+                                   "{}.remove('{}');}}"),
+                       jsRef(), WT_CLASS, id());
+ // return "{"
+ //   "var obj=" + jsRef() + ";"
+ //   "if (obj && obj.timer) {"
+ //   """clearTimeout(obj.timer);"
+ //   """obj.timer = null;"
+ //   "}" WT_CLASS ".remove('" + id() + "');}";
 }
 
 void WTimerWidget::timerStart(bool jsRepeat)

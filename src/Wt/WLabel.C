@@ -144,6 +144,10 @@ void WLabel::updateDom(DomElement& element, bool all)
   }
 
   if (buddyChanged_ || all) {
+#ifndef WT_NO_WASM
+      if (all)
+          element.tryEmplaceAttribute("data-wt", "WLabel");
+#endif // WT_NO_WASM
     if (buddy_)
       element.setAttribute("for", buddy_->formName());
     buddyChanged_ = false;

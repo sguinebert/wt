@@ -437,6 +437,9 @@ DomElement WPaintedWidget::createDomElement(WApplication *app)
 void WPaintedWidget::updateDom(DomElement& element, bool all)
 {
     if ((all && areaImage_) || areaImageAdded_) {
+#ifndef WT_NO_WASM
+        element.tryEmplaceAttribute("data-wt", "WPaintedWidget");
+#endif // WT_NO_WASM
         element.addChild(areaImage_->createSDomElement(WApplication::instance()));
         areaImageAdded_ = false;
     }

@@ -491,6 +491,10 @@ void WTemplate::setTemplateText(const WString& text, TextFormat textFormat)
 
 void WTemplate::updateDom(DomElement& element, bool all)
 {
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WTemplate");
+#endif // WT_NO_WASM
     if (changed_ || all) {
         std::set<WWidget *> previouslyRendered;
         std::vector<WWidget *> newlyRendered;

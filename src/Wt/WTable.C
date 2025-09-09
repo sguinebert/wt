@@ -223,7 +223,11 @@ std::unique_ptr<WTableColumn> WTable::createColumn(int column)
 
 void WTable::updateDom(DomElement& element, bool all)
 {
-  WInteractWidget::updateDom(element, all);
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WTable");
+#endif // WT_NO_WASM
+    WInteractWidget::updateDom(element, all);
 }
 
 void WTable::propagateRenderOk(bool deep)

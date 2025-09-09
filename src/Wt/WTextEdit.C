@@ -360,6 +360,11 @@ bool WTextEdit::serialize(fmt::memory_buffer &ss, std::map<std::string, cpp17::a
 }
 void WTextEdit::updateDom(DomElement& element, bool all)
 {
+#ifndef WT_NO_WASM
+    if(all)
+        element.tryEmplaceAttribute("data-wt", "WTextEdit");
+#endif // WT_NO_WASM
+
   WTextArea::updateDom(element, all);
 
   if (element.type() == DomElementType::TEXTAREA)
