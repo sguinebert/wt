@@ -12,6 +12,7 @@
     "build:vite": "vite build",
     "dev:esbuild": "node esbuild.config.mjs --watch",
     "build:esbuild": "node esbuild.config.mjs",
+    "build:static-runtime": "node scripts/build-static-runtime.mjs",
     "dev:webpack": "webpack serve --mode development",
     "build:webpack": "webpack --mode production"
   },
