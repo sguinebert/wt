@@ -32,7 +32,7 @@
 //#include "response.hpp"
 #include "deps/ada.h"
 
-#include <Wt/Http/Request.h>
+#include "uploaded_file.hpp"
 #include <boost/spirit/home/x3.hpp>
 //#include <Wt/Configuration.h>
 
@@ -84,14 +84,13 @@ typedef std::unordered_map<std::string, ParameterValues> ParameterMap;
  *
  * This is the type used aggregate file parameter values in a request.
  */
-typedef std::unordered_multimap<std::string, Http::UploadedFile> UploadedFileMap;
+typedef std::unordered_multimap<std::string, UploadedFile> UploadedFileMap;
 
 class request final : safe_noncopyable {
-    friend class detail::stream;
 public:
     /*! \brief A single byte range.
    */
-    class WT_API ByteRange
+    class WHTTP_API ByteRange
     {
     public:
         /*! \brief Creates a (0,0) byteranges */
@@ -122,7 +121,7 @@ public:
    *
    * \sa getRanges()
    */
-    class WT_API ByteRangeSpecifier : public std::vector<ByteRange>
+    class WHTTP_API ByteRangeSpecifier : public std::vector<ByteRange>
     {
     public:
         /*! \brief Creates an empty byte range specifier.
@@ -537,6 +536,26 @@ void inplaceUrlDecode(std::string &text)
     return headers_;
   }
 
+  detail::headermap& mutable_headers() noexcept { return headers_; }
+
+  void set_method(std::string_view v) { method_ = v; }
+  void set_https(bool v) { https_ = v; }
+  void set_content_length(uint64_t v) { content_length_ = v; }
+  void parse_cookies(std::string_view v) { cookies_.parse(v); }
+  std::vector<char>& mutable_buffer() noexcept { return buffer_; }
+  void set_body_from_buffer() { body_ = std::string_view(buffer_.data(), buffer_.size()); }
+
+  void set_h2_path(std::string_view path) {
+      path_ = path;
+      auto uri = ada::parse<ada::url_aggregator>(path);
+      if (uri) {
+          urlsv_ = uri.value();
+          path_ = urlsv_.get_pathname();
+          querystring_ = urlsv_.get_search();
+          search_ = querystring_;
+      }
+  }
+
   std::string_view method() const noexcept { return method_; }
 
   std::string_view host() const noexcept { return get("Host"); }
@@ -855,7 +874,7 @@ void inplaceUrlDecode(std::string &text)
     } else if (name == "SERVER_SIGNATURE"sv) {
       return "<address>Wt httpd server</address>"sv;
     } else if (name == "SERVER_SOFTWARE"sv) {
-      return "Wthttpd/" WT_VERSION_STR ;
+      return "Wthttpd/4.7.0"sv;
     } else if (name == "SERVER_ADMIN"sv) {
       return "webmaster@localhost"sv;
     } else if (name == "REMOTE_ADDR"sv) {
@@ -888,7 +907,7 @@ void inplaceUrlDecode(std::string &text)
  private:
   //high speed url parsing
   void parse_url() {
-      std::cerr << "parse_url() path_:" << path_ << std::endl;
+      // debug print removed
       static auto base = ada::parse<ada::url_aggregator>("http://d.fr");  // or from Host/TLS
       auto uri = ada::parse<ada::url_aggregator>(path_, &base.value());
       if(uri) {

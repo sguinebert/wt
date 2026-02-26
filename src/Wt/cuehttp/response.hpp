@@ -33,18 +33,11 @@
 #include "detail/gzip.hpp"
 #include "detail/MoveOnlyFunction.hpp"
 
-#include <Wt/WStringStream.h>
-
 /* TODO : replace std::function call by Nano::Signal emit ? */
 
 namespace Wt {
-class WResource;
 
 namespace http {
-
-namespace detail {
-class stream;
-}
 
 struct Continuation;
 class ResponseContinuation;
@@ -73,13 +66,11 @@ class response final : safe_noncopyable {
     };
 
   response(cookies& cookies, detail::reply_handler handler, detail::reply_handler_sg handler2) noexcept
-      : cookies_{cookies}, ostream_(&buffer_),
-        //last_gmt_date_str_{detail::utils::to_gmt_date_string(std::time(nullptr))},
+      : cookies_{cookies},
         reply_handler_{std::move(handler)}, reply_handler_sg_{std::move(handler2)} {}
 
-  response(cookies& cookies, asio::streambuf& ostream) noexcept
-      : cookies_{cookies}, ostream_(&ostream),
-      //last_gmt_date_str_{detail::utils::to_gmt_date_string(std::time(nullptr))},
+  response(cookies& cookies) noexcept
+      : cookies_{cookies},
       reply_handler_{}, reply_handler_sg_{} {}
 
   void minor_version(unsigned version) noexcept { minor_version_ = version; }
@@ -116,6 +107,8 @@ class response final : safe_noncopyable {
   void addHeader(_Field&& field, _Value&& value) {
     headers_.emplace_back(std::make_pair(std::forward<_Field>(field), std::forward<_Value>(value)));
   }
+
+  const auto& headers() const noexcept { return headers_; }
 
   void set_headers(const std::map<std::string, std::string>& headers) {
     headers_.insert(headers_.end(), headers.begin(), headers.end());
@@ -207,13 +200,6 @@ class response final : safe_noncopyable {
     length(size);
   }
 
-  std::ostream& bodystd() {
-    return ostream_;
-  }
-  std::ostream& outstd() {
-    return ostream_;
-  }
-
   auto out() -> std::back_insert_iterator<fmt::memory_buffer> {
     return std::back_inserter(body_buffer_);
   }
@@ -288,8 +274,9 @@ class response final : safe_noncopyable {
       auto cut = is_text ? min_len_text : min_len_other;
       return size == 0 || size >= cut;
   }
-  /* http2 streaming */
-  inline awaitable<void> http2_flush(bool deflate);
+  using h2_flush_fn_t = Wt::cpp23::move_only_function<awaitable<void>(bool)>;
+
+  void set_h2_flush(h2_flush_fn_t fn) { h2_flush_fn_ = std::move(fn); }
 
   /* flush data manually for chunked transfers
    * why so many effort to use prepend body_buffer_ or deflated_body_ with size of the chunk?
@@ -297,9 +284,9 @@ class response final : safe_noncopyable {
   */
   awaitable<void> chunk_flush(bool deflate = false)
   {
-      if(http_version_ > 1){
-        if (deflate) addHeader("Content-Encoding","gzip"); //or brotli if available
-        co_await http2_flush(deflate);
+      if(h2_flush_fn_){
+        if (deflate) addHeader("Content-Encoding","gzip");
+        co_await h2_flush_fn_(deflate);
         co_return;
       }
     content_length_ = 0;
@@ -385,10 +372,7 @@ class response final : safe_noncopyable {
     is_stream_ = false;
     deflate_gzip_ = false;
 
-    response_str_.clear();//deprecated
-    //stream_.reset();//deprecated
-    buffer_.consume(buffer_.size()); //Deprecated
-    buf_.clear();//deprecated
+    // deprecated members removed
 
     haveMoreData_ = nullptr;
 
@@ -522,8 +506,7 @@ class response final : safe_noncopyable {
 
     sgbuffers.emplace_back(asio::buffer(headers_buffer_.data(), headers_buffer_.size()));
 
-    std::cerr << "deflated_body_ size : " << headers_buffer_.size() << " -> " << fmt::to_string(headers_buffer_) << std::endl;
-    std::cerr << "body_ : " <<fmt::to_string(body_buffer_) << std::endl;
+    // debug prints removed (standalone whttp has no iostream dependency)
     //buf_.asioBuffers(sgbuffers);
     if(content_length_)
         deflated_body_.empty() ? sgbuffers.emplace_back(asio::buffer(body_buffer_.data(), body_buffer_.size())) : sgbuffers.emplace_back(asio::buffer(deflated_body_));
@@ -599,7 +582,7 @@ class response final : safe_noncopyable {
 
   //std::shared_ptr<ResponseContinuation> ResponseContinuationPtr;
   //std::unique_ptr<Continuation> continuation_;
-  //WResource* waitingResource_ = nullptr;
+  //void* waitingOwner_ = nullptr;
   Continuation *continuation_ = nullptr;
   Wt::cpp23::move_only_function<void()> haveMoreData_ = nullptr;
   /* suspend coroutine and restore on the same thread by invoke haveMoreData_ */
@@ -695,11 +678,6 @@ private:
   cookies& cookies_;
 
   ResponseType responseType_;
-  std::string response_str_; //Deprecated
-  Wt::WStringStream buf_; //Deprecated
-  Wt::WStringStream postBuf_; //Deprecated
-  asio::streambuf buffer_; //Deprecated
-  std::ostream ostream_; //Deprecated
 
   /* buffer & view for body response */
   fmt::memory_buffer headers_buffer_; //
@@ -714,19 +692,16 @@ private:
   // static thread_local std::string last_gmt_date_str_ {64, '\0'};
   detail::reply_handler reply_handler_;
   detail::reply_handler_sg reply_handler_sg_;
-  detail::stream* stream_{nullptr};
-
-  //asio::channel<void()> *gate_ = nullptr;
+  h2_flush_fn_t h2_flush_fn_;
 
   friend class context;
 };
 
 struct Continuation {
-  Continuation(Wt::WResource* resource, http::response *response) : resource_(resource), response_(response)
+  Continuation(void* owner, http::response *response) : owner_(owner), response_(response)
   { }
   ~Continuation() {
-    //resource_->removeContinuation(this);
-    resource_ = nullptr;
+    owner_ = nullptr;
     response_ = nullptr;
   }
 
@@ -741,39 +716,27 @@ struct Continuation {
     response_ = nullptr;
   }
 
-  /* Call cancel function in connection */
   void cancel()
   {
     if(response_){
-      std::cout << "cancel the response " << std::endl;
+      // debug print removed
     }
   }
 
   bool destroyed() const { return response_ == nullptr; }
 
-  //bool use(WResource *resource);
+  void* owner() const { return owner_; }
+
+  template<typename T>
+  T* owner_as() const { return static_cast<T*>(owner_); }
 
   private:
-  //bool ready_ = true;
-  Wt::WResource *resource_;
+  void *owner_;
   http::response *response_;
-  //std::atomic<bool> invalid_ = false; //std::mutex resource_mutex_;
 };
 
 }  // namespace http
 }  // namespace cue
 
-
-// #include "detail/stream.hpp"
-
-// awaitable<void> Wt::http::response::http2_flush(bool deflate) {
-//     stream_->continuation_ = true;
-//     if(stream_->paused_)
-//         nghttp2_session_resume_data(stream_->session_, stream_->stream_id);
-//     else
-//         stream_->flush();
-
-//     co_await stream_->gate_.async_receive(use_awaitable);
-// }
 
 #endif  // CUEHTTP_RESPONSE_HPP_

@@ -175,10 +175,8 @@ void Server::start()
       config_.parentPort() != -1) {
     // If we have one shared process, or this is the only session process,
     // run expireSessions() every SESSION_EXPIRE_INTERVAL seconds
-    expireSessionsTimer_.expires_from_now
-      (std::chrono::seconds(SESSION_EXPIRE_INTERVAL));
-    expireSessionsTimer_.async_wait
-      (std::bind(&Server::expireSessions, this, std::placeholders::_1));
+    expireSessionsTimer_.expires_after(std::chrono::seconds(SESSION_EXPIRE_INTERVAL));
+    expireSessionsTimer_.async_wait(std::bind(&Server::expireSessions, this, std::placeholders::_1));
   }
 
   asio::ip::tcp::resolver resolver(wt_.ioService().get());
@@ -295,56 +293,83 @@ void Server::start()
   // accept exits. To avoid that this happens when called within the
   // WServer context, we post the action of calling accept to one of
   // the threads in the threadpool.
-  wt_.ioService().get().post(std::bind(&Server::startAccept, this));
+  auto& io = wt_.ioService().get();
+  asio::post(io, [this] {
+      startAccept();
+  });
 
   if (config_.parentPort() != -1) {
     // This is a child process, connect to parent to
     // announce the listening port.,
-    parentSocket_ = std::make_unique<asio::ip::tcp::socket>(wt_.ioService().get());
-    wt_.ioService().get().post
-      (std::bind(&Server::startConnect, this));
+    parentSocket_ = std::make_unique<asio::ip::tcp::socket>(io);
+
+    asio::post(io, [this] {
+        startConnect();
+    });
   }
 }
-
 std::vector<asio::ip::address> Server::resolveAddress(asio::ip::tcp::resolver &resolver,
                                                       const std::string &address)
 {
-  std::vector<asio::ip::address> result;
-  Wt::AsioWrapper::error_code errc;
-  asio::ip::address fromStr = asio::ip::address::from_string(address, errc);
-  if (!errc) {
-    // The address is not a hostname, because it can be parsed as an
-    // IP address, so we don't need to resolve it
-    result.push_back(fromStr);
-    return result;
-  } else {
+    std::vector<asio::ip::address> result;
+    Wt::AsioWrapper::error_code errc;
+
+    // Try to parse as a literal IP address first (v4 or v6)
+    asio::ip::address fromStr = asio::ip::make_address(address, errc);
+    if (!errc) {
+        // It's a literal IP, no DNS needed.
+        result.push_back(fromStr);
+        return result;
+    } else {
 #ifndef NO_RESOLVE_ACCEPT_ADDRESS
-    // Resolve IPv4
-    asio::ip::tcp::resolver::query query(asio::ip::tcp::v4(), address, "http");
-    asio::ip::tcp::resolver::iterator end;
-    for (asio::ip::tcp::resolver::iterator it = resolver.resolve(query, errc);
-         !errc && it != end; ++it) {
-      result.push_back(it->endpoint().address());
-    }
-    if (errc)
-      LOG_DEBUG_S(&wt_, "Failed to resolve hostname \"{}\" as IPv4: {}", address, Wt::AsioWrapper::system_error(errc).what());
-    // Resolve IPv6
-    query = Wt::AsioWrapper::asio::ip::tcp::resolver::query(Wt::AsioWrapper::asio::ip::tcp::v6(), address, "http");
-    for (Wt::AsioWrapper::asio::ip::tcp::resolver::iterator it = resolver.resolve(query, errc);
-         !errc && it != end; ++it) {
-      result.push_back(it->endpoint().address());
-    }
-    if (errc)
-      LOG_DEBUG_S(&wt_, "Failed to resolve hostname \"{}\" as IPv6: {}", address, Wt::AsioWrapper::system_error(errc).what());
-    if (result.empty())
-      LOG_WARN_S(&wt_, "Failed to resolve hostname \"{}\": {}", address, Wt::AsioWrapper::system_error(errc).what());
-    return result;
+        // ---- IPv4 ----
+        errc.clear();
+        auto v4_results = resolver.resolve(asio::ip::tcp::v4(), address, "http", errc);
+
+        if (!errc) {
+            for (const auto &entry : v4_results) {
+                result.push_back(entry.endpoint().address());
+            }
+        } else {
+            LOG_DEBUG_S(&wt_,
+                        "Failed to resolve hostname \"{}\" as IPv4: {}",
+                        address,
+                        Wt::AsioWrapper::system_error(errc).what());
+        }
+
+        // ---- IPv6 ----
+        errc.clear();
+        auto v6_results =
+            resolver.resolve(asio::ip::tcp::v6(), address, "http", errc);
+
+        if (!errc) {
+            for (const auto &entry : v6_results) {
+                result.push_back(entry.endpoint().address());
+            }
+        } else {
+            LOG_DEBUG_S(&wt_,
+                        "Failed to resolve hostname \"{}\" as IPv6: {}",
+                        address,
+                        Wt::AsioWrapper::system_error(errc).what());
+        }
+
+        if (result.empty()) {
+            LOG_WARN_S(&wt_,
+                       "Failed to resolve hostname \"{}\": {}",
+                       address,
+                       Wt::AsioWrapper::system_error(errc).what());
+        }
+
+        return result;
 #else // NO_RESOLVE_ACCEPT_ADDRESS
-    LOG_WARN_S(&wt_, "Failed to resolve hostname \"" << address << "\": not supported");
-    return result;
+        LOG_WARN_S(&wt_,
+                   "Failed to resolve hostname \"{}\": not supported",
+                   address);
+        return result;
 #endif
-  }
+    }
 }
+
 
 Server::TcpListener::TcpListener(asio::ip::tcp::acceptor &&acceptor,
                                  TcpConnectionPtr new_connection)
@@ -577,13 +602,19 @@ void Server::stop()
   // Post a call to the stop function so that server::stop() is safe
   // to call from any thread, and not simultaneously with waiting for
   // a new async_accept() call.
-  wt_.ioService().get().post
-    (accept_strand_.wrap(std::bind(&Server::handleStop, this)));
+  auto& io = wt_.ioService().get();
+  asio::post(io, [this] {
+      connection_manager_.stopAll();
+  });
 }
 
 void Server::resume()
 {
-  wt_.ioService().get().post(std::bind(&Server::handleResume, this));
+  //wt_.ioService().get().post(std::bind(&Server::handleResume, this));
+  auto& io = wt_.ioService().get();
+  asio::post(io, [this] {
+      handleResume();
+  });
 }
 
 void Server::handleResume()
@@ -671,23 +702,19 @@ void Server::handleStop()
 
 void Server::expireSessions(Wt::AsioWrapper::error_code ec)
 {
-  LOG_DEBUG_S(&wt_, "expireSession() {}", ec.message());
+    LOG_DEBUG_S(&wt_, "expireSession() {}", ec.message());
 
-  if (!ec) {
-    bool haveMoreSessions = 0;// wt_.expireSessions();
-    if (!haveMoreSessions &&
-	wt_.configuration().sessionPolicy() == Wt::Configuration::DedicatedProcess &&
-	config_.parentPort() != -1)
-      wt_.scheduleStop();
-    else {
-      expireSessionsTimer_.expires_from_now
-        (std::chrono::seconds(SESSION_EXPIRE_INTERVAL));
-      expireSessionsTimer_.async_wait
-	(std::bind(&Server::expireSessions, this, std::placeholders::_1));
+    if (!ec) {
+        bool haveMoreSessions = 0;// wt_.expireSessions();
+        if (!haveMoreSessions && wt_.configuration().sessionPolicy() == Wt::Configuration::DedicatedProcess && config_.parentPort() != -1) {
+            wt_.scheduleStop();
+        } else {
+            expireSessionsTimer_.expires_after(std::chrono::seconds(SESSION_EXPIRE_INTERVAL));
+            expireSessionsTimer_.async_wait(std::bind(&Server::expireSessions, this, std::placeholders::_1));
+        }
+    } else if (ec != asio::error::operation_aborted) {
+        LOG_ERROR_S(&wt_, "session expiration timer got an error: {}", ec.message());
     }
-  } else if (ec != asio::error::operation_aborted) {
-    LOG_ERROR_S(&wt_, "session expiration timer got an error: {}", ec.message());
-  }
 }
 
 void Server::updateProcessSessionId(const std::string& sessionId)

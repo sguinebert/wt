@@ -13,7 +13,7 @@ IF(BOOST_FS_LIB)
     ${WT_SOURCE_DIR}/src
   )
 
-  ADD_DEPENDENCIES(gitview.wt wt ${EXAMPLES_CONNECTOR})
+  ADD_DEPENDENCIES(gitview.wt wt whttp)
 
 ELSE(BOOST_FS_LIB)
 

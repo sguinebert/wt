@@ -1,6 +1,9 @@
 #ifndef WCONFIG_H
 #define WCONFIG_H
 
+// Include whttp config (SSL, ASIO, LSQUIC, threading defines)
+#include <Wt/WHttpConfig.h>
+
 // Version defines
 #define WT_SERIES ${VERSION_SERIES}
 #define WT_MAJOR  ${VERSION_MAJOR}
@@ -26,17 +29,13 @@
 #cmakedefine WTDBOFIREBIRD_STATIC
 #cmakedefine WTDBOMYSQL_STATIC
 #cmakedefine WTDBOMSSQLSERVER_STATIC
-#cmakedefine WTHTTP_STATIC
 
 #cmakedefine WT_HAS_WRASTERIMAGE
 #cmakedefine WT_HAS_WPDFIMAGE
-#cmakedefine WT_WITH_SSL
 #cmakedefine WT_HAS_SAML
-#cmakedefine WT_HAS_LSQUIC
 
 #cmakedefine WT_USE_OPENGL
 #cmakedefine WT_DEBUG_ENABLED
-#cmakedefine WT_THREADED
 
 #cmakedefine WT_ANY_IS_THELINK2012_ANY
 #cmakedefine WT_ANY_IS_EXPERIMENTAL_ANY
@@ -44,13 +43,5 @@
 
 #cmakedefine WT_DATE_TZ_USE_DATE
 #cmakedefine WT_DATE_TZ_USE_STD
-
-#cmakedefine WT_ASIO_IS_BOOST_ASIO
-#cmakedefine WT_ASIO_IS_STANDALONE_ASIO
-
-// our win32: WIN32 (gcc) or _WIN32 (MSC)
-#if defined(WIN32) || defined(_WIN32)
-#define WT_WIN32 1
-#endif
 
 #endif

@@ -505,7 +505,7 @@ void WCompositeWidget::render(WFlags<RenderFlag> flags)
 {
   impl_->render(flags);
 
-  registerWidget(impl_.get());
+  //registerWidget(impl_.get());
 
   renderOk();
 }

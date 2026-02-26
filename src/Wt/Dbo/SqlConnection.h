@@ -6,650 +6,388 @@
 #ifndef WT_DBO_SQL_CONNECTION_H_
 #define WT_DBO_SQL_CONNECTION_H_
 
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
+#include <concepts>
 #include <Wt/Dbo/WDboDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/Dbo/backend/Sqlite3.h>
-#include <Wt/Dbo/backend/Postgres.h>
-#include <Wt/Dbo/backend/MySQL.h>
-#include <Wt/Dbo/backend/MSSQLServer.h>
-
-
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+#include <Wt/Dbo/SqlStatement.h>
 
 namespace Wt {
-  namespace Dbo {
+namespace Dbo {
 
-/*! \brief Enum that defines a date time type.
- */
-//enum class SqlDateTimeType {
-//  Date,    //!< Date only
-//  DateTime,//!< Date and time
-//  Time     //!< Time duration
-//};
+//class SqlStatement;
 
-///*! \brief Enum that defines a limit query type.
-// *
-// * Oracle is using Rownum, Firebird is using RowsFromTo,
-// * and Microsoft SQL Server is using Top instead of limit and
-// * offset in SQL
-// */
-//enum class LimitQuery{
-//  Limit, //!< Use LIMIT and OFFSET
-//  RowsFromTo, //!< Use ROWS ? TO ? (for Firebird)
-//  Rownum, //!< Use rownum (for Oracle)
-//  OffsetFetch, //!< Use OFFSET (?) ROWS FETCH FIRST (?) ROWS ONLY (adding ORDER BY (SELECT NULL) for SQL Server)
-//  NotSupported // !< Not supported
-//};
+// enum class SqlDateTimeType {
+//   Date,
+//   DateTime,
+//   Time
+// };
 
+// enum class LimitQuery {
+//   Limit,
+//   RowsFromTo,
+//   Rownum,
+//   OffsetFetch,
+//   NotSupported
+// };
 
+template<typename T>
+concept SqlBackend = requires(T t, T const ct, 
+                              asio::io_context& ctx, 
+                              const std::string& str, 
+                              int i,
+                              SqlDateTimeType dtType) 
+{
+    // clone (Non-const)
+    { t.clone(ctx) } -> std::convertible_to<T>; //
+    
+    // SQL exec (Async)
+    { t.executeSql(str) } -> std::same_as<awaitable<void>>;
+    { t.executeSqlStateful(str) } -> std::same_as<awaitable<void>>;
+    
+    // Transactions (Async)
+    { t.startTransaction() } -> std::same_as<awaitable<void>>;
+    { t.commitTransaction() } -> std::same_as<awaitable<void>>;
+    { t.rollbackTransaction() } -> std::same_as<awaitable<void>>;
+    
+    // Statements
+    { t.prepareStatement(str) } -> std::convertible_to<std::unique_ptr<SqlStatement>>;
+    { t.getStatement(str) } -> std::convertible_to<SqlStatement*>;
+    { t.saveStatement(str, std::unique_ptr<SqlStatement>()) };
+    { t.clearStatementCache() };
+    { t.getStatements() } -> std::convertible_to<std::vector<SqlStatement*>>;
+    
+    // Properties
+    { t.setProperty(str, str) };
+    { ct.property(str) } -> std::convertible_to<std::string>;
+    { ct.showQueries() } -> std::convertible_to<bool>;
+    
+    // SQL dialect (Const)
+    { ct.autoincrementSql() } -> std::convertible_to<std::string>;
+    { ct.autoincrementCreateSequenceSql(str, str) } -> std::convertible_to<std::vector<std::string>>;
+    { ct.autoincrementDropSequenceSql(str, str) } -> std::convertible_to<std::vector<std::string>>;
+    { ct.autoincrementType() } -> std::convertible_to<std::string>;
+    { ct.autoincrementInsertInfix(str) } -> std::convertible_to<std::string>;
+    { ct.autoincrementInsertSuffix(str) } -> std::convertible_to<std::string>;
+    { ct.textType(i) } -> std::convertible_to<std::string>;
+    { ct.longLongType() } -> std::convertible_to<std::string>;
+    { ct.booleanType() } -> std::convertible_to<const char*>;
+    { ct.dateTimeType(dtType) } -> std::convertible_to<const char*>;
+    { ct.blobType() } -> std::convertible_to<const char*>;
+    
+    // Capacités
+    { ct.supportUpdateCascade() } -> std::convertible_to<bool>;
+    { ct.requireSubqueryAlias() } -> std::convertible_to<bool>;
+    { ct.limitQueryMethod() } -> std::convertible_to<LimitQuery>;
+    { ct.usesRowsFromTo() } -> std::convertible_to<bool>;
+    { ct.supportAlterTable() } -> std::convertible_to<bool>;
+    { ct.supportDeferrableFKConstraint() } -> std::convertible_to<bool>;
+    { ct.alterTableConstraintString() } -> std::convertible_to<const char*>;
+    { ct.prepareForDropTables() };
+    { ct.getStatefulSql() } -> std::convertible_to<const std::vector<std::string>&>;
+};
 
-class SqlStatement;
+class WTDBO_API SqlConnection
+{
+public:
+    // --- Constructeurs ---
+    SqlConnection() = default;
 
-  /*! \class SqlConnection Wt/Dbo/SqlConnection.h Wt/Dbo/SqlConnection.h
- *  \brief Abstract base class for an SQL connection.
- *
- * An sql connection manages a single connection to a database. It
- * also manages a map of previously prepared statements indexed by
- * id's.
- *
- * This class is part of Wt::Dbo's backend API, and should not be used
- * directly.
- *
- * All methods will throw an exception if they could not be completed.
- *
- * \ingroup dbo
- */
-  class WTDBO_API SqlConnection
-  {
-      friend class backend::Sqlite3;
-      typedef std::variant<std::monostate,
-                           backend::Sqlite3,
-                           backend::Postgres,
-                           backend::MySQL,
-                           backend::MSSQLServer
-#ifdef HAS_Firebird
-                           , backend::Firebird
-#endif
-                           > connection;
-  public:
-      enum Backend {
-          SQlite,
-          Postgres,
-          MySql,
-          MSSql,
-          Firebird
-      };
-      explicit SqlConnection(asio::io_context& context, std::string& connection, Backend backend)
-      {
-          switch (backend) {
-          case SQlite:
-              sqlconnection_ = backend::Sqlite3(connection);
-              break;
-          case Postgres:
-              sqlconnection_ = backend::Postgres(context, connection);
-              break;
-          case MySql:
-              sqlconnection_ = backend::MySQL(context, connection);
-              break;
-          case MSSql:
-              sqlconnection_ = backend::MSSQLServer(context, connection);
-              break;
-          case Firebird:
-              break;
-          default:
-              break;
-          }
-          executor_ = context.get_executor();
-      }
-
-      SqlConnection(connection conn): sqlconnection_(conn) {}
-      /*! \brief Destructor.
-   */
-    ~SqlConnection()
-      { }
-
-    void setCancelSignal(asio::cancellation_signal *cancel)
+    // Accept concept SqlBackend.
+    template<SqlBackend BackendT>
+    explicit SqlConnection(BackendT backend)
+        : pimpl_(std::make_unique<Model<BackendT>>(std::move(backend)))
+        // Note: On ne peut pas récupérer l'executor du backend de manière générique 
+        // sans l'ajouter au concept. On initialise avec un executor par défaut ou null.
     {
-          std::visit(overloaded
-                     {
-                      [&](auto &connection ) {  },
-                      [&](std::monostate)  {  },
-                      }, sqlconnection_);
     }
 
+    template<SqlBackend BackendT>
+    explicit SqlConnection(asio::io_context& context, BackendT backend)
+        : pimpl_(std::make_unique<Model<BackendT>>(std::move(backend))),
+          executor_(context.get_executor())
+    {
+    }
 
+    // Move semantics (unique_ptr is move-only)
+    SqlConnection(SqlConnection&&) noexcept = default;
+    SqlConnection& operator=(SqlConnection&&) noexcept = default;
+
+    // No copy (unique_ptr)
+    SqlConnection(const SqlConnection&) = delete;
+    SqlConnection& operator=(const SqlConnection&) = delete;
+
+    ~SqlConnection() = default;
+
+    // --- Gestion ---
     asio::any_io_executor get_executor() const { return executor_; }
 
-      /*! \brief Clones the connection.
-   *
-   * Returns a new connection object that is configured like this
-   * object. This is used by connection pool implementations to create
-   * its connections.
-   */
-
-    std::unique_ptr<SqlConnection> clone(asio::io_context& ctx)
-    {
-
-          executor_ = ctx.get_executor();
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> std::unique_ptr<SqlConnection> { return std::make_unique<SqlConnection>(connection.clone(ctx)); },
-                             [&](std::monostate) -> std::unique_ptr<SqlConnection> { return {}; },
-                             }, sqlconnection_);
+    void setCancelSignal(asio::cancellation_signal *cancel) {
+        // experimental
     }
 
-    std::unique_ptr<SqlConnection> clone() const
-    {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> std::unique_ptr<SqlConnection> { return {}; },
-                             [&](std::monostate) -> std::unique_ptr<SqlConnection> { return {}; },
-                             }, sqlconnection_);
+    std::unique_ptr<SqlConnection> clone(asio::io_context& ctx) {
+        if (!pimpl_) return {};
+        auto newConn = pimpl_->clone(ctx);
+        // propagate executor
+        newConn->executor_ = ctx.get_executor();
+        return newConn;
     }
 
-    bool inTransaction(bool transaction) {
-          return false;
+    std::unique_ptr<SqlConnection> clone() const {
+        return {}; 
     }
 
-      /*! \brief Executes an SQL statement.
-   *
-   * This is a convenience method for preparing a statement, executing
-   * it, and deleting it.
-   */
-    awaitable<void> executeSql(const std::string& sql)
-    {
-          co_await std::visit(overloaded
-                              {
-                               [&](auto &connection ) -> awaitable<void> { co_await connection.executeSql(sql); },
-                               [&](std::monostate) -> awaitable<void> { co_return; },
-                               }, sqlconnection_);
+    bool inTransaction(bool transaction) { return false; }
+
+    awaitable<void> executeSql(const std::string& sql) {
+        if (pimpl_) co_await pimpl_->executeSql(sql);
     }
 
-      /*! \brief Executes a connection-stateful SQL statement.
-   *
-   * This executes a statement, but also remembers the statement for
-   * when the native connection would be closed and reopened during
-   * the lifetime of this connection object. Then the statements are
-   * redone on the newly opened connection.
-   *
-   * Such statements could be for example 'LISTEN' in a postgresql
-   * connection.
-   *
-   * \note These statements are only executed upon a reconnect for
-   *       those backends that support automatic reconnect, but
-   *       not when a connection is \link clone() cloned\endlink.
-   */
-   awaitable<void> executeSqlStateful(const std::string& sql)
-   {
-          co_await std::visit(overloaded
-                              {
-                               [&](auto &connection ) -> awaitable<void> { co_await connection.executeSqlStateful(sql); },
-                               [&](std::monostate) -> awaitable<void> { co_return; },
-                               }, sqlconnection_);
-   }
-
-      /*! \brief Starts a transaction
-   *
-   * This function starts a transaction.
-   */
-   awaitable<void> startTransaction()
-   {
-          co_await  std::visit(overloaded
-                              {
-                               [&](auto &connection ) -> awaitable<void> { co_return co_await connection.startTransaction(); },
-                               //[&](sqlite3& connection) -> awaitable<void> { connection.startTransaction(); co_return; },
-                               [&](std::monostate) -> awaitable<void> { co_return; },
-                               }, sqlconnection_);
-          co_return;
-   }
-
-      /*! \brief Commits a transaction
-   *
-   * This function commits a transaction.
-   */
-    awaitable<void> commitTransaction()
-    {
-          co_await  std::visit(overloaded
-                              {
-                               [&](auto &connection ) -> awaitable<void> { co_return co_await connection.commitTransaction(); },
-                               //[&](sqlite3& connection) -> awaitable<void> { connection.commitTransaction(); co_return; },
-                               [&](std::monostate) -> awaitable<void> { co_return; },
-                               }, sqlconnection_);
-          co_return;
-
+    awaitable<void> executeSqlStateful(const std::string& sql) {
+        if (pimpl_) co_await pimpl_->executeSqlStateful(sql);
     }
 
-    /*! \brief Rolls back a transaction
-   *
-   * This function rolls back a transaction.
-   */
-    awaitable<void> rollbackTransaction()
-    {
-          co_await  std::visit(overloaded
-                              {
-                               [&](auto &connection ) -> awaitable<void> { co_return co_await connection.rollbackTransaction(); },
-                               //[&](sqlite3& connection) -> awaitable<void> { connection.commitTransaction(); co_return; },
-                               [&](std::monostate) -> awaitable<void> { co_return; },
-                               }, sqlconnection_);
-          co_return;
+    awaitable<void> startTransaction() {
+        if (pimpl_) co_await pimpl_->startTransaction();
     }
 
-      /*! \brief Returns the statement with the given id.
-   *
-   * Returns \c nullptr if no such statement was already added.
-   *
-   * \sa saveStatement()
-   */
-    SqlStatement *getStatement(const std::string& id)
-    {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> SqlStatement* { return connection.getStatement(id); },
-                             [&](std::monostate) -> SqlStatement* { return nullptr; },
-                             }, sqlconnection_);
+    awaitable<void> commitTransaction() {
+        if (pimpl_) co_await pimpl_->commitTransaction();
     }
 
-      /*! \brief Saves a statement with the given id.
-   *
-   * Saves the statement for future reuse using getStatement()
-   */
-    void saveStatement(const std::string& id, std::unique_ptr<SqlStatement> statement)
-    {
-          std::visit(overloaded
-                     {
-                      [&](auto &connection) { connection.saveStatement(id, std::move(statement)); },
-                      [&](std::monostate)  {  },
-                      }, sqlconnection_);
+    awaitable<void> rollbackTransaction() {
+        if (pimpl_) co_await pimpl_->rollbackTransaction();
     }
 
-      /*! \brief Prepares a statement.
-   *
-   * Returns the prepared statement.
-   */
-    std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql)
-    {
-          return  std::visit(overloaded
-                            {
-                             [&](auto &connection) -> std::unique_ptr<SqlStatement> { return connection.prepareStatement(sql); },
-                             [&](std::monostate) -> std::unique_ptr<SqlStatement>  { return nullptr; },
-                             }, sqlconnection_);
+    // --- Statements ---
+
+    SqlStatement* getStatement(const std::string& id) {
+        return pimpl_ ? pimpl_->getStatement(id) : nullptr;
     }
 
-      /*! \brief Sets a property.
-   *
-   * Properties may tailor the backend behavior. Some properties are
-   * applicable to all backends, while some are backend specific.
-   *
-   * General properties are:
-   * - <tt>show-queries</tt>: when value is "true", queries are shown
-   *   as they are executed.
-   */
-      void setProperty(const std::string& name, const std::string& value)
-      {
-          std::visit(overloaded
-                     {
-                      [&](auto &connection) { connection.setProperty(name, value); },
-                      [&](std::monostate)  {  },
-                      }, sqlconnection_);
-      }
-
-      /*! \brief Returns a property.
-   *
-   * Returns the property value, or an empty string if the property was
-   * not set.
-   *
-   * \sa setProperty()
-   */
-      std::string property(const std::string& name) const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> std::string { return connection.property(name); },
-                             [&](std::monostate) -> std::string { return std::string(); },
-                             }, sqlconnection_);
-      }
-
-      /** @name Methods that return dialect information
-   */
-      //!@{
-      /*! \brief Returns the 'autoincrement' SQL type modifier.
-   *
-   * This is used by Session::createTables() to create the <i>id</i>
-   * column.
-   */
-    std::string autoincrementSql() const
-    {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> std::string { return connection.autoincrementSql(); },
-                             [&](std::monostate) -> std::string { return ""; },
-                             }, sqlconnection_);
+    void saveStatement(const std::string& id, std::unique_ptr<SqlStatement> statement) {
+        if (pimpl_) pimpl_->saveStatement(id, std::move(statement));
     }
 
-      /*! \brief Returns the SQL statement(s) required to create an id sequence.
-   *
-   * This is used by Session::createTables() to create the id
-   * sequence for a table.
-   * The table's name and primary key are passed as arguments to this function
-   * and can be used to construct an SQL sequence that is unique for the table.
-   */
-    std::vector<std::string>
-    autoincrementCreateSequenceSql(const std::string &table,
-                                   const std::string &id) const
-    {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) ->  std::vector<std::string> { return connection.autoincrementCreateSequenceSql(table, id); },
-                             [&](std::monostate) ->  std::vector<std::string> { return  std::vector<std::string>(); },
-                             }, sqlconnection_);
+    std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql) {
+        return pimpl_ ? pimpl_->prepareStatement(sql) : nullptr;
     }
 
-      /*! \brief Returns the SQL statement(s) required to drop an id sequence.
-   *
-   * This is used by Session::dropTables() to drop the id sequence for a table.
-   * The table's name and primary key are passed as arguments to this function
-   * and can be used to construct an SQL sequence that is unique for the table.
-   */
-    std::vector<std::string>
-    autoincrementDropSequenceSql(const std::string &table,
-                                 const std::string &id) const
-    {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) ->  std::vector<std::string> { return connection.autoincrementDropSequenceSql(table, id); },
-                             [&](std::monostate) ->  std::vector<std::string> { return  std::vector<std::string>(); },
-                             }, sqlconnection_);
+    // --- Properties ---
+
+    void setProperty(const std::string& name, const std::string& value) {
+        if (pimpl_) pimpl_->setProperty(name, value);
     }
 
-      /*! \brief Returns the 'autoincrement' SQL type.
-   *
-   * This is used by Session::createTables() to create the <i>id</i>
-   * column.
-   */
-    std::string autoincrementType() const
-    {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> std::string { return connection.autoincrementType(); },
-                             [&](std::monostate) -> std::string { return ""; },
-                             }, sqlconnection_);
+    std::string property(const std::string& name) const {
+        return pimpl_ ? pimpl_->property(name) : std::string();
     }
 
-      /*! \brief Returns the infix for an 'autoincrement' insert statement.
-   *
-   * This is inserted before the <tt>values</tt> part of the <tt>insert</tt>
-   * statement, since Microsoft SQL Server requires that the autoincrement id
-   * is returned with <tt>OUTPUT</tt>.
-   *
-   * Returns an empty string by default.
-   */
-    std::string autoincrementInsertInfix(const std::string& id) const
-    {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> std::string { return connection.autoincrementInsertInfix(id); },
-                             [&](backend::Sqlite3) -> std::string { return ""; },
-                             [&](std::monostate) -> std::string { return ""; },
-                             }, sqlconnection_);
+    bool showQueries() const {
+        return pimpl_ ? pimpl_->showQueries() : false;
     }
 
-      /*! \brief Returns the suffix for an 'autoincrement' insert statement.
-   *
-   * This is appended to the <tt>insert</tt> statement, since some back-ends
-   * need to be indicated that they should return the autoincrement id.
-   */
-    std::string autoincrementInsertSuffix(const std::string& id)
-    {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> std::string { return connection.autoincrementInsertSuffix(id); },
-                             [&](std::monostate) -> std::string { return ""; },
-                             }, sqlconnection_);
+    // --- SQL Dialect ---
+
+    std::string autoincrementSql() const {
+        return pimpl_ ? pimpl_->autoincrementSql() : "";
     }
 
-      /*! \brief Execute code before dropping the tables.
-   *
-   * This method is called before calling Session::dropTables().
-   * The default implementation is empty.
-   */
-      void prepareForDropTables()
-      {
-          std::visit(overloaded
-                     {
-                      [&](auto &connection ) { connection.prepareForDropTables(); },
-                      [&](backend::Sqlite3) {  },
-                      [&](std::monostate) { },
-                      }, sqlconnection_);
-      }
-
-      /*! \brief Returns the date/time type.
-   *
-   * \sa SqlStatement::bind(int, const std::chrono::system_clock::time_point&, SqlDateTimeType)
-   */
-    const char *dateTimeType(SqlDateTimeType type) const
-    {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> const char* { return connection.dateTimeType(type); },
-                             [&](std::monostate) -> const char* { return ""; },
-                             }, sqlconnection_);
+    std::vector<std::string> autoincrementCreateSequenceSql(const std::string &table, const std::string &id) const {
+        return pimpl_ ? pimpl_->autoincrementCreateSequenceSql(table, id) : std::vector<std::string>();
     }
 
-      /*! \brief Returns the blob type.
-   *
-   * \sa SqlStatement::bind(int, const std::vector<unsigned char>&)
-   */
-    const char *blobType() const
-    {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> const char* { return connection.blobType(); },
-                             [&](std::monostate) -> const char* { return ""; },
-                             }, sqlconnection_);
+    std::vector<std::string> autoincrementDropSequenceSql(const std::string &table, const std::string &id) const {
+        return pimpl_ ? pimpl_->autoincrementDropSequenceSql(table, id) : std::vector<std::string>();
     }
 
-      /*! \brief Returns the text type.
-   *
-   * This is the text type for a string. If \p size = -1, then a type
-   * should be returned which does not require size information, otherwise
-   * a type should be returned that limits the size of the stored string
-   * to \p size.
-   *
-   * This method will return "text" by default if size = -1, and
-   * "varchar(size)" otherwise.
-   *
-   * \sa SqlStatement::bind(int column, const std::string& value)
-   */
-      std::string textType(int size) const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> std::string { return connection.textType(size); },
-                             [&](backend::Sqlite3) -> std::string { return size == -1 ? "text" : "varchar(" + std::to_string(size) + ")"; },
-                             [&](std::monostate) -> std::string { return ""; },
-                             }, sqlconnection_);
-      }
+    std::string autoincrementType() const {
+        return pimpl_ ? pimpl_->autoincrementType() : "";
+    }
 
-      /*! \brief Returns the 64-bit integer type.
-   *
-   * This method will return "bigint" by default.
-   *
-   */
-      std::string longLongType() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> std::string { return connection.longLongType(); },
-                             [&](backend::Sqlite3) -> std::string { return "bigint"; },
-                             [&](std::monostate) -> std::string { return "bigint"; },
-                             }, sqlconnection_);
-      }
+    std::string autoincrementInsertInfix(const std::string& id) const {
+        return pimpl_ ? pimpl_->autoincrementInsertInfix(id) : "";
+    }
 
-      /*! \brief Returns the boolean type.
-   *
-   * This method will return "boolean" by default.
-   */
-      const char *booleanType() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> const char* { return connection.booleanType(); },
-                             [&](backend::Sqlite3) -> const char* { return "boolean"; },
-                             [&](std::monostate) -> const char* { return "boolean"; },
-                             }, sqlconnection_);
-      }
+    std::string autoincrementInsertSuffix(const std::string& id) {
+        return pimpl_ ? pimpl_->autoincrementInsertSuffix(id) : "";
+    }
 
-      /*! \brief Returns true if the database supports Update Cascade.
-   *
-   * This method will return true by default.
-   * Was created for the oracle database which does not support
-   * Update Cascade.
-   */
-      bool supportUpdateCascade() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> bool { return connection.supportUpdateCascade(); },
-                             [&](backend::Sqlite3) -> bool { return true; },
-                             [&](std::monostate) -> bool { return true; },
-                             }, sqlconnection_);
-      }
+    void prepareForDropTables() {
+        if (pimpl_) pimpl_->prepareForDropTables();
+    }
 
-      /*! \brief Returns the true if the database require subquery alias.
-   *
-   * This method will return false by default.
-   */
-      bool requireSubqueryAlias() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> bool { return connection.requireSubqueryAlias(); },
-                             [&](backend::Sqlite3) -> bool { return false; },
-                             [&](std::monostate) -> bool { return false; },
-                             }, sqlconnection_);
-      }
+    const char *dateTimeType(SqlDateTimeType type) const {
+        return pimpl_ ? pimpl_->dateTimeType(type) : "";
+    }
 
-      LimitQuery limitQueryMethod() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> LimitQuery { return connection.limitQueryMethod(); },
-                             [&](backend::Sqlite3) -> LimitQuery { return LimitQuery::Limit; },
-                             [&](std::monostate) -> LimitQuery { return LimitQuery::Limit; },
-                             }, sqlconnection_);
-      }
+    const char *blobType() const {
+        return pimpl_ ? pimpl_->blobType() : "";
+    }
 
-      /*! \brief Returns whether the SQL dialect uses 'ROWS ? TO ?', limit or
-   *         rownum for partial select results.
-   *
-   * This is an alternative SQL dialect option to the (non-standard) 'OFFSET ?
-   * LIMIT ?' syntax.
-   *
-   * The default implementation returns \c LimitQuery::Limit.
-   */
-      bool usesRowsFromTo() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> bool { return connection.usesRowsFromTo(); },
-                             [&](backend::Sqlite3) -> bool { return false; },
-                             [&](std::monostate) -> bool { return false; },
-                             }, sqlconnection_);
-      }
+    std::string textType(int size) const {
+        return pimpl_ ? pimpl_->textType(size) : "";
+    }
 
-      /*! \brief Returns true if the backend support Alter Table
-   *
-   * This method will return false by default.
-   */
-      bool supportAlterTable() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> bool { return connection.supportAlterTable(); },
-                             [&](backend::Sqlite3) -> bool { return false; },
-                             [&](std::monostate) -> bool { return false; },
-                             }, sqlconnection_);
-      }
+    std::string longLongType() const {
+        return pimpl_ ? pimpl_->longLongType() : "bigint";
+    }
 
-      /*! \brief Returns true if the backend supports "deferrable initially
-   * deferred" foreign key constraints
-   *
-   * This method will return false by default.
-   */
-      virtual bool supportDeferrableFKConstraint() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> bool { return connection.supportDeferrableFKConstraint(); },
-                             [&](std::monostate) -> bool { return false; },
-                             }, sqlconnection_);
-      }
+    const char *booleanType() const {
+        return pimpl_ ? pimpl_->booleanType() : "boolean";
+    }
 
-      /*! \brief Returns the command used in alter table .. drop constraint ..
-   *
-   * This method will return "constraint" by default.
-   * Default: ALTER TABLE .. DROP CONSTRAINT ..
-   */
-      const char *alterTableConstraintString() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> const char* { return connection.alterTableConstraintString(); },
-                             [&](backend::Sqlite3) -> const char* { return "constraint"; },
-                             [&](std::monostate) -> const char* { return "constraint"; },
-                             }, sqlconnection_);
-      }
-      //!@}
+    bool supportUpdateCascade() const {
+        return pimpl_ ? pimpl_->supportUpdateCascade() : true;
+    }
 
-      bool showQueries() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> bool { return connection.showQueries(); },
-                             [&](std::monostate) -> bool { return false; },
-                             }, sqlconnection_);
-      }
+    bool requireSubqueryAlias() const {
+        return pimpl_ ? pimpl_->requireSubqueryAlias() : false;
+    }
 
-  protected:
-      SqlConnection(){}
-      SqlConnection(const SqlConnection& other) = delete;
-      SqlConnection& operator=(const SqlConnection&) = delete;
+    LimitQuery limitQueryMethod() const {
+        return pimpl_ ? pimpl_->limitQueryMethod() : LimitQuery::Limit;
+    }
 
-      void clearStatementCache()
-      {
-          std::visit(overloaded
-                     {
-                      [&](auto &connection ) { connection.clearStatementCache(); },
-                      [&](std::monostate) { },
-                      }, sqlconnection_);
-      }
+    bool usesRowsFromTo() const {
+        return pimpl_ ? pimpl_->usesRowsFromTo() : false;
+    }
 
-      std::vector<SqlStatement *> getStatements() const
-      {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> std::vector<SqlStatement *> { return connection.getStatements(); },
-                             [&](std::monostate) -> std::vector<SqlStatement *> { return {}; },
-                             }, sqlconnection_);
-      }
-      const std::vector<std::string>& getStatefulSql() const {
-          return std::visit(overloaded
-                            {
-                             [&](auto &connection ) -> const std::vector<std::string>& { return connection.getStatefulSql(); },
-                             [&](std::monostate) -> const std::vector<std::string>& { static std::vector<std::string> dumb; return dumb; },
-                             }, sqlconnection_);
-      }
+    bool supportAlterTable() const {
+        return pimpl_ ? pimpl_->supportAlterTable() : false;
+    }
 
-  private:
-      connection sqlconnection_;
-      asio::any_io_executor executor_;
-  };
-  }
-}
+    bool supportDeferrableFKConstraint() const {
+        return pimpl_ ? pimpl_->supportDeferrableFKConstraint() : false;
+    }
+
+    const char *alterTableConstraintString() const {
+        return pimpl_ ? pimpl_->alterTableConstraintString() : "constraint";
+    }
+
+protected:
+    void clearStatementCache() {
+        if (pimpl_) pimpl_->clearStatementCache();
+    }
+
+    std::vector<SqlStatement *> getStatements() const {
+        return pimpl_ ? pimpl_->getStatements() : std::vector<SqlStatement *>();
+    }
+
+    const std::vector<std::string>& getStatefulSql() const {
+        static const std::vector<std::string> empty;
+        return pimpl_ ? pimpl_->getStatefulSql() : empty;
+    }
+
+private:
+
+    struct Concept {
+        virtual ~Concept() = default;
+        
+        // Lifecycle
+        virtual std::unique_ptr<SqlConnection> clone(asio::io_context& ctx) = 0;
+        
+        // Async Ops
+        virtual awaitable<void> executeSql(const std::string& sql) = 0;
+        virtual awaitable<void> executeSqlStateful(const std::string& sql) = 0;
+        virtual awaitable<void> startTransaction() = 0;
+        virtual awaitable<void> commitTransaction() = 0;
+        virtual awaitable<void> rollbackTransaction() = 0;
+        
+        // Statements
+        virtual SqlStatement* getStatement(const std::string& id) = 0;
+        virtual void saveStatement(const std::string& id, std::unique_ptr<SqlStatement> statement) = 0;
+        virtual std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql) = 0;
+        virtual void clearStatementCache() = 0;
+        virtual std::vector<SqlStatement *> getStatements() const = 0;
+        
+        // Properties
+        virtual void setProperty(const std::string& name, const std::string& value) = 0;
+        virtual std::string property(const std::string& name) const = 0;
+        virtual bool showQueries() const = 0;
+        
+        // Dialect
+        virtual std::string autoincrementSql() const = 0;
+        virtual std::vector<std::string> autoincrementCreateSequenceSql(const std::string &table, const std::string &id) const = 0;
+        virtual std::vector<std::string> autoincrementDropSequenceSql(const std::string &table, const std::string &id) const = 0;
+        virtual std::string autoincrementType() const = 0;
+        virtual std::string autoincrementInsertInfix(const std::string& id) const = 0;
+        virtual std::string autoincrementInsertSuffix(const std::string& id) const = 0;
+        virtual std::string textType(int size) const = 0;
+        virtual std::string longLongType() const = 0;
+        virtual const char *booleanType() const = 0;
+        virtual const char *dateTimeType(SqlDateTimeType type) const = 0;
+        virtual const char *blobType() const = 0;
+        
+        virtual bool supportUpdateCascade() const = 0;
+        virtual bool requireSubqueryAlias() const = 0;
+        virtual LimitQuery limitQueryMethod() const = 0;
+        virtual bool usesRowsFromTo() const = 0;
+        virtual bool supportAlterTable() const = 0;
+        virtual bool supportDeferrableFKConstraint() const = 0;
+        virtual const char *alterTableConstraintString() const = 0;
+        virtual void prepareForDropTables() = 0;
+        virtual const std::vector<std::string>& getStatefulSql() const = 0;
+    };
+
+    template<typename BackendT>
+    struct Model final : Concept {
+        BackendT backend_;
+
+        explicit Model(BackendT backend) : backend_(std::move(backend)) {}
+
+        std::unique_ptr<SqlConnection> clone(asio::io_context& ctx) override {
+            return std::make_unique<SqlConnection>(backend_.clone(ctx));
+        }
+
+        awaitable<void> executeSql(const std::string& sql) override { co_await backend_.executeSql(sql); }
+        awaitable<void> executeSqlStateful(const std::string& sql) override { co_await backend_.executeSqlStateful(sql); }
+        awaitable<void> startTransaction() override { co_await backend_.startTransaction(); }
+        awaitable<void> commitTransaction() override { co_await backend_.commitTransaction(); }
+        awaitable<void> rollbackTransaction() override { co_await backend_.rollbackTransaction(); }
+
+        SqlStatement* getStatement(const std::string& id) override { return backend_.getStatement(id); }
+        void saveStatement(const std::string& id, std::unique_ptr<SqlStatement> statement) override { backend_.saveStatement(id, std::move(statement)); }
+        std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql) override { return backend_.prepareStatement(sql); }
+        void clearStatementCache() override { backend_.clearStatementCache(); }
+        std::vector<SqlStatement *> getStatements() const override { return backend_.getStatements(); }
+
+        void setProperty(const std::string& name, const std::string& value) override { backend_.setProperty(name, value); }
+        std::string property(const std::string& name) const override { return backend_.property(name); }
+        bool showQueries() const override { return backend_.showQueries(); }
+
+        std::string autoincrementSql() const override { return backend_.autoincrementSql(); }
+        std::vector<std::string> autoincrementCreateSequenceSql(const std::string &table, const std::string &id) const override { return backend_.autoincrementCreateSequenceSql(table, id); }
+        std::vector<std::string> autoincrementDropSequenceSql(const std::string &table, const std::string &id) const override { return backend_.autoincrementDropSequenceSql(table, id); }
+        std::string autoincrementType() const override { return backend_.autoincrementType(); }
+        std::string autoincrementInsertInfix(const std::string& id) const override { return backend_.autoincrementInsertInfix(id); }
+        std::string autoincrementInsertSuffix(const std::string& id) const override { return backend_.autoincrementInsertSuffix(id); }
+        
+        std::string textType(int size) const override { return backend_.textType(size); }
+        std::string longLongType() const override { return backend_.longLongType(); }
+        const char *booleanType() const override { return backend_.booleanType(); }
+        const char *dateTimeType(SqlDateTimeType type) const override { return backend_.dateTimeType(type); }
+        const char *blobType() const override { return backend_.blobType(); }
+
+        bool supportUpdateCascade() const override { return backend_.supportUpdateCascade(); }
+        bool requireSubqueryAlias() const override { return backend_.requireSubqueryAlias(); }
+        LimitQuery limitQueryMethod() const override { return backend_.limitQueryMethod(); }
+        bool usesRowsFromTo() const override { return backend_.usesRowsFromTo(); }
+        bool supportAlterTable() const override { return backend_.supportAlterTable(); }
+        bool supportDeferrableFKConstraint() const override { return backend_.supportDeferrableFKConstraint(); }
+        const char *alterTableConstraintString() const override { return backend_.alterTableConstraintString(); }
+        void prepareForDropTables() override { backend_.prepareForDropTables(); }
+        const std::vector<std::string>& getStatefulSql() const override { return backend_.getStatefulSql(); }
+    };
+
+    std::unique_ptr<Concept> pimpl_;
+    asio::any_io_executor executor_;
+};
+
+} // namespace Dbo
+} // namespace Wt
 
 #endif // WT_DBO_SQL_STATEMENT_H_

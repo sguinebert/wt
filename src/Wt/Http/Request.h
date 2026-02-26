@@ -18,6 +18,7 @@
 #include <Wt/Http/Message.h>
 
 #include <Wt/WDllDefs.h>
+#include <Wt/cuehttp/uploaded_file.hpp>
 
 namespace Wt {
 
@@ -28,67 +29,8 @@ class WebSession;
 
   namespace Http {
 
-/*! \class UploadedFile Wt/Http/Request.h Wt/Http/Request.h
- *  \brief Details about a file uploaded with a request to a resource.
- * 
- * \if cpp
- * \sa Request::uploadedFiles()
- * \endif
- *
- * \sa WResource::handleRequest()
- *
- * \ingroup http
- */
-class WT_API UploadedFile {
-public:
-    UploadedFile();
-
-    UploadedFile(const std::string& spoolFileName,
-                 const std::string& clientFileName,
-                 const std::string& contentType);
-
-  /*! \brief Return the spool file name.
-   *
-   * This is the location on the local (server) filesystem where the uploaded
-   * file is temporarily stored. Unless you call stealSpoolFile(), this file
-   * is deleted automatically.
-   */
-  const std::string& spoolFileName() const;
-
-  /*! \brief Returns the client file name.
-   *
-   * This is the location that was indicated by the browser.
-   *
-   * \note Depending on the browser this is an absolute path
-   *       or only the file name.
-   */
-  const std::string& clientFileName() const;
-
-  /*! \brief Returns the file content type.
-   *
-   * Returns the content mime-type that was sent along with the uploaded
-   * file.
-   */
-  const std::string& contentType() const;
-
-  /*! \brief Steals the uploaded spool file.
-   *
-   * By stealing the spooled file, it is no longer automatically deleted
-   * by %Wt.
-   */
-  void stealSpoolFile() const;
-
-private:
-  struct Impl {
-    std::string spoolFileName, clientFileName, contentType;
-    bool        isStolen;
-
-    ~Impl();
-    void cleanup();
-  };
-
-  std::shared_ptr<Impl> fileInfo_;
-};
+// Wt::Http::UploadedFile is now an alias for the standalone Wt::http::UploadedFile
+using UploadedFile = Wt::http::UploadedFile;
 
 
 /*! \brief A list of parameter values.

@@ -296,7 +296,7 @@ consteval auto make_object_nested(std::index_sequence<MI...>,
 
     // Turn the flattened tuple "k0, acc0, k1, acc1, ..." into a Glaze object
     return std::apply([](auto... kv) {
-        return glz::object(kv...);
+        return ::glz::object(kv...);
     }, kvs);
 }
 
@@ -309,13 +309,13 @@ consteval auto make_object_for_type() {
                                  std::make_index_sequence<bs.size()>{});
 }
 
-namespace glz {
-template <class T>
-requires auto_glaze<T>
-struct meta<T> {
-    static constexpr auto value = make_object_for_type<T>();
-};
-}
+// namespace glz {
+// template <class T>
+// requires auto_glaze<T>
+// struct meta<T> {
+//     static constexpr auto value = make_object_for_type<T>();
+// };
+// }
 
 
 template<class C>
@@ -325,7 +325,7 @@ void write_json_t(const C& obj, std::string& result) {
 
     // 2) JSON payload
     std::string out;
-    if (auto ec = glz::write_json(obj, out)) {
+    if (auto ec = ::glz::write_json(obj, out)) {
         // Propagate the error in whatever style you prefer:
         // throw, return empty, or attach the message.
         throw std::runtime_error("write_json failed");
@@ -368,7 +368,7 @@ std::unique_ptr<Base> read_with_header_factory(std::string_view blob, F&& f) {
         // Compare against identifier_of for this reflected type
         if (tag == std::meta::identifier_of(Dinfo)) {
             auto p = std::make_unique<D>();
-            if (auto ec = glz::read_json(*p, json)) {
+            if (auto ec = ::glz::read_json(*p, json)) {
                 throw std::runtime_error("read_json failed");
             }
             //dispatch(*result, std::forward<F>(f)); // Dispatch to the handler

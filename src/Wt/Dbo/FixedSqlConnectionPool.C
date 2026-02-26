@@ -49,35 +49,14 @@ namespace Wt
 //      for (unsigned i = 1; i < size; ++i)
 //        impl_->freeList.push_back(conn->clone());
 
-
-#ifndef VARIANT
       conn->setCancelSignal(&cancel_signal_);
-#else
-        std::visit([&] (auto& conn) { conn.setCancelSignal(&cancel_signal_); }, *conn);
-#endif
-
-
 
       for (unsigned i = 1; i < size; ++i) {
-
-#ifndef VARIANT
           impl_->freeList.push_back(conn->clone(engine.get()));
           impl_->freeList.back()->setCancelSignal(&cancel_signal_);
 
           //init thread_local connection pointer of each context if available
           asio::post(impl_->freeList.back()->get_executor(), [this] { this->impl_->connection = impl_->freeList.back().get(); });
-
-          //asio::post(impl_->freeList.back()->socket().get_executor(), [this] { this->impl_->connection = impl_->freeList.back().get(); });
-#else
-        std::visit([&] (auto& conn) {
-              auto cv = std::make_unique<SqlConnection>(conn.clone(engine));
-              impl_->freeList.push_back(std::move(cv));
-              conn.setCancelSignal(&cancel_signal_);
-              asio::post(conn.socket().get_executor(), [&, this] {
-                this->impl_->connection = impl_->freeList.back().get();
-              });
-          }, *impl_->freeList.back());
-#endif
       }
     }
 
@@ -144,13 +123,7 @@ namespace Wt
     awaitable<SqlConnection *> FixedSqlConnectionPool::async_connection(bool transaction)
     {
       while (true) {
-          if(impl_->connection &&
-#ifndef VARIANT
-              !impl_->connection->inTransaction(transaction)
-#else
-              std::visit([&] (auto& conn) ->bool { return conn.inTransaction(transaction); }, *impl_->connection)
-#endif
-              ) {
+          if(impl_->connection && !impl_->connection->inTransaction(transaction)) {
             co_return impl_->connection;
           }
           for(unsigned i = 0; i < impl_->freeList.size(); i++)
@@ -158,13 +131,7 @@ namespace Wt
             if(increment++; increment >= impl_->freeList.size())
                 increment = 0;
             auto& c = impl_->freeList[increment];
-            if(
-#ifndef VARIANT
-                !c->inTransaction(transaction)
-#else
-                std::visit([&] (auto& conn) ->bool { return conn.inTransaction(transaction); }, *c)
-#endif
-                ) {
+            if(!c->inTransaction(transaction)) {
               co_return c.get();
             }
           }
@@ -179,25 +146,13 @@ namespace Wt
     {
 
       //while (true) {
-      if(impl_->connection &&
-#ifndef VARIANT
-          !impl_->connection->inTransaction(transaction)
-#else
-          std::visit([&] (auto& conn) ->bool { return conn.inTransaction(transaction); }, *impl_->connection)
-#endif
-          ) {
+      if(impl_->connection && !impl_->connection->inTransaction(transaction)) {
             cb(impl_->connection);
             return;
           }
           for(auto& c : impl_->freeList)
           {
-            if(
-#ifndef VARIANT
-                !c->inTransaction(transaction)
-#else
-                std::visit([&] (auto& conn) ->bool { return conn.inTransaction(transaction); }, *c)
-#endif
-                ) {
+            if(!c->inTransaction(transaction)) {
               cb(c.get());
               return;
             }
@@ -237,11 +192,7 @@ namespace Wt
     void FixedSqlConnectionPool::prepareForDropTables() const
     {
       for (unsigned i = 0; i < impl_->freeList.size(); ++i)
-#ifndef VARIANT
         impl_->freeList[i]->prepareForDropTables();
-#else
-      std::visit([&] (auto& conn) { conn.prepareForDropTables();  }, *impl_->freeList[i]);
-#endif
     }
 
   }

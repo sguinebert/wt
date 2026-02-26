@@ -560,17 +560,19 @@ public:
 
   awaitable<Transaction> transaction() {
     Transaction t(*this);
-
-    //co_await t.impl_->open();
     co_return std::move(t);
   }
-  template<class Token>
-  auto transaction(Token&& handler) {
-    auto initiator = [this] (auto&& handler) mutable {
-        Transaction t(*this);
-        handler(std::move(t));
-    };
-    return asio::async_initiate<Token, void(Transaction)>(initiator, handler);
+
+  template<typename F>
+  awaitable<void> with_transaction(F&& func) {
+    Transaction t(*this);
+    try {
+      co_await func();
+      co_await t.commit();
+    } catch (...) {
+      co_await t.rollback();
+      throw;
+    }
   }
 
   template<class ResultcallableT>

@@ -141,19 +141,19 @@ struct async_operation : Operation {
       case completion_type::post:
         boost::asio::post(
             ex,
-            bind_allocator(alloc, std::move(f))
+            boost::asio::bind_allocator(alloc, std::move(f))
             );
         break;
       case completion_type::defer:
           boost::asio::defer(
               ex,
-              bind_allocator(alloc, std::move(f))
+              boost::asio::bind_allocator(alloc, std::move(f))
               );
         break;
       case completion_type::dispatch:
           boost::asio::dispatch(
               ex,
-              bind_allocator(alloc, std::move(f))
+              boost::asio::bind_allocator(alloc, std::move(f))
               );
         break;
       case completion_type::destroy: // handled above

@@ -51,11 +51,11 @@
 #include "../web/EntryPoint.h"
 #endif // WT_TARGET_JAVA
 
-namespace boost {
-  namespace program_options {
-    class variables_map;
-  }
-}
+// namespace boost {
+//   namespace program_options {
+//     class variables_map;
+//   }
+// }
 
 namespace Wt {
   namespace rapidxml {

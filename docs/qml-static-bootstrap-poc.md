@@ -42,7 +42,11 @@ The helper defines:
 
 1. `StaticWidgetNode` as compile-time tree nodes (`WidgetKind`, `WidgetProps`, children),
 2. `instantiate_widget_tree(...)` to build real `WWidget` objects,
-3. `sample_compiled_tree` as an example of generated C++ output from QML.
+3. runtime bootstrap helpers:
+   - `build_runtime_config_script_tag(...)`
+   - `build_runtime_loader_script_tag(...)`
+   - `build_runtime_bootstrap_html(...)`
+4. `sample_compiled_tree` as an example of generated C++ output from QML.
 
 The important point is that tree construction is C++-native, not JSON-driven.
 
@@ -78,3 +82,10 @@ It only:
 1. reads optional runtime config from `#wt-qml-static-config`,
 2. installs a click bridge on `[data-wt-action]`,
 3. posts actions to the configured endpoint.
+
+Server-side HTML integration can directly reuse:
+
+```cpp
+auto runtime = Wt::cpp26::qml_static::build_runtime_bootstrap_html();
+// Insert `runtime` in your page template/footer.
+```

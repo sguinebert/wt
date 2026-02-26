@@ -11,6 +11,7 @@
 #include <exception>
 #include <string>
 #include <boost/cstdint.hpp>
+#include <Wt/CLI11.hpp>
 
 // For ::int64_t and ::uint64_t on Windows only
 #include "Wt/WDllDefs.h"
@@ -18,13 +19,13 @@
 #include <vector>
 #include <functional>
 
-namespace boost {
-  namespace program_options {
-    class variables_map;
-    class options_description;
-  }
-}
-namespace po = boost::program_options;
+// namespace boost {
+//   namespace program_options {
+//     class variables_map;
+//     class options_description;
+//   }
+// }
+// namespace po = boost::program_options;
 
 namespace Wt {
   class WLogger;
@@ -178,13 +179,13 @@ private:
 
   SslPasswordCallback sslPasswordCallback_;
 
-  void createOptions(po::options_description& options,
-                     po::options_description& visible_options);
-  void readOptions(const po::variables_map& vm);
+  // void createOptions(po::options_description& options,
+  //                    po::options_description& visible_options);
+  // void readOptions(const po::variables_map& vm);
 
-  void checkPath(const boost::program_options::variables_map& vm,
-                 std::string varName, std::string varDescription,
-                 std::string& result, int options);
+  // void checkPath(const boost::program_options::variables_map& vm,
+  //                std::string varName, std::string varDescription,
+  //                std::string& result, int options);
 
   void checkPath(std::string& result, std::string varDescription, int options);
 

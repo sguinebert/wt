@@ -1,18 +1,17 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.1...3.14)
+cmake_minimum_required(VERSION 3.25)
 
-SET(CMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE true)
+set(CMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE true)
 
-PROJECT(WT)
+project(Wt VERSION 4.7.0 LANGUAGES C CXX)
 
-SET(CMAKE_MODULE_PATH
-  ${CMAKE_MODULE_PATH}
-  ${WT_SOURCE_DIR}
-  ${WT_SOURCE_DIR}/cmake
+set(VERSION_SERIES ${PROJECT_VERSION_MAJOR})
+set(VERSION_MAJOR ${PROJECT_VERSION_MINOR})
+set(VERSION_MINOR ${PROJECT_VERSION_PATCH})
+
+list(APPEND CMAKE_MODULE_PATH
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake
 )
-
-SET(VERSION_SERIES 4)
-SET(VERSION_MAJOR 7)
-SET(VERSION_MINOR 0)
 
 IF(NOT SHARED_LIBS)
   IF(WIN32)
@@ -36,14 +35,14 @@ option(INSTALL_THEMES "Install the source files for Wt's themes" ON)
 OPTION(ENABLE_SSL "Enable cryptography functions, using OpenSSL" ON)
 OPTION(ENABLE_HARU "Enable Haru Free PDF Library, which is used to provide support for painting to PDF (WPdfImage)" ON)
 OPTION(ENABLE_PANGO "Enable Pango Library, which is used for improved font support (WPdfImage and WRasterImage)" ON)
-OPTION(ENABLE_EXT "Build Wt Ext library with JavaScript-only widgets (http://extjs.com/) DEPRECATED" OFF)
+# OPTION(ENABLE_EXT ...) — removed: deprecated ExtJS library
 OPTION(ENABLE_SQLITE "Build SQLite3 backend for Wt::Dbo" ON)
 OPTION(ENABLE_POSTGRES "Build PostgreSQL backend for Wt::Dbo" ON)
 OPTION(ENABLE_FIREBIRD "Build FirebirdSQL backend for Wt::Dbo" ON)
 OPTION(ENABLE_MYSQL "Build mariadb/mysql backend for Wt::Dbo" ON)
 OPTION(ENABLE_MSSQLSERVER "Build Microsoft SQL Server backend for Wt::Dbo" ON)
-OPTION(ENABLE_QT4 "Build Qt4 interworking library (libwtwithqt)" ON)
-OPTION(ENABLE_QT5 "Build Qt5 interworking library (libwtwithqt5)" ON)
+# OPTION(ENABLE_QT4 ...) — removed: Qt4 interworking
+# OPTION(ENABLE_QT5 ...) — removed: Qt5 interworking
 OPTION(ENABLE_SAML "Build built-in SAML service provider for Wt::Auth" OFF)
 OPTION(ENABLE_LIBWTTEST "Build Wt::Test" ON)
 OPTION(ENABLE_LIBWTDBO "Build Wt::Dbo" ON)
@@ -139,7 +138,7 @@ ELSE(WIN32)
   ENDIF()
 
   SET(RUNDIR "${CONFIG_PREFIX}/var/run/wt" CACHE PATH
-    "Default path for wt session management (only used by FCGI connector)")
+    "Default path for wt session management")
 
   IF(NOT DEFINED CONFIGDIR)
     SET(CONFIGDIR "${CONFIG_PREFIX}/etc/wt" CACHE STRING "Path for the configuration files")
@@ -179,8 +178,7 @@ ELSE(DEFINED BOOST_DIR)
     "Installation prefix of boost libraries")
 ENDIF(DEFINED BOOST_DIR)
 
-SET(FCGI_PREFIX ${USERLIB_PREFIX} CACHE PATH
-  "Installation prefix of fcgi library (overrides USERLIB_PREFIX)")
+# FCGI_PREFIX removed — FCGI connector no longer built
 SET(POSTGRES_PREFIX ${USERLIB_PREFIX} CACHE PATH
   "Installation prefix of postgresql library (overrides USERLIB_PREFIX)")
 SET(ODBC_PREFIX ${USERLIB_PREFIX} CACHE PATH
@@ -228,17 +226,11 @@ SET(WTHTTP_CONFIGURATION "${CONFIGDIR}/wthttpd" CACHE PATH "Path for the wthttpd
 
 SET(WEBUSER apache CACHE STRING "Webserver username (e.g. apache or www)")
 SET(WEBGROUP apache CACHE STRING "Webserver groupname (e.g. apache or www or users)")
-IF(WIN32)
-  SET(CONNECTOR_FCGI FALSE)
-  IF(NOT MINGW)
-    OPTION(CONNECTOR_ISAPI "Compile in ISAPI connector (libwtisapi) ?" ON)
-  ENDIF(NOT MINGW)
-ELSE(WIN32)
-  OPTION(CONNECTOR_FCGI "Compile in FCGI connector (libwtfcgi) ?" ON)
-  SET(CONNECTOR_ISAPI OFF)
-ENDIF(WIN32)
-OPTION(CONNECTOR_HTTP "Compile in stand-alone httpd connector (libwthttp) ?" ON)
-SET(EXAMPLES_CONNECTOR wthttp CACHE STRING "Connector used for examples")
+# Old connectors removed — replaced by cuehttp in libwhttp
+SET(CONNECTOR_FCGI FALSE)
+SET(CONNECTOR_ISAPI OFF)
+# CONNECTOR_HTTP is irrelevant: libwhttp is always built
+SET(EXAMPLES_CONNECTOR whttp CACHE STRING "Connector used for examples")
 
 include (CheckSymbolExists)
 
@@ -251,17 +243,16 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 find_package(Brotli COMPONENTS dec enc REQUIRED)
 
 
-INCLUDE(cmake/WtFindBoost.txt)
-INCLUDE(cmake/WtFindFcgi.txt)
-INCLUDE(cmake/WtFindMysql.txt)
-INCLUDE(cmake/WtFindPostgresql.txt)
-INCLUDE(cmake/WtFindOdbc.txt)
-INCLUDE(cmake/WtFindAsciidoc.txt)
-INCLUDE(cmake/WtFindHaru.txt)
-INCLUDE(cmake/WtFindGm.txt)
-INCLUDE(cmake/WtFindUring.txt)
-INCLUDE(cmake/WtFindLsQuic.txt)
-INCLUDE(cmake/WtFindNghttp2.cmake)
+include(cmake/WtFindBoost.cmake)
+include(cmake/WtFindMysql.cmake)
+include(cmake/WtFindPostgresql.cmake)
+include(cmake/WtFindOdbc.cmake)
+include(cmake/WtFindAsciidoc.cmake)
+include(cmake/WtFindHaru.cmake)
+include(cmake/WtFindGm.cmake)
+include(cmake/WtFindUring.cmake)
+include(cmake/WtFindLsQuic.cmake)
+include(cmake/WtFindNghttp2.cmake)
 #INCLUDE(cmake/FindBrotli.cmake)
 #INCLUDE(cmake/WtFindGL.txt)
 #INCLUDE(cmake/WtFindSkia.txt)
@@ -280,23 +271,17 @@ IF (ENABLE_SAML)
   endif()
 ENDIF (ENABLE_SAML)
 
-IF (ENABLE_UNWIND)
-  INCLUDE(cmake/WtFindUnwind.txt)
-ENDIF (ENABLE_UNWIND)
+if(ENABLE_UNWIND)
+  include(cmake/WtFindUnwind.cmake)
+endif()
 
-IF (ENABLE_PANGO)
-  INCLUDE(cmake/WtFindPangoFt2.txt)
-ENDIF (ENABLE_PANGO)
+if(ENABLE_PANGO)
+  include(cmake/WtFindPangoFt2.cmake)
+endif()
 
-INCLUDE(cmake/WtFindSystemLibraries.txt)
+include(cmake/WtFindSystemLibraries.cmake)
 
-IF(ENABLE_QT4)
-  FIND_PACKAGE(Qt4)
-
-  IF(QT_FOUND)
-    INCLUDE(${QT_USE_FILE})
-  ENDIF(QT_FOUND)
-ENDIF(ENABLE_QT4)
+# Qt4 interworking removed
 
 IF(ENABLE_URING)
   SET(HAVE_URING TRUE)
@@ -304,9 +289,7 @@ IF(ENABLE_URING)
 ENDIF(ENABLE_URING)
 
 
-IF(ENABLE_QT5)
-  FIND_PACKAGE(Qt5Core)
-ENDIF(ENABLE_QT5)
+# Qt5 interworking removed
 
 set(WT_THREAD_LIB "")
 IF(MULTI_THREADED)
@@ -332,7 +315,7 @@ IF(NOT BOOST_WT_FOUND)
       "library names (e.g.: gcc42)\n"
       "BOOST_VERSION: set to the boost version, again as you find them in "
       "the library names (e.g.: 1_38)\n\n"
-      "Note 1: the code to discover boost is located in cmake/WtFindBoost.txt\n"
+      "Note 1: the code to discover boost is located in cmake/WtFindBoost.cmake\n"
       "Note 2: on windows, set BOOST_PREFIX to the full path, eg "
       "c:/Program Files/boost/boost_1_65_1")
   MESSAGE(FATAL_ERROR ${ERR})
@@ -507,48 +490,102 @@ IF(APPLE)
   SET(CMAKE_MACOSX_RPATH TRUE)
 ENDIF(APPLE)
 
-SUBDIRS(src)
+# ---------------------------------------------------------------------------
+# Feature flags — must be set BEFORE add_subdirectory(src) so that module
+# cmake files (whttp, wt-core, wt-widgets) can use them.
+# ---------------------------------------------------------------------------
+IF(ENABLE_HARU AND HARU_FOUND)
+  SET(HAVE_HARU ON)
+  SET(WT_HAS_WPDFIMAGE true)
+ENDIF(ENABLE_HARU AND HARU_FOUND)
+
+IF(ENABLE_SSL AND OPENSSL_FOUND)
+  SET(HAVE_SSL ON)
+  SET(WT_WITH_SSL true)
+ENDIF(ENABLE_SSL AND OPENSSL_FOUND)
+
+IF(ENABLE_PANGO AND PANGO_FT2_FOUND)
+  SET(HAVE_PANGO ON)
+ENDIF(ENABLE_PANGO AND PANGO_FT2_FOUND)
+
+if(ENABLE_OPENGL AND OPENGL_FOUND AND GLEW_FOUND AND WT_HAS_WRASTERIMAGE)
+  set(WT_USE_OPENGL TRUE)
+endif()
+
+IF(ENABLE_UNWIND AND UNWIND_FOUND)
+  SET(HAVE_UNWIND ON)
+ENDIF(ENABLE_UNWIND AND UNWIND_FOUND)
+
+IF(ENABLE_HTTP2 AND NGHTTP2_FOUND)
+  SET(HAVE_NGHTTP2 ON)
+ENDIF(ENABLE_HTTP2 AND NGHTTP2_FOUND)
+
+IF(ENABLE_HTTP3 AND LSQUIC_FOUND)
+  message(STATUS "LSQUIC found")
+  SET(WT_HAS_LSQUIC TRUE)
+ENDIF(ENABLE_HTTP3 AND LSQUIC_FOUND)
+
+# ---------------------------------------------------------------------------
+# Compile time constants — configure_file BEFORE add_subdirectory(src)
+# so that WHttpConfig.h and WConfig.h are available to module cmake files.
+# ---------------------------------------------------------------------------
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Wt)
+
+# WHttpConfig.h — standalone HTTP config (used by whttp without pulling full WConfig)
+set(WHTTPCONFIG_H_PATH ${CMAKE_CURRENT_BINARY_DIR}/Wt/WHttpConfig.h)
+configure_file(
+  ${CMAKE_SOURCE_DIR}/WHttpConfig.h.in
+  ${WHTTPCONFIG_H_PATH}
+)
+install(FILES ${WHTTPCONFIG_H_PATH} DESTINATION include/Wt)
+
+# WConfig.h — full framework config (includes WHttpConfig.h)
+set(WCONFIG_H_PATH ${CMAKE_CURRENT_BINARY_DIR}/Wt/WConfig.h)
+configure_file(
+  ${CMAKE_SOURCE_DIR}/WConfig.h.in
+  ${WCONFIG_H_PATH}
+)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+install(FILES ${WCONFIG_H_PATH} DESTINATION include/Wt)
+
+add_subdirectory(src)
 
 # ── 2) add the wasm sub-project via ExternalProject ───────────────
-include(ExternalProject)
-find_program(EMCMAKE NAMES emcmake REQUIRED)
-ExternalProject_Add(
-  wasm_client
-  SOURCE_DIR   ${CMAKE_SOURCE_DIR}/Wasm
-  BINARY_DIR   ${CMAKE_BINARY_DIR}/build-wasm
-  CMAKE_ARGS  -GNinja
-              -DCMAKE_BUILD_TYPE=Release
-              -DCMAKE_TOOLCHAIN_FILE=$ENV{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
-              -DBUILD_SHARED_LIBS=OFF          # be explicit → static archive
-              -DBUILD_WASM=ON
-              -DCMAKE_C_FLAGS_INIT=-DWT_WASM  -Wno-deprecated-literal-operator -Wno-error=deprecated-literal-operator              #
-              -DCMAKE_CXX_FLAGS_INIT=-DWT_WASM  -Wno-deprecated-literal-operator -Wno-error=deprecated-literal-operator            #
-  BUILD_COMMAND  ${CMAKE_COMMAND} --build . --target WtWasm -j32
-  STEP_TARGETS   build                 # so 'make wasm_client-build' is available
-  ALL 1
-)
-# ── 3) add the wasm sub-project as a subdirectory just to show it in the ide (nnot compiled)─────────────────
-add_subdirectory(
-    Wasm                                 # ⬅ source dir you want to “see”
-    ${CMAKE_BINARY_DIR}/dummy-wasm       # ⬅ an arbitrary bin dir (keeps it tidy)
-    EXCLUDE_FROM_ALL                     # ⬅ **key flag**
-)
+# include(ExternalProject)
+# find_program(EMCMAKE NAMES emcmake REQUIRED)
+# ExternalProject_Add(
+#   wasm_client
+#   SOURCE_DIR   ${CMAKE_SOURCE_DIR}/Wasm
+#   BINARY_DIR   ${CMAKE_BINARY_DIR}/build-wasm
+#   CMAKE_ARGS  -GNinja
+#               -DCMAKE_BUILD_TYPE=Release
+#               -DCMAKE_TOOLCHAIN_FILE=$ENV{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+#               -DBUILD_SHARED_LIBS=OFF          # be explicit → static archive
+#               -DBUILD_WASM=ON
+#               -DCMAKE_C_FLAGS_INIT=-DWT_WASM  -Wno-deprecated-literal-operator -Wno-error=deprecated-literal-operator              #
+#               -DCMAKE_CXX_FLAGS_INIT=-DWT_WASM  -Wno-deprecated-literal-operator -Wno-error=deprecated-literal-operator            #
+#   BUILD_COMMAND  ${CMAKE_COMMAND} --build . --target WtWasm -j32
+#   STEP_TARGETS   build                 # so 'make wasm_client-build' is available
+#   ALL 1
+# )
+# # ── 3) add the wasm sub-project as a subdirectory just to show it in the ide (nnot compiled)─────────────────
+# add_subdirectory(
+#     Wasm                                 # ⬅ source dir you want to “see”
+#     ${CMAKE_BINARY_DIR}/dummy-wasm       # ⬅ an arbitrary bin dir (keeps it tidy)
+#     EXCLUDE_FROM_ALL                     # ⬅ **key flag**
+# )
 
-IF(BUILD_EXAMPLES)
-  IF(WIN32)
-    SUBDIRS(examples)
-  ELSE(WIN32)
-    IF (INSTALL_EXAMPLES)
-      SUBDIRS(examples)
-    ELSE (INSTALL_EXAMPLES)
-      SUBDIRS(EXCLUDE_FROM_ALL examples)
-    ENDIF (INSTALL_EXAMPLES)
-  ENDIF(WIN32)
-ENDIF(BUILD_EXAMPLES)
+if(BUILD_EXAMPLES)
+  if(WIN32 OR INSTALL_EXAMPLES)
+    add_subdirectory(examples)
+  else()
+    add_subdirectory(examples EXCLUDE_FROM_ALL)
+  endif()
+endif()
 
-IF(BUILD_TESTS)
-  SUBDIRS(test)
-ENDIF(BUILD_TESTS)
+if(BUILD_TESTS)
+  add_subdirectory(test)
+endif()
 
 IF(INSTALL_RESOURCES)
 INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/resources DESTINATION
@@ -578,49 +615,10 @@ IF(INSTALL_DOCUMENTATION)
 ENDIF(INSTALL_DOCUMENTATION)
 
 IF(NOT EXISTS ${CONFIGDIR}/wt_config.xml)
-  INSTALL(FILES ${WT_BINARY_DIR}/wt_config.xml DESTINATION ${CONFIGDIR})
+  INSTALL(FILES ${CMAKE_BINARY_DIR}/wt_config.xml DESTINATION ${CONFIGDIR})
 ENDIF (NOT EXISTS ${CONFIGDIR}/wt_config.xml)
 
-IF(ENABLE_HARU AND HARU_FOUND)
-  SET(HAVE_HARU ON)
-  SET(WT_HAS_WPDFIMAGE true)
-ENDIF(ENABLE_HARU AND HARU_FOUND)
-
-IF(ENABLE_SSL AND OPENSSL_FOUND)
-  SET(HAVE_SSL ON)
-  SET(WT_WITH_SSL true)
-ENDIF(ENABLE_SSL AND OPENSSL_FOUND)
-
-IF(ENABLE_PANGO AND PANGO_FT2_FOUND)
-  SET(HAVE_PANGO ON)
-ENDIF(ENABLE_PANGO AND PANGO_FT2_FOUND)
-
-if(ENABLE_OPENGL AND OPENGL_FOUND AND GLEW_FOUND AND WT_HAS_WRASTERIMAGE)
-  set(WT_USE_OPENGL TRUE)
-endif()
-
-IF(ENABLE_UNWIND AND UNWIND_FOUND)
-  SET(HAVE_UNWIND ON)
-ENDIF(ENABLE_UNWIND AND UNWIND_FOUND)
-
-IF(ENABLE_HTTP2 AND NGHTTP2_FOUND)
-  SET(HAVE_NGHTTP2 ON)
-ENDIF(ENABLE_HTTP2 AND NGHTTP2_FOUND)
-
-IF(ENABLE_HTTP3 AND LSQUIC_FOUND)
-message(STATUS "LSQUIC found")
-  SET(WT_HAS_LSQUIC TRUE)
-ENDIF(ENABLE_HTTP3 AND LSQUIC_FOUND)
-
-# Compile time constants & make sure our build finds it
-FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Wt)
-SET(WCONFIG_H_PATH ${CMAKE_CURRENT_BINARY_DIR}/Wt/WConfig.h)
-CONFIGURE_FILE(
-  ${WT_SOURCE_DIR}/WConfig.h.in
-  ${WCONFIG_H_PATH}
-)
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
-INSTALL_FILES(/include/Wt FILES ${WCONFIG_H_PATH})
+# Feature flags and configure_file already set above (before add_subdirectory(src))
 
 # include(FetchContent)
 
@@ -700,8 +698,8 @@ INSTALL_FILES(/include/Wt FILES ${WCONFIG_H_PATH})
 
 # Generate wt_config.xml from wt_config.xml.in
 CONFIGURE_FILE(
-  ${WT_SOURCE_DIR}/wt_config.xml.in
-  ${WT_BINARY_DIR}/wt_config.xml
+  ${CMAKE_SOURCE_DIR}/wt_config.xml.in
+  ${CMAKE_BINARY_DIR}/wt_config.xml
 )
 
 # CMake package configuration
@@ -718,18 +716,18 @@ ELSE()
   SET(_WTCONFIG_CMAKE_FIND_BOOST FALSE)
 ENDIF()
 CONFIGURE_FILE(
-  ${WT_SOURCE_DIR}/wt-config.cmake.in
-  ${WT_BINARY_DIR}/wt-config.cmake
+  ${CMAKE_SOURCE_DIR}/wt-config.cmake.in
+  ${CMAKE_BINARY_DIR}/wt-config.cmake
   @ONLY
 )
 UNSET(_WTCONFIG_CMAKE_FIND_BOOST)
 UNSET(_WTCONFIG_BOOST_STATIC)
 CONFIGURE_FILE(
-  ${WT_SOURCE_DIR}/wt-config-version.cmake.in
-  ${WT_BINARY_DIR}/wt-config-version.cmake
+  ${CMAKE_SOURCE_DIR}/wt-config-version.cmake.in
+  ${CMAKE_BINARY_DIR}/wt-config-version.cmake
   @ONLY
 )
 INSTALL(FILES
-  ${WT_BINARY_DIR}/wt-config.cmake
-  ${WT_BINARY_DIR}/wt-config-version.cmake
+  ${CMAKE_BINARY_DIR}/wt-config.cmake
+  ${CMAKE_BINARY_DIR}/wt-config-version.cmake
   DESTINATION ${CMAKE_INSTALL_DIR}/wt)

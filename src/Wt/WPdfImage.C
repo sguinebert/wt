@@ -757,7 +757,7 @@ void WPdfImage::handleRequest(const Http::Request& request, Http::Response& resp
 }
 #endif
 
-awaitable<void> WPdfImage::handleRequest(http::request &request, http::response &response)
+awaitable<void> WPdfImage::handleRequest(http::request &/*request*/, http::response &response)
 {
   HPDF_SaveToStream(pdf_);
 
@@ -773,7 +773,7 @@ awaitable<void> WPdfImage::handleRequest(http::request &request, http::response 
     if (siz == 0)
         break;
 
-    response.out().write((const char *)buf, siz);
+    response.write((char*)buf, siz);
   }
   co_return;
 }

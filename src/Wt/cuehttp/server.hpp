@@ -29,6 +29,7 @@
 #include <Wt/AsioWrapper/asio.hpp>
 #ifdef WT_WITH_SSL
 #include <Wt/AsioWrapper/ssl.hpp>
+#include <openssl/ssl.h>
 #endif // WT_WITH_SSL
 #include "context.hpp"
 #include "detail/connection.hpp"
@@ -105,13 +106,15 @@ protected:
     detail::engines* engine_ = nullptr;
 };
 
-template <typename _Socket = detail::http_socket>
-class server final : public base_server<_Socket, server<_Socket>>, safe_noncopyable {
+template <typename _Socket = detail::http_socket,
+          template<typename> class Connection = detail::connection>
+class server final : public base_server<_Socket, server<_Socket, Connection>>, safe_noncopyable {
+    using base_t = base_server<_Socket, server<_Socket, Connection>>;
 public:
     server() noexcept = default;
 
     explicit server(std::function<awaitable<void>(context&)> handler, detail::engines* engine) noexcept
-        : base_server<_Socket, server<_Socket>>{std::move(handler), engine} {
+        : base_t{std::move(handler), engine} {
     }
 
     server(server&& rhs) noexcept {
@@ -127,17 +130,17 @@ public:
 
     void swap(server& rhs) noexcept {
         if (this != std::addressof(rhs)) {
-            base_server<_Socket, server<_Socket>>::swap(rhs);
+            base_t::swap(rhs);
         }
     }
 
     void do_accept_real() {
-        auto connection =
-            std::make_shared<detail::connection<_Socket>>(this->handler_, this->engine_->get());
-        this->acceptor_->async_accept(connection->socket(), [this, connection](const boost::system::error_code& code) {
+        auto conn =
+            std::make_shared<Connection<_Socket>>(this->handler_, this->engine_->get());
+        this->acceptor_->async_accept(conn->socket(), [this, conn](const boost::system::error_code& code) {
             if (!code) {
-                connection->socket().set_option(asio::ip::tcp::no_delay{true});
-                connection->run();
+                conn->socket().set_option(asio::ip::tcp::no_delay{true});
+                conn->run();
             }
 
             this->do_accept();
@@ -241,30 +244,38 @@ public:
 //     return {cert_str, key_str};
 // }
 
-template <>
-class server<detail::https_socket> final : public base_server<detail::https_socket, server<detail::https_socket>>,
-                                           safe_noncopyable {
+template <template<typename> class Connection>
+class server<detail::https_socket, Connection> final
+    : public base_server<detail::https_socket, server<detail::https_socket, Connection>>,
+      safe_noncopyable {
+    using base_t = base_server<detail::https_socket, server<detail::https_socket, Connection>>;
 public:
     server(std::function<awaitable<void>(context&)> handler, detail::engines* engine, const std::string& key, const std::string& cert) noexcept
-        : base_server{std::move(handler), engine}, ssl_context_{asio::ssl::context::sslv23} {
+        : base_t{std::move(handler), engine}, ssl_context_{asio::ssl::context::sslv23} {
         if (!key.empty() && !cert.empty()) {
             try {
                 ssl_context_.use_certificate_chain_file(cert);
                 ssl_context_.use_private_key_file(key, asio::ssl::context::pem);
-                return;
             } catch (const boost::system::error_code& e) {
                 std::cerr << "Error setting up SSL context: " << e.what() << std::endl;
             }
         }
 
-        // If no files provided or loading failed, generate self-signed certificate
-        // try {
-        //     auto [cert_str, key_str] = generate_self_signed_cert();
-        //     ssl_context_.use_certificate_chain(asio::const_buffer(cert_str.data(), cert_str.size()));
-        //     ssl_context_.use_private_key(asio::const_buffer(key_str.data(), key_str.size()), asio::ssl::context::pem);
-        // } catch (const std::exception& e) {
-        //     throw std::runtime_error("Failed to generate self-signed certificate: " + std::string(e.what()));
-        // }
+        // Configure ALPN for HTTP/2 + HTTP/1.1 negotiation
+        SSL_CTX_set_alpn_select_cb(ssl_context_.native_handle(),
+            [](SSL*, const unsigned char** out, unsigned char* outlen,
+               const unsigned char* in, unsigned int inlen, void*) -> int {
+                // Prefer h2, fall back to http/1.1
+                static const unsigned char h2[]     = {2, 'h', '2'};
+                static const unsigned char http11[] = {8, 'h', 't', 't', 'p', '/', '1', '.', '1'};
+                if (SSL_select_next_proto(const_cast<unsigned char**>(out), outlen,
+                        h2, sizeof(h2), in, inlen) == OPENSSL_NPN_NEGOTIATED)
+                    return SSL_TLSEXT_ERR_OK;
+                if (SSL_select_next_proto(const_cast<unsigned char**>(out), outlen,
+                        http11, sizeof(http11), in, inlen) == OPENSSL_NPN_NEGOTIATED)
+                    return SSL_TLSEXT_ERR_OK;
+                return SSL_TLSEXT_ERR_NOACK;
+            }, nullptr);
     }
 
     server(server&& rhs) noexcept : ssl_context_{asio::ssl::context::sslv23} {
@@ -278,13 +289,13 @@ public:
 
     void swap(server& rhs) noexcept {
         if (this != std::addressof(rhs)) {
-            base_server::swap(rhs);
+            base_t::swap(rhs);
             std::swap(ssl_context_, rhs.ssl_context_);
         }
     }
 
     void do_accept_real() {
-        auto connector = std::make_shared<detail::connection<detail::https_socket>>(this->handler_, this->engine_->get(), ssl_context_);
+        auto connector = std::make_shared<Connection<detail::https_socket>>(this->handler_, this->engine_->get(), ssl_context_);
         this->acceptor_->async_accept(connector->socket(), [this, connector](const boost::system::error_code& code) {
             if (!code) {
                 connector->socket().set_option(asio::ip::tcp::no_delay{true});

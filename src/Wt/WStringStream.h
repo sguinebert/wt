@@ -109,8 +109,12 @@ public:
           std::memcpy(static_buf_, other.static_buf_, S_LEN + 1);
           buf_ = static_buf_;
       } else {
-          buf_ = static_buf_;
-          //other.buf_ = nullptr;
+        // On vole le pointeur du buffer dynamique
+        buf_ = other.buf_; 
+        
+        // On remet l'autre dans un état valide (pour son destructeur)
+        other.buf_ = other.static_buf_; 
+        other.buf_i_ = 0;
       }
       bufs_ = std::move(other.bufs_);
       other.bufs_.clear();

@@ -22,9 +22,10 @@
 
 #include <functional>
 #include <memory>
+#include <map>
 
 #include "cookies.hpp"
-#include "deps/json.hpp"
+#include <glaze/glaze.hpp>
 
 namespace Wt {
 namespace http {
@@ -106,16 +107,19 @@ class session final {
       return;
     }
 
-    auto json = to_json();
+    // Build serializable map with metadata
+    std::map<std::string, std::string> payload = datas_;
     if (options_.max_age == -1) {
-      json["_session"] = true;
+      payload["_session"] = "true";
     } else {
-      json["_max_age"] = options_.max_age;
-      json["_expire"] = options_.max_age + detail::utils::now();
+      payload["_max_age"] = std::to_string(options_.max_age);
+      payload["_expire"] = std::to_string(options_.max_age + detail::utils::now());
     }
 
+    auto json_str = glz::write_json(payload).value_or("");
+
     if (options_.store) {
-      options_.store.set(external_key_, json.dump(), options_.max_age);
+      options_.store.set(external_key_, json_str, options_.max_age);
       if (options_.external_key) {
         options_.external_key.set(context_, external_key_);
       } else {
@@ -125,7 +129,7 @@ class session final {
       }
       return;
     }
-    const auto value = detail::utils::base64_encode(json.dump());
+    const auto value = detail::utils::base64_encode(json_str);
     cookie::options options;
     options.max_age = options_.max_age;
     cookies_.set(options_.key, std::move(value), std::move(options));
@@ -171,35 +175,40 @@ class session final {
     }
   }
 
-  bool parse(std::string_view json) {
-    if (json.empty()) {
+  bool parse(std::string_view json_str) {
+    if (json_str.empty()) {
       return false;
     }
 
-    using namespace nlohmann;
-    const auto root = nlohmann::json::parse(json);
-    if (!root.empty() && root.count("_expire") == 1 && root["_expire"].get<std::int64_t>() < detail::utils::now()) {
+    std::map<std::string, std::string> root;
+    auto ec = glz::read_json(root, json_str);
+    if (ec) {
       return false;
     }
 
-    for (const auto& item : root.items()) {
-      if (item.key()[0] == '_') {
+    auto it = root.find("_expire");
+    if (it != root.end()) {
+      try {
+        if (std::stoll(it->second) < detail::utils::now()) {
+          return false;
+        }
+      } catch (...) {
+        return false;
+      }
+    }
+
+    for (const auto& [key, value] : root) {
+      if (key[0] == '_') {
         continue;
       }
-      datas_.emplace(item.key(), item.value());
+      datas_.emplace(key, value);
     }
     return true;
   }
 
-  nlohmann::json to_json() {
-    nlohmann::json root;
-    for (const auto& item : datas_) {
-      root[item.first] = item.second;
-    }
-    return root;
+  std::string to_string() {
+    return glz::write_json(datas_).value_or("");
   }
-
-  std::string to_string() { return to_json().dump(); }
 
   options options_;
   context& context_;

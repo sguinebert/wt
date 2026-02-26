@@ -1,0 +1,21 @@
+#ifndef WHTTPCONFIG_H
+#define WHTTPCONFIG_H
+
+// whttp standalone configuration
+// This header contains only the defines needed by libwhttp.so
+// It is also included by WConfig.h for backward compatibility.
+
+#cmakedefine WHTTP_STATIC
+#cmakedefine WT_WITH_SSL
+#cmakedefine WT_HAS_LSQUIC
+#cmakedefine WT_THREADED
+
+#cmakedefine WT_ASIO_IS_BOOST_ASIO
+#cmakedefine WT_ASIO_IS_STANDALONE_ASIO
+
+// our win32: WIN32 (gcc) or _WIN32 (MSC)
+#if defined(WIN32) || defined(_WIN32)
+#define WT_WIN32 1
+#endif
+
+#endif

@@ -555,7 +555,7 @@ namespace Wt
     //request_ = &request;
     auto& request = context->req();
 
-    auto session = context->websession();
+    auto session = context->user_session_as<WebSession>();
 
     auto& parameters = context->req().query();
 

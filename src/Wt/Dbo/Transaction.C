@@ -4,7 +4,6 @@
  * See the LICENSE file for terms of use.
  */
 
-#include <exception>
 #include <iostream>
 
 #include "Wt/Dbo/Exception.h"
@@ -34,52 +33,19 @@ Transaction::Transaction(Session& session)
   ++impl_->transactionCount_;
 }
 
-/*
- * About noexcept(false), see
- * http://akrzemi1.wordpress.com/2011/09/21/destructors-that-throw/
- */
-Transaction::~Transaction() noexcept(false)
+Transaction::~Transaction() noexcept
 {
-  // Either this Transaction shell was not committed (first condition)
-  // or the commit failed (we are still active and need to rollback)
-  if (!committed_ || impl_->needsRollback_) {
-    // A commit attempt failed (and thus we need to rollback) or we
-    // are unwinding a stack while an exception is thrown
-    if (impl_->needsRollback_ || std::uncaught_exceptions()) {
-      bool canThrow = std::uncaught_exceptions() == 0;
-      try {
-          impl_->rollback(true);
-      }
-      catch (...) {
-        release();
-        if (canThrow)
-          throw;
-      }
-    }
-    else {
-      try {
-        impl_->commit(true);
-      }
-      catch (...) {
-        try {
-          if (impl_->transactionCount_ == 1)
-            impl_->rollback(true);
-        }
-        catch (std::exception &e) {
-          LOG_ERROR("Unexpected exception during Transaction::rollback(): {}", e.what());
-          fmtlog::poll();
-        }
-        catch (...) {
-          LOG_ERROR("Unexpected exception during Transaction::rollback()");
-          fmtlog::poll();
-        }
+  if (!committed_ && impl_->active_) {
+    LOG_ERROR("Transaction destroyed without explicit co_await commit() — rolling back");
+    fmtlog::poll();
 
-        //release();
-        throw;
-      }
+    if (impl_->transactionCount_ == 1) {
+      impl_->rollback_detached(); // impl_ takes ownership of itself, will self-delete
+      return;                     // skip release() — impl_ manages its own lifetime now
     }
   }
-  //release();
+
+  release();
 }
 
 void Transaction::release()
@@ -94,21 +60,6 @@ void Transaction::release()
 bool Transaction::isActive() const
 {
   return impl_->active_;
-}
-
-bool Transaction::commit(bool)
-{
-  if (isActive()) {
-    committed_ = true;
-
-    if (impl_->transactionCount_ == 1) {
-      impl_->commit(true);
-
-      return true;
-    } else
-      return false;
-  }
-  return false;
 }
 
 awaitable<bool> Transaction::commit()
@@ -247,88 +198,32 @@ awaitable<void> Transaction::Impl::rollback()
   co_return;
 }
 
-void Transaction::Impl::commit(bool)
-{
-  needsRollback_ = true;
-  if (session_.flushMode() == FlushMode::Auto)
-    session_.flush([this] () {
-        try {
-            if (open_) {
-                co_spawn(connection_->get_executor(), connection_->commitTransaction(), [this] (auto &&ec) {
-                    --this->transactionCount_;
-
-                    if (this->transactionCount_ == 0){
-                        delete this;
-                    }
-                });
-                //transaction_->commit(cb);
-//                transaction_->commit([this, tr = transaction_] (auto &&res) {
-//                    --this->transactionCount_;
-
-//                    if (this->transactionCount_ == 0){
-//                        delete this;
-//                    }
-//                });
-            }
-        } catch (const std::exception& e) {
-            LOG_ERROR("Transaction::rollback(): {}", e.what());
-            fmtlog::poll();
-        }
-
-        for (unsigned i = 0; i < objects_.size(); ++i) {
-            objects_[i]->transactionDone(false);
-            delete objects_[i];
-        }
-
-        objects_.clear();
-
-        //session_.returnConnection(std::move(connection_));
-        connection_ = nullptr;
-        session_.transaction_ = nullptr;
-        active_ = false;
-
-    });
-
-}
-
-void Transaction::Impl::rollback(bool)
+// Called only when transactionCount_ == 1 — this Impl takes ownership of itself.
+// The caller (destructor) must NOT call release() afterwards.
+void Transaction::Impl::rollback_detached()
 {
   needsRollback_ = false;
-
-  try {
-    if (open_) {
-      co_spawn(connection_->get_executor(), connection_->rollbackTransaction(), [this] (auto &&ec) {
-          --this->transactionCount_;
-
-          if (this->transactionCount_ == 0){
-              delete this;
-          }
-      });
-//      transaction_->rollback([this, tr = transaction_] (auto &&res) {
-//          --this->transactionCount_;
-
-//          if (this->transactionCount_ == 0){
-//              delete this;
-//          }
-//      });
-    }
-  } catch (const std::exception& e) {
-    LOG_ERROR("Transaction::rollback(): {}", e.what());
-    fmtlog::poll();
-  }
 
   for (unsigned i = 0; i < objects_.size(); ++i) {
     objects_[i]->transactionDone(false);
     delete objects_[i];
   }
-
   objects_.clear();
 
-
-  //session_.returnConnection(std::move(connection_));
-  connection_ = nullptr;
-  session_.transaction_ = nullptr;
-  active_ = false;
+  if (open_) {
+    co_spawn(connection_->get_executor(), connection_->rollbackTransaction(),
+      [this](auto&&) {
+        connection_ = nullptr;
+        session_.transaction_ = nullptr;
+        active_ = false;
+        delete this;
+      });
+  } else {
+    connection_ = nullptr;
+    session_.transaction_ = nullptr;
+    active_ = false;
+    delete this;
+  }
 }
 
   }

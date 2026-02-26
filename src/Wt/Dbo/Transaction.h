@@ -21,49 +21,30 @@ class Session;
 class ptr_base;
 
 /*! \class Transaction Wt/Dbo/Transaction.h Wt/Dbo/Transaction.h
- *  \brief A database transaction. (use it with parcimony to do better concurrent SQL command [atomic by nature] execution - if you don't need several command to be executed alltogether or rollback don't use it)
- * 
- * This class implements a RAII transaction. Most dbo manipulations
- * require that a transaction is active, and database changes will not
- * be committed to the database until the active transaction is
- * committed. A transaction can be committed using commit(), but also
- * commits automatically when it is deleted while no exception is
- * being thrown (using std::uncaught_exception()). This means that it
- * is possible that the transaction destructor throws an exception in
- * case the transaction still needs to be committed, and the commit
- * fails. If the transaction is deleted because of stack unwinding while
- * an exception is thrown, then the transaction rolls back.
+ *  \brief A database transaction.
  *
- * A transaction is active until it is either committed or rolled
- * back. When a transaction is rolled back or fails, the modified
- * database objects are not successfully synchronized with the
- * database. A roll-back does not affect the value of the in memory
- * database objects, so they may possibly be synchronized later in a
- * new transaction or discarded using Session::rereadAll().
+ * This class implements a transaction with explicit async commit.
+ * The commit MUST be co_awaited explicitly. If the transaction is
+ * destroyed without a commit, it will rollback (fire-and-forget)
+ * and log an error.
  *
- * In most occasions you will want to guard any method that touches
- * the database using a transaction object on the stack.
- *
- * But you may create multiple (nested) transaction objects at the
- * same time: in this way you can guard a method with a transaction
- * object even if it is called from another method which also defines
- * a transaction at a wider scope. Nested transactions act in
- * concert and reference the same logical transaction: the logical
- * transaction will fail if at least one transaction fails, and will
- * be committed only if all transactions are committed.
- *
- * Usage example:
+ * Usage example (style A — explicit commit):
  * \code
- * void doSomething(Wt::Dbo::Session& session)
+ * awaitable<void> doSomething(Wt::Dbo::Session& session)
  * {
- *   Wt::Dbo::Transaction transaction(session);
- *
- *   Wt::Dbo::ptr<Account> a = session.load<Account>(42);
- *   ...
- *
- *   // the transaction will roll back if an exception is thrown, or
- *   // commit otherwise
+ *   auto t = co_await session.transaction();
+ *   auto a = co_await session.load<Account>(42);
+ *   // ...
+ *   co_await t.commit();
  * }
+ * \endcode
+ *
+ * Usage example (style B — with_transaction wrapper):
+ * \code
+ * co_await session.with_transaction([&]() -> awaitable<void> {
+ *   auto a = co_await session.load<Account>(42);
+ *   // ... commit is automatic
+ * });
  * \endcode
  *
  * \ingroup dbo
@@ -82,9 +63,10 @@ public:
 
   /*! \brief Destructor.
    *
-   * If the transaction is still active, it is rolled back.
+   * If the transaction is still active, it is rolled back
+   * (fire-and-forget) and an error is logged.
    */
-  virtual ~Transaction() noexcept(false);
+  ~Transaction() noexcept;
 
   // Transactions are not copyable
 //  Transaction(const Transaction&) = delete;
@@ -114,7 +96,7 @@ public:
    *
    * \sa rollback()
    */
-  awaitable<bool> commit();
+  [[nodiscard]] awaitable<bool> commit();
 
   /*! \brief Rolls back the transaction.
    *
@@ -136,8 +118,6 @@ public:
   awaitable<SqlConnection *> connection() const;
 
 private:
-  bool commit(bool);
-  bool rollback(bool);
   struct Impl {
     Session& session_;
     bool active_;
@@ -147,15 +127,12 @@ private:
     int transactionCount_;
     std::vector<ptr_base *> objects_;
 
-    //std::unique_ptr<SqlConnection> connection_;
     SqlConnection* connection_ = nullptr;
 
     awaitable<void> open();
     awaitable<void> commit();
     awaitable<void> rollback();
-    //void open(std::function<void()> cb);
-    void commit(bool);
-    void rollback(bool);
+    void rollback_detached();
 
     Impl(Session& session_);
     awaitable<void> assign_connection();

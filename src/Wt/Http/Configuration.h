@@ -18,15 +18,16 @@
 #include "Wt/WDllDefs.h"
 
 
+#include <Wt/CLI11.hpp>
 
-namespace boost {
-  namespace program_options {
-    class variables_map;
-  class options_description;
-  }
-}
+// namespace boost {
+//   namespace program_options {
+//     class variables_map;
+//   class options_description;
+//   }
+// }
 
-namespace po = boost::program_options;
+// namespace po = boost::program_options;
 
 namespace Wt {
   class WLogger;
@@ -180,13 +181,21 @@ private:
 
   SslPasswordCallback sslPasswordCallback_;
 
-  void createOptions(po::options_description& options,
-                     po::options_description& visible_options);
-  void readOptions(const po::variables_map& vm);
 
-  void checkPath(const po::variables_map& vm,
-                 std::string varName, std::string varDescription,
-                 std::string& result, int options);
+  // nouvelle version basée sur CLI11
+  void createOptions(CLI::App &app,
+                     bool &noCompressionFlag,
+                     bool &gdbFlag);
+  void readOptions();
+
+
+  // void createOptions(po::options_description& options,
+  //                    po::options_description& visible_options);
+  // void readOptions(const po::variables_map& vm);
+
+  // void checkPath(const po::variables_map& vm,
+  //                std::string varName, std::string varDescription,
+  //                std::string& result, int options);
 
   void checkPath(std::string& result, std::string varDescription, int options);
 

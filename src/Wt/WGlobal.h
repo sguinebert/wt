@@ -317,7 +317,7 @@ namespace Wt {
     class Request;
     class Response;
     class ResponseContinuation;
-    class UploadedFile;
+    // UploadedFile is a using alias for Wt::http::UploadedFile (see Http/Request.h)
     class WtClient;
   }
 

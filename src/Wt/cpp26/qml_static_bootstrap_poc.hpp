@@ -34,9 +34,73 @@ struct StaticWidgetNode {
   std::span<const StaticWidgetNode> children{};
 };
 
+struct RuntimeBootstrapConfig {
+  std::string_view runtimeManifestUrl{"/js/static/qml-static-manifest.json"};
+  std::string_view actionEndpoint{"/_wt/action"};
+  std::string_view configScriptId{"wt-qml-static-config"};
+};
+
 [[nodiscard]] inline WString utf8(std::string_view value)
 {
   return WString::fromUTF8(std::string{value});
+}
+
+[[nodiscard]] inline std::string escape_html(std::string_view input)
+{
+  std::string out;
+  out.reserve(input.size());
+  for (const char c : input) {
+    switch (c) {
+    case '&':
+      out += "&amp;";
+      break;
+    case '"':
+      out += "&quot;";
+      break;
+    case '\'':
+      out += "&#39;";
+      break;
+    case '<':
+      out += "&lt;";
+      break;
+    case '>':
+      out += "&gt;";
+      break;
+    default:
+      out.push_back(c);
+      break;
+    }
+  }
+  return out;
+}
+
+[[nodiscard]] inline std::string escape_json_string(std::string_view input)
+{
+  std::string out;
+  out.reserve(input.size() + 8);
+  for (const char c : input) {
+    switch (c) {
+    case '\\':
+      out += "\\\\";
+      break;
+    case '"':
+      out += "\\\"";
+      break;
+    case '\n':
+      out += "\\n";
+      break;
+    case '\r':
+      out += "\\r";
+      break;
+    case '\t':
+      out += "\\t";
+      break;
+    default:
+      out.push_back(c);
+      break;
+    }
+  }
+  return out;
 }
 
 inline void apply_common_props(WWidget& widget, const WidgetProps& props)
@@ -87,6 +151,46 @@ inline void apply_common_props(WWidget& widget, const WidgetProps& props)
   }
 
   return std::unique_ptr<WContainerWidget>{static_cast<WContainerWidget*>(widget.release())};
+}
+
+[[nodiscard]] inline std::string build_runtime_config_script_tag(const RuntimeBootstrapConfig& config = {})
+{
+  const std::string id = escape_html(config.configScriptId);
+  const std::string endpoint = escape_json_string(config.actionEndpoint);
+
+  std::string out;
+  out.reserve(id.size() + endpoint.size() + 96);
+  out += "<script id=\"";
+  out += id;
+  out += "\" type=\"application/json\">";
+  out += "{\"actionEndpoint\":\"";
+  out += endpoint;
+  out += "\"}";
+  out += "</script>";
+  return out;
+}
+
+[[nodiscard]] inline std::string build_runtime_loader_script_tag(const RuntimeBootstrapConfig& config = {})
+{
+  const std::string manifest = escape_html(config.runtimeManifestUrl);
+
+  std::string out;
+  out.reserve(manifest.size() + 196);
+  out += "<script type=\"module\">";
+  out += "const m=await fetch(\"";
+  out += manifest;
+  out += "\",{cache:\"no-cache\"}).then(r=>r.json());";
+  out += "await import(m.runtime);";
+  out += "</script>";
+  return out;
+}
+
+[[nodiscard]] inline std::string build_runtime_bootstrap_html(const RuntimeBootstrapConfig& config = {})
+{
+  std::string out = build_runtime_config_script_tag(config);
+  out += '\n';
+  out += build_runtime_loader_script_tag(config);
+  return out;
 }
 
 // Example of a "QML compiled" static C++ tree.

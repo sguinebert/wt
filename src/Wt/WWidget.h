@@ -24,7 +24,7 @@
 #include <type_traits>
 #endif // WT_TARGET_JAVA
 
-#include <Wt/cpp26/reflection.hpp>
+//#include <Wt/cpp26/reflection.hpp>
 
 namespace Wt {
 
@@ -1440,8 +1440,9 @@ protected:
 
   bool isComposite_ = false;
 
-  void registerWidget(DomElement& domElement);
-  void registerWidget(WWidget* widget);
+  //experimental
+  // void registerWidget(DomElement& domElement);
+  // void registerWidget(WWidget* widget);
 
 private:
   /*

@@ -1079,7 +1079,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
 
   //std::cerr << "sessionId : " << sessionId << std::endl;
 
-  std::shared_ptr<WebSession> session = context->websession();
+  std::shared_ptr<WebSession> session = context->user_session_as<WebSession>();
   //if(!session || sessionId.empty())
   {
 
@@ -1109,7 +1109,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
 #ifdef BOOST_CONCURENT_MAP
     auto size = sessions_.visit(sessionId, [&](auto& it){
         session = it.second;
-        context->websession(session);
+        context->user_session(session);
     });
     Configuration::SessionTracking sessionTracking = configuration().sessionTracking();
 
@@ -1180,7 +1180,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
             //        });
 
             sessions_.emplace(sessionId, session);
-            context->websession(session);
+            context->user_session(session);
             ++plainHtmlSessions_;
 
             if (server_.dedicatedSessionProcess()) {
@@ -1271,7 +1271,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
             //        });
 
             sessions_[sessionId] = session;
-            context->websession(session);
+            context->user_session(session);
             ++plainHtmlSessions_;
 
             if (server_.dedicatedSessionProcess()) {
@@ -1285,7 +1285,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
         }
     } else {
         session = si->second;
-        context->websession(session);
+        context->user_session(session);
     }
 #endif
   }
@@ -1347,7 +1347,7 @@ awaitable<void> WebController::handleRequest(Wt::http::context *context, EntryPo
 awaitable<void> WebController::handleWebSocketMessage(http::context *context, EntryPoint *entryPoint, std::string &message)
 {
 
-  auto lock = context->websession();
+  auto lock = context->user_session_as<WebSession>();
   auto websocket = context->websocket_ptr();
 
   bool closing = message.length() == 0;

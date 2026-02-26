@@ -35,7 +35,6 @@ enum class LimitQuery{
 };
 
 }
-
 }
 
 #ifdef WT_WIN32

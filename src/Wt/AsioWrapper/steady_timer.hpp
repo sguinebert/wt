@@ -7,7 +7,7 @@
 #ifndef WT_ASIO_STEADY_TIMER_H_
 #define WT_ASIO_STEADY_TIMER_H_
 
-#include "Wt/WConfig.h"
+#include "Wt/WHttpConfig.h"
 
 #ifdef WT_ASIO_IS_BOOST_ASIO
 

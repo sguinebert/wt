@@ -28,6 +28,14 @@ SOFTWARE.
 #define _ANY_INVOKABLE_H_
 
 #include <functional>
+#if __has_include(<version>)
+#  include <version>
+#endif
+#if defined(__cpp_lib_move_only_function) && __cpp_lib_move_only_function >= 202110L
+#define WT_HAS_STD_MOVE_ONLY_FUNCTION 1
+#else
+#define WT_HAS_STD_MOVE_ONLY_FUNCTION 0
+#endif
 // clang-format off
 /*
 namespace std {
@@ -74,7 +82,7 @@ namespace std {
 }
 */
 // clang-format on
-#if __cplusplus < 202002L || defined(__EMSCRIPTEN__)
+#if !WT_HAS_STD_MOVE_ONLY_FUNCTION
 #include <memory>
 #include <type_traits>
 namespace ofats {
@@ -371,7 +379,7 @@ __OFATS_ANY_INVOCABLE(const, &&, true, const&&)   // 121
 /* We define our own type */
 namespace Wt {
 namespace cpp23 {
-#if __cplusplus >= 202002L && !defined(__EMSCRIPTEN__)
+#if WT_HAS_STD_MOVE_ONLY_FUNCTION // __cplusplus >= 202002L && !defined(__EMSCRIPTEN__)
     template <class T>
     using move_only_function = std::move_only_function<T>;
 #else

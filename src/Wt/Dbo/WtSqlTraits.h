@@ -107,11 +107,7 @@ struct sql_value_traits<Json::Array, void>
 inline const char *sql_value_traits<WDate, void>::type(SqlConnection *conn,
 						       int /* size */)
 {
-#ifndef VARIANT
   return conn->dateTimeType(SqlDateTimeType::Date);
-#else
-  return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::Date); }, *conn);
-#endif
 }
 
 inline void sql_value_traits<WDate, void>
@@ -144,11 +140,7 @@ inline bool sql_value_traits<WDate, void>
 inline const char *sql_value_traits<WTime, void>::type(SqlConnection *conn,
 						       int /* size */)
 {
-#ifndef VARIANT
   return conn->dateTimeType(SqlDateTimeType::Time);
-#else
-  return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::Time); }, *conn);
-#endif
 }
 
 inline void sql_value_traits<WTime, void>
@@ -187,11 +179,7 @@ inline bool sql_value_traits<WTime, void>
 inline const char *sql_value_traits<WDateTime, void>::type(SqlConnection *conn,
 							   int /* size */)
 {
-#ifndef VARIANT
  return conn->dateTimeType(SqlDateTimeType::DateTime);
-#else
-  return std::visit([] (auto& conn) -> const char* { return conn.dateTimeType(SqlDateTimeType::DateTime); }, *conn);
-#endif
 }
 
 inline void sql_value_traits<WDateTime, void>
@@ -224,13 +212,7 @@ inline bool sql_value_traits<WDateTime, void>
 inline std::string sql_value_traits<WString, void>::type(SqlConnection *conn,
 							 int size)
 {
-#ifndef VARIANT
   return conn->textType(size) + " not null";
-#else
-  return std::visit([&] (auto& conn) -> std::string { return conn.textType(size); }, *conn) + " not null";
-#endif
-
-  //
 }
 
 inline void sql_value_traits<WString, void>
@@ -258,11 +240,7 @@ inline bool sql_value_traits<WString, void>
 
 inline std::string sql_value_traits<Json::Object, void>::type(SqlConnection *conn, int size)
 {
-#ifndef VARIANT
   return conn->textType(size) + " not null";
-#else
-  return std::visit([&] (auto& conn) -> std::string { return conn.textType(size); }, *conn) + " not null";
-#endif
 }
 
 inline void sql_value_traits<Json::Object, void>
@@ -290,11 +268,7 @@ inline bool sql_value_traits<Json::Object, void>
 
 inline std::string sql_value_traits<Json::Array, void>::type(SqlConnection *conn, int size)
 {
-#ifndef VARIANT
   return conn->textType(size) + " not null";
-#else
-  return std::visit([&] (auto& conn) -> std::string { return conn.textType(size); }, *conn) + " not null";
-#endif
 }
 
 inline void sql_value_traits<Json::Array, void>

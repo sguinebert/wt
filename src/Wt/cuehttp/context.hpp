@@ -30,8 +30,6 @@
 #include "websocket.hpp"
 #include "detail/MoveOnlyFunction.hpp"
 
-#include <Wt/Http/Request.h>
-
 
 namespace Wt {
 namespace http {
@@ -223,10 +221,6 @@ class context final : safe_noncopyable {
   auto out() { return response_.out(); }
   fmt::memory_buffer& buffer() { return response_.buffer(); }
 
-  //deprecated
-  std::ostream &outstd() { return response_.outstd(); }
-  std::ostream& bodystd() { return response_.outstd(); }
-
   void reset() {
     flush_ = false;
     static_reply_ = std::string_view();
@@ -263,8 +257,11 @@ class context final : safe_noncopyable {
     writecallback_ = nullptr;
   }
 
-  std::shared_ptr<Wt::WebSession> websession() { return websession_; }
-  void websession(std::shared_ptr<Wt::WebSession> wsession) { websession_ = wsession; }
+  std::shared_ptr<void> user_session() { return user_session_; }
+  void user_session(std::shared_ptr<void> session) { user_session_ = session; }
+
+  template<typename T>
+  std::shared_ptr<T> user_session_as() { return std::static_pointer_cast<T>(user_session_); }
 
   bool flush_ = false;
   ::int64_t postDataExceeded() noexcept { return request_.postDataExceeded_; }
@@ -284,11 +281,9 @@ class context final : safe_noncopyable {
   std::shared_ptr<class websocket> websocket_{nullptr};
   detail::ws_send_handler ws_send_handler_;
   std::unique_ptr<class session> session_{nullptr};
-  std::shared_ptr<Wt::WebSession> websession_;
+  std::shared_ptr<void> user_session_;
 
   Wt::cpp23::move_only_function<void()> writecallback_ = nullptr;
-
-  friend class detail::stream;
 };
 
 }  // namespace http

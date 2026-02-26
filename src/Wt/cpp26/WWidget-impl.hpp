@@ -12,22 +12,22 @@ void WWidget::declare() {
     });
 }
 
-void registerWidget(DomElement& domElement){
-#ifdef USE_CPP26_REFLECTION
-    Wt::cpp26::dispatch(*this, []template <class T>(T& args) {
-        std::cout << "In global namespace: " << std::meta::identifier_of(^^T) << std::endl;
-        domElement.setAttribute("data-wt", std::meta::identifier_of(^^T));
-    });
-#endif
-}
-void registerWidget(WWidget* widget){
-#ifdef USE_CPP26_REFLECTION
-    Wt::cpp26::dispatch(*this, []template <class T>(T& args) {
-        std::cout << "In global namespace: " << std::meta::identifier_of(^^T) << std::endl;
-        domElement.setAttribute("data-wt", std::meta::identifier_of(^^T));
-    });
-#endif
-}
+// void registerWidget(DomElement& domElement){
+// #ifdef USE_CPP26_REFLECTION
+//     Wt::cpp26::dispatch(*this, []template <class T>(T& args) {
+//         std::cout << "In global namespace: " << std::meta::identifier_of(^^T) << std::endl;
+//         domElement.setAttribute("data-wt", std::meta::identifier_of(^^T));
+//     });
+// #endif
+// }
+// void registerWidget(WWidget* widget){
+// #ifdef USE_CPP26_REFLECTION
+//     Wt::cpp26::dispatch(*this, []template <class T>(T& args) {
+//         std::cout << "In global namespace: " << std::meta::identifier_of(^^T) << std::endl;
+//         domElement.setAttribute("data-wt", std::meta::identifier_of(^^T));
+//     });
+// #endif
+// }
 }
 
 namespace glz {

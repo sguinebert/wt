@@ -7,7 +7,7 @@
 #ifndef WT_ASIO_SSL_H_
 #define WT_ASIO_SSL_H_
 
-#include "Wt/WConfig.h"
+#include "Wt/WHttpConfig.h"
 
 #include <openssl/opensslv.h>
 

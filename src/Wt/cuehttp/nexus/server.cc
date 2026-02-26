@@ -139,6 +139,11 @@ void acceptor::close()
   impl.close();
 }
 
+server_connection::executor_type server_connection::get_executor() const
+{
+  return impl.get_executor();
+}
+
 bool server_connection::is_open() const
 {
   return impl.is_open();

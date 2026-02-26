@@ -3,286 +3,286 @@
  * Copyright (C) 2025 Sylvain Guinebert, Paris, France. LICENSE MIT
  * WebSharp cxx26 library, a Wt fork and rewrite for sub-stateless web applications.
  */
-#ifdef WT_WASM
-#ifndef WSERVER_H_
-#define WSERVER_H_
-#include <emscripten.h>
-#include <emscripten/fetch.h>
-#include <emscripten/val.h>
-#include <emscripten/bind.h>
-#include <Wt/AsioWrapper/asio.hpp>
+// #ifdef WT_WASM
+// #ifndef WSERVER_H_
+// #define WSERVER_H_
+// #include <emscripten.h>
+// #include <emscripten/fetch.h>
+// #include <emscripten/val.h>
+// #include <emscripten/bind.h>
+// #include <Wt/AsioWrapper/asio.hpp>
 
-#include <Wt/Configuration.h>
+// #include <Wt/Configuration.h>
 
-using namespace emscripten;
-namespace Wt {
+// using namespace emscripten;
+// namespace Wt {
 
-class WResource;
-class WLocalizedStrings;
-class WException;
-class WLogSink;
-class WebController;
-typedef boost::asio::io_context WIOService;
+// class WResource;
+// class WLocalizedStrings;
+// class WException;
+// class WLogSink;
+// class WebController;
+// typedef boost::asio::io_context WIOService;
 
-//WServer is just a wrapper for a single threaded asio loop (to run Wt applications in a client environment)
-class WServer
-{
-public:
-    class Exception : public WException
-    {
-    public:
-        Exception(const std::string& what): WException(what) {}
-    };
+// //WServer is just a wrapper for a single threaded asio loop (to run Wt applications in a client environment)
+// class WServer
+// {
+// public:
+//     class Exception : public WException
+//     {
+//     public:
+//         Exception(const std::string& what): WException(what) {}
+//     };
 
-    struct SessionInfo
-    {
-        int64_t     processId; //!< The process id of the process the session is running in.
-        std::string sessionId; //!< The session id.
-    };
-public:
-    WServer() {}
-    WServer(const std::string& wtApplicationPath = std::string(),
-            const std::string& wtConfigurationFile = std::string())
-    {
-    }
-    WServer(const WServer &) = delete;
-    virtual ~WServer()
-    {
-        try {
-            stop();
-        } catch (...) {
-            //LOG_ERROR("~WServer: oops, stop() threw exception!");
-        }
-        //destroy();
-    }
+//     struct SessionInfo
+//     {
+//         int64_t     processId; //!< The process id of the process the session is running in.
+//         std::string sessionId; //!< The session id.
+//     };
+// public:
+//     WServer() {}
+//     WServer(const std::string& wtApplicationPath = std::string(),
+//             const std::string& wtConfigurationFile = std::string())
+//     {
+//     }
+//     WServer(const WServer &) = delete;
+//     virtual ~WServer()
+//     {
+//         try {
+//             stop();
+//         } catch (...) {
+//             //LOG_ERROR("~WServer: oops, stop() threw exception!");
+//         }
+//         //destroy();
+//     }
 
-    void run()
-    {
-        if (start()) {
-            waitForShutdown();
-            stop();
-        }
-    }
-    static void restart(int argc, char **argv, char **envp) { /* no-op */ }
+//     void run()
+//     {
+//         if (start()) {
+//             waitForShutdown();
+//             stop();
+//         }
+//     }
+//     static void restart(int argc, char **argv, char **envp) { /* no-op */ }
 
-    static void restart(const std::string &applicationPath,
-                        const std::vector<std::string> &args) { /* no-op */ }
+//     static void restart(const std::string &applicationPath,
+//                         const std::vector<std::string> &args) { /* no-op */ }
 
-    int httpPort() const { return 0; }
+//     int httpPort() const { return 0; }
 
-    void setAppRoot(const std::string& path) {
-        appRoot_ = path;
-        if (configuration_)
-            configuration_->setAppRoot(path);
-    }
+//     void setAppRoot(const std::string& path) {
+//         appRoot_ = path;
+//         if (configuration_)
+//             configuration_->setAppRoot(path);
+//     }
 
-    std::string_view appRoot() const {  return const_cast<WServer *>(this)->configuration().appRoot(); }
+//     std::string_view appRoot() const {  return const_cast<WServer *>(this)->configuration().appRoot(); }
 
-    std::string docRoot() const
-    {
-        return "";
-    }
+//     std::string docRoot() const
+//     {
+//         return "";
+//     }
 
-    void setIOService(WIOService& ioService)
-    {
-        /* no-op */
-    }
+//     void setIOService(WIOService& ioService)
+//     {
+//         /* no-op */
+//     }
 
-    WIOService& ioService()
-    {
-        return io_context;
-    }
+//     WIOService& ioService()
+//     {
+//         return io_context;
+//     }
 
-    static WServer *instance() { return instance_; }
+//     static WServer *instance() { return instance_; }
 
-    void addResource(WResource *resource, const std::string& path) {/* no-op */}
-    void removeResource(WResource *resource)
-    {
-        //LOG_ERROR("removeResource(): not implemented in WServer");
-    }
-    void post(const std::string& sessionId,
-              const std::function<void ()>& function,
-              const std::function<void ()>& fallBackFunction
-              = std::function<void ()>()) { /* no-op */}
+//     void addResource(WResource *resource, const std::string& path) {/* no-op */}
+//     void removeResource(WResource *resource)
+//     {
+//         //LOG_ERROR("removeResource(): not implemented in WServer");
+//     }
+//     void post(const std::string& sessionId,
+//               const std::function<void ()>& function,
+//               const std::function<void ()>& fallBackFunction
+//               = std::function<void ()>()) { /* no-op */}
 
-    void postAll(const std::function<void ()>& function){ /* no-op */}
+//     void postAll(const std::function<void ()>& function){ /* no-op */}
 
-    void schedule(std::chrono::steady_clock::duration duration,
-                  const std::string& sessionId,
-                  const std::function<void ()>& function,
-                  const std::function<void ()>& fallBackFunction
-                  = std::function<void ()>()){ /* no-op */}
+//     void schedule(std::chrono::steady_clock::duration duration,
+//                   const std::string& sessionId,
+//                   const std::function<void ()>& function,
+//                   const std::function<void ()>& fallBackFunction
+//                   = std::function<void ()>()){ /* no-op */}
 
-    void setSslPasswordCallback(const auto& cb)
-    {
-        /*no-op*/
-    }
+//     void setSslPasswordCallback(const auto& cb)
+//     {
+//         /*no-op*/
+//     }
 
-    bool readConfigurationProperty(const std::string& name,
-                                   std::string& value) const {
-        WServer *self = const_cast<WServer *>(this);
-        return self->configuration().readConfigurationProperty(name, value);
-    }
+//     bool readConfigurationProperty(const std::string& name,
+//                                    std::string& value) const {
+//         WServer *self = const_cast<WServer *>(this);
+//         return self->configuration().readConfigurationProperty(name, value);
+//     }
 
-    void setLocalizedStrings(const std::shared_ptr<WLocalizedStrings>& stringResolver)
-    {  localizedStrings_ = stringResolver; }
+//     void setLocalizedStrings(const std::shared_ptr<WLocalizedStrings>& stringResolver)
+//     {  localizedStrings_ = stringResolver; }
 
 
-    std::shared_ptr<WLocalizedStrings> localizedStrings() const {  return localizedStrings_; }
+//     std::shared_ptr<WLocalizedStrings> localizedStrings() const {  return localizedStrings_; }
 
-    std::vector<SessionInfo> sessions() const { return std::vector<WServer::SessionInfo>();}
+//     std::vector<SessionInfo> sessions() const { return std::vector<WServer::SessionInfo>();}
 
-    void updateProcessSessionId(const std::string& sessionId) {/*no-op*/ }
+//     void updateProcessSessionId(const std::string& sessionId) {/*no-op*/ }
 
-    //WLogger& logger();
+//     //WLogger& logger();
 
-    void setCustomLogger(const WLogSink &customLogger) {  /*no-op*/ }
+//     void setCustomLogger(const WLogSink &customLogger) {  /*no-op*/ }
 
-    const WLogSink * customLogger() const { return nullptr;}
+//     const WLogSink * customLogger() const { return nullptr;}
 
-    WLogEntry log(const std::string& type) const { /*no-op*/ }
+//     WLogEntry log(const std::string& type) const { /*no-op*/ }
 
-    void initLogger(const std::string& logFile, const std::string& logConfig){ /*no-op*/ }
+//     void initLogger(const std::string& logFile, const std::string& logConfig){ /*no-op*/ }
 
-    WT_API bool dedicatedSessionProcess() const {return false;}
+//     WT_API bool dedicatedSessionProcess() const {return false;}
 
-    WT_API awaitable<bool> expireSessions() {co_return false;}
+//     WT_API awaitable<bool> expireSessions() {co_return false;}
 
-    WT_API Configuration& configuration() {
-        if (!configuration_) {
-            configuration_ = new Configuration("", "", "", this);
-        }
-        return *configuration_;
-    }
+//     WT_API Configuration& configuration(){
+//         if (!configuration_) {
+//             configuration_ = new Configuration("", "", "", this);
+//         }
+//         return *configuration_;
+//     }
 
-    WT_API WebController *controller() {return nullptr;}
+//     WT_API WebController *controller() {return nullptr;}
 
-    WT_API void scheduleStop() { }
-    template<typename CompletionToken>
-    auto async_fetch(std::string url, CompletionToken&& token)
-    {
-        // Signature: void(boost::system::error_code, std::string)
-        return boost::asio::async_initiate<CompletionToken,
-                                           void(boost::system::error_code, std::string)>(
-            [url = std::move(url)](auto&& completion_handler) mutable {
-                using Handler   = std::decay_t<decltype(completion_handler)>;
-                using Executor  = typename boost::asio::associated_executor<Handler>::type;
+//     WT_API void scheduleStop() { }
+//     template<typename CompletionToken>
+//     auto async_fetch(std::string url, CompletionToken&& token)
+//     {
+//         // Signature: void(boost::system::error_code, std::string)
+//         return boost::asio::async_initiate<CompletionToken,
+//                                            void(boost::system::error_code, std::string)>(
+//             [url = std::move(url)](auto&& completion_handler) mutable {
+//                 using Handler   = std::decay_t<decltype(completion_handler)>;
+//                 using Executor  = typename boost::asio::associated_executor<Handler>::type;
 
-                // Grab the executor associated with the handler:
-                Executor ex = boost::asio::get_associated_executor(completion_handler);
+//                 // Grab the executor associated with the handler:
+//                 Executor ex = boost::asio::get_associated_executor(completion_handler);
 
-                // Shared state lives until success or error callback runs:
-                struct State {
-                    std::string url;
-                    Handler     handler;
-                    Executor    executor;
-                    std::shared_ptr<State> self;
-                };
-                auto state = std::make_shared<State>(
-                    State{ std::move(url),
-                          std::forward<decltype(completion_handler)>(completion_handler),
-                          ex });
-                state->self = state; // Keep the object alive via self-reference
-                // auto state = new
-                //     State{ std::move(url),
-                //           std::forward<decltype(completion_handler)>(completion_handler),
-                //           ex };
+//                 // Shared state lives until success or error callback runs:
+//                 struct State {
+//                     std::string url;
+//                     Handler     handler;
+//                     Executor    executor;
+//                     std::shared_ptr<State> self;
+//                 };
+//                 auto state = std::make_shared<State>(
+//                     State{ std::move(url),
+//                           std::forward<decltype(completion_handler)>(completion_handler),
+//                           ex });
+//                 state->self = state; // Keep the object alive via self-reference
+//                 // auto state = new
+//                 //     State{ std::move(url),
+//                 //           std::forward<decltype(completion_handler)>(completion_handler),
+//                 //           ex };
 
-                // Set up Emscripten fetch:
-                emscripten_fetch_attr_t attr;
-                emscripten_fetch_attr_init(&attr);
-                attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-                strcpy(attr.requestMethod, "GET");
-                attr.userData = state.get();
+//                 // Set up Emscripten fetch:
+//                 emscripten_fetch_attr_t attr;
+//                 emscripten_fetch_attr_init(&attr);
+//                 attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+//                 strcpy(attr.requestMethod, "GET");
+//                 attr.userData = state.get();
 
-                //check if callbacks are guarantied to be called by emscripten_fetch (if risk of memory leak : need a timer to clean)
-                attr.onsuccess = [](emscripten_fetch_t* fetch) {
-                    auto st = static_cast<State*>(fetch->userData);
-                    auto state = std::move(st->self); // Move the shared_ptr out, st->self becomes empty
-                    // Copy out the data
-                    std::string data(fetch->data, fetch->data + fetch->numBytes);
+//                 //check if callbacks are guarantied to be called by emscripten_fetch (if risk of memory leak : need a timer to clean)
+//                 attr.onsuccess = [](emscripten_fetch_t* fetch) {
+//                     auto st = static_cast<State*>(fetch->userData);
+//                     auto state = std::move(st->self); // Move the shared_ptr out, st->self becomes empty
+//                     // Copy out the data
+//                     std::string data(fetch->data, fetch->data + fetch->numBytes);
 
-                    // Post the completion back into the Asio executor
-                    boost::asio::post(st->executor,
-                                      [state, data = std::move(data)]() mutable {
-                                          state->handler(boost::system::error_code{}, std::move(data));
-                                      });
-                    emscripten_fetch_close(fetch);
-                };
+//                     // Post the completion back into the Asio executor
+//                     boost::asio::post(st->executor,
+//                                       [state, data = std::move(data)]() mutable {
+//                                           state->handler(boost::system::error_code{}, std::move(data));
+//                                       });
+//                     emscripten_fetch_close(fetch);
+//                 };
 
-                attr.onerror = [](emscripten_fetch_t* fetch) {
-                    auto st = static_cast<State*>(fetch->userData);
-                    auto state = std::move(st->self); // Move the shared_ptr out, st->self becomes empty
+//                 attr.onerror = [](emscripten_fetch_t* fetch) {
+//                     auto st = static_cast<State*>(fetch->userData);
+//                     auto state = std::move(st->self); // Move the shared_ptr out, st->self becomes empty
 
-                    boost::asio::post(state->executor,
-                                      [state]() mutable {
-                                          state->handler(make_error_code(boost::asio::error::operation_aborted),
-                                                         std::string());
-                                      });
-                    emscripten_fetch_close(fetch);
-                };
+//                     boost::asio::post(state->executor,
+//                                       [state]() mutable {
+//                                           state->handler(make_error_code(boost::asio::error::operation_aborted),
+//                                                          std::string());
+//                                       });
+//                     emscripten_fetch_close(fetch);
+//                 };
 
-                // Kick off the HTTP request; returns immediately
-                emscripten_fetch(&attr, state->url.c_str());
-            },
-            token);
-    }
-    awaitable<std::string> async_fetch(std::string url)
-    {
-        // This will suspend here, and resume with either
-        //    - the fetched std::string on success, or
-        //    - throw a boost::system::system_error on failure
-        co_return co_await async_fetch(std::move(url), use_awaitable);
-    }
-private:
-    bool start()
-    {
-        instance_ = this;
+//                 // Kick off the HTTP request; returns immediately
+//                 emscripten_fetch(&attr, state->url.c_str());
+//             },
+//             token);
+//     }
+//     awaitable<std::string> async_fetch(std::string url)
+//     {
+//         // This will suspend here, and resume with either
+//         //    - the fetched std::string on success, or
+//         //    - throw a boost::system::system_error on failure
+//         co_return co_await async_fetch(std::move(url), use_awaitable);
+//     }
+// private:
+//     bool start()
+//     {
+//         instance_ = this;
 
-        //setCatchSignals(!serverConfiguration_->gdb());
+//         //setCatchSignals(!serverConfiguration_->gdb());
 
-        //stopCallback_ = std::bind(&WServer::stop, this);
+//         //stopCallback_ = std::bind(&WServer::stop, this);
 
-        if (isRunning()) {
-            //LOG_ERROR("start(): server already started!");
-            return false;
-        }
+//         if (isRunning()) {
+//             //LOG_ERROR("start(): server already started!");
+//             return false;
+//         }
 
-        auto work = boost::asio::make_work_guard(io_context);
+//         auto work = boost::asio::make_work_guard(io_context);
 
-        // Launch the coroutine on the io_context
-        //co_spawn(io_context, coroutine_main(), detached);
+//         // Launch the coroutine on the io_context
+//         //co_spawn(io_context, coroutine_main(), detached);
 
-        // Hook Asio’s polling into Emscripten’s main loop
-        emscripten_set_main_loop_arg(
-            [](void* ctx){
-                static_cast<boost::asio::io_context*>(ctx)->poll();
-            },
-            &io_context,
-            0,    // fps = 0 means as fast as possible
-            1     // simulate infinite loop
-            );
+//         // Hook Asio’s polling into Emscripten’s main loop
+//         emscripten_set_main_loop_arg(
+//             [](void* ctx){
+//                 static_cast<boost::asio::io_context*>(ctx)->poll();
+//             },
+//             &io_context,
+//             0,    // fps = 0 means as fast as possible
+//             1     // simulate infinite loop
+//             );
 
-    }
-    static int waitForShutdown() { }
-    void stop() {}
+//     }
+//     static int waitForShutdown() { }
+//     void stop() {}
 
-    bool isRunning() const
-    {
-        return true;
-    }
-private:
-    WT_API static WServer *instance_;
-    boost::asio::io_context io_context;
-    WIOService* ioService_ = &io_context;
-    std::string application_, configurationFile_, appRoot_, description_;
-    Configuration *configuration_ = nullptr;
-    std::shared_ptr<WLocalizedStrings> localizedStrings_;
-};
+//     bool isRunning() const
+//     {
+//         return true;
+//     }
+// private:
+//     WT_API static WServer *instance_;
+//     boost::asio::io_context io_context;
+//     WIOService* ioService_ = &io_context;
+//     std::string application_, configurationFile_, appRoot_, description_;
+//     Configuration *configuration_ = nullptr;
+//     std::shared_ptr<WLocalizedStrings> localizedStrings_;
+// };
 
-}// namespace Wt
-#endif  // WSERVER_H_
-#endif // WT_WASM
+// }// namespace Wt
+// #endif  // WSERVER_H_
+// #endif // WT_WASM
 #ifndef WSERVER_H_
 #define WSERVER_H_
 

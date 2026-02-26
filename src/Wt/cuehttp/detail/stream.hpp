@@ -32,9 +32,9 @@
 #include <Wt/AsioWrapper/asio.hpp>
 #include <nghttp2/nghttp2.h>
 
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
+#include <filesystem>
+#include <random>
+namespace fs = std::filesystem;
 
 namespace Wt {
 namespace http {
@@ -47,19 +47,20 @@ static inline fs::path tempdir() {
     return fs::temp_directory_path();
 }
 
-// Creates a new zero-length file named wt-<random>.tmp in the temp dir.
-// Returns its full path, or an empty path on error.
+// Creates a unique filename for a temp file (no boost::filesystem::unique_path).
+// Returns the filename only (not a full path).
 static inline fs::path tempfile() {
     try {
+        static thread_local std::mt19937 rng{std::random_device{}()};
+        std::uniform_int_distribution<unsigned> dist(0, 0xFFFFFF);
+        char buf[32];
 #ifdef _WIN32
-        // wt‑1234.tmp  (4 hex digits + .tmp)
-        fs::path name = fs::unique_path("wt-%%%%.tmp");
+        std::snprintf(buf, sizeof(buf), "wt-%06x.tmp", dist(rng));
 #else
-        // wtXXXXXX    (6 hex digits, no extension)
-        fs::path name = fs::unique_path("wt%%%%%%");
+        std::snprintf(buf, sizeof(buf), "wt%06x", dist(rng));
 #endif
-        return name;
-    } catch (const fs::filesystem_error& e) {
+        return fs::path{buf};
+    } catch (const std::exception& e) {
         std::cerr << "Temp file creation failed: " << e.what() << "\n";
         return {};
     }
@@ -95,98 +96,71 @@ struct rcbuf_handle {
 struct nghttp2_headers {
 public:
     nghttp2_headers() = default;
-    void track(nghttp2_rcbuf* key, nghttp2_rcbuf* val) {       // ➋ remember incref key values
+    void track(nghttp2_rcbuf* key, nghttp2_rcbuf* val) {
         if(key)
             rcbufs_.emplace_back(key);
         if(val)
-            rcbufs_.emplace_back(val);  
+            rcbufs_.emplace_back(val);
+        // Store the name/value as nghttp2_nv (pointers into rcbuf-managed memory)
+        auto kbuf = nghttp2_rcbuf_get_buf(key);
+        auto vbuf = nghttp2_rcbuf_get_buf(val);
+        nvs_.push_back({kbuf.base, vbuf.base, kbuf.len, vbuf.len, NGHTTP2_NV_FLAG_NONE});
     }
+    const std::vector<nghttp2_nv>& nvs() const noexcept { return nvs_; }
 private:
-    std::vector<rcbuf_handle> rcbufs_; // ➌ just raw pointers
+    std::vector<rcbuf_handle> rcbufs_;
+    std::vector<nghttp2_nv> nvs_;
 };
 class stream final : public noncopyable 
 {
+friend asio::awaitable<void> h2_flush_impl(Wt::http::detail::stream* s, bool deflate);
+
 public:
     using context = Wt::http::context;
     using stream_type = asio::experimental::channel<void(boost::system::error_code, std::string)>;
 
-    explicit stream(nghttp2_session* session, const nghttp2_frame* frame,
+    explicit stream(nghttp2_session* session, int32_t sid,
+                    const std::vector<nghttp2_nv>& nvs,
                     asio::io_context& io_context, size_t channel_buffer_size,
                     std::function<asio::awaitable<bool>(std::string_view)> reply_chunk,
                     std::function<asio::awaitable<bool>(std::vector<asio::const_buffer>&)> reply_chunk_sg,
                     bool is_ssl, std::function<void(detail::ws_frame&&)> ws_send)
         : session_{session},
-        stream_id{frame->hd.stream_id},
-        headers{frame->headers.nvlen},
+        stream_id{sid},
+        headers{nvs.size()},
         body_channel_{io_context, channel_buffer_size}, gate_(io_context, 1),
         ctx{std::move(reply_chunk), std::move(reply_chunk_sg), is_ssl, std::move(ws_send)}
     {
-        // Extract headers from the frame
-        if (frame && frame->hd.type == NGHTTP2_HEADERS) {
-            for (size_t i = 0; i < frame->headers.nvlen; ++i) {
-
-                if (frame->headers.nva[i].name && frame->headers.nva[i].value) {
-                    nghttp2_nv header = frame->headers.nva[i];
-                    std::string_view name(reinterpret_cast<const char*>(header.name), header.namelen);
-                    std::string_view value(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // Process HTTP/2 pseudo-headers
-                    if (name == ":method") {
-                        ctx.request_.method_ = value;
-                    } else if (name == ":path") {
-                        ctx.request_.path_ = value;
-                        // Parse URL components using ada
-                        auto uri = ada::parse<ada::url_aggregator>(value);
-                        if (uri) {
-                            ctx.request_.urlsv_ = uri.value();
-                            ctx.request_.path_ = ctx.request_.urlsv_.get_pathname();
-                            ctx.request_.querystring_ = ctx.request_.urlsv_.get_search();
-                            ctx.request_.search_ = ctx.request_.querystring_;
-                        }
-                    } else if (name == ":scheme") {
-                        ctx.request_.https_ = (value == "https");
-                    } else if (name == ":authority") {
-                        // Store as Host header for compatibility
-                        ctx.request_.headers_.emplace("Host", value);
-                    } else if (name == "content-length") {
-                        try {
-                            ctx.request_.content_length_ = std::stoull(std::string(value));
-                        } catch (...) {
-                            ctx.request_.content_length_ = 0;
-                        }
-                    } else if (name == "cookie") {
-                        ctx.request_.cookies_.parse(value);
+        auto& req = ctx.req();
+        for (const auto& nv : nvs) {
+            if (nv.name && nv.value) {
+                std::string_view name(reinterpret_cast<const char*>(nv.name), nv.namelen);
+                std::string_view value(reinterpret_cast<const char*>(nv.value), nv.valuelen);
+                if (name == ":method") {
+                    req.set_method(value);
+                } else if (name == ":path") {
+                    req.set_h2_path(value);
+                } else if (name == ":scheme") {
+                    req.set_https(value == "https");
+                } else if (name == ":authority") {
+                    req.mutable_headers().emplace("Host", value);
+                } else if (name == "content-length") {
+                    try {
+                        req.set_content_length(std::stoull(std::string(value)));
+                    } catch (...) {
+                        req.set_content_length(0);
                     }
-                    // } else if (header.namelen == 4 && memcmp(header.name, "user-agent", 10) == 0) {
-                    //   ctx.user_agent = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "accept", 6) == 0) {
-                    //   ctx.accept = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "accept-encoding", 15) == 0) {
-                    //   ctx.accept_encoding = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "accept-language", 16) == 0) {
-                    //   ctx.accept_language = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "accept-charset", 15) == 0) {
-                    //   ctx.accept_charset = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "cookie", 6) == 0) {
-                    //   ctx.cookies = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "referer", 7) == 0) {
-                    //   ctx.referer = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "origin", 6) == 0) {
-                    //   ctx.origin = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "upgrade", 7) == 0) {
-                    //   ctx.upgrade = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "connection", 10) == 0) {
-                    //   ctx.connection = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "pragma", 6) == 0) {
-                    //   ctx.pragma = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // } else if (header.namelen == 4 && memcmp(header.name, "cache-control", 13) == 0) {
-                    //   ctx.cache_control = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // }
-                    //  ctx.if_none_match = std::string(reinterpret_cast<const char*>(header.value), header.valuelen);
-                    // Store other headers
-                    ctx.request_.headers_.emplace(name, value);
+                } else if (name == "cookie") {
+                    req.parse_cookies(value);
                 }
+                req.mutable_headers().emplace(name, value);
             }
         }
+
+        // Wire the type-erased HTTP/2 flush callback to h2_flush_impl
+        ctx.res().set_h2_flush([this](bool deflate) -> asio::awaitable<void> {
+            co_await h2_flush_impl(this, deflate);
+        });
     }
     // stream(stream&& other) noexcept
     //     : session_(std::exchange(other.session_, nullptr)),
@@ -269,7 +243,7 @@ public:
             auto len = total_size - maxpostLength;
             // Check for maximum post size
             if (len > 0) {
-                ctx.request_.postDataExceeded_ = len;
+                ctx.req().postDataExceeded_ = len;
 
                 co_await handler(ctx);
 
@@ -288,11 +262,11 @@ public:
                 // (HTTP2 is multiplexed now) the multipart/form-data is less efficient
                 co_await temp_file->async_write_some(asio::buffer(chunk), use_nothrow_awaitable);//catch errors...
             } else {
-                ctx.request_.buffer_.assign(chunk.begin(), chunk.end());
+                ctx.req().mutable_buffer().assign(chunk.begin(), chunk.end());
             }
         }
 
-        ctx.request_.body_ = std::string_view(ctx.request_.buffer_.data(), ctx.request_.buffer_.size());
+        ctx.req().set_body_from_buffer();
         // if (is_upload) {
         //     ctx.temp_file_path = temp_file_path;
         //     temp_file.reset();
@@ -541,7 +515,15 @@ public:
     }
     auto body_channel() noexcept -> stream_type& { return body_channel_; }
 
+    awaitable<void> http2_flush(bool deflate) {
+        this->continuation_ = true;
+        if(this->paused_)
+            nghttp2_session_resume_data(this->session_, this->stream_id);
+        else
+            this->flush(deflate);
 
+        co_await this->gate_.async_receive(use_awaitable);
+    }
 private:
     nghttp2_session* session_;
     int32_t stream_id;
@@ -563,21 +545,27 @@ private:
     bool gz_done_ = false;
     std::size_t in_off_ = 0;     // how much of body we have fed to zlib
 
-    friend class http::response;
+    friend class ::Wt::http::response;
 };
 
 
 }  // namespace detail
 }  // namespace http
-}  // namespace cue
+}  // namespace Wt
+
+
+// Header-only **definition** with external linkage. Mark it inline.
+// inline asio::awaitable<void> h2_flush_impl(Wt::http::detail::stream* s, bool deflate) {
+//     co_await s->http2_flush(deflate);
+// }
 
 /* messy def position */
-inline awaitable<void> Wt::http::response::http2_flush(bool deflate) {
-    stream_->continuation_ = true;
-    if(stream_->paused_)
-        nghttp2_session_resume_data(stream_->session_, stream_->stream_id);
-    else
-        stream_->flush(deflate);
+// inline awaitable<void> Wt::http::response::http2_flush(bool deflate) {
+//     stream_->continuation_ = true;
+//     if(stream_->paused_)
+//         nghttp2_session_resume_data(stream_->session_, stream_->stream_id);
+//     else
+//         stream_->flush(deflate);
 
-    co_await stream_->gate_.async_receive(use_awaitable);
-}
+//     co_await stream_->gate_.async_receive(use_awaitable);
+// }

@@ -506,7 +506,7 @@ namespace Wt
   void CgiParser::parse(std::string_view message, std::string_view sessionID, http::context *context, ReadOption option)
   {
     auto& request = context->req();
-    auto session = context->websession();
+    auto session = context->user_session_as<WebSession>();
     auto& parameters = context->req().query();
 
     //auto& parameters = context->req().getParameters();
