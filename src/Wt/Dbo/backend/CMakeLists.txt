@@ -41,7 +41,7 @@ IF(ENABLE_SQLITE)
   ENDIF(WIN32)
 
   ADD_LIBRARY(wtdbosqlite3
-    Sqlite3.h Sqlite3.C
+    Sqlite3.h Sqlite3.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${Sqlite3_SRCS}
     )
@@ -120,7 +120,7 @@ IF(ENABLE_POSTGRES AND POSTGRES_FOUND)
   ENDIF(WIN32)
 
   ADD_LIBRARY(wtdbopostgres
-    Postgres.h Postgres.C
+    Postgres.h Postgres.cpp
     Postgres/async_exec.hpp
     Postgres/async_exec_prepared.hpp
     Postgres/basic_connection.hpp
@@ -235,7 +235,7 @@ IF(ENABLE_FIREBIRD AND FIREBIRD_FOUND)
   ENDIF(WIN32)
 
   ADD_LIBRARY(wtdbofirebird
-    Firebird.h Firebird.C
+    Firebird.h Firebird.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${IBPP_ALL_IN_ONE_FILE}
     ${firebird_SRCS}
@@ -308,7 +308,7 @@ IF(ENABLE_MYSQL AND MYSQL_FOUND)
   ENDIF(WIN32)
 
   ADD_LIBRARY(wtdbomysql
-    MySQL.h MySQL.C
+    MySQL.h MySQL.cpp
     MySQL/MySQLStatement.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc
     ${mysql_SRCS}
@@ -376,8 +376,8 @@ IF(ENABLE_MSSQLSERVER AND ODBC_FOUND)
   ENDIF(WIN32)
 
   ADD_LIBRARY(wtdbomssqlserver
-    MSSQLServer.h MSSQLServer.C
-    MSSql/MSSQLStatement.h MSSql/MSSQLStatement.C
+    MSSQLServer.h MSSQLServer.cpp
+    MSSql/MSSQLStatement.h MSSql/MSSQLStatement.cpp
     MSSql/nanodbc/nanodbc.h MSSql/nanodbc/nanodbc.cpp
     #MSSql/nanodbc/variant_row_cached_result.h MSSql/nanodbc/variant_row_cached_result.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.h ${CMAKE_CURRENT_SOURCE_DIR}/../../fmtlog.cc

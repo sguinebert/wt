@@ -6,8 +6,8 @@
  * Contributed by: Guinebert Sylvain
  */
 #pragma once
-//#include <Wt/Dbo/SqlConnection.h>
-//#include <Wt/Dbo/SqlStatement.h>
+//#include <Wt/Dbo/sql/Connection.h>
+//#include <Wt/Dbo/sql/Statement.h>
 #include <Wt/WIOService.h>
 #include <Wt/AsioWrapper/asio.hpp>
 #include <boost/redis.hpp>
@@ -15,10 +15,11 @@
 //#include <Wt/WLogger.h>
 
 //#include <chrono>
-using namespace boost;
-
 namespace Wt {
   namespace Dbo {
+
+namespace asio = boost::asio;
+namespace redis = boost::redis;
 
 class Redis
 {

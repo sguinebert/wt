@@ -7,7 +7,7 @@
 #ifndef WT_DBO_ESCAPE_OSTREAM_H_
 #define WT_DBO_ESCAPE_OSTREAM_H_
 
-#include "StringStream.h"
+#include <Wt/Dbo/WDboDllDefs.h>
 
 #define WT_DBO_ESCAPEOSTREAM
 #include "web/EscapeOStream.h"
