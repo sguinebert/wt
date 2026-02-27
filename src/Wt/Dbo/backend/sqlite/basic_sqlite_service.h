@@ -8,7 +8,6 @@
 #include <boost/asio.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <functional>  // std::bind
-#include <stdexcept>   // std::runtime_error
 #include <string>      // std::string
 
 namespace sqliter {
@@ -58,23 +57,17 @@ public:
     using query_result_type = typename traits::template arg<1>::type;
 
     query_result_type result;
-    try
-    {
-      sqlite_impl::query_handler qh{[&result](int num_columns, char **data, char **) {
-        boost::ignore_unused(num_columns);
-        assert(num_columns == std::tuple_size<typename query_result_type::result_data_type>::value);
-        result.data.push_back(query_result_type::make_tuple_from_data(data));
-      }};
+    sqlite_impl::query_handler qh{[&result](int num_columns, char **data, char **) {
+      boost::ignore_unused(num_columns);
+      assert(num_columns == std::tuple_size<typename query_result_type::result_data_type>::value);
+      result.data.push_back(query_result_type::make_tuple_from_data(data));
+    }};
 
-      impl->query(sql, qh);
-
-      this->io_service_.post(std::bind(handler, ec, result));
-    }
-    catch (const std::exception &e)
-    {
+    impl->query(sql, qh);
+    if (!impl->last_error().empty()) {
       ec = boost::asio::error::operation_aborted;
-      this->io_service_.post(std::bind(handler, ec, result));
     }
+    this->io_service_.post(std::bind(handler, ec, result));
   }
 
   template <typename query_result_type>
@@ -83,18 +76,14 @@ public:
   {
     ec = boost::system::error_code();
 
-    try
-    {
-      sqlite_impl::query_handler qh{[&result](int num_columns, char **data, char **) {
-        boost::ignore_unused(num_columns);
-        assert(num_columns == std::tuple_size<typename query_result_type::result_data_type>::value);
-        result.data.push_back(query_result_type::make_tuple_from_data(data));
-      }};
+    sqlite_impl::query_handler qh{[&result](int num_columns, char **data, char **) {
+      boost::ignore_unused(num_columns);
+      assert(num_columns == std::tuple_size<typename query_result_type::result_data_type>::value);
+      result.data.push_back(query_result_type::make_tuple_from_data(data));
+    }};
 
-      impl->query(sql, qh);
-    }
-    catch (const std::exception &e)
-    {
+    impl->query(sql, qh);
+    if (!impl->last_error().empty()) {
       ec = boost::asio::error::operation_aborted;
     }
   }
@@ -103,12 +92,8 @@ public:
   {
     ec = boost::system::error_code();
 
-    try
-    {
-      impl->query(sql);
-    }
-    catch (const std::exception &e)
-    {
+    impl->query(sql);
+    if (!impl->last_error().empty()) {
       ec = boost::asio::error::operation_aborted;
     }
   }
@@ -116,15 +101,7 @@ public:
   void close(implementation_type &impl, boost::system::error_code &ec)
   {
     ec = boost::system::error_code();
-
-    try
-    {
-      impl->destroy();
-    }
-    catch (const std::exception &e)
-    {
-      ec = boost::asio::error::operation_aborted;
-    }
+    impl->destroy();
   }
 
 private:

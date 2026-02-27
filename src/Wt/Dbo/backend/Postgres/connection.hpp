@@ -252,29 +252,53 @@ public:
     }
     using txn_t = basic_transaction<void, void>;
     awaitable<dbo_result<void>> startTransaction() {
-        try {
-            co_await async_exec("BEGIN", use_nothrow_awaitable);
-            co_return dbo_result<void>{};
-        } catch (const std::exception& e) {
-            co_return std::unexpected(dbo_error{DboErrc::Transaction, e.what(), {}, {}, 0, "Postgres::startTransaction"});
+        auto [result] = co_await async_exec("BEGIN", use_nothrow_awaitable);
+        if (result.done() || !result.ok()) {
+            const std::string message = result.done()
+                ? "postgres returned empty result for BEGIN"
+                : std::string(result.error_message());
+            co_return std::unexpected(dbo_error{
+                DboErrc::Transaction,
+                message,
+                "postgres",
+                {},
+                0,
+                "Postgres::startTransaction"});
         }
+        co_return dbo_result<void>{};
     }
     awaitable<dbo_result<void>> commitTransaction() {
-        try {
-            co_await async_exec("COMMIT", use_nothrow_awaitable);
-            co_return dbo_result<void>{};
-        } catch (const std::exception& e) {
-            co_return std::unexpected(dbo_error{DboErrc::Transaction, e.what(), {}, {}, 0, "Postgres::commitTransaction"});
+        auto [result] = co_await async_exec("COMMIT", use_nothrow_awaitable);
+        if (result.done() || !result.ok()) {
+            const std::string message = result.done()
+                ? "postgres returned empty result for COMMIT"
+                : std::string(result.error_message());
+            co_return std::unexpected(dbo_error{
+                DboErrc::Transaction,
+                message,
+                "postgres",
+                {},
+                0,
+                "Postgres::commitTransaction"});
         }
+        co_return dbo_result<void>{};
     }
 
     awaitable<dbo_result<void>> rollbackTransaction() {
-        try {
-            co_await async_exec("ROLLBACK", use_nothrow_awaitable);
-            co_return dbo_result<void>{};
-        } catch (const std::exception& e) {
-            co_return std::unexpected(dbo_error{DboErrc::Transaction, e.what(), {}, {}, 0, "Postgres::rollbackTransaction"});
+        auto [result] = co_await async_exec("ROLLBACK", use_nothrow_awaitable);
+        if (result.done() || !result.ok()) {
+            const std::string message = result.done()
+                ? "postgres returned empty result for ROLLBACK"
+                : std::string(result.error_message());
+            co_return std::unexpected(dbo_error{
+                DboErrc::Transaction,
+                message,
+                "postgres",
+                {},
+                0,
+                "Postgres::rollbackTransaction"});
         }
+        co_return dbo_result<void>{};
     }
 
     /** @name Methods that return dialect information

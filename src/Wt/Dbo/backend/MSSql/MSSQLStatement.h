@@ -10,25 +10,11 @@
 #include <Wt/Dbo/sql/Statement.h>
 //#include <Wt/Dbo/backend/WDboMSSQLDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/Dbo/core/Exception.h>
 #include <Wt/WLogger.h>
-
-
 
 namespace Wt {
 namespace Dbo {
 namespace backend {
-class MSSQLServerException : public Exception
-{
-public:
-    MSSQLServerException(const std::string& msg,
-                         const std::string &sqlState = std::string())
-        : Exception(msg, sqlState)
-    { }
-};
-
-
 }
 }
 }
-

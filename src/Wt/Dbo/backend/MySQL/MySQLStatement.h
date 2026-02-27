@@ -10,7 +10,6 @@
 #include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/backend/WDboMySQLDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/Dbo/core/Exception.h>
 #include <Wt/WLogger.h>
 
 #include <Wt/cpp20/date.hpp>
@@ -25,14 +24,6 @@ namespace backend {
 
 namespace mysql = boost::mysql;
 using boost::system::error_code;
-
-class MySQLException : public Exception
-{
-  public:
-  MySQLException(const std::string& msg)
-  : Exception(msg)
-  { }
-};
 
 /* \brief MySQL prepared statement.
 * @todo should the getResult requests all be type checked...

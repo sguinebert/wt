@@ -720,9 +720,9 @@ public:
     Session &session() const;
 
 protected:
-    void fieldsForSelect(const Impl::SelectFieldList& list,
-                         std::vector<FieldInfo>& result) const;
-    std::pair<SqlStatement *, SqlStatement *>
+    dbo_result<void> fieldsForSelect(const Impl::SelectFieldList& list,
+                                     std::vector<FieldInfo>& result) const;
+    dbo_result<std::pair<SqlStatement *, SqlStatement *>>
     statements(const std::string& join, const std::string &where,
                const std::string &groupBy,
                const std::string &having, const std::string &orderBy,

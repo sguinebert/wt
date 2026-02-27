@@ -271,7 +271,7 @@ public:
       state_ = Done;
       std::string msg = "Sqlite3: " + sql_ + ": "
         + sqlite3_errmsg(db_.connection());
-      try { done(); } catch (...) {}
+      done();
       co_return std::unexpected(dbo_error{DboErrc::Sql, msg, "sqlite3"});
     }
     co_return dbo_result<void>{};
@@ -432,41 +432,35 @@ public:
       if (!getResult(column, &v, -1))
     return false;
 
-      try {
-    if (type == SqlDateTimeType::Date){
-      int year, month, day;
-      std::sscanf(v.c_str(), "%d-%d-%d", &year, &month, &day);
-      std::tm tm = std::tm();
-      tm.tm_year = year - 1900;
-      tm.tm_mon = month - 1;
-      tm.tm_mday = day;
-      std::time_t t = timegm(&tm);
-      *value = std::chrono::system_clock::from_time_t(t);
-    } else {
-      std::size_t t = v.find('T');
+      if (type == SqlDateTimeType::Date){
+        int year, month, day;
+        std::sscanf(v.c_str(), "%d-%d-%d", &year, &month, &day);
+        std::tm tm = std::tm();
+        tm.tm_year = year - 1900;
+        tm.tm_mon = month - 1;
+        tm.tm_mday = day;
+        std::time_t t = timegm(&tm);
+        *value = std::chrono::system_clock::from_time_t(t);
+      } else {
+        std::size_t t = v.find('T');
 
-      if (t != std::string::npos)
-        v[t] = ' ';
-      if (v.length() > 0 && v[v.length() - 1] == 'Z')
-        v.erase(v.length() - 1);
+        if (t != std::string::npos)
+          v[t] = ' ';
+        if (v.length() > 0 && v[v.length() - 1] == 'Z')
+          v.erase(v.length() - 1);
 
-      int year, month, day, hour, min, sec, ms;
-      std::sscanf(v.c_str(), "%d-%d-%d %d:%d:%d.%d", &year, &month, &day, &hour, &min, &sec, &ms);
-      std::tm tm = std::tm();
-      tm.tm_year = year - 1900;
-      tm.tm_mon = month - 1;
-      tm.tm_mday = day;
-      tm.tm_hour = hour;
-      tm.tm_min = min;
-      tm.tm_sec = sec;
-      std::time_t timet = timegm(&tm);
-      *value = std::chrono::system_clock::from_time_t(timet);
-      *value += std::chrono::milliseconds(ms);
-    }
-      } catch (std::exception& e) {
-        LOG_ERROR("Sqlite3::getResult(ptime): {}", e.what());
-        fmtlog::poll();
-    return false;
+        int year, month, day, hour, min, sec, ms;
+        std::sscanf(v.c_str(), "%d-%d-%d %d:%d:%d.%d", &year, &month, &day, &hour, &min, &sec, &ms);
+        std::tm tm = std::tm();
+        tm.tm_year = year - 1900;
+        tm.tm_mon = month - 1;
+        tm.tm_mday = day;
+        tm.tm_hour = hour;
+        tm.tm_min = min;
+        tm.tm_sec = sec;
+        std::time_t timet = timegm(&tm);
+        *value = std::chrono::system_clock::from_time_t(timet);
+        *value += std::chrono::milliseconds(ms);
       }
 
       return true;
@@ -550,9 +544,7 @@ private:
     if (err != SQLITE_OK) {
       std::string msg = "Sqlite3: " + sql_ + ": "
     + sqlite3_errmsg(db_.connection());
-      try {
-    done();
-      }	catch (...) { }
+      done();
       pendingError_ = dbo_error{DboErrc::Sql, msg, "sqlite3"};
     }
   }

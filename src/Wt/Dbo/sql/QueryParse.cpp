@@ -5,7 +5,6 @@
  */
 #include "Wt/Dbo/session/Query.h"
 #include "Wt/Dbo/session/Query_impl.h"
-#include "Wt/Dbo/core/Exception.h"
 #include "Wt/Dbo/core/Error.h"
 
 #include <boost/version.hpp>

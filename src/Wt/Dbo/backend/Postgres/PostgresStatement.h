@@ -5,7 +5,6 @@
 #include "connection.hpp"
 #include "libpq-fe.h"
 #include "Wt/Dbo/sql/Statement.h"
-#include "Wt/Dbo/core/Exception.h"
 #include "Wt/fmt/format.h"
 
 #include "Wt/Date/date.h"
@@ -17,6 +16,7 @@
 #include <cerrno>
 #include <charconv>
 #include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <string_view>
 #include <vector>
@@ -294,20 +294,6 @@ static inline bool parse_interval_millis(std::string_view sv,
 
 PG_SCOPE_BEGIN
 
-class PostgresException : public Exception
-{
-public:
-PostgresException(const std::string &msg)
-    : Exception(msg)
-{
-}
-
-PostgresException(const std::string &msg, const std::string &code)
-    : Exception(msg, code)
-{
-}
-};
-
 class PostgresStatement final : public SqlStatement
 {
 public:
@@ -483,7 +469,6 @@ public:
 
     virtual awaitable<dbo_result<void>> execute() override
     {
-      try {
         if (pendingError_) {
             co_return std::unexpected(*pendingError_);
         }
@@ -517,7 +502,16 @@ public:
                 }
             }
 
-            co_await conn_.async_prepare(name_, sql_, paramTypes_ ? params_.size() : 0, (Oid *)paramTypes_, use_awaitable);
+            auto [prepareResult] = co_await conn_.async_prepare(
+                name_,
+                sql_,
+                paramTypes_ ? params_.size() : 0,
+                (Oid *)paramTypes_,
+                use_nothrow_awaitable);
+            auto prepareErr = handleErr(static_cast<int>(prepareResult.status()), prepareResult.get());
+            if (!prepareErr) {
+                co_return std::unexpected(prepareErr.error());
+            }
 
         }
 
@@ -534,8 +528,14 @@ public:
                 paramValues_[i] = const_cast<char *>(params_[i].value.c_str());
         }
 
-        res_ = co_await conn_.async_exec_prepared(name_, use_awaitable,
-                                                  paramValues_, paramLengths_, paramFormats_, params_.size());
+        auto [execResult] = co_await conn_.async_exec_prepared(
+            name_,
+            use_nothrow_awaitable,
+            paramValues_,
+            paramLengths_,
+            paramFormats_,
+            params_.size());
+        res_ = std::move(execResult);
 
         //res_ = std::make_unique<postgrespp::result>(std::move(res));
 
@@ -618,9 +618,6 @@ public:
         }
 
         co_return dbo_result<void>{};
-      } catch (const std::exception& e) {
-        co_return std::unexpected(dbo_error{DboErrc::Sql, e.what(), "postgres"});
-      }
     }
 
 //    virtual result_base sync_execute() override
@@ -635,8 +632,14 @@ public:
 
     virtual long long insertedId() override
     {
-        if (!lastids_.empty())
-            return std::stoll(Wt::cpp17::any_cast<char *>(lastids_[0]));
+        if (!lastids_.empty()) {
+            if (auto text = Wt::cpp17::any_cast<char *>(&lastids_[0]); text && *text) {
+                return std::strtoll(*text, nullptr, 10);
+            }
+            if (auto str = Wt::cpp17::any_cast<std::string>(&lastids_[0])) {
+                return std::strtoll(str->c_str(), nullptr, 10);
+            }
+        }
         return -1;
     }
 
@@ -903,7 +906,12 @@ private:
               message = "postgres statement error";
             }
 
-            return std::unexpected(dbo_error{DboErrc::Sql, message, code});
+            return std::unexpected(dbo_error{
+                DboErrc::Sql,
+                message,
+                "postgres",
+                code
+            });
         }
 
         return dbo_result<void>{};

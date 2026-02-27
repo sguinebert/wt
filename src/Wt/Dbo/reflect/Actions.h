@@ -168,14 +168,24 @@ template<class C>
 struct FromAnyOp {
     int& index;
     const cpp17::any& anyVal;
+    bool& typeMismatch;
 
     template<class V>
     void value(V& val, std::string_view, FieldOpts) {
         if (index == 0) {
-            if constexpr (std::is_enum_v<V>)
-                val = static_cast<V>(cpp17::any_cast<int>(anyVal));
-            else
-                val = cpp17::any_cast<V>(anyVal);
+            if constexpr (std::is_enum_v<V>) {
+                if (const int* i = cpp17::any_cast<int>(&anyVal)) {
+                    val = static_cast<V>(*i);
+                } else {
+                    typeMismatch = true;
+                }
+            } else {
+                if (const V* v = cpp17::any_cast<V>(&anyVal)) {
+                    val = *v;
+                } else {
+                    typeMismatch = true;
+                }
+            }
             index = -1;
         } else if (index > 0)
             --index;
@@ -185,7 +195,11 @@ struct FromAnyOp {
     void foreign_key(fk<Target>& ref, BelongsToOpts) {
         if (index == 0) {
             using IdType = typename fk<Target>::id_type;
-            ref.value = cpp17::any_cast<IdType>(anyVal);
+            if (const IdType* id = cpp17::any_cast<IdType>(&anyVal)) {
+                ref.value = *id;
+            } else {
+                typeMismatch = true;
+            }
             index = -1;
         } else if (index > 0)
             --index;
@@ -236,14 +250,14 @@ void reflect_to_anys_empty(std::vector<cpp17::any>& result)
 template<class C>
 dbo_result<void> reflect_from_any(C& obj, int& index, const cpp17::any& value)
 {
-    try {
-        detail::FromAnyOp<C> op{index, value};
-        for_each_field(obj, op);
-        return {};
-    } catch (const std::bad_any_cast&) {
+    bool typeMismatch = false;
+    detail::FromAnyOp<C> op{index, value, typeMismatch};
+    for_each_field(obj, op);
+    if (typeMismatch) {
         return std::unexpected(dbo_error(DboErrc::Mapping,
             "reflect_from_any: type mismatch in any_cast"));
     }
+    return {};
 }
 
     } // namespace Reflect

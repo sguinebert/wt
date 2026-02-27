@@ -297,7 +297,6 @@ namespace Wt {
     class StaleObjectException;
     class Transaction;
 
-    template <class C> class collection;
     template <class C> struct dbo_traits;
     template <typename V, class Enable> struct sql_value_traits;
     template <class Result> class Query;

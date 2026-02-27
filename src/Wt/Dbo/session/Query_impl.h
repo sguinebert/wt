@@ -17,7 +17,6 @@
 #ifndef WT_DBO_QUERY_IMPL_H_
 #define WT_DBO_QUERY_IMPL_H_
 
-#include <stdexcept>
 #include <tuple>
 #include <vector>
 
@@ -593,14 +592,18 @@ std::vector<FieldInfo> Query<Result>::fields() const
 
     if (selectFieldLists_.empty())
         query_result_traits<Result>::getFields(*session_, 0, result);
-    else
-        fieldsForSelect(selectFieldLists_[0], result);
+    else {
+        auto fieldsResult = fieldsForSelect(selectFieldLists_[0], result);
+        if (!fieldsResult) {
+            return {};
+        }
+    }
 
     return result;
 }
 
 template <class Result>
-std::pair<SqlStatement *, SqlStatement *>
+dbo_result<std::pair<SqlStatement *, SqlStatement *>>
 Query<Result>::statements(const std::string& join,
                           const std::string& where,
                           const std::string& groupBy,
@@ -610,6 +613,18 @@ Query<Result>::statements(const std::string& join,
 {
     SqlStatement *statement, *countStatement;
 
+    auto makeStatementError = [](std::string_view context,
+                                 const std::string& sqlText) {
+        return std::unexpected(dbo_error{
+            DboErrc::Sql,
+            "Failed to prepare SQL statement: " + sqlText,
+            {},
+            {},
+            0,
+            std::string(context)
+        });
+    };
+
     if (selectFieldLists_.empty()) {
         std::string sql;
         std::vector<FieldInfo> fs = this->fields();
@@ -617,9 +632,13 @@ Query<Result>::statements(const std::string& join,
                                          orderBy, limit, offset, fs,
                                          this->session_->limitQueryMethod_);
         statement = this->session_->getOrPrepareStatement(sql);
+        if (!statement)
+            return makeStatementError("Query::statements(select)", sql);
 
         sql = Impl::createQueryCountSql(sql, this->session_->requireSubqueryAlias_);
         countStatement = this->session_->getOrPrepareStatement(sql);
+        if (!countStatement)
+            return makeStatementError("Query::statements(count)", sql);
     } else {
         std::string sql = sql_;
         int sql_offset = 0;
@@ -628,7 +647,9 @@ Query<Result>::statements(const std::string& join,
         for (unsigned i = 0; i < selectFieldLists_.size(); ++i) {
             const Impl::SelectFieldList& list = selectFieldLists_[i];
             fs.clear();
-            this->fieldsForSelect(list, fs);
+            auto fieldResult = this->fieldsForSelect(list, fs);
+            if (!fieldResult)
+                return std::unexpected(fieldResult.error());
             Impl::substituteFields(list, fs, sql, sql_offset);
         }
 
@@ -636,16 +657,20 @@ Query<Result>::statements(const std::string& join,
                                            orderBy, limit, offset, fs,
                                            this->session_->limitQueryMethod_);
         statement = this->session_->getOrPrepareStatement(sql);
+        if (!statement)
+            return makeStatementError("Query::statements(complete select)", sql);
 
         sql = Impl::createQueryCountSql(sql, this->session_->requireSubqueryAlias_);
         countStatement = this->session_->getOrPrepareStatement(sql);
+        if (!countStatement)
+            return makeStatementError("Query::statements(complete count)", sql);
     }
 
     return std::make_pair(statement, countStatement);
 }
 
 template <class Result>
-void Query<Result>::fieldsForSelect(
+dbo_result<void> Query<Result>::fieldsForSelect(
     const Impl::SelectFieldList& list,
     std::vector<FieldInfo>& result) const
 {
@@ -657,7 +682,15 @@ void Query<Result>::fieldsForSelect(
 
     query_result_traits<Result>::getFields(*session_, &aliases, result);
     if (!aliases.empty())
-        throw std::logic_error("Session::query(): too many aliases for result");
+        return std::unexpected(dbo_error{
+            DboErrc::Mapping,
+            "Session::query(): too many aliases for result",
+            {},
+            {},
+            0,
+            "Query::fieldsForSelect"
+        });
+    return {};
 }
 
 template <class Result>
@@ -688,27 +721,28 @@ Query<Result>::resultList() const
     if (!session_->transaction_ || session_->active_conn->inTransaction(false))
         session_->active_conn = co_await session_->assign_connection(false);
 
-    try {
-        auto [statement, countStatement]
-            = statements(join_, where_, groupBy_, having_, orderBy_,
-                         limit_, offset_);
+    auto statementPair = statements(join_, where_, groupBy_, having_, orderBy_,
+                                    limit_, offset_);
+    if (!statementPair)
+        co_return std::unexpected(statementPair.error());
 
-        bindParameters(session_, statement);
+    auto [statement, countStatement] = *statementPair;
 
-        co_await statement->execute();
+    bindParameters(session_, statement);
 
-        std::vector<Result> results;
-        while (statement->nextRow()) {
-            int column = 0;
-            results.push_back(
-                query_result_traits<Result>::load(*session_, *statement, column));
-        }
-        statement->done();
+    auto executeResult = co_await statement->execute();
+    if (!executeResult)
+        co_return std::unexpected(executeResult.error());
 
-        co_return results;
-    } catch (const std::exception& e) {
-        co_return std::unexpected(dbo_error(DboErrc::Sql, e.what()));
+    std::vector<Result> results;
+    while (statement->nextRow()) {
+        int column = 0;
+        results.push_back(
+            query_result_traits<Result>::load(*session_, *statement, column));
     }
+    statement->done();
+
+    co_return results;
 }
 
 template <class Result>
@@ -741,26 +775,28 @@ Query<Result>::rowCount() const
     if (!session_->transaction_ || session_->active_conn->inTransaction(false))
         session_->active_conn = co_await session_->assign_connection(false);
 
-    try {
-        auto [statement, countStatement]
-            = statements(join_, where_, groupBy_, having_, orderBy_,
-                         limit_, offset_);
+    auto statementPair = statements(join_, where_, groupBy_, having_, orderBy_,
+                                    limit_, offset_);
+    if (!statementPair)
+        co_return std::unexpected(statementPair.error());
 
-        bindParameters(session_, countStatement);
+    auto [statement, countStatement] = *statementPair;
+    (void)statement;
 
-        co_await countStatement->execute();
+    bindParameters(session_, countStatement);
 
-        int count = 0;
-        if (countStatement->nextRow()) {
-            int column = 0;
-            sql_value_traits<int>::read(count, countStatement, column, -1);
-        }
-        countStatement->done();
+    auto executeResult = co_await countStatement->execute();
+    if (!executeResult)
+        co_return std::unexpected(executeResult.error());
 
-        co_return count;
-    } catch (const std::exception& e) {
-        co_return std::unexpected(dbo_error(DboErrc::Sql, e.what()));
+    int count = 0;
+    if (countStatement->nextRow()) {
+        int column = 0;
+        sql_value_traits<int>::read(count, countStatement, column, -1);
     }
+    countStatement->done();
+
+    co_return count;
 }
 
 }

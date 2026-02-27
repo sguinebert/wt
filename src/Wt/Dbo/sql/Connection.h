@@ -121,19 +121,18 @@ public:
 
     dbo_result<std::unique_ptr<SqlConnection>> clone(asio::io_context& ctx) {
         if (!pimpl_) return std::unique_ptr<SqlConnection>{};
-        try {
-            auto newConn = pimpl_->clone(ctx);
-            newConn->executor_ = ctx.get_executor();
-            return newConn;
-        } catch (const std::exception& e) {
+        auto newConn = pimpl_->clone(ctx);
+        if (!newConn) {
             return std::unexpected(dbo_error{
                 DboErrc::Connection,
-                e.what(),
+                "clone() returned null",
                 {},
                 {},
                 0,
                 "SqlConnection::clone(asio::io_context&)"});
         }
+        newConn->executor_ = ctx.get_executor();
+        return newConn;
     }
 
     std::unique_ptr<SqlConnection> clone() const {
@@ -193,22 +192,17 @@ public:
 
     dbo_result<std::unique_ptr<SqlStatement>> prepareStatement(const std::string& sql) {
         if (!pimpl_) return std::unique_ptr<SqlStatement>{};
-        try {
-            auto stmt = pimpl_->prepareStatement(sql);
-            if (!stmt) {
-                return std::unexpected(dbo_error{
-                    DboErrc::Sql,
-                    "prepareStatement returned null",
-                    {},
-                    {},
-                    0,
-                    "SqlConnection::prepareStatement"});
-            }
-            return stmt;
-        } catch (const std::exception& e) {
+        auto stmt = pimpl_->prepareStatement(sql);
+        if (!stmt) {
             return std::unexpected(dbo_error{
-                DboErrc::Sql, e.what(), {}, {}, 0, "SqlConnection::prepareStatement"});
+                DboErrc::Sql,
+                "prepareStatement returned null",
+                {},
+                {},
+                0,
+                "SqlConnection::prepareStatement"});
         }
+        return stmt;
     }
 
     // --- Properties ---
