@@ -8,7 +8,6 @@
 
 #include <cassert>
 #include <tuple>
-#include <iostream>
 
 namespace postgrespp {
 
@@ -44,6 +43,8 @@ public:
 
     swap(c_, rhs.c_);
     swap(done_, rhs.done_);
+
+    return *this;
   }
 
   /**
@@ -54,12 +55,10 @@ public:
 
   ~basic_transaction() {
     if (!done_) {
-      std::cerr << "transaction not completed (netheir 'commit()' nor 'rollback()' has been used destructing : will do a sync rollback" << std::endl;
       //const result_t res{PQexec(connection().underlying_handle(), "ROLLBACK")};
       PQsendQuery(connection().underlying_handle(), "ROLLBACK");
       if (!PQpipelineSync(connection().underlying_handle()))
       {
-          std::cerr << "PQpipelineSync not working " << std::endl;
           return;
       }
       PQconsumeInput(connection().underlying_handle());
@@ -78,8 +77,8 @@ public:
 //      }
       const result_t res2{PQgetResult(connection().underlying_handle())};
 
-      std::cout << "res : " << (int)res2.status() << std::endl;
       assert(result_t::status_t::COMMAND_OK == res.status() || res.sync());
+      (void)res2;
     }
   }
   
@@ -178,12 +177,15 @@ public:
   auto async_exec_all(const query_t& query, ResultCallableT&& handler) {
     assert(!done_);
 
+    if (!connection().underlying_handle()) {
+      return this->handle_exec_all(std::forward<ResultCallableT>(handler));
+    }
+
     const auto res = PQsendQuery(connection().underlying_handle(),
         query.c_str());
 
     if (res != 1) {
-      throw std::runtime_error{
-        "error executing query: " + std::string{connection().last_error_message()}};
+      return this->handle_exec_all(std::forward<ResultCallableT>(handler));
     }
 
     return this->handle_exec_all(std::forward<ResultCallableT>(handler));
@@ -222,13 +224,16 @@ protected:
 
   auto& socket() { return connection().socket(); }
 
-private:
+  private:
 
     template <class ResultCallableT>
     auto async_exec_2(const query_t& query, ResultCallableT&& handler,
                       const char* const* value_arr, const int* size_arr, const int* type_arr,
                       std::size_t num_values) {
     assert(!done_);
+    if (!connection().underlying_handle()) {
+      return this->handle_exec(std::forward<ResultCallableT>(handler));
+    }
 
 //    auto capture = [this, query = std::move(query), num_values, value_arr, size_arr, type_arr] () {
 //        const auto res = PQsendQueryParams(connection().underlying_handle(),
@@ -248,7 +253,6 @@ private:
 
 //    return this->handle_exec2(std::forward<ResultCallableT>(handler), std::move(capture));
 
-    std::cout << "query : " << query << std::endl;
     const auto res = PQsendQueryParams(connection().underlying_handle(),
                                        query.c_str(),
                                        num_values,
@@ -259,14 +263,13 @@ private:
                                        static_cast<int>(field_type::BINARY));
 
     if (res != 1) {
-      throw std::runtime_error{
-        "error executing query '" + query + "': " + std::string{connection().last_error_message()}};
+      return this->handle_exec(std::forward<ResultCallableT>(handler));
     }
 
     if(query == "BEGIN" || query == "COMMIT") {
       if (!PQpipelineSync(connection().underlying_handle()))
       {
-          std::cerr << "pipeline start not working " << std::endl;
+          return this->handle_exec(std::forward<ResultCallableT>(handler));
       }
     }
 
@@ -278,6 +281,9 @@ private:
       ResultCallableT&& handler, const char* const* value_arr,
       const int* size_arr, const int* type_arr, std::size_t num_values) {
     assert(!done_);
+    if (!connection().underlying_handle()) {
+      return this->handle_exec(std::forward<ResultCallableT>(handler));
+    }
 
     const auto res = PQsendQueryPrepared(connection().underlying_handle(),
         statement_name.c_str(),
@@ -288,8 +294,7 @@ private:
         1);
 
     if (res != 1) {
-      throw std::runtime_error{
-        "error executing query '" + statement_name + "': " + std::string{connection().last_error_message()}};
+      return this->handle_exec(std::forward<ResultCallableT>(handler));
     }
 
     return this->handle_exec(std::forward<ResultCallableT>(handler));

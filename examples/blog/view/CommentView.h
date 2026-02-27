@@ -8,7 +8,7 @@
 #define COMMENT_VIEW_H_
 
 #include <Wt/WTemplate.h>
-#include <Wt/Dbo/ptr.h>
+#include <Wt/Dbo/core/ptr.h>
 
 namespace Wt {
   class WTextArea;

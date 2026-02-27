@@ -4,8 +4,9 @@
 
 #include "connection.hpp"
 #include "libpq-fe.h"
-#include "Wt/Dbo/SqlStatement.h"
-#include "Wt/Dbo/Exception.h"
+#include "Wt/Dbo/sql/Statement.h"
+#include "Wt/Dbo/core/Exception.h"
+#include "Wt/fmt/format.h"
 
 #include "Wt/Date/date.h"
 
@@ -14,13 +15,14 @@
 
 
 #include <cerrno>
+#include <charconv>
 #include <cstdio>
 #include <iostream>
-#include <iomanip>
+#include <string_view>
 #include <vector>
-#include <sstream>
 #include <cstring>
 #include <ctime>
+#include <optional>
 
 #define PG_SCOPE_BEGIN namespace Wt { namespace Dbo { namespace backend {
 #define PG_SCOPE_END }}}
@@ -30,8 +32,6 @@
 //{
 //}
 //};
-using namespace Wt::Dbo;
-
 namespace karma = boost::spirit::karma;
 
 namespace
@@ -108,6 +108,188 @@ static inline std::string float_to_s(const float f)
     *p = '\0';
     return std::string(buf, p);
 }
+
+static inline bool parse_unsigned(std::string_view sv, int& out)
+{
+    if (sv.empty())
+        return false;
+
+    int parsed = 0;
+    const char* first = sv.data();
+    const char* last = first + sv.size();
+    auto [ptr, ec] = std::from_chars(first, last, parsed);
+    if (ec != std::errc{} || ptr != last)
+        return false;
+
+    out = parsed;
+    return true;
+}
+
+static inline bool parse_iso_date(std::string_view sv,
+                                  std::chrono::system_clock::time_point& out)
+{
+    if (sv.size() != 10 || sv[4] != '-' || sv[7] != '-')
+        return false;
+
+    int y = 0;
+    int m = 0;
+    int d = 0;
+    if (!parse_unsigned(sv.substr(0, 4), y)
+        || !parse_unsigned(sv.substr(5, 2), m)
+        || !parse_unsigned(sv.substr(8, 2), d))
+        return false;
+
+    const date::year yy{y};
+    const date::month mm{static_cast<unsigned>(m)};
+    const date::day dd{static_cast<unsigned>(d)};
+    if (!(yy.ok() && mm.ok() && dd.ok()))
+        return false;
+
+    out = date::sys_days{yy / mm / dd};
+    return true;
+}
+
+static inline bool parse_hms_duration(std::string_view sv,
+                                      std::chrono::system_clock::duration& out)
+{
+    const auto firstColon = sv.find(':');
+    if (firstColon == std::string_view::npos)
+        return false;
+
+    const auto secondColon = sv.find(':', firstColon + 1);
+    if (secondColon == std::string_view::npos)
+        return false;
+
+    int hh = 0;
+    int mm = 0;
+    int ss = 0;
+    if (!parse_unsigned(sv.substr(0, firstColon), hh)
+        || !parse_unsigned(sv.substr(firstColon + 1, secondColon - firstColon - 1), mm))
+        return false;
+    if (mm < 0 || mm > 59)
+        return false;
+
+    const std::string_view secondsPart = sv.substr(secondColon + 1);
+    if (secondsPart.empty())
+        return false;
+
+    const auto dot = secondsPart.find('.');
+    const std::string_view secToken = (dot == std::string_view::npos)
+      ? secondsPart
+      : secondsPart.substr(0, dot);
+    if (!parse_unsigned(secToken, ss) || ss < 0 || ss > 59)
+        return false;
+
+    out = std::chrono::duration_cast<std::chrono::system_clock::duration>(
+      std::chrono::hours{hh} + std::chrono::minutes{mm} + std::chrono::seconds{ss});
+
+    if (dot != std::string_view::npos) {
+        const std::string_view frac = secondsPart.substr(dot + 1);
+        if (frac.empty())
+            return false;
+
+        long long nanos = 0;
+        std::size_t consumed = 0;
+        for (; consumed < frac.size() && consumed < 9; ++consumed) {
+            const char c = frac[consumed];
+            if (c < '0' || c > '9')
+                return false;
+            nanos = nanos * 10 + (c - '0');
+        }
+        for (; consumed < 9; ++consumed)
+            nanos *= 10;
+        for (; consumed < frac.size(); ++consumed) {
+            const char c = frac[consumed];
+            if (c < '0' || c > '9')
+                return false;
+        }
+
+        out += std::chrono::duration_cast<std::chrono::system_clock::duration>(
+          std::chrono::nanoseconds{nanos});
+    }
+
+    return true;
+}
+
+static inline bool split_timezone_suffix(std::string_view sv,
+                                         std::string_view& tsNoTz,
+                                         std::chrono::system_clock::duration& tzOffset)
+{
+    tsNoTz = sv;
+    tzOffset = std::chrono::system_clock::duration::zero();
+
+    auto setOffset = [&](char sign, int hh, int mm) {
+        auto offset = std::chrono::duration_cast<std::chrono::system_clock::duration>(
+          std::chrono::hours{hh} + std::chrono::minutes{mm});
+        tzOffset = (sign == '-') ? -offset : offset;
+    };
+
+    // +HH:MM / -HH:MM
+    if (sv.size() >= 6) {
+        const std::size_t pos = sv.size() - 6;
+        const char sign = sv[pos];
+        if ((sign == '+' || sign == '-') && sv[pos + 3] == ':') {
+            int hh = 0;
+            int mm = 0;
+            if (!parse_unsigned(sv.substr(pos + 1, 2), hh)
+                || !parse_unsigned(sv.substr(pos + 4, 2), mm)
+                || mm > 59)
+                return false;
+            setOffset(sign, hh, mm);
+            tsNoTz = sv.substr(0, pos);
+            return true;
+        }
+    }
+
+    // +HH / -HH
+    if (sv.size() >= 3) {
+        const std::size_t pos = sv.size() - 3;
+        const char sign = sv[pos];
+        if (sign == '+' || sign == '-') {
+            int hh = 0;
+            if (!parse_unsigned(sv.substr(pos + 1, 2), hh))
+                return false;
+            setOffset(sign, hh, 0);
+            tsNoTz = sv.substr(0, pos);
+        }
+    }
+
+    return true;
+}
+
+static inline bool parse_iso_timestamp(std::string_view sv,
+                                       std::chrono::system_clock::time_point& out)
+{
+    if (sv.size() < 19 || (sv[10] != ' ' && sv[10] != 'T'))
+        return false;
+
+    std::chrono::system_clock::time_point day{};
+    std::chrono::system_clock::duration time{};
+    if (!parse_iso_date(sv.substr(0, 10), day)
+        || !parse_hms_duration(sv.substr(11), time))
+        return false;
+
+    out = day + time;
+    return true;
+}
+
+static inline bool parse_interval_millis(std::string_view sv,
+                                         std::chrono::duration<int, std::milli>& out)
+{
+    bool neg = false;
+    if (!sv.empty() && sv.front() == '-') {
+        neg = true;
+        sv.remove_prefix(1);
+    }
+
+    std::chrono::system_clock::duration dur{};
+    if (!parse_hms_duration(sv, dur))
+        return false;
+
+    auto ms = std::chrono::duration_cast<std::chrono::duration<int, std::milli>>(dur);
+    out = neg ? -ms : ms;
+    return true;
+}
 }
 
 PG_SCOPE_BEGIN
@@ -161,6 +343,7 @@ public:
     virtual void reset() override
     {
         params_.clear();
+        pendingError_.reset();
 
         state_ = Done;
     }
@@ -226,53 +409,44 @@ public:
         auto seconds = date::floor<std::chrono::seconds>(absValue) - hours - minutes;
         auto milliseconds = date::floor<std::chrono::milliseconds>(absValue) - hours - minutes - seconds;
 
-        std::stringstream ss;
-        ss.imbue(std::locale::classic());
+        std::string text = fmt::format("{:02}:{:02}:{:02}.{:03}",
+                                       hours.count(),
+                                       minutes.count(),
+                                       seconds.count(),
+                                       milliseconds.count());
         if (absValue != value)
-            ss << '-';
-        ss << std::setfill('0')
-           << std::setw(2) << hours.count() << ':'
-           << std::setw(2) << minutes.count() << ':'
-           << std::setw(2) << seconds.count() << '.'
-           << std::setw(3) << milliseconds.count();
+            text.insert(text.begin(), '-');
 
-        //LOG_DEBUG("{} bind {} {}", this, column, ss.str());
-
-        setValue(column, ss.str());
+        setValue(column, text);
     }
 
     virtual void bind(int column, const std::chrono::system_clock::time_point &value,
                       SqlDateTimeType type) override
     {
-        std::stringstream ss;
-        ss.imbue(std::locale::classic());
         if (type == SqlDateTimeType::Date)
         {
             auto daypoint = date::floor<date::days>(value);
             auto ymd = date::year_month_day(daypoint);
-            ss << (int)ymd.year() << '-' << (unsigned)ymd.month() << '-' << (unsigned)ymd.day();
+            setValue(column, fmt::format("{:04}-{:02}-{:02}",
+                                         static_cast<int>(ymd.year()),
+                                         static_cast<unsigned>(ymd.month()),
+                                         static_cast<unsigned>(ymd.day())));
         }
         else
         {
             auto daypoint = date::floor<date::days>(value);
             auto ymd = date::year_month_day(daypoint);
             auto tod = date::make_time(value - daypoint);
-            ss << (int)ymd.year() << '-' << (unsigned)ymd.month() << '-' << (unsigned)ymd.day() << ' ';
-            ss << std::setfill('0')
-               << std::setw(2) << tod.hours().count() << ':'
-               << std::setw(2) << tod.minutes().count() << ':'
-               << std::setw(2) << tod.seconds().count() << '.'
-               << std::setw(3) << date::floor<std::chrono::milliseconds>(tod.subseconds()).count();
-            /*
-            * Add explicit timezone offset. Postgres will ignore this for a TIMESTAMP
-            * column, but will treat the timestamp as UTC in a TIMESTAMP WITH TIME
-            * ZONE column -- possibly in a legacy table.
-            */
-            ss << "+00";
+            const auto subms = date::floor<std::chrono::milliseconds>(tod.subseconds()).count();
+            setValue(column, fmt::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}+00",
+                                         static_cast<int>(ymd.year()),
+                                         static_cast<unsigned>(ymd.month()),
+                                         static_cast<unsigned>(ymd.day()),
+                                         tod.hours().count(),
+                                         tod.minutes().count(),
+                                         tod.seconds().count(),
+                                         subms));
         }
-        //LOG_DEBUG("{} bind {} {}", this, column, ss.str());
-
-        setValue(column, ss.str());
     }
 
     virtual void bind(int column, const std::vector<unsigned char> &value) override
@@ -307,8 +481,13 @@ public:
     #define BYTEAOID 17
     const std::chrono::seconds TRANSACTION_LIFETIME_MARGIN = std::chrono::seconds(120);
 
-    virtual awaitable<void> execute() override
+    virtual awaitable<dbo_result<void>> execute() override
     {
+      try {
+        if (pendingError_) {
+            co_return std::unexpected(*pendingError_);
+        }
+
         conn_.checkConnection(TRANSACTION_LIFETIME_MARGIN);
 
         if (conn_.showQueries()){
@@ -433,9 +612,15 @@ public:
 //        {
 //            throw std::runtime_error("PQgetResult() returned more results");
 //        }
-        handleErr(PQresultStatus(result_), result_);
+        auto err = handleErr(PQresultStatus(result_), result_);
+        if (!err) {
+            co_return std::unexpected(err.error());
+        }
 
-        co_return;
+        co_return dbo_result<void>{};
+      } catch (const std::exception& e) {
+        co_return std::unexpected(dbo_error{DboErrc::Sql, e.what(), "postgres"});
+      }
     }
 
 //    virtual result_base sync_execute() override
@@ -488,7 +673,7 @@ public:
             }
             break;
         case Done:
-            throw std::runtime_error("Postgres: nextRow(): statement already finished");
+            return false;
         }
 
         return false;
@@ -605,29 +790,20 @@ public:
         std::string v = res_.at(row_).at(column).as<std::string>();
 
         if (type == SqlDateTimeType::Date)
-        {
-            std::istringstream in(v);
-            in.imbue(std::locale::classic());
-            in >> date::parse("%F", *value);
-        }
-        else
-        {
-            /*
-            * Handle timezone offset. Postgres will append a timezone offset [+-]dd
-            * if a column is defined as TIMESTAMP WITH TIME ZONE -- possibly
-            * in a legacy table. If offset is present, subtract it for UTC output.
-            */
-            int offsetHour = 0;
-            if (v.size() >= 3 && std::strchr("+-", v[v.size() - 3]))
-            {
-                offsetHour = std::stoi(v.substr(v.size() - 3));
-                v = v.substr(0, v.size() - 3);
-            }
-            std::istringstream in(v);
-            in.imbue(std::locale::classic());
-            in >> date::parse("%F %T", *value);
-            *value -= std::chrono::hours{offsetHour};
-        }
+            return parse_iso_date(v, *value);
+
+        /*
+         * Handle timezone offset. Postgres may append a timezone offset if
+         * a column is TIMESTAMP WITH TIME ZONE. If offset is present,
+         * subtract it for UTC output.
+         */
+        std::string_view tsNoTz{};
+        std::chrono::system_clock::duration tzOffset{};
+        if (!split_timezone_suffix(v, tsNoTz, tzOffset))
+            return false;
+        if (!parse_iso_timestamp(tsNoTz, *value))
+            return false;
+        *value -= tzOffset;
 
         return true;
     }
@@ -639,20 +815,7 @@ public:
 
         //std::string v = PQgetvalue(result_, row_, column);
         std::string v = res_.at(row_).at(column).as<std::string>();
-        bool neg = false;
-        if (!v.empty() && v[0] == '-')
-        {
-            neg = true;
-            v = v.substr(1);
-        }
-
-        std::istringstream in(v);
-        in.imbue(std::locale::classic());
-        in >> date::parse("%T", *value);
-        if (neg)
-            *value = -(*value);
-
-        return true;
+        return parse_interval_millis(v, *value);
     }
 
     virtual bool getResult(int column, std::vector<unsigned char> *value,
@@ -711,8 +874,9 @@ private:
     long long lastId_;
     std::vector<Wt::cpp17::any> lastids_;
     int row_, affectedRows_, columnCount_;
+    std::optional<dbo_error> pendingError_;
 
-    void handleErr(int err, PGresult *result)
+    dbo_result<void> handleErr(int err, PGresult *result)
     {
         if (err != PGRES_COMMAND_OK && err != PGRES_TUPLES_OK)
         {
@@ -725,17 +889,35 @@ private:
                     code = v;
             }
 
-            const auto pgerr = PQerrorMessage(conn_.underlying_handle());
-            std::cerr << "error : " << res_.error_message() << std::endl;
+            std::string message;
+            if (result) {
+              message = std::string(PQresultErrorMessage(result));
+            }
+            if (message.empty()) {
+              message = std::string(PQerrorMessage(conn_.underlying_handle()));
+            }
+            if (message.empty()) {
+              message = res_.error_message();
+            }
+            if (message.empty()) {
+              message = "postgres statement error";
+            }
 
-            throw std::runtime_error(code);
+            return std::unexpected(dbo_error{DboErrc::Sql, message, code});
         }
+
+        return dbo_result<void>{};
     }
 
     void setValue(int column, const std::string &value)
     {
-        if (column >= paramCount_)
-            throw std::runtime_error("Binding too many parameters");
+        if (column >= paramCount_) {
+            pendingError_ = dbo_error{
+                DboErrc::Sql,
+                "postgres bind: too many parameters",
+                "postgres"};
+            return;
+        }
 
         for (int i = (int)params_.size(); i <= column; ++i)
             params_.push_back(Param());
@@ -746,7 +928,8 @@ private:
 
     void convertToNumberedPlaceholders()
     {
-        std::stringstream result;
+        std::string result;
+        result.reserve(sql_.size() + 16);
 
         enum
         {
@@ -771,12 +954,13 @@ private:
                         sql_[i + 1] == '?')
                     {
                         // escape question mark with double question mark
-                        result << '?';
+                        result.push_back('?');
                         ++i;
                     }
                     else
                     {
-                        result << '$' << placeholder++;
+                        result.push_back('$');
+                        result.append(std::to_string(placeholder++));
                     }
                     continue;
                 }
@@ -790,7 +974,7 @@ private:
                         state = Statement;
                     else if (sql_[i + 1] == '\'')
                     {
-                        result << sql_[i];
+                        result.push_back(sql_[i]);
                         ++i; // skip to next
                     }
                     else
@@ -802,11 +986,11 @@ private:
                     state = Statement;
                 break;
             }
-            result << sql_[i];
+            result.push_back(sql_[i]);
         }
 
         paramCount_ = placeholder - 1;
-        sql_ = result.str();
+        sql_ = std::move(result);
     }
 };
 

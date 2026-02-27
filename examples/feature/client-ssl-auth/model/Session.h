@@ -10,8 +10,8 @@
 #include <Wt/Auth/Login.h>
 #include <Wt/Auth/Dbo/UserDatabase.h>
 
-#include <Wt/Dbo/Session.h>
-#include <Wt/Dbo/ptr.h>
+#include <Wt/Dbo/session/Session.h>
+#include <Wt/Dbo/core/ptr.h>
 
 #include "User.h"
 

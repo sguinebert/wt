@@ -154,9 +154,9 @@ awaitable<void> CommentView::renderView()
   typedef std::vector< dbo::ptr<Comment> > CommentVector;
   CommentVector comments;
   {
-    dbo::collection<dbo::ptr<Comment> > cmts
-      = co_await comment_->children.find().orderBy("date").resultList();
-    comments.insert(comments.end(), cmts.begin(), cmts.end());
+    auto r = co_await comment_->children.find().orderBy("date").resultList();
+    if (r)
+      comments = std::move(*r);
   }
 
   auto children

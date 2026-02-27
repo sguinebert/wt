@@ -85,14 +85,14 @@ enum flush_debug_stream_type {fds};
 
 #ifdef _DEBUG
 
-struct DebugStream : public std::stringstream
+struct DebugStream : public std::ostringstream
 {
 	// next two operators fix some g++ and vc++ related problems
 	std::ostream& operator<< (const char* p)
-		{ static_cast<std::stringstream&>(*this)<< p; return *this; }
+		{ static_cast<std::ostringstream&>(*this)<< p; return *this; }
 
 	std::ostream& operator<< (const std::string& p)
-		{ static_cast<std::stringstream&>(*this)<< p; return *this; }
+		{ static_cast<std::ostringstream&>(*this)<< p; return *this; }
 
 	DebugStream& operator=(const DebugStream&) {return *this;}
 	DebugStream(const DebugStream&) {}

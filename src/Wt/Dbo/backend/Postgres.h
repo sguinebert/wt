@@ -8,8 +8,8 @@
 #ifndef WT_DBO_BACKEND_POSTGRES_H_
 #define WT_DBO_BACKEND_POSTGRES_H_
 
-#include <Wt/Dbo/SqlConnectionBase.h>
-#include <Wt/Dbo/SqlStatement.h>
+#include <Wt/Dbo/sql/ConnectionBase.h>
+#include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/backend/WDboPostgresDllDefs.h>
 #include <Wt/WLogger.h>
 
@@ -150,6 +150,10 @@ public:
   awaitable<void> executeSql(const std::string &sql)
   {
         std::unique_ptr<Wt::Dbo::SqlStatement> s = prepareStatement(sql);
+        if (!s) {
+            LOG_ERROR("Postgres: prepareStatement failed for SQL");
+            co_return;
+        }
         co_await s->execute();
         co_return;
   }
@@ -236,6 +240,8 @@ public:
       return true;
   }
 
+  DialectKind dialectKind() const { return DialectKind::Postgres; }
+
   std::string autoincrementInsertInfix(const std::string &) const
   {
       return "";
@@ -274,9 +280,9 @@ public:
           return "interval";
       }
 
-      std::stringstream ss;
-      ss << __FILE__ << ":" << __LINE__ << ": implementation error";
-      //throw PostgresException(ss.str());
+      [[maybe_unused]] const std::string msg =
+          std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": implementation error";
+      //throw PostgresException(msg);
       return "";
   }
   const char *blobType() const {
@@ -296,7 +302,8 @@ public:
               //LOG_INFO("maximum connection lifetime passed, trying to reconnect...");
               if (!reconnect())
               {
-                  throw std::runtime_error("Could not reconnect to server...");
+                  LOG_ERROR("Postgres: could not reconnect to server (maximum lifetime reached)");
+                  disconnect();
               }
           }
       }

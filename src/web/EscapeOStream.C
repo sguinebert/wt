@@ -85,7 +85,7 @@ EscapeOStream::EscapeOStream(std::ostream& sink)
     c_special_(0)
 { }
 
-EscapeOStream::EscapeOStream(WStringStream& sink)
+EscapeOStream::EscapeOStream(::Wt::WStringStream& sink)
   : stream_(sink),
     c_special_(0)
 { }

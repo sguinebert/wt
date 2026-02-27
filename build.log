@@ -1,0 +1,1941 @@
+[  8%] Built target whttp
+[  8%] Building CXX object src/CMakeFiles/http_test.dir/__/examples/http_test/http_test.C.o
+[  8%] Building CXX object src/Wt/Dbo/CMakeFiles/wtdbo.dir/sql/QueryParse.C.o
+[  9%] Building CXX object src/Wt/Dbo/CMakeFiles/wtdbo.dir/session/Session.C.o
+[  9%] Building CXX object src/Wt/Dbo/CMakeFiles/wtdbo.dir/session/Transaction.C.o
+[ 10%] Building CXX object src/Wt/Dbo/CMakeFiles/wtdbo.dir/session/QueryColumn.C.o
+[ 10%] Building CXX object src/Wt/Dbo/CMakeFiles/wtdbo.dir/session/Query.C.o
+[ 11%] Building CXX object src/Wt/Dbo/CMakeFiles/wtdbo.dir/session/Call.C.o
+[ 12%] Building CXX object src/Wt/Dbo/CMakeFiles/wtdbo.dir/Redis.C.o
+[ 12%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/WApplication.C.o
+[ 13%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/WServer.C.o
+[ 13%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/WLogger.C.o
+[ 14%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/WString.C.o
+[ 15%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/WebController.C.o
+[ 15%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/Configuration.C.o
+[ 15%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/Http/Configuration.C.o
+[ 16%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/Http/Request.C.o
+[ 16%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/Http/Client.C.o
+[ 17%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/Render/CssParser.C.o
+[ 18%] Building CXX object src/CMakeFiles/wt-core.dir/Wt/WTemplate_.C.o
+[ 19%] Building CXX object src/CMakeFiles/wt-core.dir/web/DomElement.C.o
+[ 19%] Building CXX object src/CMakeFiles/wt-core.dir/web/CgiParser.C.o
+[ 19%] Building CXX object src/CMakeFiles/wt-core.dir/web/WebMain.C.o
+[ 20%] Building CXX object src/CMakeFiles/wt-core.dir/web/WebSession.C.o
+[ 21%] Building CXX object src/CMakeFiles/wt-core.dir/web/WebRenderer.C.o
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.h:10:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WModelIndex.h:16:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WAny.h:10:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WString.h:19:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/fmt/format.h:4168:27: warning: identifier '_a' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+ 4168 | constexpr auto operator"" _a(const char* s, size_t) -> detail::udl_arg<char> {
+      |                ~~~~~~~~~~~^~
+      |                operator""_a
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/sql/QueryParse.C:6:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:7: error: name defined in alias declaration must be an identifier
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |       ^~~~~~
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.C:6:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:7: error: name defined in alias declaration must be an identifier
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |       ^~~~~~
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:7: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |       ^~~~~~~~~~
+      |       Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:13: error: name defined in alias declaration must be an identifier
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |             ^~~~~~
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:7: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |       ^~~~~~~~~~
+      |       Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:13: error: name defined in alias declaration must be an identifier
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |             ^~~~~~
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:715:5: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+  715 |     Impl::Impl::SelectFieldLists selectFieldLists_;
+      |     ^~~~~~~~~~
+      |     Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:715:5: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+  715 |     Impl::Impl::SelectFieldLists selectFieldLists_;
+      |     ^~~~~~~~~~
+      |     Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Transaction.C:12:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.h:27:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:7: error: name defined in alias declaration must be an identifier
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |       ^~~~~~
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:7: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |       ^~~~~~~~~~
+      |       Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:13: error: name defined in alias declaration must be an identifier
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |             ^~~~~~
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:715:5: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+  715 |     Impl::Impl::SelectFieldLists selectFieldLists_;
+      |     ^~~~~~~~~~
+      |     Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Call.C:2:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.h:27:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:7: error: name defined in alias declaration must be an identifier
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |       ^~~~~~
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.C:7:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:335:19: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  335 |             const SelectFieldList& list = selectFieldLists_[i];
+      |                   ^~~~~~~~~~~~~~~
+      |                   Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/sql/QueryParse.C:7:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:335:19: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  335 |             const SelectFieldList& list = selectFieldLists_[i];
+      |                   ^~~~~~~~~~~~~~~
+      |                   Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.C:10:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.h:27:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:7: error: name defined in alias declaration must be an identifier
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |       ^~~~~~
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:7: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |       ^~~~~~~~~~
+      |       Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:13: error: name defined in alias declaration must be an identifier
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |             ^~~~~~
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.C:7:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:358:43: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  358 | void Query<Result>::fieldsForSelect(const SelectFieldList& list,
+      |                                           ^~~~~~~~~~~~~~~
+      |                                           Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:715:5: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+  715 |     Impl::Impl::SelectFieldLists selectFieldLists_;
+      |     ^~~~~~~~~~
+      |     Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/sql/QueryParse.C:7:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:358:43: error: /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.hunknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?:
+40:7: error:   no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?358
+ | void Quer   y40< | Ruessiunlgt >I:m:pfli:e:lIdmspFlo:r:SSeelleecctt(FcioenlsdtL iSsetlse c=t Fsitedl:d:Lviesctt&o rl<iIsmtp,l
+:      :| S                                          ^~~~~~~~~~~~~~~e
+l      e| c                                          Impl::SelectFieldListt
+Fi/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.he:l39d:L13i:s tnote: >'Impl::SelectFieldList' declared here;
+
+         | 39      ^~~~~~~~~~ | 
+u      s| i      Impln
+g Impl::SelectFie/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.hl:d32L:i11s:t  note: ='Impl' declared here 
+std   :32: | vneacmteosrp<aSceel eIctFmipell d{>
+;      
+|                 ^| 
+            ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:13: error: name defined in alias declaration must be an identifier
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |             ^~~~~~
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.C:7:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:363:15: error: unknown type name 'SelectField'; did you mean 'Impl::SelectField'?
+  363 |         const SelectField& field = list[i];
+      |               ^~~~~~~~~~~
+      |               Impl::SelectField
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:34:8: note: 'Impl::SelectField' declared here
+   34 | struct SelectField
+      |        ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/sql/QueryParse.C:7:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:363:15: error: unknown type name 'SelectField'; did you mean 'Impl::SelectField'?
+  363 |         const SelectField& field = list[i];
+      |               ^~~~~~~~~~~
+      |               Impl::SelectField
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:34:8: note: 'Impl::SelectField' declared here
+   34 | struct SelectField
+      |        ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:715:5: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+  715 |     Impl::Impl::SelectFieldLists selectFieldLists_;
+      |     ^~~~~~~~~~
+      |     Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.h:12:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Dbo.h:10:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Types.h:14:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:7: error: name defined in alias declaration must be an identifier
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |       ^~~~~~
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.C:7:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:383:11: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  383 |     const SelectFieldList& first = selectFieldLists_.front();
+      |           ^~~~~~~~~~~~~~~
+      |           Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/sql/QueryParse.C:7:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:383:11: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  383 |     const SelectFieldList& first = selectFieldLists_.front();
+      |           ^~~~~~~~~~~~~~~
+      |           Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:7: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |       ^~~~~~~~~~
+      |       Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:40:13: error: name defined in alias declaration must be an identifier
+   40 | using Impl::Impl::SelectFieldLists = std::vector<Impl::SelectFieldList>;
+      |             ^~~~~~
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Transaction.C:16:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Logger.h:45:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/../WLogger.h:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/fmtlog.h:26:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/fmt/format.h:4168:27: warning: identifier '_a' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+ 4168 | constexpr auto operator"" _a(const char* s, size_t) -> detail::udl_arg<char> {
+      |                ~~~~~~~~~~~^~
+      |                operator""_a
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/sql/QueryParse.C:7:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:387:11: error: unknown type name 'SelectField'; did you mean 'Impl::SelectField'?
+  387 |     const SelectField& field = first.front();
+      |           ^~~~~~~~~~~
+      |           Impl::SelectField
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:34:8: note: 'Impl::SelectField' declared here
+   34 | struct SelectField
+      |        ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.C:7:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:387:11: error: unknown type name 'SelectField'; did you mean 'Impl::SelectField'?
+  387 |     const SelectField& field = first.front();
+      |           ^~~~~~~~~~~
+      |           Impl::SelectField
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:34:8: note: 'Impl::SelectField' declared here
+   34 | struct SelectField
+      |        ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:715:5: error: no member named 'Impl' in namespace 'Wt::Dbo::Impl'; did you mean simply 'Impl'?
+  715 |     Impl::Impl::SelectFieldLists selectFieldLists_;
+      |     ^~~~~~~~~~
+      |     Impl
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:32:11: note: 'Impl' declared here
+   32 | namespace Impl {
+      |           ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Call.C:4:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WLogger.h:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/fmtlog.h:26:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/fmt/format.h:4168:27: warning: identifier '_a' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+ 4168 | constexpr auto operator"" _a(const char* s, size_t) -> detail::udl_arg<char> {
+      |                ~~~~~~~~~~~^~
+      |                operator""_a
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.C:17:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session_impl.h:19:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/reflect/Ddl.h:290:36: error: expected unqualified-id
+  290 |         "create table \"", detail::::Wt::Dbo::detail::quoteSchemaDot(tableName), "\" (\n");
+      |                                    ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/reflect/Ddl.h:352:41: error: expected unqualified-id
+  352 |         std::string tableName = detail::::Wt::Dbo::detail::quoteSchemaDot(get_table_name<C>());
+      |                                         ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.h:12:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Dbo.h:11:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Impl.h:12:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:335:19: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  335 |             const SelectFieldList& list = selectFieldLists_[i];
+      |                   ^~~~~~~~~~~~~~~
+      |                   Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.h:12:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Dbo.h:11:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Impl.h:12:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:358:43: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  358 | void Query<Result>::fieldsForSelect(const SelectFieldList& list,
+      |                                           ^~~~~~~~~~~~~~~
+      |                                           Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.C:18:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:335:19: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  335 |             const SelectFieldList& list = selectFieldLists_[i];
+      |                   ^~~~~~~~~~~~~~~
+      |                   Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.h:12:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Dbo.h:11:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Impl.h:12:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:363:15: error: unknown type name 'SelectField'; did you mean 'Impl::SelectField'?
+  363 |         const SelectField& field = list[i];
+      |               ^~~~~~~~~~~
+      |               Impl::SelectField
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:34:8: note: 'Impl::SelectField' declared here
+   34 | struct SelectField
+      |        ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/examples/http_test/http_test.C:13:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/server.hpp:34:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/cookies.hpp:27:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:24:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.h:12:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Dbo.h:11:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Impl.h:12:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:383:11: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  383 |     const SelectFieldList& first = selectFieldLists_.front();
+      |           ^~~~~~~~~~~~~~~
+      |           Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.C:18:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:358:43: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  358 | void Query<Result>::fieldsForSelect(const SelectFieldList& list,
+      |                                           ^~~~~~~~~~~~~~~
+      |                                           Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.h:12:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Dbo.h:11:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Impl.h:12:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:387:11: error: unknown type name 'SelectField'; did you mean 'Impl::SelectField'?
+  387 |     const SelectField& field = first.front();
+      |           ^~~~~~~~~~~
+      |           Impl::SelectField
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:34:8: note: 'Impl::SelectField' declared here
+   34 | struct SelectField
+      |        ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.C:18:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:363:15: error: unknown type name 'SelectField'; did you mean 'Impl::SelectField'?
+  363 |         const SelectField& field = list[i];
+      |               ^~~~~~~~~~~
+      |               Impl::SelectField
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:34:8: note: 'Impl::SelectField' declared here
+   34 | struct SelectField
+      |        ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.C:18:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:383:11: error: unknown type name 'SelectFieldList'; did you mean 'Impl::SelectFieldList'?
+  383 |     const SelectFieldList& first = selectFieldLists_.front();
+      |           ^~~~~~~~~~~~~~~
+      |           Impl::SelectFieldList
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:39:13: note: 'Impl::SelectFieldList' declared here
+   39 | using Impl::SelectFieldList = std::vector<SelectField>;
+      |             ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.C:18:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query_impl.h:387:11: error: unknown type name 'SelectField'; did you mean 'Impl::SelectField'?
+  387 |     const SelectField& field = first.front();
+      |           ^~~~~~~~~~~
+      |           Impl::SelectField
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Query.h:34:8: note: 'Impl::SelectField' declared here
+   34 | struct SelectField
+      |        ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/QueryColumn.h:12:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Dbo.h:11:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/Impl.h:14:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session_impl.h:19:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/reflect/Ddl.h:290:36: error: expected unqualified-id
+  290 |         "create table \"", detail::::Wt::Dbo::detail::quoteSchemaDot(tableName), "\" (\n");
+      |                                    ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/reflect/Ddl.h:352:41: error: expected unqualified-id
+  352 |         std::string tableName = detail::::Wt::Dbo::detail::quoteSchemaDot(get_table_name<C>());
+      |                                         ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Dbo/session/Session.C:21:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/fmt/format.h:4168:27: warning: identifier '_a' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+ 4168 | constexpr auto operator"" _a(const char* s, size_t) -> detail::udl_arg<char> {
+      |                ~~~~~~~~~~~^~
+      |                operator""_a
+1 warning and 4 errors generated.
+gmake[2]: *** [src/Wt/Dbo/CMakeFiles/wtdbo.dir/build.make:289: src/Wt/Dbo/CMakeFiles/wtdbo.dir/session/Call.C.o] Error 1
+gmake[2]: *** Attente des tâches non terminées....
+9 errors generated.
+gmake[2]: *** [src/Wt/Dbo/CMakeFiles/wtdbo.dir/build.make:247: src/Wt/Dbo/CMakeFiles/wtdbo.dir/session/Query.C.o] Error 1
+1 warning and 4 errors generated.
+gmake[2]: *** [src/Wt/Dbo/CMakeFiles/wtdbo.dir/build.make:275: src/Wt/Dbo/CMakeFiles/wtdbo.dir/session/Transaction.C.o] Error 1
+1 warning and 11 errors generated.
+gmake[2]: *** [src/Wt/Dbo/CMakeFiles/wtdbo.dir/build.make:261: src/Wt/Dbo/CMakeFiles/wtdbo.dir/session/QueryColumn.C.o] Error 1
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Request.C:14:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:21:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/cookies.hpp:27:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:24:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/CgiParser.C:38:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/CgiParser.h:16:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/cookies.hpp:27:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:24:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:17:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+9 errors generated.
+gmake[2]: *** [src/Wt/Dbo/CMakeFiles/wtdbo.dir/build.make:219: src/Wt/Dbo/CMakeFiles/wtdbo.dir/sql/QueryParse.C.o] Error 1
+1 warning and 11 errors generated.
+gmake[2]: *** [src/Wt/Dbo/CMakeFiles/wtdbo.dir/build.make:233: src/Wt/Dbo/CMakeFiles/wtdbo.dir/session/Session.C.o] Error 1
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebMain.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebMain.h:10:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:294:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp.hpp:23:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/compress.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/cookies.hpp:27:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:24:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.C:16:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:22:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/cookies.hpp:27:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:24:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Configuration.C:7:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:294:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp.hpp:23:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/compress.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/cookies.hpp:27:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:24:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Configuration.C:9:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:294:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp.hpp:23:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/compress.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/cookies.hpp:27:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:24:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WLogger.C:7:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WebController.C:9:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, In file included from R/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/DomElement.Ce:f13e:
+rIn file included from e/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.hn:c21e:
+>In file included from :/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp::v25a:
+lIn file included from u/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/cookies.hpp:e27,:
+
+In file included from       /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp| :        ^24
+:
+In file included from /usr/local/include/boost/algorithm/string.hpp:/usr/local/include/boost/iterator/iterator_facade.hpp19::
+682In file included from :/usr/local/include/boost/algorithm/string/trim.hpp40::19 :
+note: In file included from in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here/usr/local/include/boost/range/as_literal.hpp
+:18  :
+682In file included from  | /usr/local/include/boost/range/iterator_range.hpp : 13 :
+ In file included from t/usr/local/include/boost/range/iterator_range_core.hppy:p27e:
+n/usr/local/include/boost/iterator/iterator_facade.hppa:m378e: 18b:o owarning: s'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]t
+::itera  t378o | r s : : d e t a i l : : osptedr:a:tiosr__tbrriavcikaelt<s _VraelsuuelTty<p eD e>r,i
+v      e| d                 ^,
+ Value, r/usr/local/include/boost/iterator/iterator_facade.hppe:f388e:r9e:n cnote: ein instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here 
+>  :388: | t y p e 
+        |                                         ^ 
+use_/usr/local/include/boost/iterator/iterator_facade.hppo:p724e:r12a:t onote: rin instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here_
+br  a724c | k e t s _ppurbolxiyc< Vdaeltuaei,l :R:eifteerreantcoer>_:f:avcaalduee_,b
+a      s| e        ^<
+
+      |            ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40:/usr/local/include/boost/iterator/iterator_adaptor.hpp :note: 117in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here:
+12:   note: 682in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here | 
+    117  |   t y p epnuabmel ibco odsett:a:iilt:e:riatteorrast:o:rd_eatdaaiplt:o:ro_pbearsaet_otr<_
+b      r| a           ^c
+kets_resul/usr/local/include/boost/iterator/transform_iterator.hppt:<74 :D12e:r inote: vin instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested heree
+d,    V74a | l u e ,  pruebfleirce ndceet a>i:l::t:ytprea
+n      | s                                       ^f
+orm/usr/local/include/boost/iterator/iterator_facade.hpp_:i724:12t:e rnote: ain instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested heret
+o  r724_ | b a s e <p uUbnlaircy Fduentca,i lI:t:eirtaetroart,o rR_effaecraednec_eb,a sVea<l
+u      e|             ^>
+::type,/usr/local/include/boost/iterator/iterator_adaptor.hpp
+:      117| :           ^12
+: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp  :117 | 85 : 5 :  pnote: u(skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)b
+li   c85  | d e t a itlr:a:nistfeorramtor__aidtaeprtaotro_rb<a
+s      e| _    ^t
+<
+      |            ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26:/usr/local/include/boost/iterator/transform_iterator.hpp :note: 74in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here:
+12:   281note:  | in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested heres
+tru   c74t |   i t e rpautbolri_ct rdaeittasi l:: :_t_riatnesrfaotromr__itterraaittosr<__bIaps>e <{ 
+U      n| a                         ^r
+yFunc/usr/local/include/boost/iterator/iterator_traits.hpp,: 14I:t1e:r anote: tin instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested hereo
+r,    R14e | fuesrienngc ei,t eVraaltuoer _>v:a:ltuyep_et, 
+=       | t           ^y
+penam/usr/local/include/boost/archive/iterators/binary_from_base64.hppe: 85s:t5d:: :note: i(skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)t
+er   a85t | o r _ t rtariatnss<f oIrtme_riatteorra t>o:r:<v
+a      l| u    ^
+e_type;/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h
+:      281| :^26
+:/usr/local/include/boost/iterator/iterator_traits.hpp :note: 19in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here:
+18:  281 |  snote: tin instantiation of template type alias 'iterator_value_t' requested herer
+uc   t19  | i t e r autsoirn_gt rtayiptes  =:  i_t_eirtaetroart_ovra_lturea_itt<s <I_tIepr>a t{o
+r       | >                         ^;
+
+      |                  ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: /usr/local/include/boost/archive/iterators/transform_width.hppnote: :in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here43
+:38:    14note:  | in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested hereu
+sin   g43  | i t e r actloars_sv aClhuaer_Tty p=e  t=y pteynpaemnea mset db:o:oistte:r:aittoerr_attroari_tvsa<l uIet<eBraasteo>r: :>t:y:pvea l/u/e _otuytppeu;t
+       c| h^a
+r/usr/local/include/boost/iterator/iterator_traits.hppa:c19t:e18r:
+       note: | in instantiation of template type alias 'iterator_value_t' requested here                                     ^
+
+   19 |     u/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpps:i538n:g63 :t ynote: pin instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required heree
+ = ite  r538a | t o r _ vuasluien_gt <b aIstee6r4a_tdoerc o>d;e
+_      i| t                 ^e
+rator/usr/local/include/boost/archive/iterators/transform_width.hpp :=43 :b38o:o snote: tin instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here:
+:ar   c43h | i v e : :ciltaesrsa tCohrasr:T:ytprea n=s ftoyrpme_nwaimdet hb<o
+o      s| t                                                              ^~~~~~~~~~~~~~~~:
+:it  e539r | a t o r _ v a l ubeo<oBsats:e:>a:r:cthyipvee :/:/i toeurtaptuotr sc:h:abriancatreyr_
+f      r| o                                     ^m
+_base64/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp<:s538:t63:d :note: :in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required heres
+tring  :538 | : c o n suts_iintge rbaatsoer6>4,_ d8e,c o6d>e;_
+i      t| e        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~r
+ator = b/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.ho:o22s:t8::: anote: r'is_trivial<char>' has been explicitly marked deprecated herec
+h   i22v | es::ittreurcatt o_rLsI:B:CtPrPa_nDsEfPoRrEmC_AwTiEdDt_hI<N
+_      C| X                                                              ^~~~~~~~~~~~~~~~X
+26_  (539
+ |        |         ^ 
+     boo/opt/clang-p2996/bin/../include/c++/v1/__configs:t714:::45a:r cnote: hexpanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'i
+ve:  :714i | t#e r a t odresf:i:nbei n_aLrIyB_CfPrPo_mD_EbPaRsEeC6A4T<EsDt_dI:N:_sCtXrXi2n6g_:(:mc)o n_sLtI_BiCtPePr_aDtEoPrR>E,C A8T,E D6_>(;m
+)      
+|               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+|                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h::5322:: 8note: :expanded from macro '_LIBCPP_DEPRECATED_' 
+note: 'is_trivial<char>' has been explicitly marked deprecated here  
+669 |    #22  |  s t r u cdte f_iLnIeB CP_PL_IDBECPPRPE_CDAETPERDE_CIANT_ECDX_X(2m6)_ (_
+_      a| t       ^t
+ribute__/opt/clang-p2996/bin/../include/c++/v1/__config(:(714_:_45d:e pnote: rexpanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'e
+cat  e714d | _#_ ( m ) )d)e
+f      i| n                                                    ^e
+ _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WApplication.C:18:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WMemoryResource.h:14:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:22:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/cookies.hpp:27:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:24:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WString.C:9:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Client.C:13:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:21:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/cookies.hpp:27:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:24:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:7:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/examples/http_test/http_test.C:13:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/server.hpp:34:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WTemplate_.C:6:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<char, char>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, char>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, char, boost::iterators::random_access_traversal_tag, char>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/iterator/transform_iterator.hpp:74:12: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::iterators::transform_iterator<boost::archive::iterators::detail::to_6_bit<char>, std::__wrap_iter<const char *>>, std::__wrap_iter<const char *>, char, boost::use_default, char>' requested here
+   74 |     public detail::transform_iterator_base< UnaryFunc, Iterator, Reference, Value >::type,
+      |            ^
+/usr/local/include/boost/archive/iterators/binary_from_base64.hpp:85:5: note: (skipping 8 contexts in backtrace; use -ftemplate-backtrace-limit=0 to see all)
+   85 |     transform_iterator<
+      |     ^
+/opt/clang-p2996/bin/../include/c++/v1/__iterator/iterator_traits.h:281:26: note: in instantiation of template class 'std::__iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+  281 | struct iterator_traits : __iterator_traits<_Ip> {
+      |                          ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:14:1: note: in instantiation of template class 'std::iterator_traits<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   14 | using iterator_value_t = typename std::iterator_traits< Iterator >::value_type;
+      | ^
+/usr/local/include/boost/iterator/iterator_traits.hpp:19:18: note: in instantiation of template type alias 'iterator_value_t' requested here
+   19 |     using type = iterator_value_t< Iterator >;
+      |                  ^
+/usr/local/include/boost/archive/iterators/transform_width.hpp:43:38: note: in instantiation of template class 'boost::iterators::iterator_value<boost::archive::iterators::binary_from_base64<std::__wrap_iter<const char *>>>' requested here
+   43 |     class CharType = typename boost::iterator_value<Base>::type // output character
+      |                                      ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/common.hpp:538:63: note: in instantiation of default argument for 'transform_width<boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>' required here
+  538 |     using base64_decode_iterator = boost::archive::iterators::transform_width<
+      |                                                               ^~~~~~~~~~~~~~~~
+  539 |         boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Request.C:14:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:21:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/CgiParser.C:38:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/CgiParser.h:16:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:20:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:22:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebMain.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebMain.h:10:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:294:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp.hpp:23:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/compress.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.C:16:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:22:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/DomElement.C:13:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:21:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WLogger.C:11:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:294:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp.hpp:23:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/compress.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Configuration.C:9:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:294:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp.hpp:23:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/compress.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WebController.C:19:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:22:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Configuration.C:7:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:294:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp.hpp:23:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/compress.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WApplication.C:18:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WMemoryResource.h:14:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:22:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Client.C:13:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:21:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WString.C:12:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:294:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp.hpp:23:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/compress.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WTemplate_.C:20:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:31:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.h:15:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:21:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:20:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:294:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp.hpp:23:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/compress.hpp:25:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/context.hpp:28:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/response.hpp:34:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: warning: 'aligned_storage_t' is deprecated [-Wdeprecated-declarations]
+   92 | using buffer = std::aligned_storage_t<sizeof(void*) * 2, alignof(void*)>;
+      |                     ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/cuehttp/detail/MoveOnlyFunction.hpp:92:21: note: in instantiation of template type alias 'aligned_storage_t' requested here
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/aligned_storage.h:81:25: note: 'aligned_storage_t' has been explicitly marked deprecated here
+   81 | using aligned_storage_t _LIBCPP_DEPRECATED_IN_CXX23 = typename aligned_storage<_Len, _Align>::type;
+      |                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:707:41: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX23'
+  707 | #    define _LIBCPP_DEPRECATED_IN_CXX23 _LIBCPP_DEPRECATED
+      |                                         ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:668:49: note: expanded from macro '_LIBCPP_DEPRECATED'
+  668 | #      define _LIBCPP_DEPRECATED __attribute__((__deprecated__))
+      |                                                 ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Request.C:14:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:162:2: warning: "repair this" [-W#warnings]
+  162 | #warning "repair this"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Render/CssParser.C:23:
+In file included from /usr/local/include/boost/algorithm/string.hpp:19:
+In file included from /usr/local/include/boost/algorithm/string/trim.hpp:19:
+In file included from /usr/local/include/boost/range/as_literal.hpp:18:
+In file included from /usr/local/include/boost/range/iterator_range.hpp:13:
+In file included from /usr/local/include/boost/range/iterator_range_core.hpp:27:
+/usr/local/include/boost/iterator/iterator_facade.hpp:378:18: warning: 'is_trivial<const char>' is deprecated: Consider using is_trivially_copyable<T>::value && is_trivially_default_constructible<T>::value instead. [-Wdeprecated-declarations]
+  378 |             std::is_trivial< ValueType >,
+      |                  ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:388:9: note: in instantiation of template class 'boost::iterators::detail::use_operator_brackets_proxy<const char, const char &>' requested here
+  388 |         use_operator_brackets_proxy<Value, Reference>::value,
+      |         ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:682:40: note: in instantiation of template class 'boost::iterators::detail::operator_brackets_result<boost::spirit::classic::file_iterator<>, const char, const char &>' requested here
+  682 |     typename boost::iterators::detail::operator_brackets_result< Derived, Value, reference >::type
+      |                                        ^
+/usr/local/include/boost/iterator/iterator_facade.hpp:724:12: note: in instantiation of template class 'boost::iterators::detail::iterator_facade_base<boost::spirit::classic::file_iterator<>, const char, std::random_access_iterator_tag, const char &, long, true, true>' requested here
+  724 |     public detail::iterator_facade_base<
+      |            ^
+/usr/local/include/boost/iterator/iterator_adaptor.hpp:117:12: note: in instantiation of template class 'boost::iterators::iterator_facade<boost::spirit::classic::file_iterator<>, const char, std::random_access_iterator_tag>' requested here
+  117 |     public detail::iterator_adaptor_base_t<
+      |            ^
+/usr/local/include/boost/spirit/home/classic/iterator/file_iterator.hpp:154:14: note: in instantiation of template class 'boost::iterators::iterator_adaptor<boost::spirit::classic::file_iterator<>, boost::spirit::classic::fileiter_impl::mmap_file_iterator<>, const char, std::random_access_iterator_tag, boost::use_default, long>' requested here
+  154 |     : public fileiter_impl::file_iter_generator<CharT, BaseIteratorT>::type,
+      |              ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Render/CssParser.C:472:43: note: in instantiation of template class 'boost::spirit::classic::file_iterator<>' requested here
+  472 |   boost::spirit::classic::file_iterator<> first(filename.toUTF8());
+      |                                           ^
+/opt/clang-p2996/bin/../include/c++/v1/__type_traits/is_trivial.h:22:8: note: 'is_trivial<const char>' has been explicitly marked deprecated here
+   22 | struct _LIBCPP_DEPRECATED_IN_CXX26_(
+      |        ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:714:45: note: expanded from macro '_LIBCPP_DEPRECATED_IN_CXX26_'
+  714 | #    define _LIBCPP_DEPRECATED_IN_CXX26_(m) _LIBCPP_DEPRECATED_(m)
+      |                                             ^
+/opt/clang-p2996/bin/../include/c++/v1/__config:669:53: note: expanded from macro '_LIBCPP_DEPRECATED_'
+  669 | #      define _LIBCPP_DEPRECATED_(m) __attribute__((__deprecated__(m)))
+      |                                                     ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:20:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/DomElement.C:13:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:162:2: warning: "repair this" [-W#warnings]
+  162 | #warning "repair this"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.C:16:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WebController.C:19:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WApplication.C:18:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WMemoryResource.h:14:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WApplication.C:18:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WMemoryResource.h:167:2: warning: "change the logic whith suspend if atomic_bool modifying data_" [-W#warnings]
+  167 | #warning "change the logic whith suspend if atomic_bool modifying data_"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Client.C:13:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:162:2: warning: "repair this" [-W#warnings]
+  162 | #warning "repair this"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WTemplate_.C:20:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:31:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.h:15:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:162:2: warning: "repair this" [-W#warnings]
+  162 | #warning "repair this"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WTemplate_.C:20:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:95:3: warning: non-void function does not return a value [-Wreturn-type]
+   95 |   }
+      |   ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebMain.C:6:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebMain.h:10:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:300:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Request.C:15:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:300:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WLogger.C:11:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:300:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Configuration.C:7:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:300:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Client.C:15:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:300:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Configuration.C:9:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:300:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WString.C:12:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:300:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:20:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.h:300:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WResource.h:368:2: warning: "this code is broken" [-W#warnings]
+  368 | #warning "this code is broken"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WLogger.C:16:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:31:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.h:15:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:162:2: warning: "repair this" [-W#warnings]
+  162 | #warning "repair this"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WebController.C:26:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:31:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.h:15:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:162:2: warning: "repair this" [-W#warnings]
+  162 | #warning "repair this"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/Http/Client.C:19:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:95:3: warning: non-void function does not return a value [-Wreturn-type]
+   95 |   }
+      |   ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WLogger.C:16:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:95:3: warning: non-void function does not return a value [-Wreturn-type]
+   95 |   }
+      |   ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.C:26:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:31:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.h:15:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:162:2: warning: "repair this" [-W#warnings]
+  162 | #warning "repair this"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WebController.C:26:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:95:3: warning: non-void function does not return a value [-Wreturn-type]
+   95 |   }
+      |   ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.C:26:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:95:3: warning: non-void function does not return a value [-Wreturn-type]
+   95 |   }
+      |   ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:135:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  135 | #embed "../web/skeleton/Wt.mjs"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WApplication.C:24:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:31:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.h:15:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:162:2: warning: "repair this" [-W#warnings]
+  162 | #warning "repair this"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WApplication.C:24:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:95:3: warning: non-void function does not return a value [-Wreturn-type]
+   95 |   }
+      |   ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.C:1465:2: warning: "new coroutine based doRecursiveEventLoop() Need to be tested" [-W#warnings]
+ 1465 | #warning "new coroutine based doRecursiveEventLoop() Need to be tested"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:145:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  145 | #embed "../js/AuthModel.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WebController.C:1346:2: warning: "Message event distribution is broken" [-W#warnings]
+ 1346 | #warning "Message event distribution is broken"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:153:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  153 | #embed "../js/Bootstrap5Theme.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:161:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  161 | #embed "../js/BootstrapValidate.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:169:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  169 | #embed "../js/ChartCommon.esm.js"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:27:
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.h:15:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WEnvironment.h:162:2: warning: "repair this" [-W#warnings]
+  162 | #warning "repair this"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:177:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  177 | #embed "../js/CssThemeValidate.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WApplication.C:40:2: warning: #embed is a Clang extension [-Wc23-extensions]
+   40 | #embed "../xml/wt.xml"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:185:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  185 | #embed "../js/FlexLayoutImpl.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:193:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  193 | #embed "../js/PopupWindow.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:201:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  201 | #embed "../js/qtloader.esm.js"
+      |  ^
+In file included from /home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:29:
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebSession.h:95:3: warning: non-void function does not return a value [-Wreturn-type]
+   95 |   }
+      |   ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:209:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  209 | #embed "../js/Resizable.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:217:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  217 | #embed "../js/ResizeSensor.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:225:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  225 | #embed "../js/ScrollVisibility.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:233:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  233 | #embed "../js/SizeHandle.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:446:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  446 | #embed "skeleton/Boot.legacy.html"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:449:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  449 | #embed "skeleton/Boot.html"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:452:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  452 | #embed "skeleton/Plain.html"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:455:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  455 | #embed "skeleton/Hybrid.html"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:458:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  458 | #embed "skeleton/Wt.min.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:461:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  461 | #embed "skeleton/Boot.min.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:464:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  464 | #embed "skeleton/Hybrid.html"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:241:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  241 | #embed "../js/StdGridLayoutImpl2.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:249:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  249 | #embed "../js/ToolTip.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:257:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  257 | #embed "../js/WAbstractMedia.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WApplication.C:1494:2: warning: "TODO: implement correctly WApplication::takeLock()" [-W#warnings]
+ 1494 | #warning "TODO: implement correctly WApplication::takeLock()"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:265:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  265 | #embed "../js/WAxisSliderWidget.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:273:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  273 | #embed "../js/WDialog.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:281:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  281 | #embed "../js/WDoubleValidator.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:289:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  289 | #embed "../js/WFileDropWidget.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:297:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  297 | #embed "../js/WFormWidget.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:305:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  305 | #embed "../js/WGLWidget.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:313:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  313 | #embed "../js/WImage.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:321:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  321 | #embed "../js/WIntValidator.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:329:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  329 | #embed "../js/WJavaScriptObjectStorage.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:337:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  337 | #embed "../js/WLeafletMap.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:345:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  345 | #embed "../js/WLengthValidator.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:353:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  353 | #embed "../js/WLineEdit.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:361:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  361 | #embed "../js/WMediaPlayer.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:369:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  369 | #embed "../js/WPaintedWidget.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:377:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  377 | #embed "../js/WPopupMenu.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:385:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  385 | #embed "../js/WPopupWidget.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:393:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  393 | #embed "../js/WRegExpValidator.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:401:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  401 | #embed "../js/WSpinBox.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:409:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  409 | #embed "../js/WStackedWidget.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:417:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  417 | #embed "../js/WSuggestionPopup.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:425:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  425 | #embed "../js/WTableView.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:433:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  433 | #embed "../js/WTextEdit.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:441:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  441 | #embed "../js/WTimeEdit.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:449:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  449 | #embed "../js/WTreeTable.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:457:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  457 | #embed "../js/WTreeView.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:465:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  465 | #embed "../js/WWebWidget.esm.js"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/Wt/WServer.C:473:2: warning: #embed is a Clang extension [-Wc23-extensions]
+  473 | #embed "../js/WtResize.esm.js"
+      |  ^
+gmake[1]: *** [CMakeFiles/Makefile2:798: src/Wt/Dbo/CMakeFiles/wtdbo.dir/all] Error 2
+gmake[1]: *** Attente des tâches non terminées....
+2 warnings generated.
+4 warnings generated.
+3 warnings generated.
+4 warnings generated.
+5 warnings generated.
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:2831:2: warning: "simplify this !!" [-W#warnings]
+ 2831 | #warning "simplify this !!"
+      |  ^
+/home/guinebert/Documents/GitHub/wtfmtdbo3/src/web/WebRenderer.C:3409:2: warning: "TODO: reImplement this" [-W#warnings]
+ 3409 | #warning "TODO: reImplement this"
+      |  ^
+3 warnings generated.
+1 warning generated.
+3 warnings generated.
+6 warnings generated.
+3 warnings generated.
+3 warnings generated.
+6 warnings generated.
+5 warnings generated.
+46 warnings generated.
+2 warnings generated.
+[ 21%] Linking CXX executable http_test
+[ 21%] Built target http_test
+8 warnings generated.
+14 warnings generated.
+[ 22%] Linking CXX shared library libwt-core.so
+[ 81%] Built target wt-core
+gmake: *** [Makefile:136: all] Error 2

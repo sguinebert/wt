@@ -116,6 +116,9 @@ node('wt') {
         stage('Checkout') {
             checkout scm
         }
+        stage('Wt::Dbo throw/catch budget') {
+            sh './tools/ci/check_wtdbo_throw_catch_budget.sh'
+        }
         def image = docker.build("wt-full:${env.BRANCH_NAME}-${env.BUILD_ID}",
                                  """./jenkins \
                                     -f ./jenkins/full.Dockerfile \

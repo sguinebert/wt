@@ -6,7 +6,7 @@
 #include <Wt/WApplication.h>
 #include <Wt/WContainerWidget.h>
 #include <Wt/WServer.h>
-#include <Wt/Dbo/SqlConnectionPool.h>
+#include <Wt/Dbo/sql/Pool.h>
 
 #include "model/BlogSession.h"
 #include "model/Token.h"

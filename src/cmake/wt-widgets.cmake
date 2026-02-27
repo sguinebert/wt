@@ -10,6 +10,89 @@
 # working without changes.
 # ---------------------------------------------------------------------------
 
+if(WT_UI2_HARD_CUT)
+  message(WARNING "WT_UI2_HARD_CUT is enabled: building only the ui2 runtime and skipping legacy WWidget stack.")
+
+  set(WT_WIDGETS_SOURCES
+    Wt/ui2/contract.hpp
+    Wt/ui2/types.hpp
+    Wt/ui2/slot_store.hpp
+    Wt/ui2/widget_like.hpp
+    Wt/ui2/any_widget.hpp
+    Wt/ui2/shape_tree.hpp
+    Wt/ui2/patch_vm.hpp
+    Wt/ui2/runtime.hpp
+    Wt/ui2/runtime.cpp
+    Wt/ui2/widgets/dom_tree.hpp
+    Wt/ui2/widgets/dom_tree.cpp
+    Wt/ui2/widgets/common.hpp
+    Wt/ui2/widgets/common.cpp
+    Wt/ui2/widgets/events.hpp
+    Wt/ui2/widgets/events.cpp
+    Wt/ui2/widgets/basic.hpp
+    Wt/ui2/widgets/basic.cpp
+    Wt/ui2/widgets/interactive.hpp
+    Wt/ui2/widgets/interactive.cpp
+    Wt/ui2/widgets/forms.hpp
+    Wt/ui2/widgets/forms.cpp
+  )
+
+  add_library(wt-widgets ${WT_WIDGETS_SOURCES})
+
+  target_compile_definitions(wt-widgets PRIVATE wt_EXPORTS WT_UI2_HARD_CUT=1)
+
+  set_property(TARGET wt-widgets PROPERTY C_VISIBILITY_PRESET hidden)
+  set_property(TARGET wt-widgets PROPERTY CXX_VISIBILITY_PRESET hidden)
+  set_property(TARGET wt-widgets PROPERTY VISIBILITY_INLINES_HIDDEN YES)
+
+  target_include_directories(wt-widgets
+    PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/web>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+      $<INSTALL_INTERFACE:include>
+  )
+
+  target_link_libraries(wt-widgets PUBLIC wt-core)
+
+  set_target_properties(wt-widgets
+    PROPERTIES
+      EXPORT_NAME WtWidgets
+      VERSION ${VERSION_SERIES}.${VERSION_MAJOR}.${VERSION_MINOR}
+      DEBUG_POSTFIX ${DEBUG_LIB_POSTFIX}
+  )
+
+  install(TARGETS wt-widgets
+      EXPORT wt-target-wt-widgets
+      RUNTIME DESTINATION bin
+      LIBRARY DESTINATION ${LIB_INSTALL_DIR}
+      ARCHIVE DESTINATION ${LIB_INSTALL_DIR})
+
+  install(EXPORT wt-target-wt-widgets
+          DESTINATION ${CMAKE_INSTALL_DIR}/wt
+          NAMESPACE Wt::)
+
+  add_library(wt INTERFACE)
+  target_link_libraries(wt INTERFACE wt-widgets)
+
+  set_target_properties(wt
+    PROPERTIES
+      EXPORT_NAME Wt
+  )
+
+  install(TARGETS wt
+      EXPORT wt-target-wt
+      RUNTIME DESTINATION bin
+      LIBRARY DESTINATION ${LIB_INSTALL_DIR}
+      ARCHIVE DESTINATION ${LIB_INSTALL_DIR})
+
+  install(EXPORT wt-target-wt
+          DESTINATION ${CMAKE_INSTALL_DIR}/wt
+          NAMESPACE Wt::)
+
+  return()
+endif()
+
 set(WT_WIDGETS_SOURCES
   # -- Layout internals --
   Wt/FlexLayoutImpl.h Wt/FlexLayoutImpl.C

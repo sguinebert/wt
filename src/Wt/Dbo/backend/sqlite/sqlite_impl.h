@@ -23,9 +23,12 @@ public:
 
   void open(const std::string &db_name)
   {
+    last_error_.clear();
     if (sqlite3_open(db_name.c_str(), &_db) != SQLITE_OK)
     {
-      throw std::runtime_error(sqlite3_errmsg(_db));
+      last_error_ = sqlite3_errmsg(_db);
+      sqlite3_close(_db);
+      _db = nullptr;
     }
   }
   void destroy()
@@ -36,24 +39,32 @@ public:
 
   void query(const std::string &sql, const query_handler handler)
   {
+    last_error_.clear();
     int rc = sqlite3_exec(_db, sql.c_str(), query_callback, (void *)&handler, NULL);
     if (rc != SQLITE_OK)
     {
-      throw std::runtime_error(sqlite3_errmsg(_db));
+      last_error_ = sqlite3_errmsg(_db);
     }
   }
 
   void query(const std::string &sql)
   {
+    last_error_.clear();
     int rc = sqlite3_exec(_db, sql.c_str(), query_callback, NULL, NULL);
     if (rc != SQLITE_OK)
     {
-      throw std::runtime_error(sqlite3_errmsg(_db));
+      last_error_ = sqlite3_errmsg(_db);
     }
+  }
+
+  const std::string& last_error() const
+  {
+    return last_error_;
   }
 
 private:
   sqlite3 *_db;
+  std::string last_error_;
 };
 
 static int query_callback(void *h, int argc, char **argv, char **azColName)

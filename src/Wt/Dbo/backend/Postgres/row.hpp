@@ -4,8 +4,8 @@
 
 #include <postgresql/libpq-fe.h>
 
+#include <cassert>
 #include <cstdint>
-#include <stdexcept>
 
 namespace postgrespp {
 
@@ -25,7 +25,10 @@ public:
   }
 
   const field_t at(size_type n) const {
-    if (n >= PQnfields(res_)) throw std::out_of_range{"field n >= size()"};
+    if (n >= static_cast<size_type>(PQnfields(res_))) {
+      assert(false && "postgrespp::row::at(): field index out of range");
+      return {res_, row_, 0};
+    }
 
     return {res_, row_, n};
   }

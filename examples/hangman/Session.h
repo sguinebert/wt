@@ -12,8 +12,8 @@
 
 #include <Wt/Auth/Login.h>
 
-#include <Wt/Dbo/Session.h>
-#include <Wt/Dbo/ptr.h>
+#include <Wt/Dbo/session/Session.h>
+#include <Wt/Dbo/core/ptr.h>
 #include <Wt/Dbo/backend/Sqlite3.h>
 
 #include "User.h"

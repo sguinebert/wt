@@ -9,8 +9,8 @@
 #ifndef _WT_DBO_BACKEND_FIREBIRD_
 #define _WT_DBO_BACKEND_FIREBIRD_
 
-#include <Wt/Dbo/SqlConnection.h>
-#include <Wt/Dbo/SqlStatement.h>
+#include <Wt/Dbo/sql/Connection.h>
+#include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/backend/WDboFirebirdDllDefs.h>
 
 namespace IBPP {
@@ -97,9 +97,9 @@ namespace Wt {
          */
         IBPP::Database connection();
 
-        void startTransaction();
-        void commitTransaction();
-        void rollbackTransaction();
+        awaitable<dbo_result<void>> startTransaction();
+        awaitable<dbo_result<void>> commitTransaction();
+        awaitable<dbo_result<void>> rollbackTransaction();
 	
         virtual std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql) override;
 
@@ -122,6 +122,8 @@ namespace Wt {
         virtual LimitQuery limitQueryMethod() const override;
         virtual bool supportAlterTable() const override;
         virtual bool usesRowsFromTo() const override {return false;}
+
+        DialectKind dialectKind() const { return DialectKind::Firebird; }
 	//!@}
  
         virtual void prepareForDropTables() override;

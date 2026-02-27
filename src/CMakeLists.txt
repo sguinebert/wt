@@ -16,14 +16,32 @@ add_subdirectory(Wt)
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-steps=100000000 -ftemplate-depth=40960")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-literal-operator -march=native")
+include(CheckCXXCompilerFlag)
+
+set(_wt_extra_cxx_flags
+    "-ftemplate-depth=40960"
+    "-Wno-deprecated-literal-operator"
+    "-march=native"
+)
+
+check_cxx_compiler_flag("-fconstexpr-steps=100000000" WT_HAS_FCONSTEXPR_STEPS)
+if(WT_HAS_FCONSTEXPR_STEPS)
+    list(APPEND _wt_extra_cxx_flags "-fconstexpr-steps=100000000")
+endif()
+
+string(JOIN " " _wt_extra_cxx_flags_joined ${_wt_extra_cxx_flags})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${_wt_extra_cxx_flags_joined}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
+
+set(_wt_web_renderer_compile_options "-ftemplate-depth=40960")
+if(WT_HAS_FCONSTEXPR_STEPS)
+    list(APPEND _wt_web_renderer_compile_options "-fconstexpr-steps=100000000")
+endif()
 
 set_source_files_properties(
     WebRenderer.C
     PROPERTIES
-        COMPILE_OPTIONS "-fconstexpr-steps=100000000;-ftemplate-depth=40960"
+        COMPILE_OPTIONS "${_wt_web_renderer_compile_options}"
 )
 
 # ---------------------------------------------------------------------------
@@ -150,7 +168,7 @@ include(cmake/wt-widgets.cmake)
 # ---------------------------------------------------------------------------
 # wttest (optional test library)
 # ---------------------------------------------------------------------------
-if(ENABLE_LIBWTTEST)
+if(ENABLE_LIBWTTEST AND NOT WT_UI2_HARD_CUT)
     add_library(wttest Wt/Test/WTestEnvironment.C)
 
     set_target_properties(wttest PROPERTIES
@@ -187,6 +205,8 @@ if(ENABLE_LIBWTTEST)
             COMPILE_FLAGS "${BUILD_PARALLEL} /wd4251 /wd4275 /wd4355 /wd4800 /wd4996 /wd4101 /wd4267")
         set_target_properties(wttest PROPERTIES FOLDER "test")
     endif()
+elseif(ENABLE_LIBWTTEST AND WT_UI2_HARD_CUT)
+    message("** Not building libwttest (WT_UI2_HARD_CUT enabled)")
 else()
     message("** Not building libwttest")
 endif()

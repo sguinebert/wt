@@ -5,9 +5,8 @@
 #include <Wt/AsioWrapper/asio.hpp>
 
 #include <postgresql/libpq-fe.h>
-#include <stdexcept>
-#include <iostream>
 #include <list>
+#include <memory>
 
 namespace postgrespp {
 
@@ -57,9 +56,15 @@ protected:
                       //                  if(res.status() == result::status_t::TUPLES_OK)
                       //                      std::cout << "res size : " << res.size() << std::endl;
 
-                      if (!r->done()) throw std::runtime_error{"expected one result"};
+                      if (!r->done()) {
+                          *r = std::move(res);
+                          return;
+                      }
                       *r = std::move(res);
                   } else {
+                      if (r->done()) {
+                          *r = makeFatalResult();
+                      }
                       //std::cout << "io_ctx : " << &io_ctx << std::endl;
                       boost::asio::post(io_ctx, [handler = std::move(handler), r = std::move(r)] () mutable { handler(std::move(*r)); });
 
@@ -75,7 +80,7 @@ protected:
               if(auto i = i_.load(std::memory_order_acquire); !i || i > maxBatchCount) { // [auto_batch] -> end batch           // cmd->sql_.length() > 1024
                   if (!PQpipelineSync(derived().connection().underlying_handle()))
                   {
-                      std::cerr << "PQpipelineSync not working " << std::endl;
+                      return;
                   }
               }
           });
@@ -100,9 +105,15 @@ protected:
       auto initiation = [this](auto&& handler) {
           auto wrapped_handler = [this, handler = std::move(handler), r = std::make_shared<result>(nullptr)](auto&& res) mutable {
               if (!res.done()) {
-                  if (!r->done()) throw std::runtime_error{"expected one result"};
+                  if (!r->done()) {
+                      *r = std::move(res);
+                      return;
+                  }
                   *r = std::move(res);
               } else {
+                  if (r->done()) {
+                      *r = makeFatalResult();
+                  }
                   handler(std::move(*r));
 
                   if(!callable_.empty()) {
@@ -123,8 +134,21 @@ protected:
   template <class ResultCallableT>
   auto handle_exec_all(ResultCallableT&& handler) {
     auto initiation = [this](auto&& handler) {
+      auto wrapped_handler = [this, handler = std::move(handler), seen_result = std::make_shared<bool>(false)](auto&& res) mutable {
+        if (!res.done()) {
+          *seen_result = true;
+          handler(std::move(res));
+          return;
+        }
+
+        if (!*seen_result) {
+          handler(makeFatalResult());
+        }
+        handler(std::move(res));
+      };
+
       on_write_ready({});
-      wait_read_ready(std::move(handler));
+      wait_read_ready(std::move(wrapped_handler));
     };
 
     return boost::asio::async_initiate<
@@ -151,11 +175,15 @@ private:
   template <class ResultCallableT>
   void on_read_ready(ResultCallableT&& handler, const error_code_t& ec) {
     const auto conn = derived().connection().underlying_handle();
+    if (!conn) {
+      handler(makeFatalResult());
+      return;
+    }
+
     while (true) {
       if (PQconsumeInput(conn) != 1) {
-        // TODO: convert this to some kind of error via the callback
-        throw std::runtime_error{
-          "consume input failed: " + std::string{derived().connection().last_error_message()}};
+        handler(makeFatalResult());
+        return;
       }
 
       if (!PQisBusy(conn)) {
@@ -211,15 +239,27 @@ private:
 
   void on_write_ready(const error_code_t& ec) {
     //PQpipelineSync(derived().connection().underlying_handle());
-    const auto ret = PQflush(derived().connection().underlying_handle());
+    const auto conn = derived().connection().underlying_handle();
+    if (!conn) {
+      return;
+    }
+
+    const auto ret = PQflush(conn);
 
     //std::cout << "on_write_ready: " << ret << std::endl;
     if (ret == 1) {
       wait_write_ready();
     } else if (ret != 0) {
-      // TODO: ignore or convert this to some kind of error via the callback
-      throw std::runtime_error{"flush failed: " + std::string{derived().connection().last_error_message()}};
+      return;
     }
+  }
+
+  result makeFatalResult() {
+    auto* conn = derived().connection().underlying_handle();
+    if (auto* raw = PQmakeEmptyPGresult(conn, PGRES_FATAL_ERROR)) {
+      return result{raw};
+    }
+    return result{nullptr};
   }
 
   derived_t& derived() { return *static_cast<derived_t*>(this); }

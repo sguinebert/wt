@@ -7,22 +7,24 @@
  */
 #pragma once
 #include <Wt/Dbo/backend/MySQL.h>
-#include <Wt/Dbo/SqlStatement.h>
+#include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/backend/WDboMySQLDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/Dbo/Exception.h>
+#include <Wt/Dbo/core/Exception.h>
 #include <Wt/WLogger.h>
 
 #include <Wt/cpp20/date.hpp>
 #include <Wt/cpp20/async_mutex.hpp>
 
 #include <boost/mysql.hpp>
-
-using namespace boost::mysql;
+#include <optional>
 
 namespace Wt {
 namespace Dbo {
 namespace backend {
+
+namespace mysql = boost::mysql;
+using boost::system::error_code;
 
 class MySQLException : public Exception
 {
@@ -104,6 +106,7 @@ public:
     {
         state_ = Done;
         has_truncation_ = false;
+        pendingError_.reset();
     }
 
     virtual void bind(int column, const std::string& value) override
@@ -112,8 +115,8 @@ public:
             params_.emplace_back(value);
             return;
         }
-        if (column >= paramCount_)
-            throw MySQLException(std::string("Try to bind too much?"));
+        if (!ensureBindColumn(column))
+            return;
 
         params_[column] = value;
 
@@ -142,8 +145,8 @@ public:
             params_.emplace_back(value);
             return;
         }
-        if (column >= paramCount_)
-            throw MySQLException(std::string("Try to bind too much?"));
+        if (!ensureBindColumn(column))
+            return;
 
         params_[column] = value;
 
@@ -164,8 +167,8 @@ public:
             params_.emplace_back(value);
             return;
         }
-        if (column >= paramCount_)
-            throw MySQLException(std::string("Try to bind too much?"));
+        if (!ensureBindColumn(column))
+            return;
 
         params_[column] = value;
 
@@ -185,8 +188,8 @@ public:
             params_.emplace_back(value);
             return;
         }
-        if (column >= paramCount_)
-            throw MySQLException(std::string("Try to bind too much?"));
+        if (!ensureBindColumn(column))
+            return;
 
         params_[column] = value;
 
@@ -206,8 +209,8 @@ public:
             params_.emplace_back(value);
             return;
         }
-        if (column >= paramCount_)
-            throw MySQLException(std::string("Try to bind too much?"));
+        if (!ensureBindColumn(column))
+            return;
 
         params_[column] = value;
 //        LOG_DEBUG("{} bind {} {}", (long long)this, column, value);
@@ -226,8 +229,8 @@ public:
             params_.emplace_back(value);
             return;
         }
-        if (column >= paramCount_)
-            throw MySQLException(std::string("Try to bind too much?"));
+        if (!ensureBindColumn(column))
+            return;
 
         params_[column] = value;
 
@@ -246,23 +249,22 @@ public:
                       SqlDateTimeType type) override
     {
         if(!paramCount_) {
-            params_.emplace_back(datetime(std::chrono::time_point_cast<std::chrono::microseconds>(value)));
+            params_.emplace_back(mysql::datetime(std::chrono::time_point_cast<std::chrono::microseconds>(value)));
             return;
         }
-        if (column >= paramCount_)
-            throw MySQLException(std::string("Try to bind too much?"));
+        if (!ensureBindColumn(column))
+            return;
 
 #ifdef WT_DEBUG_ENABLED
         if (WT_LOGGING("debug", WT_LOGGER)) {
-            using namespace cpp20::date;
-            std::ostringstream ss;
-            ss.imbue(std::locale::classic());
-            ss << value;
-            WT_LOG("debug") << WT_LOGGER << ": " << this << " bind " << column << " " << ss.str();
+            const auto micros = std::chrono::duration_cast<std::chrono::microseconds>(
+              value.time_since_epoch()).count();
+            WT_LOG("debug") << WT_LOGGER << ": " << this << " bind " << column
+                            << " " << micros << "us";
         }
 #endif
         auto t = std::chrono::time_point_cast<std::chrono::microseconds>(value);
-        params_[column] = datetime(t);
+        params_[column] = mysql::datetime(t);
 
 //        MYSQL_TIME*  ts = (MYSQL_TIME*)malloc(sizeof(MYSQL_TIME));
 
@@ -304,8 +306,8 @@ public:
             params_.emplace_back(value);
             return;
         }
-        if (column >= paramCount_)
-            throw MySQLException(std::string("Try to bind too much?"));
+        if (!ensureBindColumn(column))
+            return;
 
         params_[column] = value;
 
@@ -349,8 +351,8 @@ public:
             params_.emplace_back(value);
             return;
         }
-        if (column >= paramCount_)
-            throw MySQLException(std::string("Try to bind too much?"));
+        if (!ensureBindColumn(column))
+            return;
 
         LOG_DEBUG("{} bind {}  (blob, size={})", (long long)this, column, value.size());
 
@@ -383,8 +385,8 @@ public:
             params_.emplace_back(nullptr);
             return;
         }
-        if (column >= paramCount_)
-            throw MySQLException(std::string("Try to bind too much?"));
+        if (!ensureBindColumn(column))
+            return;
 
         LOG_DEBUG("{} bind {} null", (long long)this, column);
 
@@ -410,8 +412,12 @@ public:
         }
     }
 
-    awaitable<void> execute() override
+    awaitable<dbo_result<void>> execute() override
     {
+        if (pendingError_) {
+            co_return std::unexpected(*pendingError_);
+        }
+
         if (conn_.showQueries())
             LOG_INFO(fmt::runtime(sql_));
 
@@ -421,12 +427,11 @@ public:
         if(!stmt_.valid())
             std::tie(ec, stmt_) = co_await conn_.connection()->async_prepare_statement(sql_, use_nothrow_awaitable);
 
-
         if(!ec) {
             paramCount_ = stmt_.num_params();
             auto bound = stmt_.bind(params_.begin(), params_.end());
 
-            diagnostics diag;
+            mysql::diagnostics diag;
             auto [ec] = co_await conn_.connection()->async_execute(bound, result_, diag, use_nothrow_awaitable);
             if(!ec){
                 if(columnCount_ == 0) { // assume not select
@@ -439,32 +444,31 @@ public:
                 else {
                     irow_ = 0;
 
-                    //but suffer from "commands out of sync" errors with the usage
-                    //patterns that Wt::Dbo uses if not called.
                     if( result_.has_value() ) {
                         if(result_.size() > 0){
                             state_ = NextRow;
                         }
                         else {
-                            state_ = NoFirstRow; // not sure how/if this can happen
+                            state_ = NoFirstRow;
                         }
                     }
                     else {
-                        throw MySQLException(std::string("error getting result metadata ")
-                                             + std::string(result_.info()));
+                        co_return std::unexpected(dbo_error{DboErrc::Sql,
+                            std::string("error getting result metadata ") + std::string(result_.info()),
+                            "mysql"});
                     }
                 }
             }
             else {
-                throw MySQLException(
-                    std::string("error executing prepared statement ")+
-                    ec.to_string());
+                co_return std::unexpected(dbo_error{DboErrc::Sql,
+                    std::string("error executing prepared statement ") + ec.to_string(),
+                    "mysql"});
             }
         }
         else {
-            throw MySQLException(
-                std::string("error executing prepared statement ")+
-                ec.to_string());
+            co_return std::unexpected(dbo_error{DboErrc::Sql,
+                std::string("error preparing statement ") + ec.to_string(),
+                "mysql"});
         }
 
 //        if(mysql_stmt_bind_param(stmt_, &in_pars_[0]) == 0){
@@ -512,7 +516,7 @@ public:
 //                                 mysql_stmt_error(stmt_));
 //        }
 
-        co_return;
+        co_return dbo_result<void>{};
     }
 
     virtual long long insertedId() override
@@ -570,7 +574,7 @@ public:
 //            }
             break;
         case Done:
-            throw MySQLException("MySQL: nextRow(): statement already finished");
+            return false;
         }
 
         return false;
@@ -944,10 +948,10 @@ private:
     std::string sql_;
     char name_[64];
     bool has_truncation_;
-    results result_;
-    row_view row_;
-    statement stmt_;
-    std::vector<field> params_;
+    mysql::results result_;
+    mysql::row_view row_;
+    mysql::statement stmt_;
+    std::vector<mysql::field> params_;
     //MYSQL_RES *result_;
     //MYSQL_STMT* stmt_;
     //MYSQL_BIND* in_pars_;
@@ -962,6 +966,19 @@ private:
     enum { NoFirstRow, NextRow, Done } state_;
     long long lastId_, irow_, affectedRows_;
     int columnCount_;
+    std::optional<dbo_error> pendingError_;
+
+    bool ensureBindColumn(int column)
+    {
+        if (column < paramCount_)
+            return true;
+
+        pendingError_ = dbo_error{
+            DboErrc::Sql,
+            "mysql bind: too many parameters",
+            "mysql"};
+        return false;
+    }
 
 //    void bind_output() {
 //        if (!out_pars_) {
@@ -1070,4 +1087,3 @@ private:
 }
 }
 }
-

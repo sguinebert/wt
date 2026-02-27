@@ -76,6 +76,13 @@ A radical fork of [Wt 4.x](https://www.webtoolkit.eu/wt) rewritten for C++26. Th
 - Do not add legacy-browser bootstrap shims to this flow.
 - The source of truth for UI structure is a typed C++ static tree, not JSON.
 
+### 9. Exception-free error handling
+
+- The entire repository is moving towards an **exception-free** architecture (compiling with `-fno-exceptions`).
+- Do not use `throw`, `try`, or `catch` in new code.
+- Use `std::expected` (C++23/26) for functions that can fail, returning errors as values.
+- For Asio coroutines, prefer returning `asio::awaitable<std::expected<T, Error>>` or using `std::error_code` instead of throwing exceptions.
+
 ---
 
 ## Subsystem map

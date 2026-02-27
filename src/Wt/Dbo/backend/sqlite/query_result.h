@@ -4,7 +4,8 @@
 
 #include <iostream>
 #include <list>
-#include <sstream>
+#include <charconv>
+#include <cstring>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -33,10 +34,14 @@ private:
   static typename std::enable_if<std::is_arithmetic<element_type<N>>::value, element_type<N>>::type
   get_data(char *data)
   {
-    std::stringstream st(data);
-    element_type<N>   value;
-    st >> value;
-
+    element_type<N> value{};
+    const char* begin = data;
+    const char* end = data + std::strlen(data);
+    if constexpr (std::is_integral<element_type<N>>::value) {
+      std::from_chars(begin, end, value);
+    } else {
+      std::from_chars(begin, end, value, std::chars_format::general);
+    }
     return value;
   }
 

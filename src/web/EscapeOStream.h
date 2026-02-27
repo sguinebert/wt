@@ -477,7 +477,7 @@ public:
 
   EscapeOStream();
   EscapeOStream(std::ostream& sink);
-  EscapeOStream(WStringStream& sink);
+  EscapeOStream(::Wt::WStringStream& sink);
   EscapeOStream(EscapeOStream& other);
 
   EscapeOStream(EscapeOStream&& other) noexcept = default; //will suppress the final version
@@ -513,8 +513,8 @@ public:
   void clear();
 
 private:
-  WStringStream own_stream_;
-  WStringStream& stream_;
+  ::Wt::WStringStream own_stream_;
+  ::Wt::WStringStream& stream_;
 
   struct Entry {
     char c;

@@ -7,9 +7,10 @@
 #ifndef WT_DBO_BACKEND_SQLITE3_H_
 #define WT_DBO_BACKEND_SQLITE3_H_
 
-//#include <Wt/Dbo/SqlConnection.h>
-#include <Wt/Dbo/SqlConnectionBase.h>
-#include <Wt/Dbo/SqlStatement.h>
+//#include <Wt/Dbo/sql/Connection.h>
+#include <Wt/Dbo/sql/ConnectionBase.h>
+#include <Wt/Dbo/sql/Statement.h>
+#include <Wt/Dbo/core/Error.h>
 #include <Wt/Dbo/backend/WDboSqlite3DllDefs.h>
 #include <Wt/cpp20/async_mutex.hpp>
 
@@ -119,9 +120,9 @@ public:
    */
     DateTimeStorage dateTimeStorage(SqlDateTimeType type) const;
 
-    awaitable<void> startTransaction();
-    awaitable<void> commitTransaction();
-    awaitable<void> rollbackTransaction();
+    awaitable<dbo_result<void>> startTransaction();
+    awaitable<dbo_result<void>> commitTransaction();
+    awaitable<dbo_result<void>> rollbackTransaction();
 
     std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql);
 
@@ -141,20 +142,27 @@ public:
     const char *dateTimeType(SqlDateTimeType type) const;
     const char *blobType() const;
     bool supportDeferrableFKConstraint() const;
+
+    DialectKind dialectKind() const { return DialectKind::Sqlite; }
     //@}
 
-    awaitable<void> executeSql(const std::string& sql)
+    awaitable<dbo_result<void>> executeSql(const std::string& sql)
     {
         co_await async_mutex_.async_scoped_lock(use_awaitable);
         std::unique_ptr<SqlStatement> s = prepareStatement(sql);
-        co_await s->execute();
-        co_return;
+        if (!s) {
+          co_return std::unexpected(dbo_error{
+            DboErrc::Connection,
+            "Sqlite3: prepareStatement failed (connection unavailable)",
+            "sqlite3"});
+        }
+        co_return co_await s->execute();
     }
 
-    awaitable<void> executeSqlStateful(const std::string& sql)
+    awaitable<dbo_result<void>> executeSqlStateful(const std::string& sql)
     {
         statefulSql_.push_back(sql);
-        co_await executeSql(sql);
+        co_return co_await executeSql(sql);
     }
 
 private:

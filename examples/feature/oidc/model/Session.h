@@ -4,7 +4,7 @@
 #include <Wt/Auth/Dbo/UserDatabase.h>
 #include <Wt/Auth/Login.h>
 #include <Wt/Auth/User.h>
-#include <Wt/Dbo/ptr.h>
+#include <Wt/Dbo/core/ptr.h>
 #include <Wt/Dbo/backend/Sqlite3.h>
 
 #include "User.h"

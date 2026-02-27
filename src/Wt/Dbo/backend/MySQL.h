@@ -9,11 +9,11 @@
 #ifndef WT_DBO_BACKEND_MYSQL_H_
 #define WT_DBO_BACKEND_MYSQL_H_
 
-#include <Wt/Dbo/SqlConnectionBase.h>
-#include <Wt/Dbo/SqlStatement.h>
+#include <Wt/Dbo/sql/ConnectionBase.h>
+#include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/backend/WDboMySQLDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/Dbo/Exception.h>
+#include <Wt/Dbo/core/Exception.h>
 
 #include <Wt/cpp20/date.hpp>
 #include <Wt/cpp20/async_mutex.hpp>
@@ -64,13 +64,7 @@ public:
           int fractionalSecondsPart = -1) : fractionalSecondsPart_(fractionalSecondsPart)
     {
         setFractionalSecondsPart(fractionalSecondsPart);
-
-        try {
-            connect(ctx.get_executor(), db, dbuser, dbpasswd, dbhost, dbport, dbsocket);
-        } catch (...) {
-            //delete impl_;
-            throw;
-        }
+        connect(ctx.get_executor(), db, dbuser, dbpasswd, dbhost, dbport, dbsocket);
     }
 
   /*! \brief Copies a MySQL connection.
@@ -84,13 +78,8 @@ public:
         : SqlConnectionBase(other)
     {
         setFractionalSecondsPart(other.fractionalSecondsPart_);
-
-        try {
-            if (!other.dbname_.empty())
-                connect(connection_->get_executor(), other.dbname_, other.dbuser_, other.dbpasswd_, other.dbhost_, other.dbport_, other.dbsocket_);
-        } catch (...) {
-            throw;
-        }
+        if (!other.dbname_.empty())
+            connect(connection_->get_executor(), other.dbname_, other.dbuser_, other.dbpasswd_, other.dbhost_, other.dbport_, other.dbsocket_);
     }
 
 
@@ -167,7 +156,13 @@ public:
 
         // Resolve the hostname to get a collection of endpoints
         boost::asio::ip::tcp::resolver resolver(ctx);
-        auto endpoints = resolver.resolve(dbhost, dbport ? std::to_string(dbport) : boost::mysql::default_port_string);
+        boost::mysql::error_code ec;
+        boost::mysql::diagnostics diag;
+        auto endpoints = resolver.resolve(dbhost, dbport ? std::to_string(dbport) : boost::mysql::default_port_string, ec);
+        if (ec || endpoints.begin() == endpoints.end()) {
+            connection_.reset();
+            return false;
+        }
 
         // The username, password and database to use
         boost::mysql::handshake_params params(
@@ -177,7 +172,11 @@ public:
             );
 
         // Connect to the server using the first endpoint returned by the resolver
-        connection_->connect(*endpoints.begin(), params);
+        connection_->connect(*endpoints.begin(), params, ec, diag);
+        if (ec) {
+            connection_.reset();
+            return false;
+        }
 
         return true;
   }
@@ -186,7 +185,10 @@ public:
   {
         // Resolve the hostname to get a collection of endpoints
         boost::asio::ip::tcp::resolver resolver(ctx);
-        auto endpoints = resolver.resolve(dbhost_, dbport_ ? std::to_string(dbport_) : boost::mysql::default_port_string);
+        boost::mysql::error_code ec;
+        auto endpoints = resolver.resolve(dbhost_, dbport_ ? std::to_string(dbport_) : boost::mysql::default_port_string, ec);
+        if (ec || endpoints.begin() == endpoints.end())
+            co_return false;
 
         // The username, password and database to use
         boost::mysql::handshake_params params(
@@ -196,8 +198,8 @@ public:
             );
 
         // Connect to the server using the first endpoint returned by the resolver
-        co_await connection_->async_connect(*endpoints.begin(), params, use_nothrow_awaitable);
-        co_return true;
+        auto [connect_ec] = co_await connection_->async_connect(*endpoints.begin(), params, use_nothrow_awaitable);
+        co_return !connect_ec;
   }
 
   /*! \brief Returns the underlying connection.
@@ -215,30 +217,30 @@ public:
         }
   }
 
-  awaitable<void> executeSql(const std::string &sql)
+  awaitable<dbo_result<void>> executeSql(const std::string &sql)
   {
         co_await async_mutex_.async_scoped_lock(use_nothrow_awaitable);
         std::unique_ptr<SqlStatement> s = prepareStatement(sql);
-        co_await s->execute();
+        co_return co_await s->execute();
   }
-  awaitable<void> executeSqlStateful(const std::string& sql)
+  awaitable<dbo_result<void>> executeSqlStateful(const std::string& sql)
   {
         co_await async_mutex_.async_scoped_lock(use_nothrow_awaitable);
         statefulSql_.push_back(sql);
-        co_await executeSql(sql);
+        co_return co_await executeSql(sql);
   }
 
-  awaitable<void> startTransaction()
+  awaitable<dbo_result<void>> startTransaction()
   {
-        co_await executeSql("START TRANSACTION");
+        co_return co_await executeSql("START TRANSACTION");
   }
-  awaitable<void> commitTransaction()
+  awaitable<dbo_result<void>> commitTransaction()
   {
-        co_await executeSql("COMMIT");
+        co_return co_await executeSql("COMMIT");
   }
-  awaitable<void> rollbackTransaction()
+  awaitable<dbo_result<void>> rollbackTransaction()
   {
-        co_await executeSql("ROLLBACK");
+        co_return co_await executeSql("ROLLBACK");
   }
 
   std::unique_ptr<SqlStatement> prepareStatement(const std::string& sql){
@@ -290,9 +292,9 @@ public:
     case SqlDateTimeType::Time:
       return timeType_.c_str();
     }
-    std::stringstream ss;
-    ss << __FILE__ << ":" << __LINE__ << ": implementation error";
-    //throw MySQLException(ss.str());
+    [[maybe_unused]] const std::string msg =
+      std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": implementation error";
+    //throw MySQLException(msg);
     return "";
   }
 
@@ -367,6 +369,8 @@ public:
   { }
 
   bool requireSubqueryAlias() const {return true;}
+
+  DialectKind dialectKind() const { return DialectKind::Mysql; }
   //!@}
 
   /*! \brief Returns the supported fractional seconds part

@@ -6,9 +6,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cstdlib>
 
 #include <Wt/Dbo/SqlConnectionBase.h>
 #include <Wt/Dbo/SqlStatement.h>
+#include <Wt/Dbo/core/Error.h>
 #include <Wt/Dbo/backend/WDboPostgresDllDefs.h>
 #include <Wt/cpp20/async_mutex.hpp>
 
@@ -37,17 +39,20 @@ public:
         statementCache_.clear();
     }
 
-    awaitable<void> executeSql(const std::string& sql)
+    awaitable<dbo_result<void>> executeSql(const std::string& sql)
     {
         std::unique_ptr<Wt::Dbo::SqlStatement> s = prepareStatement(sql);
-        co_await s->execute();
-        co_return;
+        if (!s) {
+            co_return std::unexpected(
+              dbo_error{DboErrc::Connection, "prepareStatement failed", "postgres", {}, 0, "Postgres::executeSql"});
+        }
+        co_return co_await s->execute();
     }
 
-    awaitable<void> executeSqlStateful(const std::string& sql)
+    awaitable<dbo_result<void>> executeSqlStateful(const std::string& sql)
     {
         statefulSql_.push_back(sql);
-        co_await executeSql(sql);
+        co_return co_await executeSql(sql);
     }
 
     Wt::Dbo::SqlStatement *getStatement(const std::string& id)
@@ -68,10 +73,14 @@ public:
                 //fmtlog::poll();
             }
             auto stmt = prepareStatement(result->sql());
-            result = stmt.get();
-            saveStatement(id, std::move(stmt));
+            if (stmt) {
+                result = stmt.get();
+                saveStatement(id, std::move(stmt));
+            } else {
+                result = nullptr;
+            }
         }
-        return nullptr;
+        return result;
     }
 
     /*
@@ -87,7 +96,7 @@ public:
                 //LOG_INFO("maximum connection lifetime passed, trying to reconnect...");
                 if (!reconnect())
                 {
-                    throw std::runtime_error("Could not reconnect to server...");
+                    return;
                 }
             }
         }
@@ -95,11 +104,8 @@ public:
 
     void disconnect()
     {
-        auto conn = underlying_handle();
-        if (conn)
-            PQfinish(conn);
-
-        conn = 0;
+        closeUnderlyingHandle();
+        clearStatementCache();
 
 //        std::vector<SqlStatement *> statements = getStatements();
 
@@ -149,9 +155,9 @@ public:
     /*! \brief Sets a timeout.
    *
    * Sets a timeout for queries. When the query exceeds this timeout, the connection
-   * is closed using disconnect() and an exception is thrown.
+   * is closed using disconnect() and subsequent operations return an error.
    *
-   * In practice, as a result, the connection (and statements) can still be used again
+   * In practice, the connection (and statements) can still be used again
    * when a successful reconnect() is performed.
    *
    * A value of 0 disables the timeout handling, allowing operations
@@ -226,6 +232,8 @@ public:
         return true;
     }
 
+    DialectKind dialectKind() const { return DialectKind::Postgres; }
+
     std::string autoincrementInsertInfix(const std::string &) const
     {
         return "";
@@ -243,23 +251,30 @@ public:
         return connection(ctx, connInfo_.data());
     }
     using txn_t = basic_transaction<void, void>;
-    awaitable<void> startTransaction() {
-        //co_await async_transaction(use_awaitable);
-        co_await async_exec("BEGIN", use_nothrow_awaitable);
-        co_return;
+    awaitable<dbo_result<void>> startTransaction() {
+        try {
+            co_await async_exec("BEGIN", use_nothrow_awaitable);
+            co_return dbo_result<void>{};
+        } catch (const std::exception& e) {
+            co_return std::unexpected(dbo_error{DboErrc::Transaction, e.what(), {}, {}, 0, "Postgres::startTransaction"});
+        }
     }
-    awaitable<void> commitTransaction() {
-        //exec("commit transaction", false);
-        //co_await tx_.commit(use_awaitable);
-        co_await async_exec("COMMIT", use_nothrow_awaitable);
-        co_return;
+    awaitable<dbo_result<void>> commitTransaction() {
+        try {
+            co_await async_exec("COMMIT", use_nothrow_awaitable);
+            co_return dbo_result<void>{};
+        } catch (const std::exception& e) {
+            co_return std::unexpected(dbo_error{DboErrc::Transaction, e.what(), {}, {}, 0, "Postgres::commitTransaction"});
+        }
     }
 
-    awaitable<void> rollbackTransaction() {
-        //exec("rollback transaction", false);
-        //co_await tx_.rollback(use_awaitable);
-        co_await async_exec("ROLLBACK", use_nothrow_awaitable);
-        co_return;
+    awaitable<dbo_result<void>> rollbackTransaction() {
+        try {
+            co_await async_exec("ROLLBACK", use_nothrow_awaitable);
+            co_return dbo_result<void>{};
+        } catch (const std::exception& e) {
+            co_return std::unexpected(dbo_error{DboErrc::Transaction, e.what(), {}, {}, 0, "Postgres::rollbackTransaction"});
+        }
     }
 
     /** @name Methods that return dialect information
@@ -294,10 +309,7 @@ public:
         case Wt::Dbo::SqlDateTimeType::Time:
             return "interval";
         }
-
-        std::stringstream ss;
-        ss << __FILE__ << ":" << __LINE__ << ": implementation error";
-        //throw PostgresException(ss.str());
+        std::abort();
     }
     const char *blobType() const {
         return "bytea not null";
@@ -318,4 +330,3 @@ private:
 
 
 }
-

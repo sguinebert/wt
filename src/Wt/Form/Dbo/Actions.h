@@ -9,7 +9,7 @@
 
 #include <algorithm>
 
-#include <Wt/Dbo/Session.h>
+#include <Wt/Dbo/session/Session.h>
 
 #include <Wt/Form/Dbo/FieldOptions.h>
 #include <Wt/Form/Dbo/FormModelBase.h>

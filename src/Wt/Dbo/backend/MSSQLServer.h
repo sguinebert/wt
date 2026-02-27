@@ -8,8 +8,8 @@
 #ifndef WT_DBO_BACKEND_MSSQLSERVER_H_
 #define WT_DBO_BACKEND_MSSQLSERVER_H_
 
-#include <Wt/Dbo/SqlConnectionBase.h>
-#include <Wt/Dbo/SqlStatement.h>
+#include <Wt/Dbo/sql/ConnectionBase.h>
+#include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/backend/WDboMSSQLServerDllDefs.h>
 
 namespace nanodbc {
@@ -95,18 +95,18 @@ namespace Wt {
    */
         bool connect(const std::string &connectionString);
 
-        awaitable<void> executeSql(const std::string &sql);
+        awaitable<dbo_result<void>> executeSql(const std::string &sql);
 
-        awaitable<void> executeSqlStateful(const std::string& sql)
+        awaitable<dbo_result<void>> executeSqlStateful(const std::string& sql)
         {
             co_await async_mutex_.async_scoped_lock(use_nothrow_awaitable);
             statefulSql_.push_back(sql);
-            co_await executeSql(sql);
+            co_return co_await executeSql(sql);
         }
 
-        awaitable<void> startTransaction();
-        awaitable<void> commitTransaction();
-        awaitable<void> rollbackTransaction();
+        awaitable<dbo_result<void>> startTransaction();
+        awaitable<dbo_result<void>> commitTransaction();
+        awaitable<dbo_result<void>> rollbackTransaction();
 
         std::unique_ptr<SqlStatement> prepareStatement(const std::string &sql);
 
@@ -157,6 +157,9 @@ namespace Wt {
         {
             return true;
         }
+
+        DialectKind dialectKind() const { return DialectKind::Mssql; }
+
         const char *booleanType() const
         {
             return "bit";

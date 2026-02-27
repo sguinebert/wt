@@ -7,10 +7,10 @@
  */
 #pragma once
 #include <Wt/Dbo/backend/MSSQLServer.h>
-#include <Wt/Dbo/SqlStatement.h>
+#include <Wt/Dbo/sql/Statement.h>
 //#include <Wt/Dbo/backend/WDboMSSQLDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/Dbo/Exception.h>
+#include <Wt/Dbo/core/Exception.h>
 #include <Wt/WLogger.h>
 
 

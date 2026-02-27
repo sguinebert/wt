@@ -7,7 +7,7 @@
 #ifndef TEST_SESSION_H_
 #define TEST_SESSION_H_
 
-#include <Wt/Dbo/Session.h>
+#include <Wt/Dbo/session/Session.h>
 
 class TestSession : public Wt::Dbo::Session
 {

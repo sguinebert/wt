@@ -14,3 +14,5 @@ of interest to external contributors or users of Wt as well.
 - `full`: a Wt build with almost all features enabled
 - `db`: uses the Dockerfile of `full`. Builds Wt with all database backends
    except for Firebird, and runs the database tests using sidecar containers.
+- `dbo-cpp26-reflection`: dedicated Wt::Dbo lane for C++26 reflection hard-cut
+   validation (`WT_DBO_CPP26_HARD_CUT=ON`) and `throw/catch` budget checks.

@@ -6,7 +6,7 @@
 #include "../model/Token.h"
 #include "../model/Comment.h"
 
-#include <Wt/Dbo/ptr.h>
+#include <Wt/Dbo/core/ptr.h>
 #include <Wt/WStackedWidget.h>
 #include <Wt/WTemplate.h>
 

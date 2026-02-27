@@ -5,7 +5,7 @@
  */
 
 #include <Wt/WServer.h>
-#include <Wt/Dbo/SqlConnectionPool.h>
+#include <Wt/Dbo/sql/Pool.h>
 
 #include "BlogRSSFeed.h"
 #include "model/BlogSession.h"

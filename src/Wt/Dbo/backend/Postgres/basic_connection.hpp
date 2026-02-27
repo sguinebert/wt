@@ -12,11 +12,8 @@
 //#include <boost/asio/ip/tcp.hpp>
 #include <Wt/AsioWrapper/asio.hpp>
 
-#include <stdexcept>
 #include <string>
 #include <utility>
-
-#include <Wt/AsioWrapper/asio.hpp>
 
 namespace postgrespp {
 
@@ -45,31 +42,44 @@ public:
     : socket_{exc}
     {
     c_ = PQconnectdb(pgconninfo);
+    if (!c_) {
+      return;
+    }
 
-    if (status() != CONNECTION_OK)
-      throw std::runtime_error{"could not connect: " + std::string{PQerrorMessage(c_)}};
+    if (status() != CONNECTION_OK) {
+      closeUnderlyingHandle();
+      return;
+    }
 
-    if (PQsetnonblocking(c_, 1) != 0)
-      throw std::runtime_error{"could not set non-blocking: " + std::string{PQerrorMessage(c_)}};
+    if (PQsetnonblocking(c_, 1) != 0) {
+      closeUnderlyingHandle();
+      return;
+    }
 
-    if (PQenterPipelineMode(c_) == 0)
-      throw std::runtime_error{"could not set pipeline mode: " + std::string{PQerrorMessage(c_)}};
+    if (PQenterPipelineMode(c_) == 0) {
+      closeUnderlyingHandle();
+      return;
+    }
 
     const auto socket = PQsocket(c_);
 
-    if (socket < 0)
-      throw std::runtime_error{"could not get a valid descriptor"};
+    if (socket < 0) {
+      closeUnderlyingHandle();
+      return;
+    }
 
     struct sockaddr_storage addr;
     socklen_t len = sizeof(addr);
-    getsockname(socket, (struct sockaddr *)&addr, &len);
+    if (getsockname(socket, (struct sockaddr *)&addr, &len) != 0) {
+      closeUnderlyingHandle();
+      return;
+    }
 
     socket_.assign(addr.ss_family == AF_INET ? boost::asio::ip::tcp::v4() : boost::asio::ip::tcp::v6(), socket);
   }
 
   ~basic_connection() {
-    if (c_)
-      PQfinish(c_);
+    closeUnderlyingHandle();
   }
 
   basic_connection(basic_connection const&) = delete;
@@ -99,6 +109,9 @@ public:
                      CompletionTokenT&& handler)
   {
     boost::asio::dispatch(socket().get_executor(), [this, statement_name = std::move(statement_name), query = std::move(query), nParams, paramTypes] {
+        if (!connection().underlying_handle()) {
+            return;
+        }
         const auto res = PQsendPrepare(connection().underlying_handle(),
                                        statement_name.c_str(),
                                        query.c_str(),
@@ -106,8 +119,7 @@ public:
                                        paramTypes);
 
         if (res != 1) {
-            std::cerr << "error preparing statement '" + statement_name + "': " + std::string{connection().last_error_message()} << std::endl;
-            throw std::runtime_error{"error preparing statement '" + statement_name + "': " + std::string{connection().last_error_message()}};
+            return;
         }
     });
 
@@ -217,13 +229,15 @@ public:
 
   //auto& executor() { return socket_.get_executor(); }
 
-  const char* last_error_message() const { return PQerrorMessage(underlying_handle()); }
+  const char* last_error_message() const {
+      return underlying_handle() ? PQerrorMessage(underlying_handle()) : "postgres connection unavailable";
+  }
 
   bool inTransaction(bool transaction) { if(transaction)return inTransaction_.exchange(transaction, std::memory_order_relaxed);  return inTransaction_.load(std::memory_order_relaxed); }
 
 private:
   int status() const {
-      return PQstatus(c_);
+      return c_ ? PQstatus(c_) : CONNECTION_BAD;
   }
 
   template <class ResultCallableT>
@@ -251,6 +265,9 @@ private:
 
       //std::cout << "query : " << query << std::endl;
       boost::asio::dispatch(socket().get_executor(), [this, query = std::move(query), num_values, value_arr, size_arr, type_arr] {
+          if (!connection().underlying_handle()) {
+              return;
+          }
           const auto res = PQsendQueryParams(connection().underlying_handle(),
                                              query.c_str(),
                                              num_values,
@@ -261,7 +278,7 @@ private:
                                              static_cast<int>(field_type::BINARY));
 
           if (res != 1) {
-              throw std::runtime_error{"error executing query '" + query + "': " + std::string{connection().last_error_message()}};
+              return;
           }
 
       });
@@ -275,6 +292,9 @@ private:
                              const int* size_arr, const int* type_arr, std::size_t num_values) {
 
       boost::asio::dispatch(socket().get_executor(), [this, statement_name = std::move(statement_name), num_values, value_arr, size_arr, type_arr] {
+          if (!connection().underlying_handle()) {
+              return;
+          }
           const auto res = PQsendQueryPrepared(connection().underlying_handle(),
                                                statement_name.c_str(),
                                                num_values,
@@ -284,7 +304,7 @@ private:
                                                1);
 
           if (res != 1) {
-              throw std::runtime_error{"error executing query '" + statement_name + "': " + std::string{connection().last_error_message()}};
+              return;
           }
       });
 
@@ -295,10 +315,18 @@ private:
 
   io_context_t& standalone_ioc();
 
+protected:
+  void closeUnderlyingHandle() noexcept {
+    if (c_) {
+      PQfinish(c_);
+      c_ = nullptr;
+    }
+  }
+
 private:
   socket_t socket_;
 
-  PGconn* c_;
+  PGconn* c_ = nullptr;
 
   std::atomic_bool inTransaction_ = false;
 };

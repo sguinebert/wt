@@ -4,9 +4,9 @@
 
 #include <postgresql/libpq-fe.h>
 
+#include <concepts>
 #include <cstdint>
-#include <stdexcept>
-#include <iostream>
+#include <type_traits>
 
 namespace postgrespp {
 
@@ -26,16 +26,14 @@ public:
     using decoder_t = type_decoder<T>;
 
     if (!decoder_t::nullable && is_null())
-      throw std::length_error{"field is null"};
+      return fallbackValue<T>();
 
     //std::cerr << std::to_string(decoder_t::min_size) << " " << std::to_string(decoder_t::max_size) << std::endl;
 
     const auto field_length = PQgetlength(res_, row_, col_);
     if (!(field_length == 0 && decoder_t::nullable) &&
         field_length < decoder_t::min_size || field_length > decoder_t::max_size)
-      throw std::length_error{"field length " + std::to_string(field_length) + " not in range " +
-        std::to_string(decoder_t::min_size) + "-" +
-        std::to_string(decoder_t::max_size)};
+      return fallbackValue<T>();
 
     return unsafe_as<T>();
   }
@@ -68,6 +66,13 @@ public:
   }
 
 private:
+  template <class T>
+  static T fallbackValue() {
+    static_assert(std::default_initializable<T>,
+      "postgrespp::field::as<T>() requires default-initializable T for no-throw fallback");
+    return T{};
+  }
+
   const PGresult* const res_;
   const size_type row_;
   const size_type col_;

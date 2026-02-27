@@ -6,7 +6,9 @@
 #include <postgresql/libpq-fe.h>
 
 #include <cassert>
+#include <charconv>
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 class result_base {
@@ -97,7 +99,10 @@ public:
   }
 
   const row_t at(size_type n) const {
-    if (n >= size()) throw std::out_of_range{"row n >= size()"};
+    if (n >= size()) {
+      assert(false && "postgrespp::result::at(): row index out of range");
+      return (*this)[0];
+    }
 
     return (*this)[n];
   }
@@ -112,10 +117,18 @@ public:
   size_type affected_rows() const {
     const auto s = PQcmdTuples(res_);
 
-    if (!std::strcmp(s, ""))
-      throw std::runtime_error{"invalid query type for affected rows"};
+    if (!s || !*s) {
+      return 0;
+    }
 
-    return std::stoull(s);
+    unsigned long long value = 0;
+    const std::size_t len = std::strlen(s);
+    const auto [ptr, ec] = std::from_chars(s, s + len, value);
+    if (ec != std::errc{} || ptr != (s + len)) {
+      return 0;
+    }
+
+    return static_cast<size_type>(value);
   }
 
   const char* error_message() const { return PQresultErrorMessage(res_); }

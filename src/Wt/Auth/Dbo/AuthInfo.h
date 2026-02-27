@@ -15,7 +15,7 @@
 #include <Wt/Dbo/Types.h>
 #endif
 
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 
 namespace Wt {
   namespace Auth {

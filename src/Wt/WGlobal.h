@@ -301,7 +301,7 @@ namespace Wt {
     template <class C> struct dbo_traits;
     template <typename V, class Enable> struct sql_value_traits;
     template <class C> class ptr;
-    template <class Result, typename BindStrategy> class Query;
+    template <class Result> class Query;
     template <class Result> class QueryModel;
 
     namespace backend {
