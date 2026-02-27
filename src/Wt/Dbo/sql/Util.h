@@ -29,6 +29,15 @@ struct SqlCoreTemplates {
   std::string select_by_id_sql;
 };
 
+/*! \brief DDL result for one junction (join) table.
+ *  Produced by reflect_create_join_table_sqls<D, Owner>().
+ */
+struct JoinTableDdl {
+  std::string tableName;              ///< junction table name (for dedup)
+  std::string createTableSql;         ///< CREATE TABLE statement
+  std::vector<std::string> indexSqls; ///< CREATE INDEX statements
+};
+
     namespace detail {
 
 // ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@
 #ifndef WT_DBO_QUERY_MODEL_IMPL_H_
 #define WT_DBO_QUERY_MODEL_IMPL_H_
 
+#include <algorithm>
 #include <cassert>
 #include <Wt/Dbo/session/QueryModel.h>
 #include <Wt/Dbo/session/QueryColumn.h>
@@ -29,6 +30,7 @@ void QueryModel<Result>::setQuery(const Query<Result>& query, bool keepColumns)
 {
   queryLimit_ = query.limit();
   queryOffset_ = query.offset();
+  fullyLoaded_ = false;
 
   if (!keepColumns) {
     query_ = query;
@@ -40,6 +42,8 @@ void QueryModel<Result>::setQuery(const Query<Result>& query, bool keepColumns)
     invalidateData();
     query_ = query;
     fields_ = query_.fields();
+    for (auto& c : columns_)
+      c.fieldIdx_ = getFieldIndex(c.field_);
     if (!sortOrderBy_.empty()) {
       query_.orderBy(sortOrderBy_);
     }
@@ -59,7 +63,7 @@ Query<Result> QueryModel<Result>::query() const
 template <class Result>
 void QueryModel<Result>::setBatchSize(int count)
 {
-  batchSize_ = count;
+  batchSize_ = std::max(0, count);
 }
 
 template <class Result>
@@ -80,8 +84,12 @@ int QueryModel<Result>::addColumn(const std::string& field,
 template <class Result>
 int QueryModel<Result>::addColumn(const QueryColumn& column)
 {
+  const int fieldIdx = getFieldIndex(column.field_);
+  if (fieldIdx < 0)
+    return -1;
+
   columns_.push_back(column);
-  columns_.back().fieldIdx_ = getFieldIndex(column.field_);
+  columns_.back().fieldIdx_ = fieldIdx;
 
   return static_cast<int>(columns_.size() - 1);
 }
@@ -114,64 +122,62 @@ int QueryModel<Result>::columnCount(const WModelIndex& parent) const
 template <class Result>
 int QueryModel<Result>::rowCount(const WModelIndex& parent) const
 {
-//  if (parent.isValid())
-//    return -1;
+  if (parent.isValid())
+    return 0;
 
-//  if (cachedRowCount_ == -1) {
-//    if (batchSize_)
-//      cacheRow(0);
-
-//    if (cachedRowCount_ == -1) {
-//      Transaction transaction(query_.session());
-
-//      query_.limit(queryLimit_);
-//      query_.offset(queryOffset_);
-
-//      Query<Result> unorderedQuery(query_);
-//      unorderedQuery.orderBy("");
-//      cachedRowCount_ = static_cast<int>(unorderedQuery.resultList().size());
-
-//      transaction.commit();
-//    }
-//  }
-
-  return cachedRowCount_;
+  return std::max(cachedRowCount_, 0);
 }
 
 template <class Result>
 WFlags<ItemFlag> QueryModel<Result>::flags(const WModelIndex& index) const
 {
+  if (!index.isValid() || index.column() < 0
+      || index.column() >= static_cast<int>(columns_.size()))
+    return WFlags<ItemFlag>();
+
   return columns_[index.column()].flags_;
 }
 
 template <class Result>
 cpp17::any QueryModel<Result>::data(const WModelIndex& index, ItemDataRole role) const
 {
+  if (!index.isValid() || index.row() < 0 || index.column() < 0
+      || index.column() >= static_cast<int>(columns_.size()))
+    return cpp17::any();
 
-  if(cache_.empty())
+  if (cache_.empty())
+    return cpp17::any();
+
+  if (columns_[index.column()].fieldIdx_ < 0)
     return cpp17::any();
 
   setCurrentRow(index.row());
 
-  if (role == ItemDataRole::Display || role == ItemDataRole::Edit)
-    return rowValues_[columns_[index.column()].fieldIdx_];
-  else
+  if (role == ItemDataRole::Display || role == ItemDataRole::Edit) {
+    const auto valueIndex = columns_[index.column()].fieldIdx_;
+    if (valueIndex >= 0 && valueIndex < static_cast<int>(rowValues_.size()))
+      return rowValues_[valueIndex];
     return cpp17::any();
+  } else {
+    return cpp17::any();
+  }
 }
 
 template <class Result>
 void QueryModel<Result>::setCurrentRow(int row) const
 {
-  if (currentRow_ != row) {
-    //Transaction transaction(query_.session());
+  if (row < cacheStart_ || row >= cacheStart_ + static_cast<int>(cache_.size())) {
+    currentRow_ = -1;
+    rowValues_.clear();
+    return;
+  }
 
+  if (currentRow_ != row) {
     const Result& result = resultRow(row);
     rowValues_.clear();
     query_result_traits<Result>::getValues(result, rowValues_);
 
     currentRow_ = row;
-
-    //transaction.commit();
   }
 }
 
@@ -179,29 +185,33 @@ template <class Result>
 awaitable<bool> QueryModel<Result>::setData(const WModelIndex& index,
                                  const cpp17::any& value, ItemDataRole role)
 {
-  if (role == ItemDataRole::Edit) {
-    {
-      //Transaction transaction(query_.session());
-
-      Result& result = resultRow(index.row());
-
-      int column = columns_[index.column()].fieldIdx_;
-
-      const FieldInfo& field = fields()[column];
-
-      cpp17::any dbValue = Wt::convertAnyToAny(value, *field.type());
-
-      query_result_traits<Result>::setValue(result, column, dbValue);
-
-      query_.session().flush();
-      //transaction.commit();
-    }
-
-    invalidateRow(index.row());
-
-    co_return true;
-  } else
+  if (role != ItemDataRole::Edit)
     co_return false;
+
+  if (!index.isValid() || index.row() < 0 || index.column() < 0
+      || index.column() >= static_cast<int>(columns_.size()))
+    co_return false;
+
+  const int fieldIndex = columns_[index.column()].fieldIdx_;
+  if (fieldIndex < 0 || fieldIndex >= static_cast<int>(fields_.size()))
+    co_return false;
+  if (!fields_[fieldIndex].isMutable())
+    co_return false;
+
+  Result& result = resultRow(index.row());
+
+  int setValueIndex = fieldIndex;
+  const FieldInfo& field = fields_[fieldIndex];
+  cpp17::any dbValue = field.type()
+    ? Wt::convertAnyToAny(value, *field.type())
+    : value;
+
+  query_result_traits<Result>::setValue(result, setValueIndex, dbValue);
+  co_await query_.session().flush();
+
+  invalidateRow(index.row());
+
+  co_return true;
 }
 
 template <class Result>
@@ -210,6 +220,7 @@ void QueryModel<Result>::invalidateData()
   layoutAboutToBeChanged().emit();
 
   cachedRowCount_ = cacheStart_ = currentRow_ = -1;
+  fullyLoaded_ = false;
   cache_.clear();
   rowValues_.clear();
   stableIds_.clear();
@@ -242,6 +253,9 @@ awaitable<void> QueryModel<Result>::sort(int column, SortOrder order)
 template <class Result>
 std::string QueryModel<Result>::createOrderBy(int column, SortOrder order)
 {
+  if (column < 0 || column >= static_cast<int>(columns_.size()))
+    return {};
+
   return fieldInfo(column).sql() + " "
     + (order == SortOrder::Ascending ? "asc" : "desc");
 }
@@ -277,41 +291,6 @@ int QueryModel<Result>::indexOf(const Result& result) const
   }
 
   return -1;
-}
-
-template <class Result>
-void QueryModel<Result>::cacheRow(int row) const
-{
-  if (row < cacheStart_
-      || row >= cacheStart_ + static_cast<int>(cache_.size())) {
-    cacheStart_ = std::max(row - batchSize_ / 4, 0);
-
-    int qOffset = cacheStart_;
-    if (queryOffset_ > 0)
-      qOffset += queryOffset_;
-    query_.offset(qOffset);
-
-    int qLimit = batchSize_;
-    if (queryLimit_ > 0)
-      qLimit = std::min(batchSize_, queryLimit_ - cacheStart_);
-    query_.limit(qLimit);
-
-    Transaction transaction(query_.session());
-
-    // TODO: this synchronous cacheRow path needs async migration
-    cache_.clear();
-
-    for (unsigned i = 0; i < cache_.size(); ++i) {
-      long long id = resultId(cache_[i]);
-      if (id != -1)
-    stableIds_[cacheStart_ + i] = id;
-    }
-    if (static_cast<int>(cache_.size()) < qLimit
-        && qOffset == 0 && cachedRowCount_ == -1)
-      cachedRowCount_ = cache_.size();
-
-    transaction.commit();
-  }
 }
 
 template <class Result>
@@ -362,24 +341,30 @@ const std::vector<FieldInfo>& QueryModel<Result>::fields() const
 template <class Result>
 const FieldInfo &QueryModel<Result>::fieldInfo(int column) const
 {
+  assert(column >= 0 && column < static_cast<int>(columns_.size()));
+  assert(columns_[column].fieldIdx_ >= 0
+         && columns_[column].fieldIdx_ < static_cast<int>(fields_.size()));
   return fields_[columns_[column].fieldIdx_];
 }
 
 template <class Result>
 const std::string &QueryModel<Result>::fieldName(int column) const
 {
+  assert(column >= 0 && column < static_cast<int>(columns_.size()));
   return columns_[column].field_;
 }
 
 template <class Result>
 WFlags<ItemFlag> QueryModel<Result>::columnFlags(int column) const
 {
+  assert(column >= 0 && column < static_cast<int>(columns_.size()));
   return columns_[column].flags_;
 }
 
 template <class Result>
 void QueryModel<Result>::setColumnFlags(int column, WFlags<ItemFlag> flags)
 {
+  assert(column >= 0 && column < static_cast<int>(columns_.size()));
   columns_[column].flags_ = flags;
 }
 
@@ -404,6 +389,11 @@ void QueryModel<Result>::deleteRow(Result& result)
 template <class Result>
 bool QueryModel<Result>::insertRows(int row, int count, const WModelIndex& parent)
 {
+  if (parent.isValid() || count <= 0)
+    return false;
+  if (cachedRowCount_ < 0)
+    return false;
+
   if (row != rowCount())
     return false; // Only supporting row insertion at end
 
@@ -431,14 +421,37 @@ bool QueryModel<Result>::insertRows(int row, int count, const WModelIndex& paren
 template <class Result>
 bool QueryModel<Result>::removeRows(int row, int count, const WModelIndex& parent)
 {
+  if (parent.isValid() || count <= 0)
+    return false;
+  if (cachedRowCount_ < 0)
+    return false;
+  if (row < 0 || row + count > rowCount())
+    return false;
+  for (int i = 0; i < count; ++i) {
+    const int rowIndex = row + i;
+    const bool inCache = rowIndex >= cacheStart_
+      && rowIndex < cacheStart_ + static_cast<int>(cache_.size());
+    const bool hasStable = stableIds_.find(rowIndex) != stableIds_.end();
+    if (!inCache && !hasStable)
+      return false;
+  }
+
   beginRemoveRows(parent, row, row + count - 1);
 
   for (int i = 0; i < count; ++i) {
-    deleteRow(resultRow(row));
-    cache_.erase(cache_.begin() + (row - cacheStart_));
+    Result victim = stableResultRow(row);
+    deleteRow(victim);
   }
 
   cachedRowCount_ -= count;
+  if (cachedRowCount_ < 0)
+    cachedRowCount_ = 0;
+  cache_.clear();
+  stableIds_.clear();
+  rowValues_.clear();
+  cacheStart_ = -1;
+  currentRow_ = -1;
+  fullyLoaded_ = false;
 
   endRemoveRows();
 
@@ -451,6 +464,9 @@ awaitable<bool> QueryModel<Result>::setHeaderData(int section, Orientation orien
                                        ItemDataRole role)
 {
   if (orientation == Orientation::Horizontal) {
+    if (section < 0 || section >= static_cast<int>(columns_.size()))
+      co_return false;
+
     if (role == ItemDataRole::Edit)
       role = ItemDataRole::Display;
 
@@ -468,6 +484,9 @@ cpp17::any QueryModel<Result>::headerData(int section, Orientation orientation,
                                           ItemDataRole role) const
 {
   if (orientation == Orientation::Horizontal) {
+    if (section < 0 || section >= static_cast<int>(columns_.size()))
+      return cpp17::any();
+
     if (role == ItemDataRole::Level)
       return WAbstractTableModel::headerData(section, orientation, role);
 
@@ -490,8 +509,6 @@ long long QueryModel<Result>::resultId(const Result& result) const
 template <class Result>
 Result QueryModel<Result>::resultById(long long id) const
 {
-  Transaction transaction(query_.session());
-
   return query_result_traits<Result>::findById(query_.session(), id);
 }
 

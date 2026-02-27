@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <Wt/Dbo/sql/Statement.h>
+#include <Wt/Dbo/reflect/Dialect.h>
 //#include <Wt/cpp20/async_mutex.h>
 #include <Wt/cpp20/async_mutex.hpp>
 //#include <Wt/Dbo/WDboDllDefs.h>
@@ -24,8 +25,6 @@ class connection;
 
 namespace Wt {
   namespace Dbo {
-
-enum class DialectKind;
 
 /*! \brief Enum that defines a date time type.
  */

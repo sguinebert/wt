@@ -7,6 +7,8 @@
 #ifndef WT_DBO_QUERY_MODEL_H_
 #define WT_DBO_QUERY_MODEL_H_
 
+#include <algorithm>
+
 #include <Wt/WAbstractTableModel.h>
 #include <Wt/Dbo/Dbo.h>
 
@@ -36,9 +38,8 @@ class QueryColumn;
  * columns that correspond to fields that have been mapped (and are
  * writable) in a Database Object can be edited. The default
  * implementation of setData() uses
- * query_result_traits<Result>::setValue() to manipulate the database
- * object, and thus uses the same write-behind properties as
- * ptr<C>::modify(). To customize editing, you can specialize
+ * query_result_traits<Result>::setValue() followed by Session::flush()
+ * to persist modifications. To customize editing, you can specialize
  * setData() and use resultRow() to modify the result object
  * directly.
  *
@@ -46,15 +47,9 @@ class QueryColumn;
  * removing rows, which are reflected in object additions and removals
  * from the Session.
  *
- * Editing is directly to the underlying database objects (change,
- * insert and remove). Note that these changes will be flushed to the
- * database whenever a transaction is committed, or before a query is
- * run. The model will not explicitly create a transaction for the
- * modification, but since the model uses a query for reading data,
- * the change may be committed to the database depending on how the
- * model is loading data. Still, this implies that usually inserting a
- * row and setting its data happens within a single SQL
- * <tt>"insert"</tt> statement.
+ * Editing is applied directly to underlying result objects (change,
+ * insert and remove) and persisted through the current session flow.
+ * The model itself does not manage transaction boundaries.
  *
  * To get good performance, the model keeps the following data cached:
  *  - rowCount()
@@ -405,14 +400,16 @@ protected:
           Query<Result> unorderedQuery(query_);
           unorderedQuery.orderBy("");
           auto r = co_await unorderedQuery.rowCount();
-          if (r)
-              cachedRowCount_ = *r;
+          cachedRowCount_ = r ? *r : 0;
       }
-      co_return cachedRowCount_;
+      co_return std::max(cachedRowCount_, 0);
   }
 
   virtual awaitable<int> cacheRow(int begin, int end, int max) override
   {
+      if (begin < 0 || end < begin || max <= 0 || batchSize_ == 0)
+          co_return 0;
+
       if (begin < cacheStart_ || end >= cacheStart_ + static_cast<int>(cache_.size()))
       {
           if(batchSize_ < max * 2)
@@ -428,12 +425,21 @@ protected:
           int qLimit = batchSize_;
           if (queryLimit_ > 0)
               qLimit = std::min(batchSize_, queryLimit_ - cacheStart_);
+
+          if (qLimit <= 0) {
+              cache_.clear();
+              co_return 0;
+          }
+
           query_.limit(qLimit);
 
           auto r = co_await query_.resultList();
           cache_.clear();
-          if (r)
+          if (r) {
               cache_ = std::move(*r);
+          } else {
+              co_return 0;
+          }
 
           for (unsigned i = 0; i < cache_.size(); ++i) {
               long long id = resultId(cache_[i]);
@@ -444,21 +450,22 @@ protected:
               && qOffset == 0 && cachedRowCount_ == -1)
               cachedRowCount_ = cache_.size();
 
-          co_return cache_.size();
+          co_return static_cast<int>(cache_.size());
       }
       co_return -1;
   }
 
   virtual awaitable<void> loadAllInCache() override
   {
+      cacheStart_ = 0;
       int qOffset = cacheStart_;
       if (queryOffset_ > 0)
            qOffset += queryOffset_;
       query_.offset(qOffset);
 
-      int qLimit = batchSize_;
+      int qLimit = -1;
       if (queryLimit_ > 0)
-           qLimit = std::min(batchSize_, queryLimit_ - cacheStart_);
+           qLimit = std::max(0, queryLimit_ - cacheStart_);
       query_.limit(qLimit);
 
       auto r = co_await query_.resultList();
@@ -477,8 +484,6 @@ protected:
   }
 
 private:
-  void cacheRow(int row) const;
-
   typedef std::vector<cpp17::any> AnyList;
   typedef std::map<int, long long> StableResultIdMap;
 

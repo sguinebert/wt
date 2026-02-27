@@ -26,21 +26,6 @@ awaitable<void> reflect_drop_schema(Session& session,
 
       namespace detail {
 
-inline std::string createJoinName(RelationType type,
-                                  const char *c1,
-                                  const char *c2)
-{
-    if (type == ManyToOne)
-        return c1;
-
-    std::string t1 = c1;
-    std::string t2 = c2;
-    if (t2 < t1)
-        std::swap(t1, t2);
-
-    return t1 + "_" + t2;
-}
-
 struct DropContext {
     Session& session;
     Impl::ModelInfo& mapping;

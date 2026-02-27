@@ -19,6 +19,7 @@
 
 #include <Wt/Dbo/reflect/Iterators.h>
 #include <Wt/Dbo/reflect/Dialect.h>
+#include <Wt/Dbo/reflect/Sql.h>
 #include <Wt/Dbo/core/fk.h>
 #include <Wt/Dbo/sql/Util.h>
 #include <Wt/Dbo/sql/Traits.h>
@@ -378,6 +379,174 @@ template <SqlDialect D, class C>
 void reflect_get_fields(std::vector<FieldInfo>& result) {
     detail::FieldInfoBuilder<D> builder{result};
     for_each_field_static<C>(builder);
+}
+
+// ---------------------------------------------------------------------------
+// Join table (junction table) DDL — fully reflection-driven
+// ---------------------------------------------------------------------------
+
+/*! \brief Generate CREATE TABLE + indexes for all M2M junction tables of Owner.
+ *
+ * Iterates dbo_meta<Owner>::relations() for many_to_many_rel<Target> entries.
+ * Uses compute_join_ids<D,C>() from Sql.h and appendFkOptions<D>() from this header.
+ * Zero Session dependency — all metadata from dbo_meta and dialect.
+ *
+ * \tparam D      Dialect struct satisfying SqlDialect concept
+ * \tparam Owner  DBO-mapped class that declares the M2M relations
+ */
+template <SqlDialect D, class Owner>
+inline std::vector<JoinTableDdl> reflect_create_join_table_sqls()
+{
+    std::vector<JoinTableDdl> result;
+    constexpr auto rels = dbo_meta<Owner>::relations();
+
+    std::apply([&](const auto&... rel) {
+        auto process = [&](const auto& r) {
+            using RelType = std::remove_cvref_t<decltype(r)>;
+            if constexpr (is_many_to_many_rel<RelType>::value) {
+                using Target = typename RelType::target_type;
+
+                // Self-referencing guard
+                if constexpr (std::is_same_v<Owner, Target>) {
+                    static_assert(
+                        !(r.self_id.empty() && r.other_id.empty()),
+                        "Self-referencing M2M requires explicit self_id and other_id");
+                }
+
+                std::string joinTable(r.join_table);
+
+                // Compute join columns for each side
+                auto selfIds = compute_join_ids<D, Owner>(
+                    r.self_id, r.literal_self_id);
+                auto otherIds = compute_join_ids<D, Target>(
+                    r.other_id, r.literal_other_id);
+
+                if (selfIds.empty() || otherIds.empty())
+                    return;
+
+                // --- BUILD CREATE TABLE ---
+                std::string sql;
+                std::string quotedJoin = ::Wt::Dbo::detail::quoteSchemaDot(joinTable);
+                ::Wt::Dbo::detail::append_sql(sql,
+                    "create table \"", quotedJoin, "\" (\n");
+
+                bool firstField = true;
+                std::string primaryKey;
+
+                auto appendColumns = [&](const std::vector<JoinIdInfo>& ids,
+                                         int fkConstraints) {
+                    for (const auto& jid : ids) {
+                        if (!firstField)
+                            sql.append(",\n");
+                        firstField = false;
+
+                        std::string sqlType = jid.sqlType;
+                        if (!(fkConstraints & Impl::FKNotNull))
+                            sqlType = detail::strip_not_null(std::move(sqlType));
+
+                        ::Wt::Dbo::detail::append_sql(sql,
+                            "  \"", jid.joinIdName, "\" ", sqlType);
+
+                        if (!primaryKey.empty())
+                            primaryKey.append(", ");
+                        ::Wt::Dbo::detail::append_sql(primaryKey,
+                            "\"", jid.joinIdName, "\"");
+                    }
+                };
+
+                appendColumns(selfIds, r.self_fk_constraints);
+                appendColumns(otherIds, r.other_fk_constraints);
+
+                // Composite primary key
+                if (!primaryKey.empty())
+                    ::Wt::Dbo::detail::append_sql(sql,
+                        ",\n  primary key (", primaryKey, ")");
+
+                // FK constraints (always inline for junction tables)
+                auto appendConstraint = [&](const char* keyName,
+                                            auto& ids,
+                                            auto targetTableName,
+                                            auto targetPKs,
+                                            int fkConstraints) {
+                    ::Wt::Dbo::detail::append_sql(sql,
+                        ",\n  constraint \"fk_", joinTable, "_", keyName,
+                        "\" foreign key (");
+                    for (unsigned i = 0; i < ids.size(); ++i) {
+                        if (i != 0) sql.append(", ");
+                        ::Wt::Dbo::detail::append_sql(sql,
+                            "\"", ids[i].joinIdName, "\"");
+                    }
+                    ::Wt::Dbo::detail::append_sql(sql,
+                        ") references \"",
+                        ::Wt::Dbo::detail::quoteSchemaDot(targetTableName),
+                        "\" (", targetPKs, ")");
+
+                    detail::appendFkOptions<D>(sql, fkConstraints);
+                };
+
+                appendConstraint("key1", selfIds,
+                    get_table_name<Owner>(), target_primary_keys<Owner>(),
+                    r.self_fk_constraints);
+                appendConstraint("key2", otherIds,
+                    get_table_name<Target>(), target_primary_keys<Target>(),
+                    r.other_fk_constraints);
+
+                sql.append("\n)");
+
+                // --- BUILD INDEXES ---
+                std::vector<std::string> indexes;
+                auto buildIndex = [&](const char* suffix,
+                                      const std::vector<JoinIdInfo>& ids) {
+                    std::string idx;
+                    ::Wt::Dbo::detail::append_sql(idx,
+                        "create index \"", joinTable, "_", suffix,
+                        "\" on \"", quotedJoin, "\" (");
+                    for (unsigned i = 0; i < ids.size(); ++i) {
+                        if (i != 0) idx.append(", ");
+                        ::Wt::Dbo::detail::append_sql(idx,
+                            "\"", ids[i].joinIdName, "\"");
+                    }
+                    idx.push_back(')');
+                    indexes.push_back(std::move(idx));
+                };
+
+                buildIndex(std::string(get_table_name<Owner>()).c_str(), selfIds);
+                buildIndex(std::string(get_table_name<Target>()).c_str(), otherIds);
+
+                result.push_back(JoinTableDdl{
+                    std::move(joinTable),
+                    std::move(sql),
+                    std::move(indexes)
+                });
+            }
+        };
+        (process(rel), ...);
+    }, rels);
+
+    return result;
+}
+
+/*! \brief Return junction table names declared via many_to_many_rel in Owner's relations.
+ *
+ * Used for DROP TABLE of junction tables.
+ */
+template <class Owner>
+inline std::vector<std::string> reflect_join_table_names()
+{
+    std::vector<std::string> result;
+    constexpr auto rels = dbo_meta<Owner>::relations();
+
+    std::apply([&](const auto&... rel) {
+        auto process = [&](const auto& r) {
+            using RelType = std::remove_cvref_t<decltype(r)>;
+            if constexpr (is_many_to_many_rel<RelType>::value) {
+                result.push_back(std::string(r.join_table));
+            }
+        };
+        (process(rel), ...);
+    }, rels);
+
+    return result;
 }
 
     } // namespace Reflect

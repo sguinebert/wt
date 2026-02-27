@@ -656,6 +656,14 @@ void Session::Mapping<C>::init(Session& session)
       coreTemplatesFn = []() {
           return Reflect::generate_sql_core_templates<D, MutC>();
       };
+
+      // Join table DDL (many-to-many junction tables)
+      createJoinTableSqlsFn = []() {
+          return Reflect::reflect_create_join_table_sqls<D, MutC>();
+      };
+      joinTableNamesFn = []() {
+          return Reflect::reflect_join_table_names<MutC>();
+      };
     });
   }
 }

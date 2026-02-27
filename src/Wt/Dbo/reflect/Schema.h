@@ -6,8 +6,8 @@
  *
  * ReflectSchema.h — C++26 reflection schema mapping.
  *
- * reflect_init_schema<C>(session, mapping) populates ModelInfo::sets
- * and key metadata by iterating over reflected members of C.
+ * reflect_init_schema<C>(session, mapping) populates key metadata
+ * by iterating over reflected members of C.
  */
 #pragma once
 
@@ -49,47 +49,6 @@ struct SchemaBuilder {
     }
 };
 
-/*! \brief Populate sets from dbo_meta<C>::relations() tuple. */
-template<class C>
-void populate_sets_from_relations(Session& session, Impl::ModelInfo& mapping) {
-    constexpr auto rels = dbo_meta<C>::relations();
-
-    std::apply([&](const auto&... rel) {
-        auto process = [&](const auto& r) {
-            using RelType = std::remove_cvref_t<decltype(r)>;
-            if constexpr (is_has_many_rel<RelType>::value) {
-                using Target = typename RelType::target_type;
-                const char* targetTable = session.template tableName<Target>();
-                std::string joinName = r.join_name.empty()
-                    ? std::string(mapping.tableName)
-                    : std::string(r.join_name);
-
-                mapping.sets.push_back(Impl::SetInfo(
-                    targetTable,
-                    ManyToOne,
-                    joinName,
-                    std::string(r.fk_field),
-                    Impl::FKNotNull | Impl::FKOnDeleteCascade,
-                    0));
-            }
-            else if constexpr (is_many_to_many_rel<RelType>::value) {
-                using Target = typename RelType::target_type;
-                const char* targetTable = session.template tableName<Target>();
-                std::string joinName(r.join_table);
-
-                mapping.sets.push_back(Impl::SetInfo(
-                    targetTable,
-                    ManyToMany,
-                    joinName,
-                    std::string(),
-                    Impl::FKNotNull | Impl::FKOnDeleteCascade,
-                    0));
-            }
-        };
-        (process(rel), ...);
-    }, rels);
-}
-
 } // namespace detail
 
 // ---------------------------------------------------------------------------
@@ -98,10 +57,8 @@ void populate_sets_from_relations(Session& session, Impl::ModelInfo& mapping) {
 
 /*! \brief Populate ModelInfo for class C using C++26 reflection.
  *
- * Iterates all public/protected members for natural ID detection,
- * then populates relation sets from dbo_meta<C>::relations().
- *
- * Must be called after all referenced classes are already mapClass'd.
+ * Iterates all public/protected members for natural ID detection.
+ * Relation DDL is handled separately via reflect_create_join_table_sqls<D,C>().
  *
  * \ingroup dbo
  */
@@ -127,9 +84,6 @@ void reflect_init_schema(Session& session, Impl::ModelInfo& mapping) {
     // Extract natural ID info from value fields
     detail::SchemaBuilder builder{session, mapping};
     for_each_field_static<C>(builder);
-
-    // Populate relation sets from dbo_meta<C>::relations()
-    detail::populate_sets_from_relations<C>(session, mapping);
 }
 
     } // namespace Reflect

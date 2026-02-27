@@ -101,6 +101,10 @@ struct many_to_many_rel {
     std::string_view join_table {};  // junction table name (required)
     std::string_view self_id {};     // self FK column in junction; empty → auto
     std::string_view other_id {};    // other FK column in junction; empty → auto
+    int self_fk_constraints = Impl::FKNotNull | Impl::FKOnDeleteCascade;
+    int other_fk_constraints = Impl::FKNotNull | Impl::FKOnDeleteCascade;
+    bool literal_self_id = false;
+    bool literal_other_id = false;
 };
 
 // Trait to detect relation descriptor types

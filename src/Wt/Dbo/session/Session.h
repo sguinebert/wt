@@ -52,29 +52,6 @@ struct MetaDboBaseSet;
 extern WTDBO_API std::string quoteSchemaDot(const std::string& table);
 template <class C, typename T> struct LoadHelper;
 
-struct WTDBO_API SetInfo {
-  enum SetInfoFlags {
-    LiteralSelfId = 0x1,
-    LiteralOtherId = 0x2
-  };
-
-  const char *tableName;
-  std::string joinName;
-  std::string joinSelfId;
-  std::string joinOtherId;
-  int flags;
-  RelationType type;
-  int fkConstraints;
-  int otherFkConstraints;
-
-  SetInfo(const char *aTableName,
-          RelationType type,
-          const std::string& aJoinName,
-          const std::string& aJoinSelfId,
-          int someFkConstraints,
-          int setFlags = 0);
-};
-
 struct WTDBO_API ModelInfo {
   bool initialized_;
   const char *tableName;
@@ -90,7 +67,6 @@ struct WTDBO_API ModelInfo {
   std::string primaryKeysStr;
 
   std::vector<FieldInfo> fields;
-  std::vector<SetInfo> sets;
   std::vector<std::string> statements;
 
   std::function<std::string(bool)> createTableSqlFn;
@@ -100,6 +76,8 @@ struct WTDBO_API ModelInfo {
   std::function<void(std::vector<FieldInfo>&)> getFieldsFn;
   std::function<std::vector<std::string>()> collectionSqlsFn;
   std::function<SqlCoreTemplates()> coreTemplatesFn;
+  std::function<std::vector<JoinTableDdl>()> createJoinTableSqlsFn;
+  std::function<std::vector<std::string>()> joinTableNamesFn;
 
   ModelInfo();
   virtual ~ModelInfo();
@@ -260,7 +238,6 @@ public:
 private:
   mutable std::string longlongType_;
   mutable std::string intType_;
-  mutable bool haveSupportUpdateCascade_;
 
   enum {
     SqlInsert = 0,
@@ -269,16 +246,6 @@ private:
     SqlDeleteVersioned = 3,
     SqlSelectById = 4,
     FirstSqlSelectSet = 5
-  };
-
-  struct JoinId {
-    std::string joinIdName;
-    std::string tableIdName;
-    std::string sqlType;
-
-    JoinId(const std::string& aJoinIdName,
-           const std::string& aTableIdName,
-           const std::string& aSqlType);
   };
 
   template <class T, class Tuple>
@@ -311,7 +278,6 @@ private:
   VersionTracker versionTracker_;
 
   void initSchema() const;
-  void resolveJoinIds(Impl::ModelInfo *mapping);
   void prepareStatements(Impl::ModelInfo *mapping);
 
   awaitable<dbo_result<void>> executeSql(const std::vector<std::string>& sql,
@@ -319,31 +285,12 @@ private:
   awaitable<dbo_result<void>> executeSql(const std::string& sql,
                                          std::string *scriptOut);
 
-  std::string constraintName(const char *tableName,
-                             std::string foreignKeyName);
-
-  std::vector<JoinId> getJoinIds(Impl::ModelInfo *mapping,
-                                 const std::string& joinId,
-                                 bool literalJoinId);
-
   awaitable<dbo_result<void>> createTable(Impl::ModelInfo *mapping,
                                           std::set<std::string>& tablesCreated,
                                           std::string *scriptOut,
                                           bool createConstraints);
 
   awaitable<dbo_result<void>> createRelations(Impl::ModelInfo *mapping,
-                                              std::set<std::string>& tablesCreated,
-                                              std::string *scriptOut);
-
-  awaitable<dbo_result<void>> createJoinTable(const std::string& joinName,
-                                              Impl::ModelInfo *mapping1,
-                                              Impl::ModelInfo *mapping2,
-                                              const std::string& joinId1,
-                                              const std::string& joinId2,
-                                              int fkConstraints1,
-                                              int fkConstraints2,
-                                              bool literalJoinId1,
-                                              bool literalJoinId2,
                                               std::set<std::string>& tablesCreated,
                                               std::string *scriptOut);
 

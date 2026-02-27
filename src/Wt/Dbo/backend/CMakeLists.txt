@@ -61,6 +61,12 @@ IF(ENABLE_SQLITE)
       ${WT_MATH_LIBRARY}
       )
 
+  TARGET_INCLUDE_DIRECTORIES(wtdbosqlite3
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/amalgamation
+      ${SQLITE3_INCLUDE_DIRS}
+      )
+
   IF(NOT WIN32)
     FIND_LIBRARY(DL_LIB
       NAMES
