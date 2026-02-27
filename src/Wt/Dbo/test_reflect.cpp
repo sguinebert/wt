@@ -9,6 +9,7 @@
 #include <Wt/Dbo/reflect/Iterators.h>
 #include <Wt/Dbo/reflect/Json.h>
 #include <Wt/Dbo/core/fk.h>
+#include <Wt/Dbo/session/Query.h>
 #include <string>
 #include <cassert>
 #include <cstdio>
@@ -224,6 +225,128 @@ int main() {
         assert(ok);
         assert(obj.email == "new@test.com");
         assert(obj.age == 42);
+    }
+
+    // Test 10: New operators (ilike, any)
+    {
+        using namespace Wt::Dbo;
+
+        auto q1 = ilike<^^UserWithFk::name>(std::string{"sYlVaIn%"});
+        assert(is_ilike_predicate_v<decltype(q1)>);
+        assert(q1.pattern == "sYlVaIn%");
+        assert(!q1.negated);
+
+        auto q2 = notIlike<^^UserWithFk::name>("foo%");
+        assert(q2.negated);
+
+        auto q3 = any<^^UserWithFk::id>(42LL);
+        assert(is_any_predicate_v<decltype(q3)>);
+        assert(q3.value == 42LL);
+
+        auto q4 = (q1 && q2) || q3;
+        assert(is_or_predicate_v<decltype(q4)>);
+    }
+
+    // Test 11: Custom operators (%, ^, >>)
+    {
+        using namespace Wt::Dbo;
+
+        auto q1 = col<^^UserWithFk::name> % std::string{"%Test%"};
+        assert(is_like_predicate_v<decltype(q1)>);
+        assert(q1.pattern == "%Test%");
+
+        auto q2 = col<^^UserWithFk::name> ^ std::string{"%Test%"};
+        assert(is_ilike_predicate_v<decltype(q2)>);
+        assert(q2.pattern == "%Test%");
+
+        auto q3 = col<^^UserWithFk::group> >> 99LL;
+        assert(is_any_predicate_v<decltype(q3)>);
+        assert(q3.value == 99LL);
+    }
+
+    // Test 12: Typed Subqueries (compile-time type verification)
+    {
+        using namespace Wt::Dbo;
+
+        // Verify InSubqueryPredicate trait detection at compile time
+        using SubqType = Query<long long>;
+        using PredType = InSubqueryPredicate<^^UserWithFk::group, SubqType, false>;
+        static_assert(is_in_subquery_predicate_v<PredType>,
+                      "InSubqueryPredicate must satisfy trait");
+        static_assert(!PredType::negated, "non-negated");
+        static_assert(is_typed_predicate_v<PredType>,
+                      "InSubqueryPredicate must be a TypedPredicate");
+
+        using NegPredType = InSubqueryPredicate<^^UserWithFk::group, SubqType, true>;
+        static_assert(is_in_subquery_predicate_v<NegPredType>);
+        static_assert(NegPredType::negated, "negated variant");
+
+        // Verify it composes with && and ||
+        using CmpType = ComparePredicate<^^UserWithFk::id, long long, CompareOp::Eq>;
+        using AndType = AndPredicate<CmpType, PredType>;
+        static_assert(is_and_predicate_v<AndType>);
+        static_assert(is_typed_predicate_v<AndType>);
+
+        std::printf("Test 12: InSubqueryPredicate static_asserts passed\n");
+    }
+
+    // Test 13: Eager loading types (WithSpec, WithResult, QueryWith)
+    {
+        using namespace Wt::Dbo;
+
+        // WithSpec carries a member reflection + target type
+        using Spec1 = WithSpec<^^UserWithFk::group, Group>;
+        static_assert(Spec1::member == ^^UserWithFk::group);
+        static_assert(std::is_same_v<Spec1::target_type, Group>);
+
+        // WithResult stores parents + per-relation maps
+        using WR = WithResult<UserWithFk, long long, Group>;
+        static_assert(std::is_same_v<
+            decltype(std::declval<WR>().entities),
+            std::vector<UserWithFk>>);
+
+        // QueryWith carries specs as template params
+        using QW = QueryWith<UserWithFk, Spec1>;
+        static_assert(std::is_base_of_v<Query<UserWithFk>, QW>,
+                      "QueryWith must inherit from Query");
+
+        // Chaining .with<>() produces expanded QueryWith
+        using Spec2 = WithSpec<^^UserWithFk::name, TestVisibility>;
+        using QW2 = QueryWith<UserWithFk, Spec1, Spec2>;
+        static_assert(std::is_base_of_v<Query<UserWithFk>, QW2>);
+
+        std::printf("Test 13: Eager loading types static_asserts passed\n");
+    }
+
+    // Test 14: JSONB query types
+    {
+        using namespace Wt::Dbo;
+
+        // col<^^M>["key"] produces JsonColumnRef<M, 1>
+        auto jref = col<^^UserWithFk::name>["role"];
+        static_assert(is_json_column_ref_v<decltype(jref)>);
+        static_assert(decltype(jref)::path_len == 1);
+        assert(jref.path[0] == "role");
+
+        // Chaining: ["address"]["city"] produces JsonColumnRef<M, 2>
+        auto jref2 = col<^^UserWithFk::name>["address"]["city"];
+        static_assert(is_json_column_ref_v<decltype(jref2)>);
+        static_assert(decltype(jref2)::path_len == 2);
+        assert(jref2.path[0] == "address");
+        assert(jref2.path[1] == "city");
+
+        // Comparison produces JsonPathPredicate
+        auto pred = col<^^UserWithFk::name>["role"] == std::string{"admin"};
+        static_assert(is_json_path_predicate_v<decltype(pred)>);
+        static_assert(is_typed_predicate_v<decltype(pred)>);
+        assert(pred.value == "admin");
+        assert(pred.path[0] == "role");
+
+        // Can compose with other predicates
+        auto combined = pred && (col<^^UserWithFk::id> == 42LL);
+        static_assert(is_and_predicate_v<decltype(combined)>);
+
+        std::printf("Test 14: JSONB query types static_asserts passed\n");
     }
 
     std::printf("All tests passed!\n");

@@ -459,6 +459,14 @@ Query<Result>& Query<Result>::appendPredicateSqlAndBind(
             bindVal(predicate.values[i]);
         }
         out.push_back(')');
+    } else if constexpr (is_in_subquery_predicate_v<CleanPred>) {
+        appendMemberSql.template operator()<CleanPred::member>();
+        out.append(CleanPred::negated ? " not in (" : " in (");
+        out.append(predicate.subquery.getSelectSql());
+        out.push_back(')');
+        for (const auto& p : predicate.subquery.getParameters()) {
+            this->parameters_.push_back(p);
+        }
     } else if constexpr (is_null_predicate_v<CleanPred>) {
         appendMemberSql.template operator()<CleanPred::member>();
         out.append(CleanPred::negated ? " is not null" : " is null");
@@ -471,6 +479,33 @@ Query<Result>& Query<Result>::appendPredicateSqlAndBind(
         appendMemberSql.template operator()<CleanPred::member>();
         out.append(CleanPred::negated ? " not like ?" : " like ?");
         bindVal(predicate.pattern);
+    } else if constexpr (is_ilike_predicate_v<CleanPred>) {
+        appendMemberSql.template operator()<CleanPred::member>();
+        out.append(CleanPred::negated ? " not ilike ?" : " ilike ?");
+        bindVal(predicate.pattern);
+    } else if constexpr (is_any_predicate_v<CleanPred>) {
+        appendMemberSql.template operator()<CleanPred::member>();
+        out.append(" = any(?)");
+        bindVal(predicate.value);
+    } else if constexpr (is_json_path_predicate_v<CleanPred>) {
+        // Generate: col->'k1'->'k2'->>'kN' <op> ?
+        appendMemberSql.template operator()<CleanPred::member>();
+        for (std::size_t i = 0; i < CleanPred::path_len; ++i) {
+            if (i < CleanPred::path_len - 1)
+                out.append("->\'");   // intermediate: -> (returns JSON)
+            else
+                out.append("->>\'");  // final: ->> (returns text)
+            out.append(predicate.path[i]);
+            out.push_back('\'');
+        }
+        constexpr auto op = CleanPred::op;
+        if constexpr (op == CompareOp::Eq)  out.append(" = ?");
+        else if constexpr (op == CompareOp::Neq) out.append(" != ?");
+        else if constexpr (op == CompareOp::Lt)  out.append(" < ?");
+        else if constexpr (op == CompareOp::Lte) out.append(" <= ?");
+        else if constexpr (op == CompareOp::Gt)  out.append(" > ?");
+        else if constexpr (op == CompareOp::Gte) out.append(" >= ?");
+        bindVal(predicate.value);
     } else if constexpr (is_not_predicate_v<CleanPred>) {
         out.append("not (");
         appendPredicateSqlAndBind<DefaultOwner, Registry>(
@@ -691,6 +726,38 @@ dbo_result<void> Query<Result>::fieldsForSelect(
             "Query::fieldsForSelect"
         });
     return {};
+}
+
+template <class Result>
+std::string Query<Result>::getSelectSql() const
+{
+    std::string sql;
+    auto limitMethod = session_ ? session_->limitQueryMethod_ : LimitQuery::LimitOffset;
+    if (selectFieldLists_.empty()) {
+        std::vector<FieldInfo> fs = this->fields();
+        sql = Impl::createQuerySelectSql(sql_, join_, where_, groupBy_, having_,
+                                         orderBy_, limit_, offset_, fs, limitMethod);
+    } else {
+        sql = sql_;
+        int sql_offset = 0;
+        std::vector<FieldInfo> fs;
+        for (unsigned i = 0; i < selectFieldLists_.size(); ++i) {
+            const Impl::SelectFieldList& list = selectFieldLists_[i];
+            fs.clear();
+            auto fieldResult = this->fieldsForSelect(list, fs);
+            if (fieldResult)
+                Impl::substituteFields(list, fs, sql, sql_offset);
+        }
+        sql = Impl::completeQuerySelectSql(sql, join_, where_, groupBy_, having_,
+                                           orderBy_, limit_, offset_, fs, limitMethod);
+    }
+    return sql;
+}
+
+template <class Result>
+const std::vector<Impl::ParameterBinder>& Query<Result>::getParameters() const
+{
+    return parameters_;
 }
 
 template <class Result>

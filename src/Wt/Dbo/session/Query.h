@@ -126,6 +126,47 @@ struct is_like_predicate : std::false_type {};
 template<std::meta::info M, class V, bool Negated>
 struct is_like_predicate<LikePredicate<M, V, Negated>> : std::true_type {};
 
+template<std::meta::info M, class V, bool Negated = false>
+struct ILikePredicate {
+    using value_type = std::decay_t<V>;
+    static constexpr std::meta::info member = M;
+    static constexpr bool negated = Negated;
+    value_type pattern;
+};
+
+template<class T>
+struct is_ilike_predicate : std::false_type {};
+
+template<std::meta::info M, class V, bool Negated>
+struct is_ilike_predicate<ILikePredicate<M, V, Negated>> : std::true_type {};
+
+template<std::meta::info M, class V>
+struct AnyPredicate {
+    using value_type = std::decay_t<V>;
+    static constexpr std::meta::info member = M;
+    value_type value; // E.g. the single value we check against `col = ANY(?)`
+};
+
+template<class T>
+struct is_any_predicate : std::false_type {};
+
+template<std::meta::info M, class V>
+struct is_any_predicate<AnyPredicate<M, V>> : std::true_type {};
+
+template<std::meta::info M, class QueryType, bool Negated = false>
+struct InSubqueryPredicate {
+    using query_type = std::decay_t<QueryType>;
+    static constexpr std::meta::info member = M;
+    static constexpr bool negated = Negated;
+    query_type subquery;
+};
+
+template<class T>
+struct is_in_subquery_predicate : std::false_type {};
+
+template<std::meta::info M, class QueryType, bool Negated>
+struct is_in_subquery_predicate<InSubqueryPredicate<M, QueryType, Negated>> : std::true_type {};
+
 template<class P>
 struct NotPredicate {
     P inner;
@@ -182,6 +223,18 @@ inline constexpr bool is_like_predicate_v =
     is_like_predicate<std::remove_cvref_t<T>>::value;
 
 template<class T>
+inline constexpr bool is_ilike_predicate_v =
+    is_ilike_predicate<std::remove_cvref_t<T>>::value;
+
+template<class T>
+inline constexpr bool is_any_predicate_v =
+    is_any_predicate<std::remove_cvref_t<T>>::value;
+
+template<class T>
+inline constexpr bool is_in_subquery_predicate_v =
+    is_in_subquery_predicate<std::remove_cvref_t<T>>::value;
+
+template<class T>
 inline constexpr bool is_not_predicate_v =
     is_not_predicate<std::remove_cvref_t<T>>::value;
 
@@ -196,16 +249,27 @@ inline constexpr bool is_or_predicate_v =
 template<class T>
 inline constexpr bool is_typed_predicate_v =
     is_compare_predicate_v<T> || is_in_predicate_v<T> ||
+    is_in_subquery_predicate_v<T> ||
     is_null_predicate_v<T> || is_between_predicate_v<T> ||
-    is_like_predicate_v<T> || is_not_predicate_v<T> ||
+    is_like_predicate_v<T> || is_ilike_predicate_v<T> ||
+    is_any_predicate_v<T> || is_json_path_predicate_v<T> ||
+    is_not_predicate_v<T> ||
     is_and_predicate_v<T> || is_or_predicate_v<T>;
 
 template<class T>
 concept TypedPredicate = is_typed_predicate_v<T>;
 
+// Forward declaration for JsonColumnRef (used by ColumnRef::operator[])
+template<std::meta::info M, std::size_t PathLen>
+struct JsonColumnRef;
+
 template<std::meta::info M>
 struct ColumnRef {
     static constexpr std::meta::info member = M;
+
+    [[nodiscard]] constexpr auto operator[](std::string_view key) const {
+        return JsonColumnRef<M, 1>{std::array<std::string_view, 1>{key}};
+    }
 };
 
 template<class T>
@@ -218,14 +282,112 @@ template<class T>
 inline constexpr bool is_column_ref_v =
     is_column_ref<std::remove_cvref_t<T>>::value;
 
+// =====================================================================
+// JSON column reference: col<^^M>["key1"]["key2"] for JSONB querying
+// =====================================================================
+
+template<std::meta::info M, std::size_t PathLen>
+struct JsonColumnRef {
+    static constexpr std::meta::info member = M;
+    static constexpr std::size_t path_len = PathLen;
+    std::array<std::string_view, PathLen> path;
+
+    [[nodiscard]] constexpr JsonColumnRef<M, PathLen + 1>
+    operator[](std::string_view key) const {
+        std::array<std::string_view, PathLen + 1> newPath{};
+        for (std::size_t i = 0; i < PathLen; ++i)
+            newPath[i] = path[i];
+        newPath[PathLen] = key;
+        return JsonColumnRef<M, PathLen + 1>{newPath};
+    }
+};
+
+template<class T>
+struct is_json_column_ref : std::false_type {};
+
+template<std::meta::info M, std::size_t N>
+struct is_json_column_ref<JsonColumnRef<M, N>> : std::true_type {};
+
+template<class T>
+inline constexpr bool is_json_column_ref_v =
+    is_json_column_ref<std::remove_cvref_t<T>>::value;
+
+template<class T>
+concept JsonColumnReference = is_json_column_ref_v<T>;
+
+template<std::meta::info M, std::size_t PathLen, CompareOp Op, class V>
+struct JsonPathPredicate {
+    using value_type = std::decay_t<V>;
+    static constexpr std::meta::info member = M;
+    static constexpr std::size_t path_len = PathLen;
+    static constexpr CompareOp op = Op;
+    std::array<std::string_view, PathLen> path;
+    value_type value;
+};
+
+template<class T>
+struct is_json_path_predicate : std::false_type {};
+
+template<std::meta::info M, std::size_t N, CompareOp Op, class V>
+struct is_json_path_predicate<JsonPathPredicate<M, N, Op, V>> : std::true_type {};
+
+template<class T>
+inline constexpr bool is_json_path_predicate_v =
+    is_json_path_predicate<std::remove_cvref_t<T>>::value;
+
 template<class T>
 concept ColumnReference = is_column_ref_v<T>;
 
 template<class T>
-concept PredicateValue = !ColumnReference<T> && !TypedPredicate<T>;
+concept PredicateValue = !ColumnReference<T> && !TypedPredicate<T>
+                      && !JsonColumnReference<T>;
 
 template<std::meta::info M>
 inline constexpr ColumnRef<M> col{};
+
+// ColumnRef -> JsonColumnRef via operator[]
+template<std::meta::info M>
+[[nodiscard]] constexpr JsonColumnRef<M, 1>
+operator%(ColumnRef<M>, std::string_view key) {
+    return JsonColumnRef<M, 1>{std::array<std::string_view, 1>{key}};
+}
+
+// JsonColumnRef comparison operators → produce JsonPathPredicate
+template<JsonColumnReference J, PredicateValue T>
+[[nodiscard]] auto operator==(const J& jref, T&& value) {
+    return JsonPathPredicate<J::member, J::path_len, CompareOp::Eq,
+                             std::decay_t<T>>{jref.path, std::forward<T>(value)};
+}
+
+template<JsonColumnReference J, PredicateValue T>
+[[nodiscard]] auto operator!=(const J& jref, T&& value) {
+    return JsonPathPredicate<J::member, J::path_len, CompareOp::Neq,
+                             std::decay_t<T>>{jref.path, std::forward<T>(value)};
+}
+
+template<JsonColumnReference J, PredicateValue T>
+[[nodiscard]] auto operator<(const J& jref, T&& value) {
+    return JsonPathPredicate<J::member, J::path_len, CompareOp::Lt,
+                             std::decay_t<T>>{jref.path, std::forward<T>(value)};
+}
+
+template<JsonColumnReference J, PredicateValue T>
+[[nodiscard]] auto operator>(const J& jref, T&& value) {
+    return JsonPathPredicate<J::member, J::path_len, CompareOp::Gt,
+                             std::decay_t<T>>{jref.path, std::forward<T>(value)};
+}
+
+template<JsonColumnReference J, PredicateValue T>
+[[nodiscard]] auto operator<=(const J& jref, T&& value) {
+    return JsonPathPredicate<J::member, J::path_len, CompareOp::Lte,
+                             std::decay_t<T>>{jref.path, std::forward<T>(value)};
+}
+
+template<JsonColumnReference J, PredicateValue T>
+[[nodiscard]] auto operator>=(const J& jref, T&& value) {
+    return JsonPathPredicate<J::member, J::path_len, CompareOp::Gte,
+                             std::decay_t<T>>{jref.path, std::forward<T>(value)};
+}
 
 template<class C>
 inline constexpr std::meta::info column_member_v = std::remove_cvref_t<C>::member;
@@ -363,6 +525,16 @@ requires requires { typename std::common_type_t<std::decay_t<T>, std::decay_t<Ts
     return InPredicate<M, value_type, true>{std::move(values)};
 }
 
+template<std::meta::info M, class QueryType>
+[[nodiscard]] auto in(const QueryType& subquery) {
+    return InSubqueryPredicate<M, QueryType, false>{subquery};
+}
+
+template<std::meta::info M, class QueryType>
+[[nodiscard]] auto notIn(const QueryType& subquery) {
+    return InSubqueryPredicate<M, QueryType, true>{subquery};
+}
+
 template<std::meta::info M>
 [[nodiscard]] auto isNull() {
     return NullPredicate<M, false>{};
@@ -387,6 +559,36 @@ template<std::meta::info M, PredicateValue T>
 template<std::meta::info M, PredicateValue T>
 [[nodiscard]] auto notLike(T&& pattern) {
     return LikePredicate<M, T, true>{std::forward<T>(pattern)};
+}
+
+template<std::meta::info M, PredicateValue T>
+[[nodiscard]] auto ilike(T&& pattern) {
+    return ILikePredicate<M, T, false>{std::forward<T>(pattern)};
+}
+
+template<std::meta::info M, PredicateValue T>
+[[nodiscard]] auto notIlike(T&& pattern) {
+    return ILikePredicate<M, T, true>{std::forward<T>(pattern)};
+}
+
+template<std::meta::info M, PredicateValue T>
+[[nodiscard]] auto any(T&& value) {
+    return AnyPredicate<M, T>{std::forward<T>(value)};
+}
+
+template<ColumnReference C, PredicateValue T>
+[[nodiscard]] auto operator%(C, T&& pattern) {
+    return like<column_member_v<C>>(std::forward<T>(pattern));
+}
+
+template<ColumnReference C, PredicateValue T>
+[[nodiscard]] auto operator^(C, T&& pattern) {
+    return ilike<column_member_v<C>>(std::forward<T>(pattern));
+}
+
+template<ColumnReference C, PredicateValue T>
+[[nodiscard]] auto operator>>(C, T&& value) {
+    return any<column_member_v<C>>(std::forward<T>(value));
 }
 
 template<TypedPredicate L, TypedPredicate R>
@@ -420,6 +622,45 @@ template<TypedPredicate P>
 [[nodiscard]] auto operator!(P&& predicate) {
     return not_(std::forward<P>(predicate));
 }
+
+// =====================================================================
+// Eager loading types: WithSpec, WithResult, QueryWith
+// =====================================================================
+
+/*! \brief Compile-time marker for a relation to eagerly load.
+ *
+ * \tparam M  std::meta::info of the member on the owner (e.g. ^^User::posts)
+ * \tparam Target  The target entity type
+ */
+template<std::meta::info M, class Target>
+struct WithSpec {
+    static constexpr std::meta::info member = M;
+    using target_type = Target;
+};
+
+/*! \brief Result of an eager-loaded query.
+ *
+ * Contains the parent entities and a map from parent ID to related entities.
+ *
+ * \tparam Owner   Parent entity type
+ * \tparam IdType  Type of the parent's primary key
+ * \tparam Targets Types of each eagerly loaded relation
+ */
+template<class Owner, class IdType, class... Targets>
+struct WithResult {
+    std::vector<Owner> entities;
+    std::tuple<std::unordered_map<IdType, std::vector<Targets>>...> related;
+
+    /*! \brief Get the related entities map for a specific Target type */
+    template<class T>
+    const std::unordered_map<IdType, std::vector<T>>& getRelated() const {
+        return std::get<std::unordered_map<IdType, std::vector<T>>>(related);
+    }
+};
+
+// Forward declaration — QueryWith defined after Query<Result>
+template<class Result, class... Specs>
+class QueryWith;
 
 /*! \class AbstractQuery Wt/Dbo/Query.h Wt/Dbo/Query.h
  *  \brief An abstract dynamic database query.
@@ -710,6 +951,16 @@ public:
     awaitable<dbo_result<std::vector<Result>>> resultList() const;
     awaitable<dbo_result<int>> rowCount() const;
 
+    /*! \brief Declare a relation to eagerly load.
+     *
+     * Returns a QueryWith wrapper that carries the eager loading spec.
+     * Usage: query.with<^^User::posts, Post>()
+     */
+    template<std::meta::info M, class Target>
+    QueryWith<Result, WithSpec<M, Target>> with() const {
+        return QueryWith<Result, WithSpec<M, Target>>{*this};
+    }
+
     void reset() {
         reset_params();
     }
@@ -718,6 +969,8 @@ public:
 public:
     std::vector<FieldInfo> fields() const;
     Session &session() const;
+    std::string getSelectSql() const;
+    const std::vector<Impl::ParameterBinder>& getParameters() const;
 
 protected:
     dbo_result<void> fieldsForSelect(const Impl::SelectFieldList& list,
@@ -771,6 +1024,26 @@ private:
     Query(Session& session, const std::string& table, const std::string& where);
 
     friend class Session;
+};
+
+/*! \brief A Query wrapper that carries eager loading specs as template params.
+ *
+ * Created by calling Query::with<^^Member, Target>().
+ * Inherits all Query methods and adds resultListWith().
+ */
+template<class Result, class... Specs>
+class QueryWith : public Query<Result> {
+public:
+    using Query<Result>::Query;
+
+    QueryWith(const Query<Result>& base)
+        : Query<Result>(base) {}
+
+    template<std::meta::info M, class Target>
+    QueryWith<Result, Specs..., WithSpec<M, Target>> with() const {
+        return QueryWith<Result, Specs..., WithSpec<M, Target>>{
+            static_cast<const Query<Result>&>(*this)};
+    }
 };
 
 template <typename T>
