@@ -7,6 +7,8 @@
 #ifndef WT_DBO_QUERY_COLUMN_H_
 #define WT_DBO_QUERY_COLUMN_H_
 
+#include <map>
+
 #include <Wt/WModelIndex.h>
 #include <Wt/WString.h>
 #include <Wt/Dbo/Dbo.h>
@@ -59,4 +61,3 @@ inline QueryColumn::QueryColumn(const std::string& field,
 }
 
 #endif // WT_DBO_QUERY_COLUMN_H_
-

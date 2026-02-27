@@ -21,8 +21,6 @@ namespace Dbo {
 
 using boost::asio::awaitable;
 
-template <class C> class ptr;
-
 namespace Impl {
 
 struct SelectField

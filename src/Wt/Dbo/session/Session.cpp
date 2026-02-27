@@ -6,7 +6,6 @@
  */
 
 #include "Wt/Dbo/session/Call.h"
-#include "Wt/Dbo/core/Exception.h"
 #include "Wt/Dbo/session/Session.h"
 #include "Wt/Dbo/sql/Connection.h"
 //#include "Wt/Dbo/backend/connection.hpp"//#include "Wt/Dbo/sql/Connection.h"

@@ -66,7 +66,6 @@ IF(ENABLE_LIBWTDBO)
     core/DboTraits.h
     core/fk.h
     core/Error.h core/Compat.h core/ForeignKey.h
-    core/Exception.h core/Exception.cpp
 
     # sql/
     sql/Parameter.h
@@ -95,7 +94,7 @@ IF(ENABLE_LIBWTDBO)
     session/QueryColumn.h session/QueryColumn.cpp
     session/QueryModel.h session/QueryModel_impl.h
     session/Transaction.h session/Transaction.cpp
-    session/Call.h session/Call_impl.h session/Call.cpp
+    session/Call.h session/Call.cpp
 
     # root
     Json.h Json.cpp

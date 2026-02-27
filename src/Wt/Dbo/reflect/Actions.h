@@ -53,7 +53,6 @@
 #include <Wt/Dbo/sql/StdTraits.h>
 #include <Wt/Dbo/core/fk.h>
 #include <Wt/Dbo/core/Error.h>
-#include <Wt/Dbo/core/Exception.h>
 
 #include <vector>
 

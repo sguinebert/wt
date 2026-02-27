@@ -9,7 +9,6 @@
 
 #include <Wt/Dbo/core/DboTraits.h>
 #include <Wt/Dbo/session/Call.h>
-#include <Wt/Dbo/core/Exception.h>
 #include <Wt/Dbo/core/ForeignKey.h>
 #include <Wt/Dbo/session/Query.h>
 #include <Wt/Dbo/session/Session.h>

@@ -17,14 +17,15 @@
 #ifndef WT_DBO_QUERY_IMPL_H_
 #define WT_DBO_QUERY_IMPL_H_
 
+#include <stdexcept>
 #include <tuple>
 #include <vector>
 
 #include <Wt/Dbo/session/Query.h>
 #include <Wt/Dbo/session/Session.h>
-#include <Wt/Dbo/core/Exception.h>
 #include <Wt/Dbo/core/Error.h>
 #include <Wt/Dbo/sql/Traits.h>
+#include <Wt/Dbo/sql/StdTraits.h>
 #include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/reflect/Sql.h>
 
@@ -66,7 +67,7 @@ substituteFields(const SelectFieldList& list,
                  std::string& sql,
                  int& offset);
 
-extern void WTDBO_API
+extern dbo_result<void> WTDBO_API
 parseSql(const std::string& sql, SelectFieldLists& fieldLists);
 
 } // namespace Impl
@@ -85,7 +86,7 @@ Query<Result>::Query(Session& session, const std::string& sql)
     : session_(&session),
       sql_(sql)
 {
-    Impl::parseSql(sql_, selectFieldLists_);
+    (void)Impl::parseSql(sql_, selectFieldLists_);
 }
 
 template <class Result>
@@ -656,7 +657,7 @@ void Query<Result>::fieldsForSelect(
 
     query_result_traits<Result>::getFields(*session_, &aliases, result);
     if (!aliases.empty())
-        throw Exception("Session::query(): too many aliases for result");
+        throw std::logic_error("Session::query(): too many aliases for result");
 }
 
 template <class Result>
@@ -705,8 +706,6 @@ Query<Result>::resultList() const
         statement->done();
 
         co_return results;
-    } catch (const Exception& e) {
-        co_return std::unexpected(dbo_error(SqlError{e.what(), e.code()}));
     } catch (const std::exception& e) {
         co_return std::unexpected(dbo_error(DboErrc::Sql, e.what()));
     }
@@ -759,8 +758,6 @@ Query<Result>::rowCount() const
         countStatement->done();
 
         co_return count;
-    } catch (const Exception& e) {
-        co_return std::unexpected(dbo_error(SqlError{e.what(), e.code()}));
     } catch (const std::exception& e) {
         co_return std::unexpected(dbo_error(DboErrc::Sql, e.what()));
     }

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cassert>
 #include <Wt/Dbo/sql/Connection.h>
+#include <Wt/Dbo/session/Call.h>
 #include <Wt/Dbo/session/Query.h>
 
 #include <Wt/Dbo/reflect/Schema.h>
@@ -426,16 +427,16 @@ const std::string Session::tableNameQuoted() const
 }
 
 template <class C>
-Session::Mapping<typename std::remove_const<C>::type>* Session::getMapping() const
+auto Session::getMapping() const -> Mapping<std::remove_const_t<C>>*
 {
   if (!schemaInitialized_)
     initSchema();
 
-  using MutC = typename std::remove_const<C>::type;
+  using MutC = std::remove_const_t<C>;
   static_assert(tuple_contains<MutC, RegisteredModels>::value,
                 "Model type is not registered in Reflect::ConstevalRegistry<Session>::models");
-  return const_cast<Session::Mapping<MutC>*>(
-      &std::get<Session::Mapping<MutC>>(models_));
+  return const_cast<Mapping<MutC>*>(
+      &std::get<Mapping<MutC>>(models_));
 }
 
 template <class Result, class Token>

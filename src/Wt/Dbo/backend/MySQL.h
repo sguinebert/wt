@@ -13,8 +13,6 @@
 #include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/backend/WDboMySQLDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/Dbo/core/Exception.h>
-
 #include <Wt/cpp20/date.hpp>
 #include <Wt/cpp20/async_mutex.hpp>
 

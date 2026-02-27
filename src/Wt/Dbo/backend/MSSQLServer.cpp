@@ -5,7 +5,6 @@
  */
 #include "Wt/Dbo/backend/MSSQLServer.h"
 
-#include "Wt/Dbo/core/Exception.h"
 #include "Wt/Dbo/Logger.h"
 #include "Wt/Dbo/backend/MSSql/MSSQLStatement.h"
 

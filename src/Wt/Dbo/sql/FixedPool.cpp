@@ -4,7 +4,6 @@
  * See the LICENSE file for terms of use.
  */
 
-#include "Wt/Dbo/core/Exception.h"
 #include "Wt/Dbo/core/Error.h"
 #include "Wt/Dbo/sql/FixedPool.h"
 #include "Wt/Dbo/sql/Connection.h"
