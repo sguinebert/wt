@@ -2,8 +2,10 @@
 #define WT_DBO_QUERY_H_
 
 #include <cassert>
+#include <array>
 #include <concepts>
 #include <initializer_list>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -246,19 +248,6 @@ template<class T>
 inline constexpr bool is_or_predicate_v =
     is_or_predicate<std::remove_cvref_t<T>>::value;
 
-template<class T>
-inline constexpr bool is_typed_predicate_v =
-    is_compare_predicate_v<T> || is_in_predicate_v<T> ||
-    is_in_subquery_predicate_v<T> ||
-    is_null_predicate_v<T> || is_between_predicate_v<T> ||
-    is_like_predicate_v<T> || is_ilike_predicate_v<T> ||
-    is_any_predicate_v<T> || is_json_path_predicate_v<T> ||
-    is_not_predicate_v<T> ||
-    is_and_predicate_v<T> || is_or_predicate_v<T>;
-
-template<class T>
-concept TypedPredicate = is_typed_predicate_v<T>;
-
 // Forward declaration for JsonColumnRef (used by ColumnRef::operator[])
 template<std::meta::info M, std::size_t PathLen>
 struct JsonColumnRef;
@@ -325,6 +314,16 @@ struct JsonPathPredicate {
     value_type value;
 };
 
+template<std::meta::info M, std::size_t PathLen, class V, bool Negated = false>
+struct JsonPathLikePredicate {
+    using value_type = std::decay_t<V>;
+    static constexpr std::meta::info member = M;
+    static constexpr std::size_t path_len = PathLen;
+    static constexpr bool negated = Negated;
+    std::array<std::string_view, PathLen> path;
+    value_type pattern;
+};
+
 template<class T>
 struct is_json_path_predicate : std::false_type {};
 
@@ -336,6 +335,30 @@ inline constexpr bool is_json_path_predicate_v =
     is_json_path_predicate<std::remove_cvref_t<T>>::value;
 
 template<class T>
+struct is_json_path_like_predicate : std::false_type {};
+
+template<std::meta::info M, std::size_t N, class V, bool Negated>
+struct is_json_path_like_predicate<JsonPathLikePredicate<M, N, V, Negated>>
+    : std::true_type {};
+
+template<class T>
+inline constexpr bool is_json_path_like_predicate_v =
+    is_json_path_like_predicate<std::remove_cvref_t<T>>::value;
+
+template<class T>
+inline constexpr bool is_typed_predicate_v =
+    is_compare_predicate_v<T> || is_in_predicate_v<T> ||
+    is_in_subquery_predicate_v<T> ||
+    is_null_predicate_v<T> || is_between_predicate_v<T> ||
+    is_like_predicate_v<T> || is_ilike_predicate_v<T> ||
+    is_any_predicate_v<T> || is_json_path_predicate_v<T> ||
+    is_json_path_like_predicate_v<T> || is_not_predicate_v<T> ||
+    is_and_predicate_v<T> || is_or_predicate_v<T>;
+
+template<class T>
+concept TypedPredicate = is_typed_predicate_v<T>;
+
+template<class T>
 concept ColumnReference = is_column_ref_v<T>;
 
 template<class T>
@@ -344,13 +367,6 @@ concept PredicateValue = !ColumnReference<T> && !TypedPredicate<T>
 
 template<std::meta::info M>
 inline constexpr ColumnRef<M> col{};
-
-// ColumnRef -> JsonColumnRef via operator[]
-template<std::meta::info M>
-[[nodiscard]] constexpr JsonColumnRef<M, 1>
-operator%(ColumnRef<M>, std::string_view key) {
-    return JsonColumnRef<M, 1>{std::array<std::string_view, 1>{key}};
-}
 
 // JsonColumnRef comparison operators → produce JsonPathPredicate
 template<JsonColumnReference J, PredicateValue T>
@@ -387,6 +403,12 @@ template<JsonColumnReference J, PredicateValue T>
 [[nodiscard]] auto operator>=(const J& jref, T&& value) {
     return JsonPathPredicate<J::member, J::path_len, CompareOp::Gte,
                              std::decay_t<T>>{jref.path, std::forward<T>(value)};
+}
+
+template<JsonColumnReference J, PredicateValue T>
+[[nodiscard]] auto operator%(const J& jref, T&& pattern) {
+    return JsonPathLikePredicate<J::member, J::path_len, std::decay_t<T>, false>{
+      jref.path, std::forward<T>(pattern)};
 }
 
 template<class C>

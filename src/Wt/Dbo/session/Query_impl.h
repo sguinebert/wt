@@ -439,6 +439,24 @@ Query<Result>& Query<Result>::appendPredicateSqlAndBind(
         bind(v);
     };
 
+    auto appendSqlStringLiteral = [&](std::string_view value) {
+        out.push_back('\'');
+        for (char c : value) {
+            if (c == '\'')
+                out.append("''");
+            else
+                out.push_back(c);
+        }
+        out.push_back('\'');
+    };
+
+    auto appendJsonPathExtract = [&]<class JsonPred>(const JsonPred& pred) {
+        for (std::size_t i = 0; i < JsonPred::path_len; ++i) {
+            out.append((i + 1U < JsonPred::path_len) ? "->" : "->>");
+            appendSqlStringLiteral(pred.path[i]);
+        }
+    };
+
     if constexpr (is_compare_predicate_v<CleanPred>) {
         appendMemberSql.template operator()<CleanPred::member>();
         switch (CleanPred::op) {
@@ -490,22 +508,22 @@ Query<Result>& Query<Result>::appendPredicateSqlAndBind(
     } else if constexpr (is_json_path_predicate_v<CleanPred>) {
         // Generate: col->'k1'->'k2'->>'kN' <op> ?
         appendMemberSql.template operator()<CleanPred::member>();
-        for (std::size_t i = 0; i < CleanPred::path_len; ++i) {
-            if (i < CleanPred::path_len - 1)
-                out.append("->\'");   // intermediate: -> (returns JSON)
-            else
-                out.append("->>\'");  // final: ->> (returns text)
-            out.append(predicate.path[i]);
-            out.push_back('\'');
+        appendJsonPathExtract(predicate);
+        switch (CleanPred::op) {
+        case CompareOp::Eq:  out.append(" = ?"); break;
+        case CompareOp::Neq: out.append(" <> ?"); break;
+        case CompareOp::Lt:  out.append(" < ?"); break;
+        case CompareOp::Lte: out.append(" <= ?"); break;
+        case CompareOp::Gt:  out.append(" > ?"); break;
+        case CompareOp::Gte: out.append(" >= ?"); break;
         }
-        constexpr auto op = CleanPred::op;
-        if constexpr (op == CompareOp::Eq)  out.append(" = ?");
-        else if constexpr (op == CompareOp::Neq) out.append(" != ?");
-        else if constexpr (op == CompareOp::Lt)  out.append(" < ?");
-        else if constexpr (op == CompareOp::Lte) out.append(" <= ?");
-        else if constexpr (op == CompareOp::Gt)  out.append(" > ?");
-        else if constexpr (op == CompareOp::Gte) out.append(" >= ?");
         bindVal(predicate.value);
+    } else if constexpr (is_json_path_like_predicate_v<CleanPred>) {
+        // Generate: col->'k1'->'k2'->>'kN' like ?
+        appendMemberSql.template operator()<CleanPred::member>();
+        appendJsonPathExtract(predicate);
+        out.append(CleanPred::negated ? " not like ?" : " like ?");
+        bindVal(predicate.pattern);
     } else if constexpr (is_not_predicate_v<CleanPred>) {
         out.append("not (");
         appendPredicateSqlAndBind<DefaultOwner, Registry>(
@@ -732,7 +750,7 @@ template <class Result>
 std::string Query<Result>::getSelectSql() const
 {
     std::string sql;
-    auto limitMethod = session_ ? session_->limitQueryMethod_ : LimitQuery::LimitOffset;
+    auto limitMethod = session_ ? session_->limitQueryMethod_ : LimitQuery::Limit;
     if (selectFieldLists_.empty()) {
         std::vector<FieldInfo> fs = this->fields();
         sql = Impl::createQuerySelectSql(sql_, join_, where_, groupBy_, having_,

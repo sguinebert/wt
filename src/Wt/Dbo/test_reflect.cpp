@@ -342,6 +342,13 @@ int main() {
         assert(pred.value == "admin");
         assert(pred.path[0] == "role");
 
+        auto likePred = col<^^UserWithFk::name>["address"]["city"] % std::string{"Par%"};
+        static_assert(is_json_path_like_predicate_v<decltype(likePred)>);
+        static_assert(is_typed_predicate_v<decltype(likePred)>);
+        assert(likePred.pattern == "Par%");
+        assert(likePred.path[0] == "address");
+        assert(likePred.path[1] == "city");
+
         // Can compose with other predicates
         auto combined = pred && (col<^^UserWithFk::id> == 42LL);
         static_assert(is_and_predicate_v<decltype(combined)>);
