@@ -646,7 +646,14 @@ Sqlite3::Sqlite3(const Sqlite3& other)
 
 void Sqlite3::init()
 {
-  executeSql("pragma foreign_keys = ON");
+  if (db_) {
+    char *errMsg = nullptr;
+    if (sqlite3_exec(db_, "pragma foreign_keys = ON", nullptr, nullptr, &errMsg) != SQLITE_OK) {
+      LOG_ERROR("Sqlite3: failed to enable foreign_keys pragma: {}", errMsg ? errMsg : "unknown error");
+      if (errMsg)
+        sqlite3_free(errMsg);
+    }
+  }
 
   sqlite3_busy_timeout(db_, 1000);
 }

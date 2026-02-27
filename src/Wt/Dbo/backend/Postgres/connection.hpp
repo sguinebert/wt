@@ -21,6 +21,11 @@ namespace postgrespp {
 
 //using connection = basic_connection;
 
+using Wt::Dbo::DboErrc;
+using Wt::Dbo::DialectKind;
+using Wt::Dbo::dbo_error;
+using Wt::Dbo::dbo_result;
+
 class connection : public basic_connection, public Wt::Dbo::SqlConnectionBase
 {
     friend class SqlConnection;

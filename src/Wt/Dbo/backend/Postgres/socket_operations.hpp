@@ -47,7 +47,7 @@ protected:
 
           boost::asio::post(derived().socket().get_executor(), [this, io_ctx, handler = std::move(handler)] () mutable {
 
-              auto wrapped_handler = [handler = std::move(handler), io_ctx, r = std::make_shared<result>(nullptr)](auto&& res) mutable {
+              auto wrapped_handler = [this, handler = std::move(handler), io_ctx, r = std::make_shared<result>(nullptr)](auto&& res) mutable {
                   if (!res.done()) {
 
                       if(res.status() == result::status_t::PIPELINE_SYNC)
