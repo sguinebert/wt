@@ -5,7 +5,7 @@
  */
 
 #include "Wt/Dbo/backend/Sqlite3.h"
-#include "Wt/Dbo/Logger.h"
+#include "Wt/Dbo/io/Logger.h"
 #include "Wt/fmt/format.h"
 
 #ifdef SQLITE3_BDB

@@ -5,7 +5,7 @@
  */
 #include "Wt/Dbo/backend/MSSQLServer.h"
 
-#include "Wt/Dbo/Logger.h"
+#include "Wt/Dbo/io/Logger.h"
 #include "Wt/Dbo/backend/MSSql/MSSQLStatement.h"
 
 #include "Wt/Date/date.h"

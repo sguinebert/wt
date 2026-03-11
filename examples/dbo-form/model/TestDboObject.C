@@ -5,7 +5,7 @@
  */
 #include "TestDboObject.h"
 
-#include <Wt/Dbo/Impl.h>
+#include <Wt/Dbo/Dbo.h>
 
 DBO_INSTANTIATE_TEMPLATES(TestDboPtr)
 DBO_INSTANTIATE_TEMPLATES(TestDboObject)

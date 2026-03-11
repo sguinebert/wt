@@ -96,11 +96,12 @@ IF(ENABLE_LIBWTDBO)
     session/Transaction.h session/Transaction.cpp
     session/Call.h session/Call.cpp
 
-    # root
-    Json.h Json.cpp
-    EscapeOStream.h EscapeOStream.cpp
-    Logger.h Logger.cpp
-    Redis.h Redis.cpp
+    # io/
+    io/Json.h
+    io/Logger.h
+
+    # backend helpers
+    backend/Redis.h backend/Redis.cpp
   )
 
   SET_PROPERTY(TARGET wtdbo PROPERTY C_VISIBILITY_PRESET hidden)
@@ -173,6 +174,7 @@ IF(ENABLE_LIBWTDBO)
 
   INSTALL_FILES(/include/Wt/Dbo "^[^.]+\\.h$")
   INSTALL_FILES(/include/Wt/Dbo/core "^[^.]+\\.h$")
+  INSTALL_FILES(/include/Wt/Dbo/io "^[^.]+\\.h$")
   INSTALL_FILES(/include/Wt/Dbo/sql "^[^.]+\\.h$")
   INSTALL_FILES(/include/Wt/Dbo/reflect "^[^.]+\\.h$")
   INSTALL_FILES(/include/Wt/Dbo/session "^[^.]+\\.h$")

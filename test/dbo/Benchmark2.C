@@ -8,8 +8,8 @@
 
 #include <Wt/Dbo/Dbo.h>
 #include <Wt/WDateTime.h>
-#include <Wt/Dbo/WtSqlTraits.h>
-#include <Wt/Dbo/QueryModel.h>
+#include <Wt/Dbo/sql/WtTraits.h>
+#include <Wt/Dbo/session/QueryModel.h>
 
 #include "DboFixture.h"
 

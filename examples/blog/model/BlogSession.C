@@ -20,7 +20,7 @@
 #include <Wt/Auth/PasswordVerifier.h>
 #include <Wt/Auth/GoogleService.h>
 
-#include <Wt/Dbo/FixedSqlConnectionPool.h>
+#include <Wt/Dbo/sql/FixedPool.h>
 
 #ifndef WT_WIN32
 #include <unistd.h>

@@ -7,7 +7,7 @@
 #ifndef QUERY_SELECTION_BOX_H_
 #define QUERY_SELECTION_BOX_H_
 
-#include <Wt/Dbo/QueryModel.h>
+#include <Wt/Dbo/session/QueryModel.h>
 #include <Wt/WSelectionBox.h>
 
 template<class C>

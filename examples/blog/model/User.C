@@ -9,7 +9,7 @@
 #include "Tag.h"
 #include "Token.h"
 
-#include <Wt/Dbo/Impl.h>
+#include <Wt/Dbo/Dbo.h>
 
 #include <string>
 

@@ -13,7 +13,7 @@
 #include <Wt/WPushButton.h>
 #include <Wt/WRegExpValidator.h>
 
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 
 using namespace Wt;
 using namespace Wt::Dbo;

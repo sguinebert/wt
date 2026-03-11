@@ -10,7 +10,7 @@
 #include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/backend/WDboMySQLDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/WLogger.h>
+#include <Wt/Dbo/io/Logger.h>
 
 #include <Wt/cpp20/date.hpp>
 #include <Wt/cpp20/async_mutex.hpp>
@@ -247,12 +247,9 @@ public:
             return;
 
 #ifdef WT_DEBUG_ENABLED
-        if (WT_LOGGING("debug", WT_LOGGER)) {
-            const auto micros = std::chrono::duration_cast<std::chrono::microseconds>(
-              value.time_since_epoch()).count();
-            WT_LOG("debug") << WT_LOGGER << ": " << this << " bind " << column
-                            << " " << micros << "us";
-        }
+        const auto micros = std::chrono::duration_cast<std::chrono::microseconds>(
+          value.time_since_epoch()).count();
+        LOG_DEBUG("{} bind {} {}us", static_cast<const void*>(this), column, micros);
 #endif
         auto t = std::chrono::time_point_cast<std::chrono::microseconds>(value);
         params_[column] = mysql::datetime(t);

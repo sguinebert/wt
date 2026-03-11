@@ -12,7 +12,7 @@
 #include <Wt/WDate.h>
 #include <Wt/WDateTime.h>
 #include <Wt/WTime.h>
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 #include <Wt/Dbo/ptr_tuple.h>
 
 #include "DboFixture.h"

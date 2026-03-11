@@ -6,6 +6,7 @@
 #include "Wt/Dbo/session/Query.h"
 #include "Wt/Dbo/session/Query_impl.h"
 #include "Wt/Dbo/core/Error.h"
+#include "Wt/Dbo/io/Logger.h"
 
 #include <boost/version.hpp>
 
@@ -234,17 +235,10 @@ struct sql_query_grammar : qi::grammar<Iterator, ascii::space_type>
             Iterator const&,
             qi::info const&> args,
        qi::unused_type, qi::unused_type) {
-      if (Wt::Dbo:://LOGGing("error", Wt::Dbo:://LOGGer)) {
-        boost::spirit::operator<<(
-                  Wt::Dbo::log("error") <<
-                  Wt::Dbo:://LOGGer << ": "
-                  << "Error parsing SQL query: expected ",
-                  boost::fusion::at_c<3>(args))
-                  << " here: \""
-                  << std::string(boost::fusion::at_c<2>(args),
-                                 boost::fusion::at_c<1>(args))
-                  << "\"\n";
-      }
+      const auto nearText =
+        std::string(boost::fusion::at_c<2>(args), boost::fusion::at_c<1>(args));
+      LOG_ERROR("Error parsing SQL query near: \"{}\"", nearText);
+      fmtlog::poll();
     });
   }
 

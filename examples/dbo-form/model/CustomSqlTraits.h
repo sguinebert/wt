@@ -7,8 +7,8 @@
 #ifndef CUSTOM_SQL_TRAITS_H_
 #define CUSTOM_SQL_TRAITS_H_
 
-#include <Wt/Dbo/SqlConnection.h>
-#include <Wt/Dbo/SqlStatement.h>
+#include <Wt/Dbo/sql/Connection.h>
+#include <Wt/Dbo/sql/Statement.h>
 
 struct Text {
   Wt::WString content = "";

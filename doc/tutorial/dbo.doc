@@ -101,7 +101,7 @@ types can be found in the documentation of +{doc}structWt_1_1Dbo_1_1sql\__value\
 types can be added by specializing
 +{doc}structWt_1_1Dbo_1_1sql\__value__traits.html[Wt::Dbo::sql_value_traits<T>]+.
 There is also support for built-in Wt types such as WDate, WDateTime, WTime and 
-WString which can be enabled by including +<Wt/Dbo/WtSqlTraits.h>+.
+WString which can be enabled by including +<Wt/Dbo/sql/WtTraits.h>+.
 
 The library defines a number of actions which will be applied to a
 database object using its +persist()+ method, which applies it in turn

@@ -2,8 +2,8 @@
 
 #include <string>
 #include <Wt/WDateTime.h>
-#include <Wt/Dbo/Impl.h>
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/Dbo.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 
 #include "User.h"
 #include "OAuthClient.h"

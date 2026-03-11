@@ -7,9 +7,9 @@
 #ifndef USER_H_
 #define USER_H_
 
-#include <Wt/Dbo/Types.h>
+#include <Wt/Dbo/Dbo.h>
 #include <Wt/WDate.h>
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 #include <Wt/WGlobal.h>
 #include <Wt/Auth/Dbo/AuthInfo.h>
 

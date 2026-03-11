@@ -1,7 +1,6 @@
 #include <Wt/Dbo/session/Call.h>
 #include <Wt/Dbo/session/Session.h>
 #include <Wt/Dbo/sql/Statement.h>
-#include <Wt/WLogger.h>
 
 namespace Wt {
   namespace Dbo {

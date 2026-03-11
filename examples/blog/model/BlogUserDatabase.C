@@ -4,7 +4,7 @@
  * See the LICENSE file for terms of use.
  */
 
-#include <Wt/Dbo/Impl.h>
+#include <Wt/Dbo/Dbo.h>
 #include <Wt/Auth/Identity.h>
 
 #include "BlogUserDatabase.h"

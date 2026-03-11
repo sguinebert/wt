@@ -7,7 +7,7 @@
 #ifndef TAG_H_
 #define TAG_H_
 
-#include <Wt/Dbo/Types.h>
+#include <Wt/Dbo/Dbo.h>
 
 class Post;
 

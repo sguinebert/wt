@@ -11,7 +11,7 @@
 #include "Wt/Dbo/sql/Connection.h"
 //#include "Wt/Dbo/backend/connection.hpp"//#include "Wt/Dbo/sql/Connection.h"
 #include "Wt/Dbo/session/Transaction.h"
-#include "Wt/Dbo/Logger.h"
+#include "Wt/Dbo/io/Logger.h"
 
 namespace Wt {
   namespace Dbo {

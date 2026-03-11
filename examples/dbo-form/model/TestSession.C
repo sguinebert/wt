@@ -7,8 +7,8 @@
 
 #include "TestDboObject.h"
 
-#include <Wt/Dbo/FixedSqlConnectionPool.h>
-#include <Wt/Dbo/SqlConnection.h>
+#include <Wt/Dbo/sql/FixedPool.h>
+#include <Wt/Dbo/sql/Connection.h>
 #include <Wt/Dbo/backend/Sqlite3.h>
 
 std::unique_ptr<Wt::Dbo::SqlConnectionPool> TestSession::createConnectionPool(const std::string& sqliteDb)

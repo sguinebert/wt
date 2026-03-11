@@ -6,13 +6,13 @@
 #include <Wt/Dbo/backend/Sqlite3.h>
 #include <Wt/Dbo/backend/Firebird.h>
 #include <Wt/Dbo/backend/MSSQLServer.h>
-#include <Wt/Dbo/FixedSqlConnectionPool.h>
+#include <Wt/Dbo/sql/FixedPool.h>
 #include <Wt/WDate.h>
 #include <Wt/WDateTime.h>
 #include <Wt/WTime.h>
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 #include <Wt/Dbo/ptr_tuple.h>
-#include <Wt/Dbo/QueryModel.h>
+#include <Wt/Dbo/session/QueryModel.h>
 
 namespace dbo = Wt::Dbo;
 

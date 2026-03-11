@@ -9,8 +9,8 @@
 
 #include <Wt/WDateTime.h>
 
-#include <Wt/Dbo/Types.h>
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/Dbo.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 
 class Comment;
 class Post;

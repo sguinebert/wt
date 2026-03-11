@@ -10,7 +10,7 @@
 #include <Wt/WApplication.h>
 #include <Wt/WLogger.h>
 
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 
 using namespace Wt::Dbo;
 

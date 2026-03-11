@@ -7,7 +7,7 @@
 #ifndef USER_H_
 #define USER_H_
 
-#include <Wt/Dbo/Types.h>
+#include <Wt/Dbo/Dbo.h>
 
 #include "Post.h"
 #include "Token.h"

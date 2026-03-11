@@ -16,7 +16,7 @@
 #include "Wt/Dbo/backend/Postgres.h"
 #include "Wt/Dbo/backend/Postgres/PostgresStatement.h"
 //#include "Wt/Dbo/core/Exception.h"
-//#include "Wt/Dbo/Logger.h"
+//#include "Wt/Dbo/io/Logger.h"
 
 //#include <libpq-fe.h>
 //#include <cerrno>

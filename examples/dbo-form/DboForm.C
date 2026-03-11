@@ -14,7 +14,7 @@
 #include <Wt/WServer.h>
 
 #include <Wt/Dbo/Dbo.h>
-#include <Wt/Dbo/FixedSqlConnectionPool.h>
+#include <Wt/Dbo/sql/FixedPool.h>
 
 #include <Wt/Form/Dbo/FormModel.h>
 #include <Wt/Form/Dbo/FormView.h>

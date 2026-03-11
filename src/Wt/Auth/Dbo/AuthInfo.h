@@ -12,7 +12,7 @@
 #ifndef WT_AUTH_DBO_EXTERN_TEMPLATES
 #include <Wt/Dbo/Dbo.h>
 #else
-#include <Wt/Dbo/Types.h>
+#include <Wt/Dbo/Dbo.h>
 #endif
 
 #include <Wt/Dbo/sql/WtTraits.h>

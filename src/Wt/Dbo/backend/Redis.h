@@ -12,7 +12,6 @@
 #include <Wt/AsioWrapper/asio.hpp>
 #include <boost/redis.hpp>
 #include <boost/redis/src.hpp>
-//#include <Wt/WLogger.h>
 
 //#include <chrono>
 namespace Wt {

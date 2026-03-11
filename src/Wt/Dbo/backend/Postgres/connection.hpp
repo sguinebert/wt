@@ -8,8 +8,8 @@
 #include <vector>
 #include <cstdlib>
 
-#include <Wt/Dbo/SqlConnectionBase.h>
-#include <Wt/Dbo/SqlStatement.h>
+#include <Wt/Dbo/sql/ConnectionBase.h>
+#include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/core/Error.h>
 #include <Wt/Dbo/backend/WDboPostgresDllDefs.h>
 #include <Wt/cpp20/async_mutex.hpp>

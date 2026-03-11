@@ -7,7 +7,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <Wt/Dbo/Dbo.h>
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 
 #include "DboFixture.h"
 

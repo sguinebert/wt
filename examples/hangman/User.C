@@ -7,7 +7,7 @@
 #include "User.h"
 
 #include <Wt/Auth/Dbo/AuthInfo.h>
-#include <Wt/Dbo/Impl.h>
+#include <Wt/Dbo/Dbo.h>
 
 DBO_INSTANTIATE_TEMPLATES(User);
 

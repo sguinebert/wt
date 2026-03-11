@@ -8,7 +8,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <Wt/Dbo/Dbo.h>
-#include <Wt/Dbo/Json.h>
+#include <Wt/Dbo/io/Json.h>
 #include <Wt/Dbo/backend/Sqlite3.h>
 
 #include <Wt/WGlobal.h>

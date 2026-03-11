@@ -8,7 +8,7 @@
 #define BLOG_USER_DATABASE_H_
 
 #include <Wt/Auth/AbstractUserDatabase.h>
-#include <Wt/Dbo/Types.h>
+#include <Wt/Dbo/Dbo.h>
 
 class User;
 

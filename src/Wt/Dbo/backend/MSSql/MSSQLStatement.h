@@ -10,7 +10,7 @@
 #include <Wt/Dbo/sql/Statement.h>
 //#include <Wt/Dbo/backend/WDboMSSQLDllDefs.h>
 #include <Wt/AsioWrapper/asio.hpp>
-#include <Wt/WLogger.h>
+#include <Wt/Dbo/io/Logger.h>
 
 namespace Wt {
 namespace Dbo {

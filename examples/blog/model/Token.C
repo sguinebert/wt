@@ -7,7 +7,7 @@
 #include "Token.h"
 #include "User.h"
 
-#include <Wt/Dbo/Impl.h>
+#include <Wt/Dbo/Dbo.h>
 
 DBO_INSTANTIATE_TEMPLATES(Token)
 

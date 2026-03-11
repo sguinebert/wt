@@ -6,13 +6,13 @@
 #include <boost/test/unit_test.hpp>
 
 #include <Wt/Dbo/Dbo.h>
-#include <Wt/Dbo/FixedSqlConnectionPool.h>
+#include <Wt/Dbo/sql/FixedPool.h>
 #include <Wt/WDate.h>
 #include <Wt/WDateTime.h>
 #include <Wt/WTime.h>
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 #include <Wt/Dbo/ptr_tuple.h>
-#include <Wt/Dbo/QueryModel.h>
+#include <Wt/Dbo/session/QueryModel.h>
 
 #include "DboFixture.h"
 

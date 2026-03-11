@@ -14,7 +14,7 @@
 #endif // WT_DBO_LOGGER
 
 #ifdef WT_DBO_LOGGER
-#include <Wt/Dbo/StringStream.h>
+#include <Wt/WStringStream.h>
 #endif // WT_DBO_LOGGER
 
 #include <iostream>

@@ -17,7 +17,7 @@
 //#include <boost/mysql/src
 
 //#include "Wt/Dbo/core/Exception.h"
-#include "Wt/Dbo/Logger.h"
+#include "Wt/Dbo/io/Logger.h"
 
 //#include "Wt/cpp20/date.hpp"
 

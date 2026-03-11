@@ -7,8 +7,8 @@
 #ifndef TEST_DBO_OBJECT_H_
 #define TEST_DBO_OBJECT_H_
 
-#include <Wt/Dbo/Types.h>
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/Dbo.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 
 #include <Wt/WDate.h>
 #include <Wt/WDateTime.h>

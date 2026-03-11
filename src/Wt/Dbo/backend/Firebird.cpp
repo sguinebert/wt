@@ -7,7 +7,7 @@
  */
 #include <Wt/Dbo/backend/Firebird.h>
 
-#include "Wt/Dbo/Logger.h"
+#include "Wt/Dbo/io/Logger.h"
 #include "Wt/Dbo/sql/Util.h"
 
 #include <cstdio>

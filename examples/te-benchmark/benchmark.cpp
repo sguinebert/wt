@@ -13,7 +13,7 @@
 #include <Wt/Utils.h>
 
 #include <Wt/Dbo/Dbo.h>
-#include <Wt/Dbo/Json.h>
+#include <Wt/Dbo/io/Json.h>
 #ifndef BENCHMARK_USE_POSTGRES
 #include <Wt/Dbo/backend/MySQL.h>
 #else

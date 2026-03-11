@@ -10,8 +10,8 @@
 #include <Wt/WDate.h>
 #include <Wt/WString.h>
 
-#include <Wt/Dbo/Types.h>
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <Wt/Dbo/Dbo.h>
+#include <Wt/Dbo/sql/WtTraits.h>
 
 #include "Comment.h"
 #include "Tag.h"

@@ -7,7 +7,7 @@
 #ifndef QUERY_COMBO_H_
 #define QUERY_COMBO_H_
 
-#include <Wt/Dbo/QueryModel.h>
+#include <Wt/Dbo/session/QueryModel.h>
 #include <Wt/WComboBox.h>
 
 template<class C>

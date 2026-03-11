@@ -10,7 +10,7 @@
 #include "User.h"
 #include "Comment.h"
 
-#include <Wt/Dbo/Impl.h>
+#include <Wt/Dbo/Dbo.h>
 
 DBO_INSTANTIATE_TEMPLATES(Tag)
 

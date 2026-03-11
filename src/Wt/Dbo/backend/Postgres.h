@@ -11,7 +11,7 @@
 #include <Wt/Dbo/sql/ConnectionBase.h>
 #include <Wt/Dbo/sql/Statement.h>
 #include <Wt/Dbo/backend/WDboPostgresDllDefs.h>
-#include <Wt/WLogger.h>
+#include <Wt/Dbo/io/Logger.h>
 
 #include <chrono>
 

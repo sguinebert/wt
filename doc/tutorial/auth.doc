@@ -220,7 +220,7 @@ type is as given below:
 .User.h
 [source,cpp]
 ----
-#include <Wt/Dbo/Types.h>
+#include <Wt/Dbo/Dbo.h>
 #include <Wt/WGlobal.h>
 
 namespace dbo = Wt::Dbo;
@@ -260,7 +260,7 @@ persistence/authentication +Session+ object.
 #include <Wt/Auth/Login.h>
 #include <Wt/Auth/UserDatabase.h>
 
-#include <Wt/Dbo/Session.h>
+#include <Wt/Dbo/session/Session.h>
 #include <Wt/Dbo/ptr.h>
 
 #include "User.h"
