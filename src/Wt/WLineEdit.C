@@ -63,7 +63,7 @@ void WLineEdit::setText(const WT_USTRING& text)
     content_ = newText;
     displayContent_ = newDisplayText;
 
-    if (isRendered() && !inputMask_.empty()) {
+    if (isRendered() && !inputMask_.empty() && javaScriptDefined_) {
       doJavaScript(jsRef() + ".wtLObj"
          ".setValue(" + WWebWidget::jsStringLiteral(newDisplayText) + ");");
     }
