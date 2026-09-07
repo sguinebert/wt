@@ -441,55 +441,133 @@ EOF"""
                         }
                     }
                 }
-                stage('Clean-dist') {
-                    steps {
-                        script {
-                            last_gitlab_stage = "Wt Port - Java Build"
+
+                stage('Javax') {
+                    stages {
+                        stage('Clean-dist') {
+                            steps {
+                                script {
+                                    last_gitlab_stage = "Wt Port - Javax - Build"
+                                }
+                                updateGitlabCommitStatus name: 'Wt Port - Javax - Build', state: 'running'
+                                dir('wt-port/java') {
+                                    sh "make CLASSIFIER=javax clean-dist -j${thread_count}"
+                                    dir('examples') {
+                                        sh 'ant'
+                                    }
+                                }
+                            }
+                            post {
+                                failure {
+                                    updateGitlabCommitStatus name: 'Wt Port - Javax - Build', state: 'failed'
+                                }
+                                success {
+                                    updateGitlabCommitStatus name: 'Wt Port - Javax - Build', state: 'success'
+                                }
+                                aborted {
+                                    updateGitlabCommitStatus name: 'Wt Port - Javax - Build', state: 'canceled'
+                                }
+                            }
                         }
-                        updateGitlabCommitStatus name: 'Wt Port - Java Build', state: 'running'
-                        dir('wt-port/java') {
-                            sh "make clean-dist -j${thread_count}"
-                            dir('examples') {
-                                sh 'ant'
+                        stage('Test') {
+                            steps {
+                                script {
+                                    last_gitlab_stage = "Wt Port - Javax - Test"
+                                }
+                                updateGitlabCommitStatus name: 'Wt Port - Javax - Test', state: 'running'
+                                dir('wt-port/java') {
+                                    warnError('tests failed') {
+                                        sh 'ant test'
+                                    }
+                                }
+                            }
+                            post {
+                                failure {
+                                    updateGitlabCommitStatus name: 'Wt Port - Javax - Test', state: 'failed'
+                                }
+                                success {
+                                    updateGitlabCommitStatus name: 'Wt Port - Javax - Test', state: 'success'
+                                }
+                                aborted {
+                                    updateGitlabCommitStatus name: 'Wt Port - Javax - Test', state: 'canceled'
+                                }
+                                unstable {
+                                    updateGitlabCommitStatus name: 'Wt Port - Javax - Test', state: 'failed'
+                                }
                             }
                         }
                     }
                     post {
-                        failure {
-                            updateGitlabCommitStatus name: 'Wt Port - Java Build', state: 'failed'
+                        always {
+                            junit allowEmptyResults: true, testResults: 'wt-port/java/report/TEST-eu.webtoolkit.jwt*.xml'
                         }
                         success {
-                            updateGitlabCommitStatus name: 'Wt Port - Java Build', state: 'success'
-                        }
-                        aborted {
-                            updateGitlabCommitStatus name: 'Wt Port - Java Build', state: 'canceled'
+                            archiveArtifacts artifacts: 'wt-port/java/dist/*.jar,wt-port/java/*.pom', fingerprint: true
                         }
                     }
                 }
-                stage('Test') {
-                    steps {
-                        script {
-                            last_gitlab_stage = "Wt Port - Java Test"
+
+                stage('Jakarta') {
+                    stages {
+                        stage('Clean-dist') {
+                            steps {
+                                script {
+                                    last_gitlab_stage = "Wt Port - Jakarta - Build"
+                                }
+                                updateGitlabCommitStatus name: 'Wt Port - Jakarta - Build', state: 'running'
+                                dir('wt-port/java') {
+                                    sh "make CLASSIFIER=jakarta clean-dist -j${thread_count}"
+                                    dir('examples') {
+                                        sh 'ant'
+                                    }
+                                }
+                            }
+                            post {
+                                failure {
+                                    updateGitlabCommitStatus name: 'Wt Port - Jakarta - Build', state: 'failed'
+                                }
+                                success {
+                                    updateGitlabCommitStatus name: 'Wt Port - Jakarta - Build', state: 'success'
+                                }
+                                aborted {
+                                    updateGitlabCommitStatus name: 'Wt Port - Jakarta - Build', state: 'canceled'
+                                }
+                            }
                         }
-                        updateGitlabCommitStatus name: 'Wt Port - Java Test', state: 'running'
-                        dir('wt-port/java') {
-                            warnError('tests failed') {
-                                sh 'ant test'
+                        stage('Test') {
+                            steps {
+                                script {
+                                    last_gitlab_stage = "Wt Port - Jakarta - Test"
+                                }
+                                updateGitlabCommitStatus name: 'Wt Port - Jakarta - Test', state: 'running'
+                                dir('wt-port/java') {
+                                    warnError('tests failed') {
+                                        sh 'ant test'
+                                    }
+                                }
+                            }
+                            post {
+                                failure {
+                                    updateGitlabCommitStatus name: 'Wt Port - Jakarta - Test', state: 'failed'
+                                }
+                                success {
+                                    updateGitlabCommitStatus name: 'Wt Port - Jakarta - Test', state: 'success'
+                                }
+                                aborted {
+                                    updateGitlabCommitStatus name: 'Wt Port - Jakarta - Test', state: 'canceled'
+                                }
+                                unstable {
+                                    updateGitlabCommitStatus name: 'Wt Port - Jakarta - Test', state: 'failed'
+                                }
                             }
                         }
                     }
                     post {
-                        failure {
-                            updateGitlabCommitStatus name: 'Wt Port - Java Test', state: 'failed'
+                        always {
+                            junit allowEmptyResults: true, testResults: 'wt-port/java/report/TEST-eu.webtoolkit.jwt*.xml'
                         }
                         success {
-                            updateGitlabCommitStatus name: 'Wt Port - Java Test', state: 'success'
-                        }
-                        aborted {
-                            updateGitlabCommitStatus name: 'Wt Port - Java Test', state: 'canceled'
-                        }
-                        unstable {
-                            updateGitlabCommitStatus name: 'Wt Port - Java Test', state: 'failed'
+                            archiveArtifacts artifacts: 'wt-port/java/dist/*.jar,wt-port/java/*.pom', fingerprint: true
                         }
                     }
                 }
@@ -497,7 +575,6 @@ EOF"""
             post {
                 success {
                     updateGitlabCommitStatus name: 'Overarching Pipeline', state: 'success'
-                    archiveArtifacts artifacts: 'wt-port/java/dist/*.jar,wt-port/java/*.pom', fingerprint: true
                 }
                 aborted {
                     updateGitlabCommitStatus name: 'Overarching Pipeline', state: 'canceled'
